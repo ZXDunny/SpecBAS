@@ -6553,8 +6553,8 @@ Begin
           Inc(CURSORPOS);
       End;
     Found := SP_FindFPLineStatement(SP_GetLineNumberFromText(Listing[LineNum]), St);
-    Listing.FPCLine := Found.Y;
-    Listing.FPCPos := Found.X;
+    Listing.FPCLine := Found.X;
+    Listing.FPCPos := Found.Y;
     While Listing[Listing.FPCLine][Listing.FPCPos] <= ' ' Do Listing.FPCPos := Listing.FPCPos +1;
     Listing.FPSelLine := Listing.FPCLine;
     Listing.FPSelPos := Listing.FPCPos;

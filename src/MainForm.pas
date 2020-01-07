@@ -134,6 +134,7 @@ Begin
   While not DisplaySection.TryEnter Do
     TThread.Sleep(1);
 
+  GLInitDone := False;
   cw := ClientWidth;
   ch := ClientHeight;
   l := SmallInt(Msg.wParam And $FFFF);
@@ -149,8 +150,6 @@ Begin
     Top := t;
   finally
     SendMessage(Handle, WM_SETREDRAW, WPARAM(True), 0);
-    If (cw = w) And (ch = h) Then
-      GLInitDone := False;
   End;
 
   Msg.Result := 0;
@@ -313,11 +312,12 @@ Begin
 
   {$IFDEF OPENGL}
 
-    DC := wglGetCurrentDC;
-    If Not GLInitDone or (DC = 0) Then Begin
+    If Not GLInitDone Then Begin
       InitGL;
       Main.FormResize(Main);
     End;
+
+    DC := wglGetCurrentDC;
 
     glDisable(gl_MULTISAMPLE_ARB);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -1098,7 +1098,7 @@ Var
 {$ENDIF}
 begin
 
-  If Not (Quitting) Then Begin
+  If Not (Quitting) and GLInitDone Then Begin
 
     DisplaySection.Enter;
 
@@ -1172,9 +1172,6 @@ begin
 
   DisplaySection.Enter;
 
-  {$IFDEF OPENGL}
-  InitGL;
-  {$ENDIF}
   PCOUNT := ParamCount;
   PARAMS := TStringList.Create;
   For Idx := 0 To PCOUNT Do

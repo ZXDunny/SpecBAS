@@ -101,7 +101,12 @@ Begin
   If Enabled Then Begin
     bClr := fBorderClr;
     cClr := fCheckColor;
-    capClr := fFontClr;
+    If fFocused Then Begin
+      capClr := SP_FocusTextClr;
+      cClr := SP_FocusTextClr;
+    End Else
+      capClr := fFontClr;
+
   End Else Begin
     bClr := fDisabledFontClr;
     cClr := fDisabledFontClr;
@@ -112,8 +117,10 @@ Begin
   dw := iFW + 8 + (iFW * Length(Caption));
   dY := (fHeight - iFH) Div 2;
   If fGroupIndex = 0 Then Begin
-    If fBorder Then DrawRect(0, dy - 2, 3 + iFW, dY + IfH + 1, bClr);
-    If Checked Then PRINT(2, dy, #246, cClr, -1, iSX, iSY, False, False);
+    If fBorder Then
+      DrawRect(0, dy - 2, 3 + iFW, dY + IfH + 1, bClr);
+    If Checked Then
+      PRINT(2, dy, #246, cClr, -1, iSX, iSY, False, False);
   End Else Begin
     iSC := Min(iSX, iSY);
     iH := Min(iFW, iFH);

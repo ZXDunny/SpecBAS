@@ -37,6 +37,7 @@ SP_VisibleEvent = Procedure of Object;
 SP_PopUpEvent = Procedure (Sender: SP_BaseComponent) of Object;
 SP_ActivateEvent = Procedure of Object;
 SP_DeactivateEvent = Procedure of Object;
+SP_FocusEvent = Procedure(Sender: SP_BaseComponent; WillFocus: Boolean) of Object;
 
 SP_ParentType = (spControl, spWindow);
 SP_TabPosition = (spTop, spBottom);
@@ -100,6 +101,7 @@ SP_BaseComponent = Class
     fOnExit:  SP_ExitEvent;
     fOnShow:  SP_VisibleEvent;
     fOnHide:  SP_VisibleEvent;
+    fOnFocus: SP_FocusEvent;
     fName: aString;
     fBorder: Boolean;
     fBorderClr: Byte;
@@ -178,6 +180,7 @@ SP_BaseComponent = Class
     Procedure Lock; Virtual;
     Procedure Unlock; Virtual;
     Procedure ChangeFont;
+    Procedure SetChainControl(c: SP_BaseComponent); Virtual;
 
     Property Align:         Integer             read fAlign         write SetAlign;
     Property Anchors:       SP_AnchorSet        read fAnchors       write fAnchors;
@@ -207,7 +210,7 @@ SP_BaseComponent = Class
     Property CanFocus:      Boolean             read fCanFocus      write fCanFocus;
     Property Focused:       Boolean             read fFocused       write SetFocus;
     Property OnDblClick:    SP_MouseEvent       read fOnDblClick    write fOnDblClick;
-    Property ChainControl:  SP_BaseComponent    read fChainControl  write fChainControl;
+    Property ChainControl:  SP_BaseComponent    read fChainControl  write SetChainControl;
     Property OnClick:       SP_ClickEvent       read fOnClick       write fOnClick;
     Property OnAbort:       SP_AbortEvent       read fOnAbort       write fOnAbort;
     Property OnEnter:       SP_EnterEvent       read fOnEnter       write fOnEnter;
@@ -226,6 +229,7 @@ SP_BaseComponent = Class
     Property UnfocusedHighlightClr: Byte        read fUnfocusedHighlightClr write SetUnfocusedHighlightClr;
     Property Transparent:   Boolean             read fTransparent   write SetTransparent;
     property OverrideScaling: Boolean           read fOverrideScl   write SetOverrideScaling;
+    Property OnFocus: SP_FocusEvent             read fOnFocus       write fOnFocus;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -253,6 +257,13 @@ Uses
 
   SP_Main, SP_Input, SP_Graphics, SP_BankFiling, SP_BankManager, SP_SysVars, SP_Errors,
   SP_PopUpMenuUnit, SP_Components;
+
+Procedure SP_BaseComponent.SetChainControl(c: SP_BaseComponent);
+Begin
+
+  fChainControl := c;
+
+End;
 
 Procedure SP_BaseComponent.SetOverrideScaling(b: Boolean);
 Begin
@@ -834,7 +845,10 @@ Begin
     Inc(x1); Inc(y1);
   End;
 
-  FillRect(x1, y1, x2, y2, SP_UIBtnBack);
+  If fFocused Then
+    FillRect(x1, y1, x2, y2, SP_UIBtnBackFocus)
+  Else
+    FillRect(x1, y1, x2, y2, SP_UIBtnBack);
   DrawLine(x1, y1, x2 -1, y1, SP_UIHighlight);
   DrawLine(x1, y1 +1, x1, y2 -1, SP_UIHighlight);
   SetPixel(x1, y2, SP_UIHalfLight);
@@ -953,7 +967,7 @@ Begin
   fVisible := True;
   fErase := True;
   fNeedPaint := False;
-  fCanFocus := False;
+  fCanFocus := True;
   fBorder := True;
   fMinWidth := 0;
   fMinHeight := 0;
@@ -1210,16 +1224,18 @@ Begin
 
   If (b And not CanFocus) or Not ParentCanFocus Then Exit;
 
-  c := FocusedControl;
-  If Assigned(FocusedControl) And (FocusedControl <> Self) And b Then
-    FocusedControl.SetFocus(False);
-  If b Then
-    FocusedControl := Self
-  Else
-    FocusedControl := nil;
-  If (fFocused <> b) or (c <> FocusedControl) then Begin
-    fFocused := b;
-    Paint;
+  If fEnabled Then Begin
+    c := FocusedControl;
+    If Assigned(FocusedControl) And (FocusedControl <> Self) And b Then
+      FocusedControl.SetFocus(False);
+    If b Then
+      FocusedControl := Self
+    Else
+      FocusedControl := nil;
+    If (fFocused <> b) or (c <> FocusedControl) then Begin
+      fFocused := b;
+      Paint;
+    End;
   End;
 
 End;
@@ -1870,6 +1886,9 @@ Begin
     fMouseClickPos := Point(X, Y);
     fMouseLastBtn := Btn;
     fMouseClickTime := FRAMES;
+
+    If fCanFocus Then
+      SetFocus(True);
 
     If Assigned(fOnMouseDown) And Not Dbl Then
       fOnMouseDown(X, Y, Btn);

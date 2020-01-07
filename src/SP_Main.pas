@@ -50,7 +50,7 @@ Type
   TCB_InitSticks = Procedure;
   TCB_ReleaseSticks = Procedure;
 
-Procedure SP_FrameUpdate;
+Function  SP_FrameUpdate: Boolean;
 Procedure DoAutoSave(Var Error: TSP_ErrorCode);
 Procedure SP_MainLoop;
 Procedure SP_CleanUp;
@@ -104,26 +104,22 @@ Begin
 
 End;
 
-Procedure SP_FrameUpdate;
+Function SP_FrameUpdate: Boolean;
 Var
    Err: TSP_ErrorCode;
 Begin
 
   // Changes the FLASH sysvar once every 16 frames.
 
+  Result := False;
+
   If FRAMES Mod FLASHINTERVAL = 0 Then Begin
     FLASHSTATE := 1 - FLASHSTATE;
     If SYSTEMSTATE in [SS_EDITOR, SS_INPUT] Then
       SP_NeedDisplayUpdate := True;
-  End Else
-    If NUMSPRITES > 0 Then
-      SP_NeedDisplayUpdate := True;
-
-  If SP_NeedDisplayUpdate And Not SCREENLOCK Then Begin
-    SP_NeedDisplayUpdate := False;
-    CauseUpdate := True;
   End;
 
+  Result := (NUMSPRITES > 0) or (SP_NeedDisplayUpdate And Not SCREENLOCK);
   FrameElapsed := True;
 
   Inc(AutoFrameCount);
@@ -138,7 +134,9 @@ End;
 Procedure DoAutoSave(Var Error: TSP_ErrorCode);
 Begin
   If AUTOSAVE And (Error.Code = SP_ERR_OK) Then Begin
+    FileSection.Enter;
     SP_SaveProgram('s:autosave', -1, Error);
+    FileSection.Leave;
     Error.Code := SP_ERR_OK;
   End;
 End;

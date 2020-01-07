@@ -39,6 +39,7 @@ SP_ComboBox = Class(SP_BaseComponent)
     Procedure SetFontClr(c: Byte); Override;
     Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetDisabledFontClr(c: Byte); Override;
+    Procedure SetChainControl(c: SP_BaseComponent); Override;
 
   Public
 
@@ -104,10 +105,22 @@ Begin
 
 End;
 
+Procedure SP_ComboBox.SetChainControl(c: SP_BaseComponent);
+Begin
+
+  Edit.ChainControl := c;
+  Menu.ChainControl := c;
+  Inherited;
+
+End;
+
 Procedure SP_ComboBox.SetFocus(b: Boolean);
 Begin
 
-  Edit.SetFocus(b);
+  If fEditable Then
+    Edit.SetFocus(b)
+  Else
+    Btn.SetFocus(b);
 
 End;
 
@@ -317,15 +330,15 @@ Var
   i: Integer;
 Begin
 
-  Edit.Text := s;
-  Labl.Caption := s;
-  s := Lower(s);
   fItemIndex := -1;
   For i := 0 To Length(Menu.fItems) -1 Do
-    if Lower(Menu.fItems[i].Caption) = s Then Begin
+    if Lower(Menu.fItems[i].Caption) = Lower(s) Then Begin
       fItemIndex := i;
       Break;
     End;
+
+  Edit.Text := s;
+  Labl.Caption := s;
 
 End;
 

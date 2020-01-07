@@ -114,6 +114,7 @@ Const
   SP_UIHalfLight                  = 245;
   SP_UIShadow                     = 240;
   SP_UIBtnBack                    = 242;
+  SP_UIBtnBackFocus               = 248;
   SP_UIText                       = 0;
   SP_UITextDisabled               = 8;
   SP_UITrack                      = 244;
@@ -128,6 +129,7 @@ Const
   SP_UIScrollTrack                = 8;
   SP_UIScrollBtn                  = 0;
   SP_UIWindowBack                 = 15;
+  SP_FocusTextClr                 = 1;
 
   SP_ScrollWheelValue             = 3;
 

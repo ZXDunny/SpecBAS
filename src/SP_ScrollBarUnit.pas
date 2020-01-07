@@ -134,6 +134,7 @@ Begin
   fMouseTimer := -1;
   iSX := 1; iSY := 1;
   iFH := FONTHEIGHT; iFW := FONTWIDTH;
+  fCanFocus := False;
   Paint;
 
 End;

@@ -61,6 +61,9 @@ Type
     Caption: aString;
     Procedure Open(BpType, Line, Statement, PassCount: Integer; Caption, Condition, VarName: aString);
     Procedure PlaceControls;
+    Procedure ValidateFields;
+    Procedure TypeChange(Sender: SP_BaseComponent; Text: aString);
+    Procedure edtLineChange(Sender: SP_BaseComponent; Text: aString);
   End;
 
   Function OpenFileReq(Caption, Filename: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
@@ -822,7 +825,7 @@ begin
     FW := FONTWIDTH;
   End;
 
-  w := (45 * FW) + (BSize * 2);
+  w := (45 * FW) + (BSize * 2) -2;
   h := (BSize * 3) + (FH + 2) + ((FH + 4) * 4);
   Width := w; Height := h;
   Self.Caption := Caption;
@@ -834,7 +837,7 @@ begin
 
   lblType := SP_Label.Create(Win^.Component);
   lblType.Caption := 'Type';
-  lblType.SetBounds(7 + BSize, FPFh + 10, FW * Length(lblType.Caption), FH);
+  lblType.SetBounds(7 + (10 * FW) + BSize, FPFh + 10, FW * Length(lblType.Caption), FH);
   lblType.TextJustify := 1;
 
   cmbType := SP_ComboBox.Create(Win^.Component);
@@ -845,8 +848,11 @@ begin
   cmbType.BackgroundClr := SP_UIWindowBack;
 
   edtLine := SP_Edit.Create(Win^.Component);
+  edtLine.OnChange := edtLineChange;
   edtCondition := SP_Edit.Create(Win^.Component);
+  edtCondition.OnChange := edtLineChange;
   edtPassCount := SP_Edit.Create(Win^.Component);
+  edtPassCount.OnChange := edtLineChange;
 
   lblLine := SP_Label.Create(Win^.Component);
   lblLine.Caption := 'Line:Statement';
@@ -854,6 +860,11 @@ begin
   lblCondition.Caption := 'Condition';
   lblPassCount := SP_Label.Create(Win^.Component);
   lblPassCount.Caption := 'Pass count';
+
+  cmbType.ChainControl := edtLine;
+  edtLine.ChainControl := edtCondition;
+  edtCondition.ChainControl := edtPassCount;
+  edtPassCount.ChainControl := cmbType;
 
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
@@ -881,6 +892,7 @@ begin
       End;
   End;
 
+  cmbType.OnChange := TypeChange;
   edtPassCount.Text := IntToString(PassCount);
 
   PlaceControls;
@@ -906,8 +918,12 @@ end;
 Procedure SP_BreakpointWindow.PlaceControls;
 Var
   y, cw: Integer;
+  Win: pSP_Window_Info;
   Error: TSP_ErrorCode;
 Begin
+
+  SP_GetWindowDetails(FDWindowID, Win, Error);
+  SP_SetDrawingWindow(FDWindowID);
 
   lblCondition.Visible := True;
   edtCondition.Visible := True;
@@ -915,29 +931,14 @@ Begin
   edtPassCount.Visible := True;
   y := lblType.Top + lblType.Height + BSize;
 
-  Case cmbType.ItemIndex Of
-    0: // Source bp
-      Begin
-        lblLine.Visible := True;
-        edtLine.Visible := True;
-        lblLine.SetBounds(lblType.Left, y + 2, Length(LblLine.Caption) * FW, FH);
-        edtLine.SetBounds(lblLine.Left + lblLine.Width + BSize, y, 10 * FW, FH);
-        Inc(y, FH + BSize);
-        Height := 160;
-      End;
-    1: // Conditional bp
-      Begin
-        lblLine.Visible := False;
-        edtLine.Visible := False;
-      End;
-    2: // Data bp
-      Begin
-        lblLine.Visible := False;
-        edtLine.Visible := False;
-      End;
-  End;
+  lblLine.Enabled := cmbType.ItemIndex = 0;
+  edtLine.Enabled := lblLine.Enabled;
+  lblLine.SetBounds(7 + BSize, y + 2, Length(LblLine.Caption) * FW, FH);
+  edtLine.SetBounds(lblLine.Left + lblLine.Width + BSize, y, 10 * FW, FH);
+  Inc(y, FH + BSize);
+  Height := 160;
 
-  edtCondition.SetBounds(edtLine.Left, y, 20 * FW, FH);
+  edtCondition.SetBounds(edtLine.Left, y, 29 * FW, FH);
   lblCondition.SetBounds(edtCondition.Left - BSize - (Length(lblCondition.Caption) * FW), y + 2, Length(lblCondition.Caption) * FW, FH);
   Inc(y, FH + BSize);
   edtPassCount.SetBounds(edtLine.Left, y, 7 * FW, FH);
@@ -957,6 +958,108 @@ Begin
   SP_Decorate_Window(FDWindowID, Caption, True, False, True);
   SP_FillRect(1, FH +2, Width -2, Height - (FH + 3), SP_UIWindowBack);
   SP_MoveWindow(FDWindowID, (DISPLAYWIDTH - Width) Div 2, (DISPLAYHEIGHT - Height) Div 2, Error);
+
+  SP_SetDrawingWindow(FPEditorDefaultWindow);
+
+End;
+
+Procedure SP_BreakPointWindow.TypeChange(Sender: SP_BaseComponent; Text: aString);
+Begin
+
+  PlaceControls;
+  ValidateFields;
+
+End;
+
+Procedure SP_BreakPointWindow.ValidateFields;
+Var
+  i: Integer;
+  Found: TPoint;
+  Error: TSP_ErrorCode;
+  Line, Statement: aFloat;
+  LineTxt, StatementTxt, Text, s, l: aString;
+  searchOpt: SP_SearchOptions;
+  b, b2, b3: Boolean;
+Begin
+
+  Text := edtLine.Text;
+
+  If cmbType.ItemIndex = 0 Then Begin
+
+    i := 1;
+    Found.y := -1;
+    Error.Code := SP_ERR_OK;
+
+    If Pos(':', Text) > 0 Then Begin
+      LineTxt := Copy(Text, 1, Pos(':', Text) -1);
+      StatementTxt := Copy(Text, Pos(':', Text) +1);
+    End Else Begin
+      LineTxt := Text;
+      StatementTxt := '1';
+    End;
+
+    If LineTxt <> '' Then Begin
+      l := SP_FPExecuteAnyExpression(LineTxt, Error);
+      If (Error.Code = SP_ERR_OK) And (StatementTxt <> '') Then
+        s := SP_FPExecuteAnyExpression(StatementTxt, Error)
+      Else
+        Error.Code := SP_ERR_SYNTAX_ERROR;
+    End Else
+      Error.Code := SP_ERR_SYNTAX_ERROR;
+
+    b := (Error.Code = SP_ERR_OK) and SP_GetNumber(l, i, line, True);
+    i := 1;
+    b := b And SP_GetNumber(s, i, statement, True);
+
+    If Not b Then Begin
+      searchOpt := [soForward, soCondenseSpaces];
+      Found := SP_FindText('LABEL @'+edtLine.Text, 0, 1, searchOpt);
+      b := Found.y >= 0;
+    End;
+
+    If not b Then
+      lblLine.FontClr := 2
+    Else
+      lblLine.FontClr := 0;
+
+  End Else
+
+    b := True;
+
+  b2 := True;
+  If edtCondition.Text <> '' Then Begin
+    Error.Code := SP_ERR_OK;
+    b2 := SP_FPCheckExpression(edtCondition.Text, Error) and (Error.ReturnType = SP_VALUE);
+    If not b2 Then
+      lblCondition.FontClr := 2
+    else
+      lblCondition.FontClr := 0;
+  End Else
+    lblCondition.FontClr := 0;
+
+  If edtPassCount.Text <> '' Then Begin
+    Error.Code := SP_ERR_OK;
+    SP_FPExecuteNumericExpression(edtPassCount.Text, Error);
+    b3 := (Error.Code = SP_ERR_OK) and (Error.ReturnType = SP_VALUE);
+  End Else
+    b3 := False;
+
+  If not b3 Then
+    lblPassCount.FontClr := 2
+  else
+    lblPassCount.FontClr := 0;
+
+  okBtn.Enabled := b and b2 and b3;
+  edtLine.ValidText := b;
+  edtCondition.ValidText := b2;
+  edtPassCount.ValidText := b3;
+
+End;
+
+Procedure SP_BreakPointWindow.edtLineChange(Sender: SP_BaseComponent; Text: aString);
+Begin
+
+  ValidateFields;
 
 End;
 

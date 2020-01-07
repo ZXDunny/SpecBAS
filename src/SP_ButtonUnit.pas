@@ -20,6 +20,8 @@ SP_Button = Class(SP_BaseComponent)
     Procedure SetCaptionPos(p: TPoint);
     Procedure SetState(s: SP_ButtonState);
     Procedure Draw; Override;
+    Procedure PerformKeyDown(Var Handled: Boolean); Override;
+    Procedure PerformKeyUp(Var Handled: Boolean); Override;
 
   Public
 
@@ -37,7 +39,7 @@ End;
 
 implementation
 
-Uses SP_Components, SP_ScrollBarUnit, SP_SysVars, SP_Sound;
+Uses SP_Components, SP_ScrollBarUnit, SP_SysVars, SP_Sound, SP_Input;
 
 // SP_Button
 
@@ -153,7 +155,59 @@ Begin
   fState := spNormal;
   Paint;
 
-  Inherited;
+  If PtInRect(Rect(0, 0, Width, Height), Point(X, Y)) Then
+    Inherited;
+
+End;
+
+Procedure SP_Button.PerformKeyDown(Var Handled: Boolean);
+Var
+  i, j, k: Integer;
+  NewChar: Byte;
+Begin
+
+  NewChar := DecodeKey(cLastKey);
+  Handled := False;
+
+  If (NewChar = 0) {$IFNDEF FPC} And (cLastKeyChar <> 1) {$ENDIF} Then Begin
+
+    Case cLastKey of
+
+      K_RETURN, K_SPACE:
+        Begin
+          if fEnabled then Begin
+            fState := spPressed;
+            Handled := True;
+            Paint;
+            SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          End;
+        End;
+
+    Else
+      Inherited;
+    End;
+
+  End;
+
+End;
+
+Procedure SP_Button.PerformKeyUp(Var Handled: Boolean);
+Var
+  i: Integer;
+Begin
+
+  Case cLastKey Of
+
+    K_RETURN, K_SPACE:
+      Begin
+        fState := spNormal;
+        Handled := True;
+        Paint;
+        If Assigned(OnClick) Then
+          OnClick(Self);
+      End;
+
+  End;
 
 End;
 

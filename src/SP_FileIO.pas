@@ -25,7 +25,7 @@ unit SP_FileIO;
 
 interface
 
-Uses {$IFNDEF FPC}Windows, {$ENDIF}Types, Classes, SysUtils, SP_Util, SP_Errors, SP_Tokenise, SP_SysVars, SP_Variables, SP_InfixToPostFix{$IFDEF FPC}, FileUtil{$ENDIF}, SP_AnsiStringlist;
+Uses {$IFNDEF FPC}Windows, {$ENDIF}Types, Classes, SysUtils, SyncObjs, SP_Util, SP_Errors, SP_Tokenise, SP_SysVars, SP_Variables, SP_InfixToPostFix{$IFDEF FPC}, FileUtil{$ENDIF}, SP_AnsiStringlist;
 
 Type
 
@@ -97,6 +97,8 @@ Var
   SP_FileList: Array of pSP_File;
   SP_Ass_List: Array of aString;
   SP_RecentFiles: Array of aString;
+
+  FileSection: TCriticalSection;
 
 implementation
 
@@ -741,6 +743,8 @@ Var
   Idx: Integer;
 Begin
 
+  FileSection.Enter;
+
   For Idx := 0 To Length(SP_FileList) -1 Do
     If Assigned(SP_FileList[Idx]) Then Begin
       If Not SP_FileList[Idx]^.PackageFile Then
@@ -750,6 +754,8 @@ Begin
     End;
 
   SetLength(SP_FileList, 0);
+
+  FileSection.Leave;
 
 End;
 
@@ -2358,6 +2364,14 @@ Begin
   list.Free;
 
 End;
+
+Initialization
+
+  FileSection := TCriticalSection.Create;
+
+Finalization
+
+  FileSection.Free;
 
 end.
 

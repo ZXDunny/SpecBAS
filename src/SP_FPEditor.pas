@@ -191,6 +191,7 @@ Function  SP_FPExecuteNumericExpression(Const Expr: aString; var Error: TSP_Erro
 Function  SP_FPExecuteStringExpression(Const Expr: aString; var Error: TSP_ErrorCode): aString;
 Function  SP_FPExecuteAnyExpression(Const Expr: aString; var Error: TSP_ErrorCode): aString;
 Procedure SP_FPExecuteExpression(Const Expr: aString; var Error: TSP_ErrorCode);
+Function  SP_FPCheckExpression(Const Expr: aString; var Error: TSP_ErrorCode): Boolean;
 Procedure SP_Interpreter(Var Tokens: paString; Var Position: Integer; Var Error: TSP_ErrorCode; PreParseErrorCode: Integer; Continue: Boolean = False);
 Procedure SP_Execute(Line: aString; Var Error: TSP_ErrorCode);
 Procedure SP_FPMakeListWindowVisible;
@@ -261,7 +262,7 @@ Var
   EdSc, EdCSc: aString;
   FPScrollBars: Array of SP_ScrollBar;
   Events: Array of SP_EditorEvent;
-  FPCDes, FPCDesLine, FPMDFramesTarget, FPClickTime, FPClickX, FPClickY: Integer;
+  FPCDes, FPCDesLine, FPMDFramesTarget, FPClickX, FPClickY: Integer;
   FPCDragging, FPDebugging, FPScrolling, FPGutterChangedSize: Boolean;
   FPEditorMarkers: Array[0..9] of TPoint;
   FPShowingSearchResults, FPShowingBraces: Boolean;
@@ -277,6 +278,7 @@ Var
   FPEditorPRPOSX, FPEditorPRPOSY: aFloat;
   FPEditorOVER, FPEditorFRAME_MS: Integer;
   FPEditorMouseStatus, DWCDragging: Boolean;
+  FPClickTime: LongWord;
   // Compiler
   CompilerLock: TCriticalSection;
   CompilerThread: TCompilerThread;
@@ -4402,7 +4404,7 @@ End;
 
 Procedure SP_FPCycleEditorWindows(HideMode: Integer);
 Var
-  TargetFrames, t, t3: Integer;
+  t, t3: LongWord;
   DTop, LTop, LHeight, DMove, LMove, LSize, t2: aFloat;
   EditorTargetY, EditorTargetHeight, CmdTargetY: Integer;
   SizeEditor, MoveEditor, MoveCmd: Boolean;
@@ -7274,9 +7276,9 @@ Var
   ErrWin: pSP_Window_Info;
   ErrorText, Text, Title, StripeText: aString;
   ErrorFPS, t2, EMove, ETop: aFloat;
-  t, t3, ERRORWINDOW, WinW, WinH, WinX, WinY, MaxW, Lines, Cnt, Idx, MaxLen, bInk, bOver,
+  ERRORWINDOW, WinW, WinH, WinX, WinY, MaxW, Lines, Cnt, Idx, MaxLen, bInk, bOver,
   Font, Window, ErrorDRPOSX, ErrorDRPOSY, ErrorPRPOSX, ErrorPRPOSY, ofs, x, sz, ErrDy, MoveFrames: Integer;
-  CurrentTicks, TargetTicks: LongWord;
+  CurrentTicks, TargetTicks, t, t3: LongWord;
   IsNew: Boolean;
   Key: Word;
   fp: TPoint;
@@ -7302,7 +7304,6 @@ Begin
   SP_ClearEvery;
 
   SCREENLOCK := False;
-  SYSTEMSTATE := SS_ERROR;
   FPEditorOutSet := OUTSET;
   OUTSET := False;
 
@@ -7550,7 +7551,7 @@ Begin
 
     Repeat
       Key := LASTKEY;
-      CB_YIELD;
+      SP_WaitForSync;
       // If a key UP event happens, ignore it - it's likely left over from before the
       // error message was displayed, and we're only interested in keydown.
       If SP_KeyEventWaiting And (KeyBuffer[0].Event = 1) Then SP_UnBufferKey;
@@ -7760,6 +7761,19 @@ Begin
     Else
       Error.Code := SP_ERR_SYNTAX_ERROR;
   SP_StackPtr := pSP_StackItem(Backup);
+
+End;
+
+Function SP_FPCheckExpression(Const Expr: aString; var Error: TSP_ErrorCode): Boolean;
+Var
+  Position: Integer;
+  s, t: aString;
+Begin
+
+  Position := 1;
+  s := SP_TokeniseLine(Expr, True, False) + #255;
+  t := SP_Convert_Expr(s, Position, Error, -1);
+  Result := Error.Code = SP_ERR_OK;
 
 End;
 

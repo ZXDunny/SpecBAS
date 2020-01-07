@@ -25,7 +25,7 @@ unit SP_Graphics32;
 
 interface
 
-Uses SP_Util, SP_SysVars, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Errors, Math, SP_Menu, SP_Components;
+Uses SP_Util, SP_SysVars, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Errors, Math, SP_Menu, SP_Components, SP_Tokenise;
 
   // This unit handles all graphics routines that are dedicated to 32bit graphics,
   // and routines that convert between 32 and 8 bit.
@@ -440,7 +440,7 @@ Begin
             tw := 0;
             While tw < Length(WindowSpriteList[sPtr^.ID]) Do Begin
               Sprite := WindowSpriteList[sPtr^.ID][tw];
-              If Sprite^.Enabled Then
+              If Assigned(Sprite) And Sprite^.Enabled Then
                 SP_DrawSprite(pByte(dstPtr), Sprite, sPtr);
               Inc(tw);
             End;

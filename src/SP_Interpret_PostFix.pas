@@ -16302,12 +16302,10 @@ Begin
   Delay := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  SP_BlockSprites;
   If GraphicStr <> '' Then
     SP_Add_Frame(SprIndex, GraphicStr, Delay, Info^.Error^)
   Else
     SP_Add_Frame_Graphic(SprIndex, BankID, Delay, Info^.Error^);
-  SP_UnBlockSprites;
 
 End;
 
@@ -16566,7 +16564,6 @@ Begin
   WindowID := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  SP_BlockSprites;
   Idx := SP_FindSpriteID(SprIndex, Info^.Error^);
   If Info^.Error^.Code = SP_ERR_OK Then Begin
     Sprite := @SP_BankList[Idx]^.Info[0];
@@ -16575,7 +16572,6 @@ Begin
     Else
       Info^.Error^.Code := SP_ERR_WINDOW_NOT_FOUND;
   End;
-  SP_UnBlockSprites;
 
 End;
 

@@ -487,7 +487,7 @@ End;
 Procedure SP_InvalidateWholeDisplay;
 Begin
 
-  SP_SetDirtyRect(0, 0, DISPLAYWIDTH, DISPLAYHEIGHT);
+  SCMINX := 0; SCMINY := 0; SCMAXX := DISPLAYWIDTH; SCMAXY := DISPLAYHEIGHT;
   SP_NeedDisplayUpdate := True;
 
 End;
@@ -501,7 +501,7 @@ Begin
   // lines.
 
   if (y1<0) or (y2<0) THen
-    SP_INvalidateWholeDisplay;
+    SP_InvalidateWholeDisplay;
 
   If x1 > x2 Then Begin tx := x1; x1 := x2; x2 := tx; End;
   If y1 > y2 Then Begin ty := y1; y1 := y2; y2 := ty; End;

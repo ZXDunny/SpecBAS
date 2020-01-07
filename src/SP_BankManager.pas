@@ -1405,12 +1405,8 @@ Begin
     Exit;
   End;
 
-  DisplaySection.Enter;
-
   Result := SP_FindBankID(SP_NewBank(0));
   Bank := SP_BankList[Result];
-
-  SP_BlockSprites;
 
   If CopyFrom = -1 Then Begin
 
@@ -1448,8 +1444,6 @@ Begin
     If SP_BankList[SP_FindBankID(CopyFrom)]^.DataType <> SP_SPRITE_BANK Then Begin
 
       Error.Code := SP_ERR_INVALID_BANK;
-      DisplaySection.Leave;
-      SP_UnblockSprites;
       Exit;
 
     End Else Begin
@@ -1469,8 +1463,6 @@ Begin
 
       End Else Begin
 
-        SP_UnblockSprites;
-        DisplaySection.Leave;
         Exit;
 
       End;
@@ -1480,6 +1472,8 @@ Begin
   End;
 
   // Add the sprite to the current window, the user can change that later if they wish
+
+  DisplaySection.Enter;
 
   If Length(WindowSpriteList) < SCREENBANK +1 then
     SetLength(WindowSpriteList, SCREENBANK +1);
@@ -1491,7 +1485,6 @@ Begin
   Bank^.Changed := True;
   Result := Bank^.ID;
 
-  SP_UnblockSprites;
   DisplaySection.Leave;
 
 End;
@@ -1589,6 +1582,7 @@ Begin
   End;
 
   DisplaySection.Leave;
+
   Error.Code := SP_ERR_SPRITE_NOT_FOUND;
 
 End;
@@ -1671,7 +1665,6 @@ Begin
   ScrBank := SP_BankList[Idx];
   WindowInfo := @ScrBank^.Info[0];
 
-  DisplaySection.Enter;
   SP_BlockSprites;
 
   For Idx := 0 To Length(WindowSpriteList) -1 Do
@@ -1695,7 +1688,6 @@ Begin
   WindowInfo^.SpriteCount := Length(WindowSpriteList[SCREENBANK]);
 
   Sprite^.Window := WindowInfo;
-  DisplaySection.Leave;
   SP_UnblockSprites;
 
 End;
@@ -1711,8 +1703,6 @@ Begin
   // Add a graphic frame to the sprite's memory bank.
   // If the graphic isn't a valid GRAB graphic, then make one using the
   // supplied string as a texture.
-
-  DisplaySection.Enter;
 
   Valid := False;
   If Graphic = '' Then
@@ -1742,6 +1732,10 @@ Begin
     If Error.Code = SP_ERR_OK Then Begin
       Bank := SP_BankList[Idx];
       Sprite := @Bank^.Info[0];
+
+      If Sprite^.Enabled Then
+        DisplaySection.Enter;
+
       Inc(Sprite^.NumFrames);
       If Sprite^.NumFrames = 1 Then
         Sprite^.FrameCounter := Delay;
@@ -1751,11 +1745,13 @@ Begin
       CopyMem(@Bank^.Memory[Offset], @Graphic[1], Length(Graphic));
       Sprite^.Data := @Bank^.Memory[0];
       Bank^.Changed := True;
+
+      If Sprite^.Enabled Then
+        DisplaySection.Leave;
+
     End;
 
   End;
-
-  DisplaySection.Leave;
 
 End;
 
@@ -1771,12 +1767,13 @@ Begin
 
   Graphic := LongWordToString(Delay) + SP_GfxBankToString(BankID, Error);
 
-  DisplaySection.Enter;
   If Error.Code = SP_ERR_OK Then Begin
     Idx := SP_FindSpriteID(SpriteID, Error);
     If Error.Code = SP_ERR_OK Then Begin
       Bank := SP_BankList[Idx];
       Sprite := @Bank^.Info[0];
+      If Sprite^.Enabled Then
+        DisplaySection.Enter;
       Inc(Sprite^.NumFrames);
       If Sprite^.NumFrames = 1 Then
         Sprite^.FrameCounter := Delay;
@@ -1786,9 +1783,10 @@ Begin
       CopyMem(@Bank^.Memory[Offset], @Graphic[1], Length(Graphic));
       Sprite^.Data := @Bank^.Memory[0];
       Bank^.Changed := True;
+      If Sprite^.Enabled Then
+        DisplaySection.Leave;
     End;
   End;
-  DisplaySection.Leave;
 
 End;
 
@@ -1799,7 +1797,6 @@ Var
   Sprite: pSP_Sprite_Info;
 Begin
 
-  SP_BlockSprites;
   Idx := SP_FindSpriteID(SpriteID, Error);
   If Error.Code = SP_ERR_OK Then Begin
     Bank := SP_BankList[Idx];
@@ -1809,7 +1806,6 @@ Begin
       Inc(NUMSPRITES);
     End;
   End;
-  SP_UnblockSprites;
 
 End;
 
@@ -1820,7 +1816,6 @@ Var
   Sprite: pSP_Sprite_Info;
 Begin
 
-  SP_BlockSprites;
   Idx := SP_FindSpriteID(SpriteID, Error);
   If Error.Code = SP_ERR_OK Then Begin
     Bank := SP_BankList[Idx];
@@ -1830,7 +1825,6 @@ Begin
       Dec(NUMSPRITES);
     End;
   End;
-  SP_UnblockSprites;
 
 End;
 

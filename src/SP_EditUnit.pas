@@ -150,10 +150,13 @@ Begin
   Else
     c := ' ';
 
-  If fValidText Then 
-    Clr := fFontClr
-  Else
-    Clr := fErrorClr;
+  If fEnabled Then Begin
+    If fValidText Then
+      Clr := fFontClr
+    Else
+      Clr := fErrorClr;
+  End Else
+    Clr := SP_UITextDisabled;
 
   Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, fText, Clr, -1, iSX, iSY, False, False);
   
@@ -162,16 +165,20 @@ Begin
     DrawRect(1, 1, Width -2, Height -2, fBackgroundClr);
   End;
   
-  If fSelStart <> fCursorPos Then Begin
-    If fFocused Then p := SP_UISelection Else p := SP_UIUnfocusedSelection;
+  If fEnabled Then Begin
 
-    ss := Min(fSelStart, fCursorPos);
-    sc := (Max(fSelStart, fCursorPos) - ss) +1;
-    Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, Copy(fText, ss, sc), Clr, p, iSX, iSY, False, False);
+    If fSelStart <> fCursorPos Then Begin
+      If fFocused Then p := SP_UISelection Else p := SP_UIUnfocusedSelection;
+
+      ss := Min(fSelStart, fCursorPos);
+      sc := (Max(fSelStart, fCursorPos) - ss) +1;
+      Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, Copy(fText, ss, sc), Clr, p, iSX, iSY, False, False);
+    End;
+
+    If fFocused Then
+      Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, c, fCursFg, fCursBg, iSX, iSY, False, False);
+
   End;
-
-  If fFocused Then
-    Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, c, fCursFg, fCursBg, iSX, iSY, False, False);
 
 End;
 
@@ -231,6 +238,8 @@ Var
   NewChar: Byte;
   oText: aString;
 Begin
+
+  If not fEnabled Then Exit;
 
   oText := fText;
   fGfxMode := fGfxLock;
@@ -609,6 +618,8 @@ Var
   b: Boolean;
 Begin
 
+  if not fEnabled Then Exit;
+
   if fBorder Then Begin
     Dec(X, 2);
     Dec(Y, 2);
@@ -629,6 +640,8 @@ End;
 
 Procedure SP_Edit.MouseMove(X, Y, Btn: Integer);
 Begin
+
+  if not fEnabled Then Exit;
 
   if fBorder Then Begin
     Dec(X, 2);
@@ -669,20 +682,26 @@ end;
 Procedure SP_Edit.SetText(s: aString);
 Begin
 
-  StoreUndo;
-  fText := s;
-  CursorPos := Length(s) +1;
-  fSelStart := fCursorPos;
-  if not fFocused then begin
-    if fRightJustify then begin
-      if iFW * Length(fText) < Width then
-        xOff := 0
-      else
-        xOff := -((Width - (Ord(fBorder) * 4)) - (iFW * Length(fText)))
-    end else
-      xOff := 0;
-  end;
-  Paint;
+  If fText <> s Then Begin
+    StoreUndo;
+    fText := s;
+    CursorPos := Length(s) +1;
+    fSelStart := fCursorPos;
+    if not fFocused then begin
+      if fRightJustify then begin
+        if iFW * Length(fText) < Width then
+          xOff := 0
+        else
+          xOff := -((Width - (Ord(fBorder) * 4)) - (iFW * Length(fText)))
+      end else
+        xOff := 0;
+    end;
+    Paint;
+
+    If Assigned(fOnChange) Then
+      fOnChange(Self, fText);
+
+  End;
 
 End;
 

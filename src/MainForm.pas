@@ -31,8 +31,7 @@ uses
 
 Const
 
-  WM_REFRESHTIMER = WM_USER + 1;
-  WM_RESIZEMAIN = WM_USER + 2;
+  WM_RESIZEMAIN = WM_USER + 1;
 
 type
 
@@ -53,7 +52,6 @@ type
     { Private declarations }
     procedure OnAppMessage(var Msg: TMsg; var Handled: Boolean);
     procedure CMDialogKey( Var msg: TCMDialogKey ); message CM_DIALOGKEY;
-    procedure OnRefreshTimer(var Msg: TMessage); message WM_REFRESHTIMER;
     procedure WMEraseBkgnd(var Msg: TMessage); message WM_ERASEBKGND;
     Procedure OnResizeMain(Var Msg: TMessage); Message WM_RESIZEMAIN;
   public
@@ -69,6 +67,7 @@ type
     Procedure Execute; Override;
   End;
 
+  Procedure InitGL;
   Function  SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
   Function  SetScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
   Function  TestScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
@@ -160,37 +159,6 @@ Begin
 
 End;
 
-procedure TMain.OnRefreshTimer(var Msg: TMessage);
-Var
-  t, ft: LongWord;
-begin
-  If DisplaySection.TryEnter Then Begin
-    If UpdateDisplay Then
-      CB_Refresh_Display
-    Else Begin
-      DRAWING := False;
-      UPDATENOW := False;
-      CauseUpdate := False;
-    End;
-    DisplaySection.Leave;
-  End;
-
-  t := GetTicks;
-  ft := t - lastt;
-  if t > lastt then Begin
-    Dec(fc);
-    If fc <= 0 Then Begin
-      If ParamCount = 0 Then
-        Main.Caption := 'SpecBAS for Windows v'+BuildStr+' ['+IntToStr(Round(1000/ft)) + '/' + IntToStr(Trunc(FPS))+' fps - '+IntToStr(ft)+'ms/frame]'
-      Else
-        Main.Caption := SP_GetProgName(PROGNAME);
-      fc := FCM;
-    End;
-    lastt := t;
-  End;
-
-end;
-
 Procedure TRefreshThread.Execute;
 Var
   LastTime, CurTime, StartTime, LastFrames: LongWord;
@@ -201,20 +169,28 @@ Begin
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
   Priority := tpIdle;
-  LastTime := GetTicks;
-  StartTime := LastTime;
+  StartTime := CB_GETTICKS;
+  LastFrames := 0;
+
   While Not QUITMSG Do Begin
-    CurTime := GetTicks;
-    FRAMES := (CurTime - StartTime) Div FRAME_MS;
-    If FRAMES - LastFrames > FPS Then
-      LastTime := CurTime - FRAME_MS;
-    If CurTime - LastTime >= LongWord(FRAME_MS) Then Begin
-      Inc(LastTime, FRAME_MS);
-      SP_FrameUpdate;
-      If CauseUpdate Then
-        PostMessage(Main.Handle, WM_REFRESHTIMER, 0, 0);
-    End;
-    TThread.Sleep(Max(1, (LastTime + FRAME_MS) - CurTime));
+
+    FRAMES := Round((CB_GETTICKS - StartTime)/FRAME_MS);
+    If FRAMES <> LastFrames Then Begin
+      LastFrames := FRAMES;
+      If SP_FrameUpdate Then Begin
+        If DisplaySection.TryEnter Then Begin
+          If UpdateDisplay Then Begin
+            CB_Refresh_Display;
+            SP_NeedDisplayUpdate := False;
+          End;
+          DisplaySection.Leave;
+        End;
+        UPDATENOW := False;
+        CauseUpdate := False;
+      End;
+    End Else
+      TThread.Sleep(1);
+
     GetCursorPos(p);
     p := Main.ScreenToClient(p);
     {$IFDEF OpenGL}
@@ -239,8 +215,153 @@ Begin
         SP_NeedDisplayUpdate := True;
       End;
     End;
+
   End;
+
   Terminate;
+
+End;
+
+Function UpdateDisplay: Boolean;
+Var
+  X1, Y1, X2, Y2, Mx1, Mx2, My1, My2: Integer;
+Begin
+  Result := False;
+  If Not (Quitting or SCREENCHANGE) Then Begin
+    {$IFDEF OPENGL}
+    GLMX := MOUSESTOREX; GLMY := MOUSESTOREY;
+    GLMW := MOUSESTOREW; GLMH := MOUSESTOREH;
+    {$ENDIF}
+    SP_RestoreMouseRegion;
+    If (Not SCREENLOCK) or UPDATENOW Then Begin
+      If SCMAXX >= SCMINX Then Begin
+        While SetDR Do Sleep(0); SetDR := True;
+        X1 := SCMINX; Y1 := SCMINY; X2 := SCMAXX +1; Y2 := SCMAXY +1;
+        {$IFDEF OPENGL}
+        // IMPORTANT: Ensure that the region to display doesn't step outside the boundaries of the texture
+        GLX := Max(X1, 0); GLY := Max(Y1, 0); GLW := Min(X2 - GLX +1, DISPLAYWIDTH - GLX); GLH := Min(Y2 - GLY +1, DISPLAYHEIGHT - GLY);
+        {$ELSE}
+        iRect := Rect(X1, Y1, X2, Y2);
+        {$ENDIF}
+        SCMAXX := 0; SCMAXY := 0; SCMINX := DISPLAYWIDTH; SCMINY := DISPLAYHEIGHT;
+        SetDR := False;
+        Result := True;
+        DRAWING := True;
+        If Assigned(DISPLAYPOINTER) Then
+          SP_Composite32(DISPLAYPOINTER, X1, Y1, X2, Y2);
+        UPDATENOW := False;
+      End;
+    End;
+    MOUSEMOVED := False;
+    If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then Begin
+      SP_DrawMouseImage;
+      If (MOUSESTOREX <> GLMX) or (MOUSESTOREY <> GLMY) Then Begin
+        Mx2 := Max(GLMX + GLMW, MOUSESTOREX + MOUSESTOREW +1);
+        My2 := Max(GLMY + GLMH, MOUSESTOREY + MOUSESTOREH +1);
+        Mx1 := Min(GLMX, MOUSESTOREX);
+        My1 := Min(GLMY, MOUSESTOREY);
+        GLMX := Mx1; GLMY := My1; GLMW := Mx2-Mx1; GLMH := My2-My1;
+        MOUSEMOVED := True;
+        Result := True;
+      End;
+    End;
+    GLMX := Min(Max(GLMX, 0), DISPLAYWIDTH); GLMY := Min(Max(GLMY, 0), DISPLAYHEIGHT);
+    If GLMX + GLMW >= DISPLAYWIDTH  Then GLMW := DISPLAYWIDTH - GLMX;
+    If GLMY + GLMH >= DISPLAYHEIGHT Then GLMH := DISPLAYHEIGHT - GLMY;
+  End;
+  DRAWING := False;
+End;
+
+Procedure ScaleBuffers(x1, x2, y1, y2: Integer);
+var
+  w,w2,x,y,i: Integer;
+  ps,pd,lpd: pLongWord;
+begin
+  {$IFDEF OPENGL}
+  w2 := (x2 - x1) +1;         // Width of area to scale
+  w := w2 * 4 * ScaleFactor;  // Same value scaled. Source is 8bpp, dest is 32bpp
+  ps := @PixArray[0];         // Source
+  pd := @DispArray[0];        // Dest
+  Inc(ps, (y1 * DISPLAYWIDTH) + x1); // Find source topleft pixel
+  Inc(pd, (y1 * ScaleFactor * ScaledWidth) + (x1 * ScaleFactor)); // And dest
+  for y := y1 to y2 do begin
+    lpd := pd;
+    for x:=x1 to x2 do begin  // Scale columns
+      For i := 1 To ScaleFactor Do Begin
+        pd^ := ps^;
+        Inc(pd);
+      End;
+      Inc(ps);
+    end;
+    pd := pLongWord(NativeUint(pd) + (ScaledWidth * 4) - w); // Find next row
+    Inc(ps, DISPLAYWIDTH - w2);                              // in both dest and src
+    For i := 1 to ScaleFactor -1 Do Begin // Copy rows
+      Move(lpd^, pd^, w);
+      Inc(pd, ScaledWidth);
+    End;
+  end;
+  {$ENDIF}
+end;
+
+Procedure Refresh_Display;
+Var
+  DC: hDc;
+  x, y, w, h: Integer;
+Begin
+
+  DisplaySection.Enter;
+
+  {$IFDEF OPENGL}
+
+    DC := wglGetCurrentDC;
+    If Not GLInitDone or (DC = 0) Then Begin
+      InitGL;
+      Main.FormResize(Main);
+    End;
+
+    glDisable(gl_MULTISAMPLE_ARB);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glLoadIdentity;
+    glUseProgramObjectARB(0);
+
+    If DoScale Then Begin
+      ScaleBuffers(GLX, GLX + GLW -1, GLY, GLY + GLH -1);
+      x := GLX * ScaleFactor;
+      y := GLY * ScaleFactor;
+      w := GLW * ScaleFactor;
+      h := GLH * ScaleFactor;
+      glPixelStorei(GL_UNPACK_ROW_LENGTH, ScaledWidth);
+      glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, W, H, GL_BGRA, GL_UNSIGNED_BYTE, @DispArray[X * 4 + ScaledWidth * 4 * Y]);
+      If (GLMW > 0) And (GLMH > 0) And MOUSEMOVED Then Begin
+        ScaleBuffers(GLMX, GLMX + GLMW -1, GLMY, GLMH + GLMY -1);
+        x := GLMX * ScaleFactor;
+        y := GLMY * ScaleFactor;
+        w := GLMW * ScaleFactor;
+        h := GLMH * ScaleFactor;
+        glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, W, H, GL_BGRA, GL_UNSIGNED_BYTE, @DispArray[X * 4 + ScaledWidth * 4 * Y]);
+      End;
+    End Else Begin
+      glPixelStorei(GL_UNPACK_ROW_LENGTH, DISPLAYWIDTH);
+      glTexSubImage2D(GL_TEXTURE_2D, 0, GLX, GLY, GLW, GLH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLX * 4 + DISPLAYWIDTH * 4 * GLY]);
+      If (GLMW > 0) And (GLMH > 0) And MOUSEMOVED Then
+        glTexSubImage2D(GL_TEXTURE_2D, 0, GLMX, GLMY, GLMW, GLMH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLMX * 4 + DISPLAYWIDTH * 4 * GLMY]);
+    End;
+
+    glBegin(GL_QUADS);
+    glTexCoord2D(0, 0); glVertex2D(0, 0);
+    glTexCoord2D(1, 0); glVertex2D(ScaleWidth, 0);
+    glTexCoord2D(1, 1); glVertex2D(ScaleWidth, ScaleHeight);
+    glTexCoord2D(0, 1); glVertex2D(0, ScaleHeight);
+    glEnd;
+
+    SwapBuffers(DC);
+
+  {$ELSE}
+    InvalidateRect(Main.Handle, iRect, False);
+    Main.Repaint;
+  {$ENDIF}
+
+  DisplaySection.Leave;
 
 End;
 
@@ -1060,7 +1181,7 @@ begin
 
   Cursor := CrNone;
 
-  SetPriorityClass(GetCurrentProcess,$8000{ABOVE_NORMAL_PRIORITY_CLASS});
+  SetPriorityClass(GetCurrentProcess, $8000{ABOVE_NORMAL_PRIORITY_CLASS});
 
   QueryPerformanceFrequency(TimerFreq);
   QueryPerformanceCounter(BaseTime);
@@ -1208,155 +1329,6 @@ Procedure MsgProc; inline;
 Begin
 
   Application.ProcessMessages;
-
-End;
-
-Function UpdateDisplay: Boolean;
-Var
-  X1, Y1, X2, Y2, Mx1, Mx2, My1, My2: Integer;
-Begin
-  Result := False;
-  If Not (Quitting or SCREENCHANGE) Then Begin
-    {$IFDEF OPENGL}
-    GLMX := MOUSESTOREX; GLMY := MOUSESTOREY;
-    GLMW := MOUSESTOREW; GLMH := MOUSESTOREH;
-    {$ENDIF}
-    SP_RestoreMouseRegion;
-    If (Not SCREENLOCK) or UPDATENOW Then Begin
-      If NUMSPRITES > 0 Then
-        SP_InvalidateWholeDisplay;
-      If SCMAXX >= SCMINX Then Begin
-        While SetDR Do Sleep(0); SetDR := True;
-        X1 := SCMINX; Y1 := SCMINY; X2 := SCMAXX +1; Y2 := SCMAXY +1;
-        {$IFDEF OPENGL}
-        // IMPORTANT: Ensure that the region to display doesn't step outside the boundaries of the texture
-        GLX := Max(X1, 0); GLY := Max(Y1, 0); GLW := Min(X2 - GLX +1, DISPLAYWIDTH - GLX); GLH := Min(Y2 - GLY +1, DISPLAYHEIGHT - GLY);
-        {$ELSE}
-        iRect := Rect(X1, Y1, X2, Y2);
-        {$ENDIF}
-        SCMAXX := 0; SCMAXY := 0; SCMINX := DISPLAYWIDTH; SCMINY := DISPLAYHEIGHT;
-        SetDR := False;
-        Result := True;
-        DRAWING := True;
-        If Assigned(DISPLAYPOINTER) Then
-          SP_Composite32(DISPLAYPOINTER, X1, Y1, X2, Y2);
-        DRAWING := False;
-        UPDATENOW := False;
-      End;
-    End;
-    MOUSEMOVED := False;
-    If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then Begin
-      SP_DrawMouseImage;
-      If (MOUSESTOREX <> GLMX) or (MOUSESTOREY <> GLMY) Then Begin
-        Mx2 := Max(GLMX + GLMW, MOUSESTOREX + MOUSESTOREW +1);
-        My2 := Max(GLMY + GLMH, MOUSESTOREY + MOUSESTOREH +1);
-        Mx1 := Min(GLMX, MOUSESTOREX);
-        My1 := Min(GLMY, MOUSESTOREY);
-        GLMX := Mx1; GLMY := My1; GLMW := Mx2-Mx1; GLMH := My2-My1;
-        MOUSEMOVED := True;
-        Result := True;
-      End;
-    End;
-    GLMX := Min(Max(GLMX, 0), DISPLAYWIDTH); GLMY := Min(Max(GLMY, 0), DISPLAYHEIGHT);
-    If GLMX + GLMW >= DISPLAYWIDTH  Then GLMW := DISPLAYWIDTH - GLMX;
-    If GLMY + GLMH >= DISPLAYHEIGHT Then GLMH := DISPLAYHEIGHT - GLMY;
-  End;
-  DRAWING := False;
-  UPDATENOW := False;
-End;
-
-Procedure ScaleBuffers(x1, x2, y1, y2: Integer);
-var
-  w,w2,x,y,i: Integer;
-  ps,pd,lpd: pLongWord;
-begin
-  {$IFDEF OPENGL}
-  w2 := (x2 - x1) +1;         // Width of area to scale
-  w := w2 * 4 * ScaleFactor;  // Same value scaled. Source is 8bpp, dest is 32bpp
-  ps:=@PixArray[0];           // Source
-  pd:=@DispArray[0];          // Dest
-  Inc(ps, (y1 * DISPLAYWIDTH) + x1); // Find source topleft pixel
-  Inc(pd, (y1 * ScaleFactor * ScaledWidth) + (x1 * ScaleFactor)); // And dest
-  for y:=y1 to y2 do begin
-    lpd := pd;
-    for x:=x1 to x2 do begin  // Scale columns
-      For i := 1 To ScaleFactor Do Begin
-        pd^:=ps^;
-        Inc(pd);
-      End;
-      Inc(ps);
-    end;
-    pd := pLongWord(NativeUint(pd) + (ScaledWidth * 4) - w); // Find next row
-    Inc(ps, DISPLAYWIDTH - w2);                              // in both dest and src
-    For i := 1 to ScaleFactor -1 Do Begin // Copy rows
-      Move(lpd^,pd^,w);
-      Inc(pd, ScaledWidth);
-    End;
-  end;
-  {$ENDIF}
-end;
-
-Procedure Refresh_Display;
-Var
-  DC: hDc;
-  x, y, w, h: Integer;
-Begin
-
-  DisplaySection.Enter;
-
-  {$IFDEF OPENGL}
-
-    DC := wglGetCurrentDC;
-    If Not GLInitDone or (DC = 0) Then Begin
-      InitGL;
-      Main.FormResize(Main);
-    End;
-
-    glDisable(gl_MULTISAMPLE_ARB);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glLoadIdentity;
-    glUseProgramObjectARB(0);
-
-    If DoScale Then Begin
-      ScaleBuffers(GLX, GLX + GLW -1, GLY, GLY + GLH -1);
-      x := GLX * ScaleFactor;
-      y := GLY * ScaleFactor;
-      w := GLW * ScaleFactor;
-      h := GLH * ScaleFactor;
-      glPixelStorei(GL_UNPACK_ROW_LENGTH, ScaledWidth);
-      glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, W, H, GL_BGRA, GL_UNSIGNED_BYTE, @DispArray[X * 4 + ScaledWidth * 4 * Y]);
-      If (GLMW > 0) And (GLMH > 0) And MOUSEMOVED Then Begin
-        ScaleBuffers(GLMX, GLMX + GLMW -1, GLMY, GLMH + GLMY -1);
-        x := GLMX * ScaleFactor;
-        y := GLMY * ScaleFactor;
-        w := GLMW * ScaleFactor;
-        h := GLMH * ScaleFactor;
-        glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, W, H, GL_BGRA, GL_UNSIGNED_BYTE, @DispArray[X * 4 + ScaledWidth * 4 * Y]);
-      End;
-    End Else Begin
-      glPixelStorei(GL_UNPACK_ROW_LENGTH, DISPLAYWIDTH);
-      glTexSubImage2D(GL_TEXTURE_2D, 0, GLX, GLY, GLW, GLH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLX * 4 + DISPLAYWIDTH * 4 * GLY]);
-      If (GLMW > 0) And (GLMH > 0) And MOUSEMOVED Then
-        glTexSubImage2D(GL_TEXTURE_2D, 0, GLMX, GLMY, GLMW, GLMH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLMX * 4 + DISPLAYWIDTH * 4 * GLMY]);
-    End;
-
-    glBegin(GL_QUADS);
-    glTexCoord2D(0, 0); glVertex2D(0, 0);
-    glTexCoord2D(1, 0); glVertex2D(ScaleWidth, 0);
-    glTexCoord2D(1, 1); glVertex2D(ScaleWidth, ScaleHeight);
-    glTexCoord2D(0, 1); glVertex2D(0, ScaleHeight);
-    glEnd;
-
-    SwapBuffers(DC);
-
-  {$ELSE}
-    InvalidateRect(Main.Handle, iRect, False);
-    Main.Repaint;
-  {$ENDIF}
-  Drawing := False;
-  CauseUpdate := False;
-
-  DisplaySection.Leave;
 
 End;
 

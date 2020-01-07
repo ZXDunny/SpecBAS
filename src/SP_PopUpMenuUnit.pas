@@ -589,7 +589,8 @@ Begin
   If Assigned(fParentMenu) Then
     fParentMenu.SetFocus(True)
   Else
-    FocusedControl := PrevFocusedControl;
+    If Assigned(PrevFocusedControl) Then
+      PrevFocusedControl.SetFocus(True);
 
 End;
 
@@ -646,7 +647,8 @@ Begin
       fActivated := False;
     End;
 
-  FocusedControl := PrevFocusedControl;
+  If Assigned(PrevFocusedControl) Then
+    PrevFocusedControl.SetFocus(True);
 
 End;
 

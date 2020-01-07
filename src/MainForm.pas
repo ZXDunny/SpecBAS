@@ -150,7 +150,7 @@ Begin
   finally
     SendMessage(Handle, WM_SETREDRAW, WPARAM(True), 0);
     If (cw = w) And (ch = h) Then
-      FormResize(Self);
+      GLInitDone := False;
   End;
 
   Msg.Result := 0;
@@ -189,7 +189,7 @@ Begin
         CauseUpdate := False;
       End;
     End Else
-      TThread.Sleep(1);
+      TThread.Sleep(10);
 
     GetCursorPos(p);
     p := Main.ScreenToClient(p);
@@ -323,6 +323,7 @@ Begin
     glClear(GL_COLOR_BUFFER_BIT);
     glLoadIdentity;
     glUseProgramObjectARB(0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ScaledWidth, ScaledHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
     If DoScale Then Begin
       ScaleBuffers(GLX, GLX + GLW -1, GLY, GLY + GLH -1);

@@ -655,13 +655,9 @@ Begin
 
   FONTHEIGHT := 8;
 
-  DisplaySection.Enter;
-
   SCREENBANK := SP_Add_Window(0, 0, W, H, $FFFF, 8, 0, Error);
   SP_ResizeWindow(SCREENBANK, W, H, 8, False, Error);
   SP_Bank_Protect(SCREENBANK, True);
-
-  DisplaySection.Leave;
 
   ID := SCREENBANK;
   SCREENBANK := -1;

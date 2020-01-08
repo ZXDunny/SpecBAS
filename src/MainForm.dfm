@@ -1,13 +1,12 @@
 object Main: TMain
   Left = 0
   Top = 0
-  AlphaBlend = True
   BorderIcons = [biSystemMenu, biMinimize]
   BorderStyle = bsSingle
   Caption = 'SpecBAS'
   ClientHeight = 449
   ClientWidth = 634
-  Color = clBlack
+  Color = clGray
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
   Font.Height = -11
@@ -16,8 +15,8 @@ object Main: TMain
   GlassFrame.Enabled = True
   KeyPreview = True
   OldCreateOrder = False
-  Visible = True
   OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
   OnKeyUp = FormKeyUp

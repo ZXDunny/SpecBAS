@@ -48,11 +48,11 @@ type
     procedure FormMouseWheelUp(Sender: TObject; Shift: TShiftState; MousePos: TPoint; var Handled: Boolean);
     procedure FormPaint(Sender: TObject);
     procedure FormResize(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
     procedure OnAppMessage(var Msg: TMsg; var Handled: Boolean);
     procedure CMDialogKey( Var msg: TCMDialogKey ); message CM_DIALOGKEY;
-    procedure WMEraseBkgnd(var Msg: TMessage); message WM_ERASEBKGND;
     Procedure OnResizeMain(Var Msg: TMessage); Message WM_RESIZEMAIN;
   public
     { Public declarations }
@@ -142,14 +142,16 @@ Begin
   w := Msg.lParam And $FFFF;
   h := (Msg.lParam Shr 16) And $FFFF;
 
-  SendMessage(Handle, WM_SETREDRAW, WPARAM(False), 0);
+  If Visible Then
+    SendMessage(Handle, WM_SETREDRAW, WPARAM(False), 0);
   try
     ClientWidth := w;
     ClientHeight := h;
     Left := l;
     Top := t;
   finally
-    SendMessage(Handle, WM_SETREDRAW, WPARAM(True), 0);
+    If Visible Then
+      SendMessage(Handle, WM_SETREDRAW, WPARAM(True), 0);
   End;
 
   FormResize(Self);
@@ -287,7 +289,7 @@ begin
   Inc(pd, (y1 * ScaleFactor * ScaledWidth) + (x1 * ScaleFactor)); // And dest
   for y := y1 to y2 do begin
     lpd := pd;
-    for x:=x1 to x2 do begin  // Scale columns
+    for x := x1 to x2 do begin  // Scale columns
       For i := 1 To ScaleFactor Do Begin
         pd^ := ps^;
         Inc(pd);
@@ -314,8 +316,8 @@ Begin
 
     If Not GLInitDone Then Begin
       InitGL;
-      Main.FormResize(Main);
       SetScaling(DISPLAYWIDTH, DISPLAYHEIGHT, Main.ClientWidth, Main.ClientHeight);
+      Main.FormResize(Main);
     End;
 
     DC := wglGetCurrentDC;
@@ -324,7 +326,6 @@ Begin
     glClear(GL_COLOR_BUFFER_BIT);
     glLoadIdentity;
     glUseProgramObjectARB(0);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ScaledWidth, ScaledHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
     If DoScale Then Begin
       ScaleBuffers(GLX, GLX + GLW -1, GLY, GLY + GLH -1);
@@ -523,11 +524,6 @@ begin
      Handled := False;
   end;
 
-End;
-
-procedure TMain.WMEraseBkgnd(var Msg: TMessage);
-Begin
-  Msg.Result := 1;
 End;
 
 Procedure TSpecBAS_Thread.Execute;
@@ -813,6 +809,144 @@ begin
   Repeat
     Sleep(1);
   Until Not Drawing;
+
+end;
+
+procedure TMain.FormCreate(Sender: TObject);
+Var
+  Path: Array [0..MAX_PATH] of Char;
+  idx: Integer;
+  p: TPoint;
+begin
+
+  DisplaySection.Enter;
+
+  MOUSEVISIBLE := FALSE;
+
+  PCOUNT := ParamCount;
+  PARAMS := TStringList.Create;
+  For Idx := 0 To PCOUNT Do
+    PARAMS.Add(ParamStr(Idx));
+
+  Cursor := CrNone;
+
+  SetPriorityClass(GetCurrentProcess, $8000{ABOVE_NORMAL_PRIORITY_CLASS});
+
+  QueryPerformanceFrequency(TimerFreq);
+  QueryPerformanceCounter(BaseTime);
+
+  OldTicks := GetTicks;
+
+  TIMERES := 1;
+  While TimeBeginPeriod(TIMERES) <> TIMERR_NOERROR Do Inc(TIMERES);
+  InitTime := GetTicks;
+
+  {$IFDEF DEBUG}
+    BUILDSTR := aString(Sto_GetFmtFileVersion('', '%d.%d.%d.%d'));
+  {$ELSE}
+    BUILDSTR := '0.980';
+  {$ENDIF}
+  If IsDebuggerPresent Then UpdateLinuxBuildStr;
+  {$IFDEF OPENGL}
+    BUILDSTR := BUILDSTR + '-GL';
+  {$ENDIF}
+  {$IFDEF WIN64}
+    BUILDSTR := BUILDSTR + ' 64 Bit';
+  {$ENDIF}
+  {$IFDEF DEBUG}
+    BUILDSTR := BUILDSTR + ' [Debug]';
+  {$ENDIF}
+
+  // Set the HOME folder - if we're loading a parameter file, extract the
+  // directory and set that as HOMEFOLDER
+
+  If ParamCount = 0 Then Begin
+
+    Main.Caption := 'SpecBAS for Windows v'+BuildStr;
+    SHGetFolderPath(0,$0028,0,SHGFP_TYPE_CURRENT,@path[0]);
+    HOMEFOLDER := Path + aString('\specbas');
+
+  End Else Begin
+
+    Main.Caption := SP_GetProgName(PROGNAME);
+    HOMEFOLDER := ExtractFileDir(PARAMS[1]);
+    If HOMEFOLDER = '' Then
+      HOMEFOLDER := GetCurrentDir;
+
+  End;
+
+  If Not DirectoryExists(String(HOMEFOLDER)) Then
+    CreateDir(String(HOMEFOLDER));
+  If Not DirectoryExists(String(HOMEFOLDER) + '\temp') Then
+    CreateDir(String(HOMEFOLDER) + '\temp');
+  TEMPDIR := HOMEFOLDER + '\temp\';
+
+  SetCurrentDir(String(HOMEFOLDER));
+  HOMEFOLDER := Lower(HOMEFOLDER);
+  If HOMEFOLDER[Length(HOMEFOLDER)] <> '\' Then
+    HOMEFOLDER := HOMEFOLDER + '\';
+
+  AUTOSAVE := True;
+
+  ScrWidth := 800;
+  ScrHeight := 480;
+  SCALEWIDTH := 800;
+  SCALEHEIGHT := 480;
+  RealScreenWidth := Screen.Width;
+  RealScreenHeight := Screen.Height;
+  MENUBLOCK := False;
+
+  Application.OnActivate := OnActivate;
+  Application.OnDeactivate := OnDeactivate;
+
+  // Initialise callbacks
+
+  CB_GetKeyLockState := GetKeyState;
+  CB_Refresh_Display := Refresh_Display;
+  CB_Quit := MainForm.Quit;
+  CB_SetScreenRes := SetScreen;
+  CB_Test_Resolution := TestScreenResolution;
+  CB_GetTicks := GetTicks;
+  CB_Yield := YieldProc;
+  CB_Load_Image := LoadImage;
+  CB_Save_Image := SaveImage;
+  CB_Free_Image := FreeImageResource;
+  CB_Messages := MsgProc;
+
+  SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
+  SetBounds((Screen.Width - Width) Div 2, (Screen.Height - Height) Div 2, Width, Height);
+  RefreshTimer := TRefreshThread.Create(False);
+
+  WINLEFT := Left;
+  WINTOP := Top;
+
+  // Launch the interpreter
+
+  SP_CLS(CPAPER);
+  EDITLINE := '';
+  CURSORPOS := 0;
+  CURSORCHAR := 32;
+  SYSTEMSTATE := SS_IDLE;
+
+  SP_Init_Sound;
+
+  SetProcessAffinityMask(GetCurrentProcess, $F);
+
+  BASThread := TSpecBAS_Thread.Create(False);
+  Application.OnMessage := OnAppMessage;
+  SetThreadAffinityMask(GetCurrentThread(), 1);
+  SetThreadAffinityMask(BASThread.ThreadID, 2);
+  SetThreadAffinityMask(RefreshTimer.ThreadID, 4);
+
+  DisplaySection.Leave;
+
+  GetCursorPos(p);
+  p := Main.ScreenToClient(p);
+  MouseInForm := PtInRect(Main.ClientRect, p);
+
+  Activate;
+
+  Logging := True;
 
 end;
 
@@ -1147,139 +1281,9 @@ begin
 end;
 
 procedure TMain.FormShow(Sender: TObject);
-Var
-  Path: Array [0..MAX_PATH] of Char;
-  idx: Integer;
-  p: TPoint;
-begin
-
-  DisplaySection.Enter;
-
-  MOUSEVISIBLE := FALSE;
-
-  PCOUNT := ParamCount;
-  PARAMS := TStringList.Create;
-  For Idx := 0 To PCOUNT Do
-    PARAMS.Add(ParamStr(Idx));
-
-  Cursor := CrNone;
-
-  SetPriorityClass(GetCurrentProcess, $8000{ABOVE_NORMAL_PRIORITY_CLASS});
-
-  QueryPerformanceFrequency(TimerFreq);
-  QueryPerformanceCounter(BaseTime);
-
-  OldTicks := GetTicks;
-
-  TIMERES := 1;
-  While TimeBeginPeriod(TIMERES) <> TIMERR_NOERROR Do Inc(TIMERES);
-  InitTime := GetTicks;
-
-  {$IFDEF DEBUG}
-    BUILDSTR := aString(Sto_GetFmtFileVersion('', '%d.%d.%d.%d'));
-  {$ELSE}
-    BUILDSTR := '0.980';
-  {$ENDIF}
-  If IsDebuggerPresent Then UpdateLinuxBuildStr;
-  {$IFDEF OPENGL}
-    BUILDSTR := BUILDSTR + '-GL';
-  {$ENDIF}
-  {$IFDEF WIN64}
-    BUILDSTR := BUILDSTR + ' 64 Bit';
-  {$ENDIF}
-  {$IFDEF DEBUG}
-    BUILDSTR := BUILDSTR + ' [Debug]';
-  {$ENDIF}
-
-  // Set the HOME folder - if we're loading a parameter file, extract the
-  // directory and set that as HOMEFOLDER
-
-  If ParamCount = 0 Then Begin
-
-    Main.Caption := 'SpecBAS for Windows v'+BuildStr;
-    SHGetFolderPath(0,$0028,0,SHGFP_TYPE_CURRENT,@path[0]);
-    HOMEFOLDER := Path + aString('\specbas');
-
-  End Else Begin
-
-    Main.Caption := SP_GetProgName(PROGNAME);
-    HOMEFOLDER := ExtractFileDir(PARAMS[1]);
-    If HOMEFOLDER = '' Then
-      HOMEFOLDER := GetCurrentDir;
-
-  End;
-
-  If Not DirectoryExists(String(HOMEFOLDER)) Then
-    CreateDir(String(HOMEFOLDER));
-  If Not DirectoryExists(String(HOMEFOLDER) + '\temp') Then
-    CreateDir(String(HOMEFOLDER) + '\temp');
-  TEMPDIR := HOMEFOLDER + '\temp\';
-
-  SetCurrentDir(String(HOMEFOLDER));
-  HOMEFOLDER := Lower(HOMEFOLDER);
-  If HOMEFOLDER[Length(HOMEFOLDER)] <> '\' Then
-    HOMEFOLDER := HOMEFOLDER + '\';
-
-  AUTOSAVE := True;
-
-  ScrWidth := 800;
-  ScrHeight := 480;
-  SCALEWIDTH := 800;
-  SCALEHEIGHT := 480;
-  RealScreenWidth := Screen.Width;
-  RealScreenHeight := Screen.Height;
-  MENUBLOCK := False;
-
-  Application.OnActivate := OnActivate;
-  Application.OnDeactivate := OnDeactivate;
-
-  // Initialise callbacks
-
-  CB_GetKeyLockState := GetKeyState;
-  CB_Refresh_Display := Refresh_Display;
-  CB_Quit := MainForm.Quit;
-  CB_SetScreenRes := SetScreen;
-  CB_Test_Resolution := TestScreenResolution;
-  CB_GetTicks := GetTicks;
-  CB_Yield := YieldProc;
-  CB_Load_Image := LoadImage;
-  CB_Save_Image := SaveImage;
-  CB_Free_Image := FreeImageResource;
-  CB_Messages := MsgProc;
-
-  SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
-  SetBounds((Screen.Width - Width) Div 2, (Screen.Height - Height) Div 2, Width, Height);
-  WINLEFT := Left;
-  WINTOP := Top;
-
-  // Launch the interpreter
-
-  SP_CLS(CPAPER);
-  EDITLINE := '';
-  CURSORPOS := 0;
-  CURSORCHAR := 32;
-  SYSTEMSTATE := SS_IDLE;
-
-  SP_Init_Sound;
-
-  SetProcessAffinityMask(GetCurrentProcess, $F);
-
-  BASThread := TSpecBAS_Thread.Create(False);
-  Application.OnMessage := OnAppMessage;
-  RefreshTimer := TRefreshThread.Create(False);
-  SetThreadAffinityMask(GetCurrentThread(), 1);
-  SetThreadAffinityMask(BASThread.ThreadID, 2);
-  SetThreadAffinityMask(RefreshTimer.ThreadID, 4);
-
-  DisplaySection.Leave;
-
-  GetCursorPos(p);
-  p := Main.ScreenToClient(p);
-  MouseInForm := PtInRect(Main.ClientRect, p);
+Begin
 
   SetFocus;
-
-  Logging := True;
 
 end;
 

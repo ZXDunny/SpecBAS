@@ -654,9 +654,14 @@ Begin
   MENUDISABLEDINK :=  CGREY;
 
   FONTHEIGHT := 8;
+
+  DisplaySection.Enter;
+
   SCREENBANK := SP_Add_Window(0, 0, W, H, $FFFF, 8, 0, Error);
   SP_ResizeWindow(SCREENBANK, W, H, 8, False, Error);
   SP_Bank_Protect(SCREENBANK, True);
+
+  DisplaySection.Leave;
 
   ID := SCREENBANK;
   SCREENBANK := -1;
@@ -927,6 +932,7 @@ Begin
   // will set up the actual display image. Finally, set Window 0 to the correct size, and update all the pointers to
   // the other windows to reflect the change in size of window 0.
 
+  DisplaySection.Enter;
   SCREENCHANGE := True;
 
   If CB_Test_Resolution(sWidth, sHeight, FullScreen) Then Begin
@@ -944,6 +950,7 @@ Begin
     Error.Code := SP_ERR_SCREENMODE_UNSUPPORTED;
 
   SCREENCHANGE := False;
+  DisplaySection.Leave;
 
 End;
 
@@ -1139,12 +1146,16 @@ Begin
     SCREENBANK := -1;
     SP_SetDrawingWindow(Idx);
 
-    DisplaySection.Leave;
-
     If WindowID = 0 Then Begin
+      SIZINGMAIN := True;
       CB_SetScreenRes(Window^.Width, Window^.Height, SCALEWIDTH, SCALEHEIGHT, FullScreen);
+      Repeat
+        CB_YIELD;
+      Until Not SIZINGMAIN;
       SP_CLS(CPAPER);
     End;
+
+    DisplaySection.Leave;
 
   End;
 
@@ -6496,7 +6507,6 @@ Begin
   MOUSESTR := pStr;
   MOUSESPRITE := -1;
   MOUSEISGRAPHIC := False;
-  MOUSEVISIBLE := True;
   MOUSEHSX := 0;
   MOUSEHSY := 0;
   MOUSEW := pLongWord(@MOUSESTR[1])^;

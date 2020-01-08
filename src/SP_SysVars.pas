@@ -53,6 +53,7 @@ Var
   SPFULLSCREEN:             Boolean;      // True if we're in Fullscreen mode.
   SCRUPDATENOW:             Boolean;
   DRAWING:                  Boolean;
+  SIZINGMAIN:               Boolean;      // True while waiting for the UI thread to resize the main window
   SCMINX, SCMINY,
   SCMAXX, SCMAXY:           Integer;      // "Dirty rectangle" display coordinates for the SP_Composite routine
   SORGX, SORGY, SORGW,

@@ -165,6 +165,7 @@ Begin
   End;
 
   AUTOSAVE := aSave;
+  MOUSEVISIBLE := True;
 
   SP_FPEditorLoop;
   SP_SaveRecentFiles;

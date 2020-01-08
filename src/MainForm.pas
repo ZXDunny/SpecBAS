@@ -67,15 +67,19 @@ type
     Procedure Execute; Override;
   End;
 
+  {$IFDEF OPENGL}
   Procedure InitGL;
+  {$ENDIF}
   Function  SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
   Function  SetScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
   Function  TestScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
+  Procedure SetScaling(Width, Height, sWidth, sHeight: Integer);
+  Procedure Refresh_Display;
+  Function  UpdateDisplay: Boolean;
+
   Procedure YieldProc; inline;
   Procedure MsgProc; inline;
   Procedure GetKeyState;
-  Procedure Refresh_Display;
-  Function  UpdateDisplay: Boolean;
   Function  GetTicks: LongWord;
   Procedure Quit;
   function  Sto_GetFmtFileVersion(const FileName: String = ''; const Fmt: String = '%d.%d'): String;
@@ -131,10 +135,6 @@ Var
   l, t, w, h, cw, ch: Integer;
 Begin
 
-  While not DisplaySection.TryEnter Do
-    TThread.Sleep(1);
-
-  GLInitDone := False;
   cw := ClientWidth;
   ch := ClientHeight;
   l := SmallInt(Msg.wParam And $FFFF);
@@ -152,9 +152,10 @@ Begin
     SendMessage(Handle, WM_SETREDRAW, WPARAM(True), 0);
   End;
 
-  Msg.Result := 0;
+  FormResize(Self);
 
-  DisplaySection.Leave;
+  Msg.Result := 0;
+  SIZINGMAIN := False;
 
 End;
 
@@ -165,6 +166,7 @@ Var
 Begin
 
   NameThreadForDebugging('Refresh Thread');
+
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
   Priority := tpIdle;
@@ -308,13 +310,12 @@ Var
   x, y, w, h: Integer;
 Begin
 
-  DisplaySection.Enter;
-
   {$IFDEF OPENGL}
 
     If Not GLInitDone Then Begin
       InitGL;
       Main.FormResize(Main);
+      SetScaling(DISPLAYWIDTH, DISPLAYHEIGHT, Main.ClientWidth, Main.ClientHeight);
     End;
 
     DC := wglGetCurrentDC;
@@ -362,8 +363,6 @@ Begin
     Main.Repaint;
   {$ENDIF}
 
-  DisplaySection.Leave;
-
 End;
 
 Function GetTicks: LongWord;
@@ -378,8 +377,6 @@ Procedure SetScaling(Width, Height, sWidth, sHeight: Integer);
 Begin
 
   {$IFDEF OPENGL}
-
-  DisplaySection.Enter;
 
   SCALEWIDTH := sWidth;
   SCALEHEIGHT := sHeight;
@@ -398,8 +395,6 @@ Begin
   SetLength(PixArray, Width * 4 * Height);
   DISPLAYPOINTER := @PixArray[0];
 
-  DisplaySection.Leave;
-
   {$ENDIF}
 
 End;
@@ -410,8 +405,6 @@ Var
 Begin
 
   Result := 0;
-
-  DisplaySection.Enter;
 
   // Check for transition from window to fullscreen and vice-versa
 
@@ -435,8 +428,9 @@ Begin
   DISPLAYWIDTH := Width;
   DISPLAYHEIGHT := Height;
 
+
   {$IFDEF OPENGL}
-  If FullScreen <> SPFULLSCREEN Then GLInitDone := False;
+  GLInitDone := False; // trigger the OpenGL system to recreate itself with the new window/screen size
   {$ENDIF}
   SetScreenResolution(sWidth, sHeight, FullScreen);
   w := sWidth;
@@ -448,14 +442,8 @@ Begin
     l := WINLEFT; //(Screen.Width - sWidth) Div 2;
     t := WINTOP; //(Screen.Height - sHeight) Div 2;
   End;
-  DisplaySection.Leave;
 
   SendMessage(Main.Handle, WM_RESIZEMAIN, l + (t shl 16), w + (h Shl 16));
-
-  DisplaySection.Enter;
-  SetScaling(Width, Height, sWidth, sHeight);
-  DisplaySection.Leave;
-
 
 End;
 
@@ -490,8 +478,6 @@ var
   R: TRect;
 begin
 
-  DisplaySection.Enter;
-
   If FullScreen Then Begin
     with DeviceMode do begin
       dmSize := SizeOf(TDeviceMode);
@@ -518,10 +504,6 @@ begin
     End;
     Result := True;
   End;
-
-  SetScaling(DISPLAYWIDTH, DISPLAYHEIGHT, Width, Height);
-
-  DisplaySection.Leave;
 
 end;
 
@@ -1098,9 +1080,8 @@ Var
 {$ENDIF}
 begin
 
-  If Not (Quitting) and GLInitDone Then Begin
 
-    DisplaySection.Enter;
+  If Not (Quitting) Then Begin
 
     {$IFDEF OPENGL}
 
@@ -1109,25 +1090,29 @@ begin
       SetLength(DispArray, ScaledWidth * 4 * ScaledHeight);
       DISPLAYPOINTER := @PixArray[0];
 
-      glClearColor(0, 0, 0, 0);
-      glClearDepth(1);
+      If GLInitDone Then Begin
 
-      glViewPort(0, 0, ScaleWidth, ScaleHeight);
+        glClearColor(0, 0, 0, 0);
+        glClearDepth(1);
 
-      glMatrixMode(GL_PROJECTION);
-      glLoadIdentity;
+        glViewPort(0, 0, ScaleWidth, ScaleHeight);
 
-      glOrtho(0, ScaleWidth, ScaleHeight, 0, 1, -1);
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity;
 
-      glMatrixMode(GL_MODELVIEW);
-      glEnable(GL_TEXTURE_2D);
+        glOrtho(0, ScaleWidth, ScaleHeight, 0, 1, -1);
 
-      glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ScaledWidth, ScaledHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glMatrixMode(GL_MODELVIEW);
+        glEnable(GL_TEXTURE_2D);
 
-      glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-      glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ScaledWidth, ScaledHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
-      glEnable(GL_TEXTURE_2D);
+        glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+        glEnable(GL_TEXTURE_2D);
+
+      End;
 
     {$ELSE}
 
@@ -1155,8 +1140,6 @@ begin
 
     {$ENDIF}
 
-    DisplaySection.Leave;
-
   End;
 
   DPtrBackup := DISPLAYPOINTER;
@@ -1171,6 +1154,8 @@ Var
 begin
 
   DisplaySection.Enter;
+
+  MOUSEVISIBLE := FALSE;
 
   PCOUNT := ParamCount;
   PARAMS := TStringList.Create;

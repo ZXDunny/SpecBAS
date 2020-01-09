@@ -11047,7 +11047,8 @@ Begin
     SP_Reset_Temp_Colours;
     CPAPER := 8;
     CINK := 0;
-    SP_CLS(CPAPER);
+    If Filename <> 's:autosave' Then
+      SP_CLS(CPAPER);
     If EDITORREADY Then Begin
       SP_FPWrapProgram;
       Listing.FPCLine := 0;

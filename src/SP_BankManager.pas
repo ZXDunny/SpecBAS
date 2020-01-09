@@ -576,6 +576,7 @@ Begin
 
   If Not SP_BankList[Index]^.Protection Then Begin
     If Index < Length(SP_BankList) Then Begin
+      DisplaySection.Enter;
       If MOUSEISGRAPHIC And (MOUSESPRITE = SP_BankList[Index]^.ID) Then SP_MousePointerFromDefault;
       If SP_BankList[Index]^.DataType = SP_SAMPLE_BANK Then
         BASS_SampleFree(pSP_Sample_Info(@SP_BankList[Index]^.Info[0])^.Sample);
@@ -589,7 +590,6 @@ Begin
         SP_SetDrawingWindow(0);
       End;
 
-      ControlSection.Enter;
       Dispose(SP_BankList[Index]);
       For Idx := Index To Length(SP_BankList) -2 Do
         SP_BankList[Idx] := SP_BankList[Idx +1];
@@ -602,7 +602,7 @@ Begin
       If OKSNDBANK > Index Then Dec(OKSNDBANK);
       If ERRSNDBANK > Index Then Dec(ERRSNDBANK);
       If FONTBANKID > Index Then Dec(FONTBANKID);
-      ControlSection.Leave;
+      DisplaySection.Leave;
 
     End;
   End Else
@@ -1059,6 +1059,8 @@ Var
   Pal: pPalArray;
 Begin
 
+  DisplaySection.Enter;
+
   If NUMWINDOWS = 0 then
     Pal := @DefaultPalette[0]
   Else
@@ -1101,16 +1103,15 @@ Begin
   Window^.bpp := Bpp;
   Window^.AlphaEnabled := Alpha = 1;
   Window^.FontTrans := False;
-  If Assigned(Window^.Component) then Begin
-    ControlSection.Enter;
+  If Assigned(Window^.Component) then
     Window^.Component.Free;
-    ControlSection.Leave;
-  End;
   Window^.Component := SP_BaseComponent.Create(Nil);
   Window^.Component.WindowID := Bank^.ID;
   Window^.ID := Bank^.ID;
 
   CopyMem(@Window^.Palette[0], Pal, SizeOf(TP_Colour) * 256);
+
+  DisplaySection.Leave;
 
 End;
 

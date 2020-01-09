@@ -268,7 +268,7 @@ Var
   Str: aString;
 Begin
 
-  ControlSection.Enter;
+  DisplaySection.Enter;
 
   Font := SP_SetFPEditorFont;
 
@@ -361,7 +361,7 @@ Begin
 
   SP_SetDrawingWindow(FPEditorDefaultWindow);
 
-  ControlSection.Leave;
+  DisplaySection.Leave;
 
   // Spin, waiting for the tool to finish.
 
@@ -369,11 +369,11 @@ Begin
 
   // Set the filename - might be blank.
 
-  ControlSection.Enter;
+  DisplaySection.Enter;
   Result := ToolStrResult;
   SP_SetSystemFont(Font, Error);
   SP_DeleteWindow(FDWindowID, Error);
-  ControlSection.Leave;
+  DisplaySection.Leave;
 
 End;
 
@@ -388,7 +388,7 @@ Var
   Sel: SP_SelectionInfo;
 Begin
 
-  ControlSection.Enter;
+  DisplaySection.Enter;
 
   ToolWindowDone := False;
 
@@ -542,7 +542,7 @@ Begin
   End Else
     okBtn.Enabled := searchEdt.Text <> '';
 
-  ControlSection.Leave;
+  DisplaySection.Leave;
 
   WaitForDialog;
 
@@ -667,7 +667,7 @@ Var
   win: pSP_Window_Info;
 Begin
 
-  ControlSection.Enter;
+  DisplaySection.Enter;
 
   ToolWindowDone := False;
 
@@ -720,7 +720,7 @@ Begin
   SP_DisplayFPListing(-1);
   SP_SetDrawingWindow(FPEditorDefaultWindow);
 
-  ControlSection.Leave;
+  DisplaySection.Leave;
 
   FPGotoText := '';
   WaitForDialog;
@@ -812,7 +812,7 @@ begin
 
   // Edit a breakpoint.
 
-  ControlSection.Enter;
+  DisplaySection.Enter;
 
   ToolWindowDone := False;
 
@@ -904,7 +904,7 @@ begin
   SP_DisplayFPListing(-1);
   SP_SetDrawingWindow(FPEditorDefaultWindow);
 
-  ControlSection.Leave;
+  DisplaySection.Leave;
 
   WaitForDialog;
 

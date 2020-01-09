@@ -596,6 +596,7 @@ Begin
   Error.Code := -1;
   NXTLINE := -1;
   Error.Position := 1;
+
   SP_FPEditorError(Error);
 
   FPDebugPanelVisible := False;
@@ -3206,7 +3207,7 @@ Begin
       K_UPFLAG := False;
     End;
     If MaxDirtyLines >= 0 Then RefreshDirtyLines;
-  Until M_DOWNFLAG or M_UPFLAG or M_MOVEFLAG or M_WHEELUPFLAG or M_WHEELDNFLAG or (LASTKEY <> 0);
+  Until M_DOWNFLAG or M_UPFLAG or M_MOVEFLAG or M_WHEELUPFLAG or M_WHEELDNFLAG or (KEYSTATE[LASTKEY] <> 0);
 
 End;
 
@@ -7434,6 +7435,7 @@ Begin
     CauseUpdate := True;
 
     If IsNew Then Begin
+
       If ParamCount = 0 Then Begin
 
         TargetTicks := CB_GetTicks + LongWord(250);
@@ -7516,7 +7518,7 @@ Begin
         Dec(x, 8);
       End;
       T_SCALEY := 1;
-      SP_TextOut(FONTBANKID, 16, WinH - 22, #127' 2019 ZX Development Ltd.'{#13'        ZXDunny    Windows/Pandora/OSX'#13'        Piez       Linux'#13'        Chris      Pi'}, 232, 0, True);
+      SP_TextOut(FONTBANKID, 16, WinH - 22, #127' 2020 ZX Development Ltd.'{#13'        ZXDunny    Windows/Pandora/OSX'#13'        Piez       Linux'#13'        Chris      Pi'}, 232, 0, True);
       SP_InvalidateWholeDisplay;
       SP_NeedDisplayUpdate := True;
       SP_WaitForSync;
@@ -7649,6 +7651,9 @@ Begin
     SP_ClearKeyBuffer(True);
     LASTKEY := 0;
   End;
+
+  If IsNew And (ParamCount = 0) Then
+    SP_CLS(CPAPER);
 
   OUTSET := FPEditorOutSet;
   SP_NeedDisplayUpdate := True;

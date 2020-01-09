@@ -1250,6 +1250,8 @@ Begin
 
   If fValidCanvas And (fLockCount <= 0) Then Begin
 
+    DisplaySection.Enter;
+
     // Erase the background if desired
 
     Erase;
@@ -1269,6 +1271,8 @@ Begin
     SP_SetDirtyRect(p.x, p.y, p.x + Width, p.y + Height);
     SP_NeedDisplayUpdate := True;
     fNeedPaint := False;
+
+    DisplaySection.Leave;
 
   End Else
 

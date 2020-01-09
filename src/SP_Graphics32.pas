@@ -455,10 +455,7 @@ Begin
 
         If sPtr^.ID <> LastWindowID Then
           If sPtr^.Component.Count > 0 Then
-            If ControlSection.TryEnter Then Begin
-              sPtr^.Component.Render(pByte(srcPtr), sPtr^.Width, sPtr^.Height);
-              ControlSection.Leave;
-            End;
+            sPtr^.Component.Render(pByte(srcPtr), sPtr^.Width, sPtr^.Height);
 
         Inc(pByte(SrcPtr), ((by1 - sPtr^.Top) * sPtr^.Stride));
         Inc(pByte(SrcPtr), bx1 - sPtr^.Left);

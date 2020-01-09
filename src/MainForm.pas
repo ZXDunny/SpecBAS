@@ -595,7 +595,7 @@ begin
   // Now check for controls under the mouse              *** make windowmenu appear when right-clicking if not visible
 
   Handled := False;
-  ControlSection.Enter;
+  DisplaySection.Enter;
 
   If ForceCapture Then Begin
     If CaptureControl.CanFocus Then
@@ -622,7 +622,7 @@ begin
     End;
   End;
 
-  ControlSection.Leave;
+  DisplaySection.Leave;
 
   // Finally, pass the mouse event to the interpreter
 
@@ -675,47 +675,49 @@ begin
     If (LMenu <> LASTMENU) or (LItem <> LASTMENUITEM) Then
       MENU_HIGHLIGHTFLAG := True;
 
-  End Else Begin
+  End Else
 
-    // Now check for controls under the mouse
+    If MOUSEVISIBLE Then Begin
 
-    ControlSection.Enter;
-    Handled := False;
+      // Now check for controls under the mouse
 
-    tX := X; tY := Y;
-    Win := WindowAtPoint(tX, tY);
-    If Assigned(Win) Then Begin
-      Win := ControlAtPoint(Win, tX, tY);
-      If MouseControl <> SP_BaseComponent(Win) Then
-        If Assigned(MouseControl) Then
-          MouseControl.MouseExit;
-    End;
-    If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
-      p := CaptureControl.ScreenToClient(Point(x, y));
-      CaptureControl.MouseMove(p.x, p.y, Btn);
-    End Else Begin
+      DisplaySection.Enter;
+      Handled := False;
+
+      tX := X; tY := Y;
+      Win := WindowAtPoint(tX, tY);
       If Assigned(Win) Then Begin
-        If MouseControl <> SP_BaseComponent(Win) Then Begin
-          MouseControl := Win;
-          p := MouseControl.ScreenToClient(Point(tX, tY));
-          MouseControl.MouseEnter(p.X, p.Y);
-        End;
-        SP_BaseComponent(Win).MouseMove(tX, tY, Btn);
-        Handled := True;
-      End Else
-        If Assigned(MouseControl) Then
-          MouseControl.MouseExit;
-    End;
+        Win := ControlAtPoint(Win, tX, tY);
+        If MouseControl <> SP_BaseComponent(Win) Then
+          If Assigned(MouseControl) Then
+            MouseControl.MouseExit;
+      End;
+      If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
+        p := CaptureControl.ScreenToClient(Point(x, y));
+        CaptureControl.MouseMove(p.x, p.y, Btn);
+      End Else Begin
+        If Assigned(Win) Then Begin
+          If MouseControl <> SP_BaseComponent(Win) Then Begin
+            MouseControl := Win;
+            p := MouseControl.ScreenToClient(Point(tX, tY));
+            MouseControl.MouseEnter(p.X, p.Y);
+          End;
+          SP_BaseComponent(Win).MouseMove(tX, tY, Btn);
+          Handled := True;
+        End Else
+          If Assigned(MouseControl) Then
+            MouseControl.MouseExit;
+      End;
 
-    ControlSection.Leave;
+      DisplaySection.Leave;
+
+    End;
 
     // Fall through to allow user code to get mousemove events
 
-    If Not Handled Then Begin
-      M_MOVEFLAG := True;
-      MOUSEBTN := Btn;
-    End;
-
+  If Not Handled Then Begin
+    M_MOVEFLAG := True;
+    MOUSEBTN := Btn;
   End;
 
 end;
@@ -757,7 +759,7 @@ begin
 
     // Now check for controls under the mouse
 
-    ControlSection.Enter;
+    DisplaySection.Enter;
 
     Handled := False;
     If Assigned(CaptureControl) Then Begin
@@ -777,7 +779,7 @@ begin
       End;
     End;
 
-    ControlSection.Leave;
+    DisplaySection.Leave;
 
     // Finally, pass the mouse event to the interpreter
 
@@ -1019,12 +1021,12 @@ begin
   If aStr = '' Then aStr := #0;
   Handled := False;
   If ControlsAreInUse Then Begin
-    ControlSection.Enter;
+    DisplaySection.Enter;
     If ControlKeyEvent(aStr, Key, True) Then Begin
       Key := 0;
       Handled := True;
     End;
-    ControlSection.Leave;
+    DisplaySection.Leave;
   End;
 
   If Not Handled Then Begin
@@ -1043,12 +1045,12 @@ begin
 
   Handled := False;
   If ControlsAreInUse Then Begin
-    ControlSection.Enter;
+    DisplaySection.Enter;
     If ControlKeyEvent('', Key, False) Then Begin
       Key := 0;
       Handled := True;
     End;
-    ControlSection.Leave;
+    DisplaySection.Leave;
   End;
 
   If Not Handled Then Begin
@@ -1071,7 +1073,7 @@ begin
   Btn := Integer(ssLeft in Shift) + (2 * Integer(ssRight in Shift)) + (4 * Integer(ssMiddle in Shift));
 
   Handled := False;
-  ControlSection.Enter;
+  DisplaySection.Enter;
 
   If Assigned(CaptureControl) Then Begin
     p := CaptureControl.ScreenToClient(Point(x, y));
@@ -1087,7 +1089,7 @@ begin
     End;
   End;
 
-  ControlSection.Leave;
+  DisplaySection.Leave;
 
   If Not Handled Then Begin
     M_WHEELDNFLAG := True;
@@ -1108,7 +1110,7 @@ begin
   Btn := Integer(ssLeft in Shift) + (2 * Integer(ssRight in Shift)) + (4 * Integer(ssMiddle in Shift));
 
   Handled := False;
-  ControlSection.Enter;
+  DisplaySection.Enter;
 
   If Assigned(CaptureControl) Then Begin
     p := CaptureControl.ScreenToClient(Point(x, y));
@@ -1124,7 +1126,7 @@ begin
     End;
   End;
 
-  ControlSection.Leave;
+  DisplaySection.Leave;
 
   If Not Handled Then Begin
     M_WHEELUPFLAG := True;

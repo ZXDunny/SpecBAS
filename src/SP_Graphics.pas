@@ -913,7 +913,6 @@ Begin
     NUMWINDOWS := 1;
     SCREENBANK := -1;
     SP_SetDrawingWindow(0);
-    SP_CLS(CPAPER);
     SetLength(SP_ZoneList, 0);
 
   End;
@@ -921,6 +920,8 @@ Begin
 End;
 
 Procedure SP_ChangeRes(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean; Var Error: TSP_ErrorCode);
+Var
+  OldMouse: Boolean;
 Begin
 
   // Switch resolution. First, attempt the switch to the new resolution via a callback, which
@@ -930,6 +931,8 @@ Begin
 
   DisplaySection.Enter;
   SCREENCHANGE := True;
+  OldMouse := MOUSEVISIBLE;
+  MOUSEVISIBLE := False;
 
   If CB_Test_Resolution(sWidth, sHeight, FullScreen) Then Begin
 
@@ -945,6 +948,7 @@ Begin
 
     Error.Code := SP_ERR_SCREENMODE_UNSUPPORTED;
 
+  MOUSEVISIBLE := OldMouse;
   SCREENCHANGE := False;
   DisplaySection.Leave;
 
@@ -1060,7 +1064,7 @@ Var
   OldMem: Array of Byte;
   dPtr: pLongWord;
   sPtr: pByte;
-
+  OldMouse: Boolean;
 Begin
 
   If ((W <= 0) or (H <= 0)) and (Depth <= 0) Then Begin
@@ -1143,12 +1147,15 @@ Begin
     SP_SetDrawingWindow(Idx);
 
     If WindowID = 0 Then Begin
+      OldMouse := MOUSEVISIBLE;
+      MOUSEVISIBLE := False;
       SIZINGMAIN := True;
       CB_SetScreenRes(Window^.Width, Window^.Height, SCALEWIDTH, SCALEHEIGHT, FullScreen);
       Repeat
         CB_YIELD;
       Until Not SIZINGMAIN;
       SP_CLS(CPAPER);
+      MOUSEVISIBLE := OldMouse;
     End;
 
     DisplaySection.Leave;
@@ -1206,9 +1213,7 @@ Begin
 
       DisplaySection.Enter;
       SP_GetWindowDetails(WindowID, Window, Error);
-      ControlSection.Enter;
       Window^.Component.Free;
-      ControlSection.Leave;
 
       If WindowID = SCREENBANK Then Begin
         SCREENBANK := -1;

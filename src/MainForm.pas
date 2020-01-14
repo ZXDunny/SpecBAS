@@ -51,6 +51,7 @@ type
     procedure FormCreate(Sender: TObject);
   private
     { Private declarations }
+    Minimised: Boolean;
     procedure OnAppMessage(var Msg: TMsg; var Handled: Boolean);
     procedure CMDialogKey( Var msg: TCMDialogKey ); message CM_DIALOGKEY;
     Procedure OnResizeMain(Var Msg: TMessage); Message WM_RESIZEMAIN;
@@ -1220,6 +1221,18 @@ begin
   If Not (Quitting) Then Begin
 
     {$IFDEF OPENGL}
+
+      If WindowState = wsMinimized Then Begin
+        Minimised := True;
+        Exit;
+      End Else
+        If Minimised Then Begin
+          Minimised := False;
+          GLInitDone := False;
+          SP_InvalidateWholeDisplay;
+          SP_NeedDisplayUpdate := True;
+          Exit;
+        End;
 
       DISPLAYSTRIDE := DISPLAYWIDTH * 4;
       SetLength(PixArray, DISPLAYSTRIDE * DISPLAYHEIGHT);

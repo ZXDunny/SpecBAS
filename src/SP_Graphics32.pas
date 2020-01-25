@@ -435,6 +435,7 @@ Begin
 
           If sPtr^.SpriteCount > 0 Then Begin
 
+            SP_BlockSprites;
             DRAWINGSPRITES := True;
 
             tw := 0;
@@ -446,6 +447,7 @@ Begin
             End;
 
             DRAWINGSPRITES := False;
+            SP_UnblockSprites;
 
           End;
 

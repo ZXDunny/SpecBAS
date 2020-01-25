@@ -245,11 +245,14 @@ Procedure SP_ToggleBreakPoint(Hidden: Boolean);
 Procedure SP_FPGotoLine(line, statement: Integer);
 Procedure SP_ToggleEditorMark(i: Integer);
 Procedure SP_JumpToMark(i: Integer);
+Procedure SP_ResetConditionalBreakPoints;
 Procedure SP_PrepareBreakpoints(Create: Boolean);
-Function  SP_IsBreakPoint(Line, Statement: Integer): Boolean;
+Function  SP_IsSourceBreakPoint(Line, Statement: Integer): Boolean;
 Procedure SP_SingleStep;
 Function  SP_StepOver: Boolean;
 Procedure SP_ClearBreakPoints;
+Procedure SP_GetDebugStatus;
+
 
 Var
   // Editor window
@@ -2670,7 +2673,7 @@ Begin
         End;
 
         // Draw the breakpoint if one exists here
-        If (HasNumber or doDrawSt) and SP_IsBreakPoint(LineNum, St) Then Begin
+        If (HasNumber or doDrawSt) and SP_IsSourceBreakPoint(LineNum, St) Then Begin
           llbpx := FPPaperLeft +2; llbpy := OfsY + ((FPFh - 8) Div 2);
           For i := -1 to 1 Do
             For j := -1 to 1 Do
@@ -7231,6 +7234,11 @@ Begin
             // Merge ""
             StartFileOp(SP_KW_MERGE, '');
           End;
+        'n':
+          Begin
+            // Add new breakpoint
+            StartBPEditOp(-1);
+          End;
         's':
           Begin
             // Save
@@ -7743,6 +7751,7 @@ Var
 Begin
 
   Backup := SP_StackPtr;
+  Error.Code := SP_ERR_OK;
   SP_FPExecuteExpression(Expr, Error);
   If Error.Code = SP_ERR_OK Then
     If SP_StackPtr^.OpType = SP_VALUE Then
@@ -7778,7 +7787,7 @@ Begin
   Position := 1;
   s := SP_TokeniseLine(Expr, True, False) + #255;
   t := SP_Convert_Expr(s, Position, Error, -1);
-  Result := Error.Code = SP_ERR_OK;
+  Result := (Error.Code = SP_ERR_OK) And (Position >= Length(s));
 
 End;
 
@@ -7810,14 +7819,14 @@ Begin
   // Executes a line of BASIC as an expression. Calling functions can deal with the result and any errors.
 
   Position := 1;
-  If Expr[1] <> #$E Then Begin
+  If Expr[1] <> #$F Then Begin
     Str1 := SP_TokeniseLine(Expr, True, False) + #255;
     ValTokens := SP_Convert_Expr(Str1, Position, Error, -1) + #255;
     SP_RemoveBlocks(ValTokens);
     SP_TestConsts(ValTokens, 1, Error, False);
     SP_AddHandlers(ValTokens);
   End Else
-    ValTokens := Expr;
+    ValTokens := Copy(Expr, 2);
 
   If ValTokens = #255 Then Begin
     Error.Code := SP_ERR_SYNTAX_ERROR;
@@ -8080,8 +8089,9 @@ Begin
         CompilerThread := TCompilerThread.Create(False);
       If Error.Code <> SP_ERR_NO_ERROR Then Begin
         If Not EDITERROR Then Begin
-          If STEPMODE = 0 Then Begin
-            SP_FPEditorError(Error);
+          If STEPMODE < SM_Single Then Begin
+            If STEPMODE = SM_None Then
+              SP_FPEditorError(Error);
             SP_CreateEditorWindows;
             If SHOWLIST Then Begin
               SP_DisplayFPListing(-1);
@@ -8125,7 +8135,8 @@ Begin
   Else
     SYSTEMSTATE := SS_DIRECT;
 
-  STEPMODE := 0;
+  STEPMODE := SM_None;
+  SP_GetDebugStatus;
 
 End;
 
@@ -8269,8 +8280,9 @@ End;
 
 Procedure SP_Interpreter(Var Tokens: paString; Var Position: Integer; Var Error: TSP_ErrorCode; PreParseErrorCode: Integer; Continue: Boolean);
 Var
-  CurLine, ProgLen, Idx, ErrLine, ErrStatement: Integer;
-  HasErrors: Boolean;
+  CurLine, ProgLen, Idx, ErrLine, ErrStatement, OldEC: Integer;
+  HasErrors, BreakNow: Boolean;
+  res: aString;
 Begin
 
   // If there are errors in the listing, or lines that have yet to be compiled, then
@@ -8335,8 +8347,41 @@ Begin
       Error.Line := CurLine;
       SP_StackPtr := SP_StackStart;
       SP_Interpret(Tokens, Error.Position, Error);
-      If STEPMODE = SM_Single Then
-        Exit;
+      If DEBUGGING Then Begin
+        If STEPMODE = SM_Single Then
+          Exit;
+
+        If Error.Code = SP_ERR_OK Then
+          For Idx := 0 To Length(SP_ConditionalBreakPointList) -1 Do
+            With SP_ConditionalBreakPointList[Idx] Do Begin
+              OldEC := Error.Code;
+              BreakNow := PassCount = 0;
+              If bpType = BP_Conditional Then
+                BreakNow := (SP_FPExecuteNumericExpression(Compiled_Condition, Error) <> 0) And BreakNow
+              Else Begin
+                res := SP_FPExecuteAnyExpression(Compiled_Condition, Error);
+                BreakNow := ((HasResult And (res <> CurResult)) or (Not HasResult)) and BreakNow and (Error.Code = SP_ERR_OK);
+                If Error.Code = SP_ERR_OK Then Begin
+                  CurResult := res;
+                  HasResult := True;
+                End;
+              End;
+              Error.Code := OldEC;
+              If BreakNow Then Begin
+                CONTLINE := NXTLINE;
+                If NXTSTATEMENT = -1 Then
+                  CONTSTATEMENT := 1
+                Else
+                  CONTSTATEMENT := SP_GetStatementFromOffset(NXTLINE, NXTSTATEMENT);
+                Error.Code := SP_ERR_BREAKPOINT;
+                Error.Line := CONTLINE;
+                Error.Statement := CONTSTATEMENT;
+                Exit;
+              End Else
+                If PassCount > 0 Then
+                  Dec(PassCount);
+            End;
+      End;
     End;
 
     If NXTLINE = SP_Program_Count Then NXTLINE := -1;
@@ -9067,8 +9112,15 @@ Var
 Begin
 
   BPWindow := SP_BreakpointWindow.Create;
-  If BPIndex = -1 Then
-    BPWindow.Open(BP_Stop, 0, 0, 0, 'Add breakpoint', '', '');
+  If BPIndex = -1 Then Begin
+    // New breakpoint
+    If FocusedWindow = FWDirect Then
+      BPWindow.Open(BpIndex, BP_Stop, PROGLINE, 1, 0, 'Add breakpoint', '', '')
+    Else
+      BPWindow.Open(BpIndex, BP_Stop, Listing.Flags[Listing.FPCLine].Line, Listing.Flags[Listing.FPCLine].Statement, 0, 'Add breakpoint', '', '');
+  End Else Begin
+    // Edit current breakpoint
+  End;
 
 End;
 
@@ -9601,20 +9653,20 @@ Begin
 
   End;
 
-  SP_AddBreakpoint(Hidden, bpLine, bpSt, 0, '');
+  SP_AddSourceBreakpoint(Hidden, bpLine, bpSt, 0, '');
   SP_DisplayFPListing(Idx);
 
 End;
 
-Function SP_IsBreakPoint(Line, Statement: Integer): Boolean;
+Function SP_IsSourceBreakPoint(Line, Statement: Integer): Boolean;
 Var
   Idx: Integer;
 Begin
 
   Idx := 0;
   Result := False;
-  While Idx < Length(SP_BreakpointList) Do
-    If (SP_BreakPointList[Idx].Line = Line) And (SP_BreakpointList[Idx].Statement = Statement) And (SP_BreakPointList[Idx].bpType <> BP_IsHidden) Then Begin
+  While Idx < Length(SP_SourceBreakpointList) Do
+    If (SP_SourceBreakpointList[Idx].Line = Line) And (SP_SourceBreakpointList[Idx].Statement = Statement) And (SP_SourceBreakpointList[Idx].bpType <> BP_IsHidden) Then Begin
       Result := True;
       Exit;
     End Else
@@ -9622,26 +9674,47 @@ Begin
 
 End;
 
+Procedure SP_ResetConditionalBreakPoints;
+Var
+  i: Integer;
+  res: aString;
+  Error: TSP_ErrorCode;
+Begin
+
+  For i := 0 To Length(SP_ConditionalBreakPointList) -1 Do Begin
+    SP_ConditionalBreakPointList[i].PassCount := SP_ConditionalBreakPointList[i].PassNum;
+    res := SP_FPExecuteAnyExpression(SP_ConditionalBreakPointList[i].Compiled_Condition, Error);
+    If Error.Code = SP_ERR_OK Then Begin
+      SP_ConditionalBreakPointList[i].HasResult := True;
+      SP_ConditionalBreakPointList[i].CurResult := res;
+    End Else
+      SP_ConditionalBreakPointList[i].HasResult := False;
+  End;
+
+End;
+
 Procedure SP_PrepareBreakpoints(Create: Boolean);
 Var
   i, j, l, Idx, stIdx, LineNum, Statement, StatementListPos, numStatements: Integer;
+  Error: TSP_ErrorCode;
   Tokens: paString;
   Token: pToken;
+  res: aString;
 Begin
 
   If Create Then Begin
 
-    For i := 0 To Length(SP_BreakPointList) -1 Do Begin
+    For i := 0 To Length(SP_SourceBreakpointList) -1 Do Begin
 
-      LineNum := SP_BreakPointList[i].Line;
-      Statement := SP_BreakPointList[i].Statement;
+      LineNum := SP_SourceBreakpointList[i].Line;
+      Statement := SP_SourceBreakpointList[i].Statement;
 
       Idx := SP_FindLine(LineNum, True);
       Tokens := @SP_Program[Idx];
       stIdx := SP_FindStatement(Tokens, Statement);
       Token := @Tokens^[stIdx];
       Token^.BPIndex := i;
-      SP_BreakPointList[i].PassCount := SP_BreakPointList[i].PassNum;
+      SP_SourceBreakpointList[i].PassCount := SP_SourceBreakpointList[i].PassNum;
 
     End;
 
@@ -9673,19 +9746,21 @@ Begin
 
     // Also remove hidden breakpoints from the list.
 
-    l := Length(SP_BreakPointList);
+    l := Length(SP_SourceBreakpointList);
     i := 0;
     While i < l Do Begin
-      If SP_BreakPointList[i].bpType = BP_IsHidden Then Begin
+      If SP_SourceBreakpointList[i].bpType = BP_IsHidden Then Begin
         For j := i To l -2 Do
-          SP_BreakPointList[j] := SP_BreakPointList[j +1];
+          SP_SourceBreakpointList[j] := SP_SourceBreakpointList[j +1];
         Dec(l);
-        SetLength(SP_BreakpointList, l);
+        SetLength(SP_SourceBreakpointList, l);
       End Else
         Inc(i);
     End;
 
   End;
+
+  SP_GetDebugStatus;
 
 End;
 
@@ -9706,6 +9781,7 @@ Begin
 
   SP_SwitchFocus(fwDirect);
   STEPMODE := SM_Single;
+  SP_GetDebugStatus;
 
   Listing.CompleteUndo;
   If Assigned(CompilerThread) Then SP_StopCompiler;
@@ -9749,6 +9825,7 @@ Begin
     SP_PrepareBreakpoints(False);
   End;
   STEPMODE := 0;
+  SP_GetDebugStatus;
   SCREENLOCK := False;
   PROGSTATE := SP_PR_STOP;
   SYSTEMSTATE := SS_DIRECT;
@@ -9792,12 +9869,13 @@ Begin
 
   line := SP_ConvertLineStatement(CONTLINE, CONTSTATEMENT +1);
   If Line.Line >= 0 Then Begin
-    SP_AddBreakpoint(True, pLongWord(@SP_Program[line.Line][2])^, Line.St, 0, '');
+    SP_AddSourceBreakpoint(True, pLongWord(@SP_Program[line.Line][2])^, Line.St, 0, '');
     Result := True;
   End Else
     Result := False;
   SP_ClearKeyBuffer(True);
   LASTKEY := 0;
+  SP_GetDebugStatus;
 
 End;
 
@@ -9831,9 +9909,19 @@ Procedure SP_ClearBreakPoints;
 Begin
 
   SP_PrepareBreakPoints(False);
-  SetLength(SP_BreakPointList, 0);
+  SetLength(SP_SourceBreakpointList, 0);
+  SetLength(SP_ConditionalBreakpointList, 0);
+  SetLength(SP_DataBreakpointList, 0);
   BPSIGNAL := False;
   STEPMODE := 0;
+  SP_GetDebugStatus;
+
+End;
+
+Procedure SP_GetDebugStatus;
+Begin
+
+  DEBUGGING := (Length(SP_SourceBreakpointList) > 0) or (Length(SP_ConditionalBreakpointList) > 0) or (Length(SP_DataBreakpointList) > 0) or (STEPMODE > 0);
 
 End;
 

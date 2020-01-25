@@ -198,8 +198,8 @@ Begin
     GetCursorPos(p);
     p := Main.ScreenToClient(p);
     {$IFDEF OpenGL}
-      MOUSEX := Round(p.X / ScaleMouseX);
-      MOUSEY := Round(p.Y / ScaleMouseY);
+      MOUSEX := Integer(Round(p.X / ScaleMouseX));
+      MOUSEY := Integer(Round(p.Y / ScaleMouseY));
     {$ELSE}
       MOUSEX := p.X;
       MOUSEY := p.Y;

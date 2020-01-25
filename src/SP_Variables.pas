@@ -2514,8 +2514,8 @@ Begin
     DisplaySection.Enter;
     SP_DeleteAllWindows;
     SP_DeleteAllStreams(Error);
-
     SP_DeleteAllBanks(False);
+    SP_ResetConditionalBreakPoints;
 
     SetLength(SP_FnList, 0);
     SP_FileCloseAll;

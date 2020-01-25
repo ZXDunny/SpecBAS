@@ -92,7 +92,7 @@ Begin
   EDITORWRAP := FALSE;
   SPLITREMS := FALSE;
 
-  SP_FPSetDIsplayColours;
+  SP_FPSetDisplayColours;
 
   // Execute the startup code
 
@@ -106,7 +106,7 @@ Begin
     Error.Code := SP_ERR_OK;
   End Else
     If SP_FileExists('startup-sequence') Then Begin
-      SP_Execute('LOAD "s:startup-sequence": RUN', Error);
+      SP_Execute('LOAD "startup-sequence": RUN', Error);
       // Clear any errors, as we just ignore them.
       Error.Code := SP_ERR_OK;
     End;
@@ -166,6 +166,7 @@ Begin
 
   AUTOSAVE := aSave;
   MOUSEVISIBLE := True;
+  INSTARTUP := False;
 
   SP_FPEditorLoop;
   SP_SaveRecentFiles;

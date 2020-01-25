@@ -1398,7 +1398,8 @@ Finish:
         If SP_FileExists(pName) Then Begin
           SP_SetCurrentDir(SP_ExtractFileDir(pName), Error);
           PROGNAME := Lower(SP_ConvertPathToAssigns(pName));
-          SP_AddToRecentFiles(PROGNAME, False);
+          If Not INSTARTUP Then
+            SP_AddToRecentFiles(PROGNAME, False);
           FILENAMED := True;
         End Else Begin
           PROGNAME := SP_ExtractFilename(pName);

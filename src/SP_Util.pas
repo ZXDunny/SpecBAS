@@ -512,6 +512,9 @@ End;
 Procedure CopyMem(Dst, Src: Pointer; Len: LongInt); inline;
 Begin
 
+  Move(Src^, Dst^, Len);
+  Exit;
+
   // Copies bytes from Src to Dst pointers.
 
   {$IFDEF CPU64}
@@ -538,8 +541,6 @@ Begin
     Inc(pByte(Dst));
     Inc(pByte(Src));
   End;
-
-//  Move(Src^, Dst^, Len);
 
 End;
 

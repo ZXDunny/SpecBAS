@@ -1,0 +1,1666 @@
+What's new for SpecBAS
+
+v0.0.0.972
+==========
+
+Fixed:
+
+  Fixed listing corruption when using "0x" prefix for hex numbers
+  Fixed File requester not automatically highlighting the current filename 
+  Fixed CTRL+Left/Right getting wrong positions for prev/next word
+  Fixed Crash when clicking on menu items
+
+
+v0.0.0.971
+==========
+
+Fixed:
+
+  Fixed autosave crash.
+  Fixed recent files menu not populating properly
+  Fixed crash closing menu when using RUN, NEW, LOAD etc
+  Fixed invalid procedure errors when a ";" is used inside a procedure for any reason
+
+
+v0.0.0.970
+==========
+
+ATTN! WINDOWS ARE NOW BANKS, AND THERE ARE NO MORE SCREEN BANKS!
+This should solve a lot of issues with fillrect overwriting other windows etc. Also fixed a shedload of errors that didn't cause problems yet, but will in the future.
+
+Added:
+
+  Added RUN Menu
+  Added View Menu
+  Added shortcut keys (ctrl+s/l/m) for file operations LOAD, SAVE, MERGE
+  Added optimisation for var^2 - replaced with a numvar_square operation
+  Reworked project filenames to include paths
+  Added Re-do to the main editor
+  Added 64bit optimisations to the controls sources
+  Tool dialogs are now properly modal
+  Enabled File Menu - all items functional
+  Added recent files list functionality
+  Added valid/invalid text property to SP_Edit
+  Enabled Edit menu - all items functional
+  Added 64bit optimisations to graphics primitives
+  Added GOTO Line dialog for the Edit Menu
+  Added save status indicator - red dot by filename if not saved
+  Added main menu. File, EDIT and VIEW are enabled and working, everything else is disabled.
+  Added a new sysvar to control border padding in the editor
+  Added Hyperbolic trig functions, and their inverses
+  Added EQV and IMP operators
+  Added a new sysvar to control border padding in the editor
+  Added new Sysvars for syntax highlighting
+  Added Find and Replace dialogs on Ctrl+F/F3 and Ctrl+R
+  Added MAP function - MAP(n,a1,a2,b1,b2) where a and b are ranges, n gets mapped from range a to range b
+  Added WAIT KEY and WAITKEYDOWN keywords - they wait for a key to be pressed, or become pressed respectively
+  Added PAR function to count bits in a byte and report parity status - returns 0 or Odd, 1 for even parity
+  Added Bracket highlighting to the editor
+  Added two (count 'em!) extra columns to the editor's width
+  Added SAVE "filename" GRAPHIC n
+  Added TXTw and TXTh functions to get the text size of the current window
+  Added INTSCALING sysvar to enable/disable integer pre-scaling on highres displays
+  Added NOISE and OCTNOISE functions (Perlin noise). 
+  Added SAVE "filename" SCREEN$ to save BMP, GIF, PNG
+  Added GRAPHIC SCALE id TO w,h
+  Added GRAPHIC SCALE id,scalex,scaley  
+  Set window defaults on NEW 
+  Set RADIANS on NEW
+  Added square, self divide and self subtract shortcuts (NUMVARSQ, 1, 0)
+  Added FMEMRD, MEMRWRTF commands for reading/writing floats to pointers
+  Added dynamic gutter sizing (better available space for code on 320x200 resolution screens)
+  Enable ESCAPE for file requester
+  Added Scaling parameters. SCREEN FULL/WINDOW <size> SCALE <size>
+  Added Window 0 size change causes scaling without resizing the window
+  Added file requester to LOAD/SAVE ""
+  CHANNEL RATE now accepts a string
+  Added CHANNEL RATE id,<string>
+  Better unfocused colours
+  Added CLICKVOL sysvar (0..1) for keyclick volume
+  NOISE and OCTNOISE functions (Perlin noise). 
+  INTSCALING sysvar to enable/disable integer pre-scaling on highres displays
+  TXTw and TXTh functions to get the text size of the current window
+  Defaults to LOADed programs - radians, default palette etc
+  Set window defaults on NEW 
+  Set RADIANS on NEW
+  NEW sets Bpp to 8
+  Changed SCREEN FULL - now switches to the desktop resolution and scales the display up
+  File requester now highlights last file
+
+Fixed:
+
+  Fixed Off-by-one-pixel in mouse clicks in the editor
+  Fixed CHANGEFLAG corruption caused by AddLine() being called if the program was empty at startup
+  Fixed crash due to empty s:autosave (now abort if filesize is less than 7 bytes)
+  Fixed CHANGEFLAG not being reset on NEW
+  Fixed flickering on change in listing
+  Fixed a crash when using mousewheel on a modal window
+  Fixed a bug in NEXT where setting the loop variable to outside the range didn't end the loop
+  Fixed a crash when clicking a Recent Files menu item  Fixed NEXT not adding the step first time around
+  Fixed PRINT PI
+  Fixed more issues with window size changes and fullscreen issues
+  Fixed menuboxes with weird editor fonts
+  Fixed loading of old-style binary program format1  Fixed FOR NEXT loops not exiting properly
+  Fixed PRINT display of floats again
+  Fixed float-error (cumulative rounding error) in FOR loops
+  Fixed SpecBAS disappearing when setting an invalid window size
+  Fixed FN causing temporary colours to be reset
+  Fixed SCREEN$ not identifying space characters
+  Fixed crash when using RUN on the first line of the program
+  Fixed temporary colour change system  
+  Fixed window auto-centering on resize
+  Fixed mouse not re-appearing after leaving the main window
+  Fixed colour commands being reset after a ";" parameter separator
+  Fixed more issues with window size changes and fullscreen issues
+  Fixed menuboxes with weird editor fonts
+  Fixed loading of old-style binary program format  
+  Fixed menuboxes to use current font and size as opposed to the editor font and size
+  Fixed WINDOW FRONT 0 causing a crash
+  Fixed CPU thread scheduling
+  Fixed (possibly) issues reading the keyboard while inside a tight loop
+  Fixed various issues with the editor's keyboard handling
+  Fixed crash when using TAB To find a label that doesn't exist
+  Fixed sound device not following system default device
+  Fixed a graphical glitch in LIST BANK
+  Fixed pasted code not appearing in non-wrapped editor mode
+  Fixed semi-colon for chaining statements
+  Fixed various graphical issues and errors in the editor
+  Fixed nested IIF/IIF$ and IIF inside expressions
+  Fixed Undo by rewriting it. Much better now
+  Fixed a crash when deleting a word on an empty command line
+  Fixed lines not getting compiled when pasted
+  Fixed crash on startup with an empty project due to previous fix :)
+  Fixed Line Delete operation which caused lines to not be compiled
+  Fixed yellow bracket highlights appearing after end of program or error in wrong places when F9 pressed to run from the editor
+  Fixed long lines pasted into the editor not wrapping properly
+  Fixed pasted lines screwing up the Undo system
+  Fixed NOT being still too low priority - it's not aligned with Sinclair BASIC as being highest priority
+  Fixed Scrolling behaviours when EDITORWRAP is false
+  Fixed WAIT with small timeout causing lockup in keyboard handling
+  Fixed bracket highlighting not working properly in some circumstances
+  Fixed LOAD "" dialog getting wrong font in some circumstances
+  Fixed access violation closing the LOAD "" dialog
+  Fixed double clicks in listboxes
+  Fixed END in the editor, it now moves to the end of a line properly
+  Fixed Undo - should be more stable now especially for selections
+  Fixed idle CPU usage (1 or 2% lower now) 
+  Fixed Scrolling CPU usage in the editor
+  Fixed syntax highlighting for lines that wrap around
+  Fixed RGBn, RGBf not using three parameters
+  Fixed RGBn, RGBf needing brackets for single parameter
+  Fixed File requester control widths for larger font scaling
+  Fixed new graphic banks not getting the correct palette from the current wdrawing surface
+  Fixed MOD to correctly (or not!) handle negative numbers.
+  Fixed F-Keys showing up as ASCII keys in INKEY$
+  Fixed multi-line paste in the main editor
+  Fixed crash when setting window 0 size very small
+  Fixed cursor not maintaining desired x position when moving up/down in main listing
+  Fixed PAUSE clearing key states
+  Fixed crash deleting a bank which is listed before system sample banks
+  Fixed cosmetic issues in the Direct command window
+  Fixed gutter size issues
+  Fixed range check errors for colour commands
+  Fixed a crash for a line ending in "*."
+  Fixed a crash in END PROC  Fixed paste freeze
+  Fixed incorrect line coordinates in DRAW TO for windows with ORIGIN set.
+  Fixed INT not rounding towards negative infinity
+  Fixed RENUMBER for some line types
+  Fixed another raftload of bugs:
+  Fixed crash setting window depth to 32 bit repeatedly
+  Fixed compiler getting stuck on statements instead of lines
+  Fixed 32bit mode
+  Fixed crash in compositor with out-of-surface windows
+  Fixed SQR(v*v+y*y)
+  Fixed optimisation for b=k*k*16/257 (wrong operation order, misidentified optimisation).
+  Fixed the battery status being drawn every mouse move
+  Fixed Battery level display
+  Fixed PRINT position (PRPOSX/Y) being reset after an error report
+  Fixed FILL x,y,tex$ not working for some fill characters
+  Fixed a crash when runtime-checking badly formed code
+  Fixed crashes on certain keyboard combinations
+  Fixed slow compiler on large sources
+  Fixed TOKEN$ crash for certain expressions starting with a numeric variable
+  Fixed Converting tabs to spaces in paste
+  Fixed NNO (bytecode) optimisations
+  Fixed crash allocating sprites to a window
+  Fixed ARSIZE not parsing properly
+  Fixed PRINT with a string that starts with a control code not displaying
+  Fixed IIF$ with an empty third parameter in a DEF FN statement
+  Fixed var * var (squaring) not clearing index on RUN
+  Fixed RUN with more than one window open causing diplay size issues
+  Fixed DARW TO x,y,a allows a=angle again
+  Fixed op-and-assign - corrupted values due to Idx being +1
+  Fixed SCREEN FULL setting desktop scaling when already fullscreen
+  Fixed expressions such as 130000/6 causing an error as a direct command. 
+  Fixed wrong default window size after RUN
+  Fixed non-focused on startup
+  Fixed lockup when switching screen modes
+  Fixed crash on RUN
+  Fixed crash when setting window depth to 32 bit repeatedly
+  Fixed compiler getting stuck on statements instead of lines
+  Fixed crash in compositor with out-of-surface windows
+  Fixed SQR(v*v+y*y)
+  Fixed optimisation for b=k*k*16/257 (wrong operation order, misidentified optimisation).
+  Fixed renumber - works on THEN GO TO <x> now.
+  Fixed SCREEN WINDOW crash
+  Fixed Potential crashes due global variable
+  Fixed Potential double frees
+  Fixed Crash using window 0 size larger than actual display (downscaling)
+  Fixed OpenGL crash changing screen resolution
+  Fixed Framerate counter
+  Fixed Gutter size on file Load
+  Fixed Overflow in DrawRectangle leading to display corruption
+  Fixed Screen not updating properly when locked
+  Fix crash on wake after sleep
+  Fixed grayscale PNG loading
+  Fixed a crash when resizing windows
+  Fixed MERGE start TO finish not working in new editor
+  Fixed MENU command font size issue
+  Fixed scaling at 1.5x scale not using integer scaling
+  Fixed a bug in numeric array lookups
+  Removed extra ")" character from DEBUG strings
+  Changed to compositor - use a backbuffer if controls or sprites are present
+  Fixed a stupid, stupid bug in bank deletion
+  Added battery status indicator for windows laptops
+  Upgraded the copymemory and movememory procedures to take advantage of 64bit
+  Fix hang during autosave
+  Fix PROGLINE not showing correctly in listing
+  Fix non-responsive state after sleep
+  Clear line buffer if run from editor after error
+  Fix wrong cursorpos after running command from command line
+  Fix Autosave timeout
+  Fix frame sync issues with scaling enabled
+  Fix a crash during editor window movement
+  Fix label search (TAB on editline)
+  Fix fullscreen startup
+  Fix label tabbing (WIP)
+  Fixed Many stalls/crashes/hangs related to the display
+  Fixed Ok/Cancel working in the file dialog
+  Fixed multiple beep sounds created by NEW
+  Fixed scaled italics in the editor causing crashes
+  Fixed line numbers can go up to 999,999 now
+  Fixed invalid dates in CAT EXP
+  Fix EXECUTE in FPC (OSX/Linux)
+  Fixed Direct command window selections painted wrongly
+  Fixed focused/non-focused stripes
+  Fixed sysvars sizes
+  Fixed range errors in statement displacements
+  Fix FPC-needed for OSX install command
+  Fix crash on startup due to uninitialised sysvar
+  Fix DC Window's selection wrong on TAB to edit line
+  Fix wrapped label names (current wrap ignored @ symbols)
+  OSX: Autosave every 30 secs
+  OSX: INSTALL command to install files from bundle to Users hierarchy
+  OSX: Use users folder if it exists; otherwise use the files in the bundle.
+  Fix crash saving (conflict with compiler thread)
+  Fix delayed click on ctrl-enter
+  Fix display corruption when tabbing an error into the DC window
+  Fix sound sample playback volume
+  Fixed NOT being wrong priority
+
+
+v0.0.0.920
+==========
+
+Added CHANNEL RATE id,<string>
+Added New component suite for building editor tools - currently LOAD""/SAVE"" have a file requester. More to come.
+Added CHANNEL RATE now accepts a string (C#1 etc)
+
+Fixed Direct command window selections painted wrongly
+Fixed focused/non-focused stripes
+Fixed sysvars sizes
+Fixed range errors in statement displacements
+Fixed OSX capital letters when typing fast
+Fixed BEEP interfering with INKEY$
+
+
+v0.0.0.914
+==========
+
+Added:
+
+  FORCE array(),fdir,fmag command to allow the user to apply a force to an array of particles
+  SPRITE FRONT, SPRITE BACK commands to manage sprite priorities
+
+Fixed:
+
+  Fixed left/right not setting DesPos properly
+  Fixed loading a new file not setting the PROGLINE to the first line and scrolling to it.
+  Fixed overflow in syntax checker causing compiler crashes.
+  Fixed in-line add etc addressing the wrong vars.
+  Attempt to fix thread critical section deadlock in the compiler.
+  Fixed CPU usage, but breaks the usefulness of the FPS readout.
+  OSX: Fixed startup crash
+  Fixed CENTRE/SCALE conflict
+  Fixed crash on invalid keyword alone on a DC Line
+  Fixed clipboard operations in OSX.
+  Fixed CMD+<alpha> keys in OSX.
+  
+v0.0.0.910
+==========
+
+Added:
+
+  Nothing.
+  
+Fixed:
+
+  Fix FRAMES for windows (As for OSX)
+  Fix PAUSE so it delays correctly.
+  Fixed word delete bug - lockup if no separators before cursor
+  Fix wrapping not working in OSX - uninitialised variable.
+  Fixed Error box not clearing editor windows when an error in a direct expression evaluation occurs
+  Fix up some range checking errors. Some have been in there for ... years.
+  Fix lockup in Linux, bring graphics in line with Windows build.
+  Fix Linux/OpenGL - maximum FPS of 50; any higher and we get massive stalls.
+  OSX: Fix for all broken keys - added pgup/pgdn/home/end for MBPs
+  OSX: set home folder, fix frame update
+  OSX: Keyboard fixes. Editor bookmarks are now on CMD+1-9 in MacOS
+  OSX: Fix NEW after Sprites have been visible
+  OSX: attempt to fix bug in SP_EnableDisplay which causes a crash when entering the display critical section.
+  OSX: Fix FRAMES so it updates even if the screen doesn’t
+  OSX: Isolate project file (specbas.lpi) into MacOS directory.
+  OSX: Fix Bass.pas to refer to the correct .dylib
+  OSX: Add libSDLMain.a so you don’t have to.
+  OSX: Fix hang loading a file
+  OSX/Linux: Fixed screen update issues
+  OSX/Linux: Fix OpenGL modes not updating with FPS set to > 50.
+  
+  
+v0.0.0.905
+==========
+
+Added:
+
+Nothing.
+
+Fixed:
+
+Fixed desired cursor pos in soft-wrapped lines
+Fixed carriage returns inside soft-wrapped lines not indenting properly
+Fixed Re-Order and Renumber not re-wrapping soft-wrapped lines
+Fixed Reverse-direction selection deletions not deleting the last character
+Fixed a crash if UDGs are used in the edit line outside of string literals
+Fixed NEW creating extra banks
+Fixed a weird bug where shifted characters (&, £, $ etc) would sometimes appear twice for a single keypress
+Fixed DELETE command
+Fixed a crash with lines > 99999
+Fixed Direct command evaluations that result in a string with non-ascii characters in them, such as a carriage return
+Fixed a bug where spaces would appear after a line number in a new line
+Fixed a bug where backspace would not align lines that consist only of spaces up to the previous indentation level
+Fixed indentation on a wrapped line being split after the line number, at the second line of the program
+Fixed programs returning as having dirty lines after RUN
+Fixed missing text after re-order
+Fixed missing text after key presses which do nothing
+Fixed error in good code when F9 pressed in error (0: Ok) box
+Fixed flag preservation in inserting lines
+Fixed crashes adding code to empty listings
+Fixed memory leak in flags array on inserting/deleting lines
+Fixed animations when running them (ANIMSPEED) at low speeds
+Fixed crash entering a line from the command window if no program already exists
+
+  
+v0.0.0.900
+==========
+
+NOW IN 64BIT! SpecBAS32.exe and SpecBAS64.exe are newly available. The 64bit version is experimental, so feedback will be nice :)
+NOW IN OPENGL! Using OpenGL in selected binaries (marked -gl) to display the screen, reducing the workload on the CPU.
+
+
+Added:
+
+  Added word (or rather, "line") wrapping. The direct command window can be used as it used to now, and lines will be forced to fit. Change the EDITORWRAP sysvar to enable/disable it.
+  DeleteAll banks no longer removes system banks unless SpecBAS quits - preserves keyclicks.
+  Added colour capability to POLYLINE/POLYGON with an array as a parameter
+  Added particle engine - PARTICLE array() FRICTION n GRAVITY m,o
+  Added radius to PLOT Array() handler in Array(n,4)
+  Added INVERSE, ITALIC, BOLD and TRANSPARENT 8 - leave them as they are, same as Sinclair BASIC
+  Changed Ctrl+Up/Down to jump to line starts prev/next
+  Added Ctrl+Backspace/Delete for deletion of words
+  Added F9 (run) and F10 (goto) hotkeys
+  Added ITALIC and BOLD commands. PRINT embeddable, but BOLD is only for mono fonts.
+  Added RENUMBER and DELETE handlers to the new editor. 
+  Added Listing reordering on CTRL-R. 
+  Added new editor, supports indentation and split lines. 
+  Further CPU reductions.
+  Reduced idle CPU usage due to mouse moves triggering screen updates.
+  Optimisation to IF/ELSE addressing string characters
+  Reduced CPU usage when idle and during the editor quite significantly
+  Fixed problems with using compound assigns in numeric arrays
+  OVER 11 - Recolour mode. Any pixel that has a value of 0 gets the current PAPER colour, otherwise INK
+  WINDOW FLIP id and WINDOW MIRROR id added - They do exactly what they say they do
+  GRAPHIC FLIP and GRAPHIC MIRROR now also take a stringvar which, when containing a valid graphic, will flip and mirror it in-place
+  Compound operators (+=, -=, *=, /= etc) can be used in expressions - LET b=a+=1 will add 1 to a and then assign the result to b
+  MAT INTERP a(),b() TO c(),amount interpolates values of two similar arrays by a certain amount into a third array
+  INTERP(start,end,amount) function interpolates between start and end by the amount (0 to 1)
+  You can now use the {} characters to create comments inside a line
+  Short-circuit boolean evaluation for numeric AND/OR speeds up condition testing
+  BINV(n,m) and BREV(n,m) invert (or reverse the order of) m lower-order bits in n
+  INPUT ERROR now takes an optional REPEAT keyword to re-do the INPUT when an error occurs
+  64bit and 32bit builds display their bit-types on the title bar, along with FPS information
+  You can now use the ";" character to repeat a keyword with new parameters - e.g, CLS 1;2;3;4;5;6;7 will issue 7 CLS with different colours
+  64Bit-specific optimisations to many operations (mostly graphics, but memory filling and allocation too)
+  Loading a program automatically changes the directory to the file's location (not for MERGE)
+  A new, faster and more accurate quadratic bezier curve algorithm for the CURVE routine - demo "ultraviolet" looks a lot better
+  Added the POLYLINE keyword - works as for POLYGON, but SpecBAS doesn't close the polygon
+  Added array parameters for DRAW array() and DRAW TO array()
+  Some nice animations to opening/closing of the editor windows
+  Key buffering in the editor so that fast typing isn't lost
+  New Splash-screen and startup sound :) The old one used to crash on NEW with small window sizes
+  A totally new method of doing screen updates lets us get really smooth graphics, at any frame rate
+  The ? symbol can now be used instead of PRINT
+  Due to popular demand, LET is now optional - though you can still use it if you like
+  Inline inc/dec/mul/div to LET - LET a+=10 to add 10 to a. Also for -=,*=,/= -and- %= (mod) ^= (power) &=,|=,~= (AND/OR/XOR)
+  The editor now ignores font scaling for UI elements, looks better for non-square editor fonts
+  DIM SPLIT can now split on multiple characters
+
+Fixed:
+
+  Line breaks inside strings now syntax highlights properly 
+  Fixed crash when an expression (such as GFX$ 5) causes an error during interpretion/optimisation.
+  Fixed GFX$ should not be marked as an optimisable function.
+  Fixed an issue with INC and a range not including the maximum limit.
+  Update for FPC-based keyboard handling - down now works on OSX.
+  Fix loading of legacy code files.
+  Fix INKEY$ and capslock
+  Proper fix for SCREEN UPDATE while the screen is locked.
+  Partial fix for {} comments
+  Restore mouse image visibility status when re-entering the window.
+  Fixed crash on NEW when errors in main listing
+  Fixed cursor overwriting Error status letter
+  Fixed crash in HOME key handler.
+  Fix carriage-returns inside string literals freezing the DW.
+  Fix possible issue with sticky mouse button in scrolling and selecting
+  Fix UPDATE SCREEN not working
+  Fix syntax highlighting not working in CR-split strings
+  Fixed poor performance of horizontal scrolling in GL builds
+  Fix scrollbars appearing on the main screen
+  Better fix for INPUT cursor non-flashing.
+  Fixed small character sized screen updates that line up with the right/bottom edges of the screen
+  Fixed INPUT freeze after finishing user input
+  Fixed missing cursor in INPUT
+  Fixed sub-line (statement) indicators in the gutter's horizontal offsets for fat fonts.
+  Fixed backspace to an empty line above.
+  Fixed INVERSE status being reverted to 0 after a direct command.
+  Fixed loading of binary files into banks
+  Highlight line extends to whole program line
+  Fixed Cut/Copy of null selections
+  Fixed out of bounds errors in listing display
+  Fixed problems with hitting tab when hovering a number in DW
+  Added MIN$ and MAX$ for string compares (same as MIN/MAX for numbers)
+  Fixed slowdown on entering new lines in the editor
+  Fixed erroneous error marker when executing an evaluation in the DW
+  Fixed: TAB brings selected line up if there's a line already in the edit line, instead of refreshing the current line
+  Fixed: GFX mode indicator no longer disappears when changing focus
+  Fixed: Crash on pressing Enter when the edit line consists of only whitespace
+  Fixed issue with IIF/IIF$ and string AND.
+  Fixed crash with focused mouse moving out of the window
+  Added graphics mode display region in DW
+  Fixed scrollbars drawing on window 0 after error
+  Fixed FN parsing crashing compiler thread
+  Fixed Object Bank loading (unpacking Hex data overran the buffer)
+  Added direction sensing to the selection manipulation routines
+  Added word-selection algorithm
+  Fixed tab alignment for new lines after lines that only contain spaces
+  Fixed the "jump" that occurs on ctrl+down in the editor
+  Added word-delete on Ctrl+Backspace/Delete
+  Better tab-alignment for backspace
+  Added Ctrl+PgUp/PgDn to the Direct command window
+  Fixed overflows in Copy() everywhere
+  Fixed ReadRawHex() overruns
+  Fixed ARM version of Copy()
+  Fix for crash loading a program shorter than current PROGLINE.
+  OpenGL display now uses subimages to upload textures, resulting in about 70% CPU saving
+  Changing the height of the editor now clears the old scrollbars properly prior to redrawing
+  Fix for scaled characters overrunning the gutter
+  Labels now found properly with TAB.
+  Fixed Undo for pasting, re-ordering and renumbering
+  Fixed compiler issues during pasting
+  Fixed renumber for non-existing lines
+  Fixed IN parsing
+  Fix for Copy with two parameters (for older FPC compilers - Pandora/Pi mainly).
+  Fix non-GL Linux build - needs GL headers or sound will crash... WTF?
+  Fix GO TO selecting and deleting the final "O"
+  Fixed errors with selections in the direct command window. 
+  PROGLINE scrolls in view in direct mode (bottom line first, then top). 
+  Re-ordering lines now works. 
+  Fixed graphics mode (Alt-GR/R-Alt) in Linux
+  Horizontal scrollbar now extends the width of the window.
+  Fixed hanging compiler issues on lines after a REM line. 
+  Fixed single-line copy issues in the editor.
+  Fixed crashes in fullscreen mode. 
+  Fixed whitespace before linenumber stripping. 
+  Fixed crash when deleting last line. 
+  Fixed crash using RETURN at the top of an empty listing. 
+  Fixed selections in editor history.
+  Fixed a bug in clipping rectangles Fixed PAUSE and WAIT.
+  Fix issues with array access due to combined increment and assigns.
+  Fixed in-procedure local variables crashing when increment-and-assign executed
+  Fix for TOKEN$, VAL$ and VAL which fail due to implicit LET.
+  Fixed errors in 32bit Delphi and FPC.
+  Fixed displacements being corrupted by short-circuit boolean evaluation.
+  Fixed circles, removed buffered keys for editing (still enabled for errors though).
+  Filled circles and ellipses with negative magnitude radius now draw properly
+  Errors that occur while a mouse button is held down no longer clear instantly
+  File loading via drag and drop now works
+  A crash in the optimiser for certain multiplication operations
+  IN no longer requires range brackets ("[ ]") for a single element range, such as a$ IN b$ 
+  IN now checks multi-char strings against ranges, ie "21" iN "4321" returns 1 (True)
+  An issue with CALL which caused a crash when used
+  CONSTants when used in an IIF function caused problems
+  String multiplication with negative values no longer crashes SpecBAS
+  Faster display updates in Linux versions
+  PRINT and TEXT could cause a stack overflow in some circumstances
+  INSERT$ added extra characters to the source string
+  DIM works with a list of stringvars now, instead of just numvars
+  EXECUTE and TOKEN$ no longer crash/error with an empty string
+  Fixed filled circles - now small circles are the correct size/shape
+  Fixed Filled polygons - a flawed algorithm gave innacuracies with very thin horizontal polygons
+  DRAW now obeys OVER properly
+  Inline operators now work on numeric arrays too
+  Large (or very, very small) numbers not in scientific notation no longer crash SpecBAS
+  CALL as part of an expression caused parameter errors when used in complex expressions
+  END IF not working after ELSE in some circumstances
+  Fixed issues with sprite collisions based on window transparency
+  Preliminary fix to allow strings manipulation like LET a$(2 TO 10)(5) or LET a$(2)(1) work
+  You can no longer crash SpecBAS by referencing the 0th character of an empty string
+  LOCAL and GLOBAL with multiple assignments work with variables created in the same statement
+  GOSUB can no longer crash the system with infinite loops of nested calls
+  Windows version no longer allows system messages to mess with screen update timings
+  Menu selection info (LASTM) returns the correct menu now!
+  The IN operator didn't accept plain variables in a range
+  Crash when accessing a string array's cached index
+  Menus cannot be added as submenus recursively now
+  Graphics created from text strings now respect the scaling of the current window
+
+
+v0.0.0.852
+==========
+
+Added:
+
+  You can now query the position of a sprite's clones with SPCLX(SpriteID, CloneIndex) and SPCLY
+  KEY$ array(index) returns the key associated with that array's member
+  Associative Arrays can now be sorted by their key string
+  MENUS - Various commands for building Amiga-style (rightmouse activated) menus and ON MENU events for reading their status
+  DIM can now create multiple arrays - DIM a$(),b(2,4),c$(10) etc
+  LET and CONST now accept multiple targets and assignments in one line - LET a,b,c=3,d=4,e=5 (a,b,c get 3, d gets 4, e gets 5)
+  TRANSPARENT now can be used as a standalone command rather than just embedded in PRINT or TEXT commands
+  Commandline launching - sets the home directory to the location of the file to be loaded and then loads and runs the file
+  A basic CAT command now lists columns of files to save on scrolling long lists
+  REPLACE$(target$,[EXP] substr$, replace$) - using EXP with the second parameter treats substr$ as a regular expression
+  REPLACE$ now replaces all occurences of the substring within the target string rather than just the first instance
+  All ranges can now have an array() specified to test against - e.g. IF a IN [1,4 TO 5,b()] THEN ... Affects all commands/functions that accept ranges
+  In accordance with the 1964/1968 Dartmouth Spec, IF <c> THEN <linenumber> is now accepted. Same for ELSE
+  A small but not insignificant optimisation to GOTO/GOSUB - the line number is now cached for absolute line numbers such as GOTO 20
+
+Fixed:
+
+  Assigning a string to a sliced string array member works properly now
+  Assigning a value to a string array member is disallowed properly this time
+  Assigning to an associative array now works again
+  A slim font in the editor occasionally crashed SpecBAS's editor with lines of a certain length
+  Numeric constants would stand a good chance of crashing the Linux build (due to a bug in Delphi, _NOT_ FPC as it happens)
+  Texture filled circles now work properly again :)
+  SCREEN$ now raises an error if it's called with out of bounds coordinates
+  Array copying MAT a()=b() memory leak fixed
+  TOKEN$ didn't set its own internal error state correctly before launching
+  Erroneous "Floating Point Error" crashes turned out to be editor related - fixed!
+  JOIN$ didn't properly check if an array exists before trying to use it!
+  WINDOW COPY didn't use the destination coordinates correctly and failed to parse scaling parameters
+  CALL <proc()> would crash if certain circumstances were right
+  Constants can now be used as indices in an array assignment
+  WHEN IN didn't accept arrays or variables as the first term in a range
+  Sprites, when copied to another bank, did not increase the active sprite count
+  Unhandled token errors in IIF/IIF$ functions
+  UDGs in Linux are now usable
+  Embedded SCALE commands in a PRINT command now reset after the PRINT has finished
+  System sounds (keyclicks and beeps) are now centred in stereo audio systems rather than only in the left channel
+  PEEK$ left the internal stack in disarray, causing issues with string array assignments
+  FILTERing a string array with an empty match string caused a crash
+  
+
+v0.0.0.830
+==========
+
+Added:
+
+  FILTER [ERASE] array$(),m$ removes or isolates string array items that match m$ as a regular expression
+  FILTER [ERASE] array(),{m|[range(s)...]} removes or isolates numeric array items that match m, or are in the specified ranges
+  UNDIM array() will remove an array from memory - can be quite slow, so avoid using it in tight loops!
+  CLEAR [array()[,value/value$]] will fill an array with a value or string depending on type
+  IVAL takes a string and extracts as much of an integer as it can - "128|678" will return "128" for example - does not perform evaluation as for VAL
+  POS has a new (optional) parameter - POS(substr,string[,start]) begins searching "string" for "substr" at position "start"
+  CHANGE: UDGs have been changed, and no longer require the CHR$ 1 prefix in a string. As a result, there's only 128 of them in a font
+  SPRITE NEW id COPY id - to copy from one already existing sprite to another. Use COLLIDE and WRAP after COPY to override behaviour
+  SCREEN$ - as from Sinclair BASIC, identifies characters at an x and y coordinate. Only for mono fonts, matches current INK and PAPER
+  REPLACE$ function does a text "search and replace" with three parameters: string to search, text to replace, text to replace with
+  CURVE now optionally takes three coordinates (as opposed to just two) - x1,y1 TO x2,y2 TO x3,y3 which ignores previous plotted position
+  TIME$ takes similar parameters to DATE$ and works on time (hours, minutes, seconds)
+  DATE$ takes a time (TIME function for example) and a string to format, ie "dd/mm/yyyy"
+  Direct expressions and their results are now added to the command history for quick recall
+  SPRITE COLLIDE CLEAR now takes an optional sprite ID to only clear the collision flag of that sprite
+  The HEX function works like BIN - returns a decimal version of the hexadecimal argument. As with BIN, there's no need for prefixes
+  DO can now take an optional numeric argument - DO 35: PRINT "X": LOOP will loop 35 times without needing a variable to keep count
+  Sorting arrays can now be performed in both ascending and descending order by adding the INVERSE switch
+  All commands which output graphics primitives (CIRCLE, PRINT etc) can now use alpha channel information and render to a 32bit window
+  32bit font support - each character's pixel is a 4byte value (ARGB) format
+  RGBtoHSV and HSVtoRGB now accept either a single integer argument or three separate arguments
+  32bit display target, in preparation for 32bit graphic support. This means quite a slow down in some situations on single-core machines
+  Subdivided rectangles are now used in the renderer to prevent overdraw - very large speed increase on single-core machines
+
+Fixed:
+
+  Some text attributes were inappropriately cleared at times (VAL/VAL$ being a culprit, but there were others)
+  Sprites, while being created, could sometimes crash the renderer
+  CAT shows the wildcard match string correctly
+  The wildcard "*" when used with CAT now matches at least no characters instead of one
+  Error messages (including 0:OK) would halt all sound when displayed - now sound is stopped when the error is cleared
+  The IN operator now has a lower priority than functions and inequalities, but higher than AND/OR/NOT
+  A small bug in string slice assigns that caused a crash in multistatement lines
+  Expressions that start with a decimal point no longer fail to parse on the command line
+  Collision bugs where many sprites collide at once
+  Fixed a small bug in package handling that caused overwriting and CAT to fail
+  Omitting a loop-control variable in FOR EACH caused the editor to hang
+  Small rounding errors in the turtle graphics routines
+  The new, faster render loop caused out of bounds errors for SDL under linux when drawing to offscreen surfaces
+  FOR .. NEXT loops that have lost their destination are flagged as such in LIST VAR now
+  All RGB (and ARGB) colours use the same format now
+  RED, GREEN, BLUE didn't retrieve the correct values due to the 32bit update changes to the palette system
+  HEX$ and BIN$ didn't work with some larger numbers 
+  RENUMBER sets lines that jump out of the program (past the last line) to a line greater than the last line
+  Structure member assignment failed due to an error in LET
+  ON EVERY <x> didn't insert the correct keyword handler after the frame counter
+  INCLUDE with an invalid filename crashed SpecBAS
+  INCLUDE with multiple files (or multiple INCLUDEs on one line) failed to add procs or crashed
+  Accessing an array using an array as an index works now
+  Possible fix for keyboards that use Alt-Gr for some characters (such as Portuguese)
+  Sprite collisions were a tad sticky, even after clearing the collision flag
+  Base notation didn't work for any base that was a multiple of 10
+  Base notation can now be used as a direct expression
+  A long-standing bug where GOSUB statements were ignored by the RENUMBER command
+  The IN operator was too high a priority, rendering 2+1 IN [0 TO 3] as 3, rather than 1
+  Clicking and dragging the mouse off SpecBAS's window whilst in the editor caused a crash
+  CASE...WHEN IN... statements caused a hang
+  Single-line CASE...WHEN...END CASE constructs, although insane, now work properly
+  Auto-DIMmed arrays set their values in the wrong arrays at times
+  SPRITE ANIM PLAY ignore the OPTION parameter if start and end were left unspecified
+  DIM SPLIT arrays created empty arrays in some circumstances
+  Array keys (associative arrays) now follow the values properly when sorted
+  SPRITE ANIM PLAY got frame indices mixed up - Again
+  ELSE was treated as a statement in itself, which screwed up things like RETURN after an ELSE GOSUB
+  IIF and IIF$ would cause a crash if they evaluated to FALSE more than once in a loop
+  INPUT now uses the current scaling for the initial position of the INPUT prompt
+  DELETE past the end of the program caused a crash
+  FOR EACH with a string var and a range of characters stupidly appended an extra "$" to the varname, rendering it unusable
+  Sprites wrap correctly when overlapping other sprites
+  Sprites no longer stutter when they collide (if their collision flag is disabled)
+  Editor windows were transparent - not that you'd notice, but they render faster now
+  Zones return their correct ID numbers when other zones are deleted
+  
+
+v0.0.0.801                              
+==========
+
+Added:
+
+  Further optimisations - expression re-ordering, so the optimiser can be more efficient
+  You can now use the ":" character as a tab-character to indent your FOR..NEXT loops if you really want
+  OVER 10 - multiplies two pixels together
+  OVER 8 and OVER 9 - Maximum and minimum respectively - performs a pixel-by-pixel compare
+  Optimised the stack-machine which has gained a significant speed increase
+  Numeric array accesses are now much faster
+  ARSIZE a$() returns the number of items in any array, including dynamic arrays
+  LBOUND(a$(),i) returns the lower bounds of the i'th subscript of a non-dynamic array
+  UBOUND(a$(),i) returns the upper bounds of the i'th subscript of a non-dynamic array
+  TRANSPARENT 1/0 inlined into PRINT commands now works for mono fonts too
+  JOIN$ function takes a string array and a separator - LET b$=JOIN$(a$()," ") will compile all of a$() into one string, each separated by a space.
+  String splitting: DIM a$(SPLIT "my|test|string", NOT "|") will split the string into an array of three strings, excluding the "|" - NOT is optional if you want to keep it in
+  ON EVERY events don't now take a condition if you don't want them to - it's optional
+  ON... Events no longer need an explicit RETURN after their handler statements
+  PRINT USING mask$;item;item;item etc - similar to a regular USING formatting string
+  USING$ function - identical to PRINT USING() but returns a formatted string
+  Specifying a default fill no longer requires an emptry string for the texture - CIRCLE x,y,r FILL will suffice
+  PACKAGE truncation and consolidation - optimised package size on close
+  DECIMAL(val$,base) function converts from a base to decimal
+  Arbitrary base numbers can now be inlined. Eg: 10 PRINT A10QP\36 (note the backslash) denotes a base-36 number
+  RECTANGLE can now take coordinates as x,y,w,h as well as x1,y1 TO x2,y2
+  MATCH(regexp$,text$) returns the position of the first match using a regular expression against the supplied text
+  Optimised POKE$ which offers little in the way of day-to-day speed increases, but the twister demo runs a bit better
+  Massively optimised filled circles and ellipses - huge speed increase!
+  Slight optimisations to other primitive drawing commands - rectangles and polygons
+  Optimised the line drawing routine, much faster now
+  Filled Polygons now obey INVERSE if the texture is solid
+  Zones. A Zone is a region of a window against which you can test a coordinate, and get the zone number it's in. Handy.
+
+Fixed:
+
+  DIV now does a proper integer divide...
+  Runs of arithmetic operators weren't always correctly merged
+  PALETTE HSV now accepts HUE values in the correct range of 0 to 360
+  INKEY$ now picks up other keys that may be pressed when a key goes up
+  WAIT (all versions) cleared the keybuffer inappropriately, causing INKEY$ to lose keys
+  In the Win32 version, some keys weren't recognised correctly at times, turned out to be a Unicode issue
+  DEF PROC, when executed, didn't jump past the end of the procedure properly
+  END PROC didn't exit cleanly after a loop
+  EXIT didn't clean the stack properly and so caused issues with END PROC
+  Timed events (ON <condition> EVERY <framecount>) now trigger after the correct time interval
+  ON ERROR (and other ON events) didn't return properly after they had been handled
+  Adding an extra index to a string array reference wasn't parsed as a slicer
+  String multiplication was occasionally incorrectly parsed
+  ON COLLIDE created an extra keyword which caused a stack overflow
+  Fixed a small annoying bug in the WINDOW command
+  The expression evaluator was misbehaving again - should be fine now
+  CONST errors in string slicer assignments - in fact, Slicers in general weren't behaving well
+  Documentation for CONST and LET amended
+  
+
+v0.0.0.800
+==========
+
+Added:
+
+  Optimised variable accesses local to procedures, quite a nice result there
+  Speedups added to any commands that utilise the stack - GO SUB, DO .. LOOP, WHILE, UNTIL etc
+  TEXTURE$ converts a string to a graphic-string for use in, i.e., fills
+  LET can now assign a value to multiple variables - LET a,b,c=0 or LET a$,b$,c$="Hi" for example
+  More optimisation to internal string handling
+  You can, if you really want, start a line with any number of statement separators (:)
+  Protected banks show up with a small "key" icon to indicate their locked state in LIST BANK
+  Converted the whole interpreter to store token handlers inside the tokens themselves - much more efficient
+  Improved variable caching to save on look-ups, results in a respectable speed boost
+  String operations should now be quite a lot quicker due to a better string copying routine
+  CONST name,value - sets a constant. Like a variable, but much faster to process as no look-up is needed
+  SCALE sx,sy is now a standalone command
+  SCALE can now be used in INPUT the same as in PRINT
+  Sprite clones now inherit OVER and such, but still don't cause collisions
+  Sprites can now wrap - use WRAP WINDOW or WRAP CLIP (to wrap to the clipping region) after SPRITE NEW
+  Converted Sprite movement systems to relative offsets instead of absolutes
+  LIST BANK now lists banks in ID order
+  Added an Out of Memory error for overrunning the various stacks allocated to BASIC
+  Sprites now have their own OVER mode. Set it with SPRITE NEW id,x,y [COLLIDE] [OVER m] or SPRITE OVER id,mode
+  INCLUDE now searches the "include:" assign for files if they're not found in the current directory
+
+Fixed:
+
+  Certain embedded PRINT commands were evaluated in the wrong order
+  Fixed sprite wrapping for sprites that don't quite ... wrap properly
+  REM splitting is bugged - so has been disabled for now pending a proper fix
+  Forcing a SCROLL? prompt with a large font caused too much scrolling
+  LIST VAR array() now displays empty arrays correctly
+  You can no longer kill SpecBAS by resizing the editor windows too small
+  Automatically created "system" banks can no longer be destroyed by the user
+  Default mouse pointer is now restored if the current graphic being used is deleted or replaced
+  Graphic banks, when rotated, were displaced on their own canvas
+  Sprite Info handlers (such as SPRITEw et al) would crash with a negative frame value
+  Some errors would render their lines non-editable
+  SPRITE FLIP and SPRITE MIRROR didn't work correctly for sprites of even width/height, only odd
+  Errors that return an "Invalid Keyword" error caused issues with the expression evaluator
+  LIST BANK 0 listed ... interesting values for window metrics
+  READing into a string array with one dimension now works as it should - these take precedence over regular string slicers
+  Streams can now access memory banks like they are supposed to
+  Eraseing (or generally mucking about with) a graphic bank that is the current drawing surface resets drawing to the default window
+  SPRITEw and SPRITEh, when called with a spriteid that points to an empty sprite, crashed specbas
+  LOAD "filename" BANK NEW now returns the correct bank ID number
+  BANK ERASE wouldn't function correctly because it assumed all banks were fonts
+  Banks can now be unprotected properly
+  Many range-limited operations were overruning their allocated memory
+  PRINTing at the very bottom of the screen might have caused a Scroll? message after all
+  CASE no longer overwrites the case-stack and jumps to END CASE properly after WHEN
+  The constant "PI" and the function of the same name were clashing... unsurprisingly!
+  Rapid keyboard hammering could cause a crash as the internal keybuffer may get cleared while the interpreter is working on it
+  Sprite collision now checks both the window -and- the display for sprite-to-sprite collision
+  ON COLLIDE is cleared properly after NEW and RUN
+  VAL no longer crashes specbas with invalid characters
+  Sprite collision now only checks pixels in the sprite's window, not the overall screen display
+  String slicing with one element such as LET a$(1)="H" for a string variable now works again
+  Sprites now inherit the correct window info when changed to a new window
+  PRINTed newlines were taking up two rows of characters rather than one, which resulted in erroneous "Scroll?" prompts
+  
+
+v0.0.0.789
+==========
+
+Added:
+
+  SPRITE PUT id - places a permanent copy of the specified sprite on the screen or window it belongs to
+  Expression calculator - any expression entered as a direct command (SIN 45 or 1+4 or CHR$ 33 for example) is evaluated and the result pasted into the direct command window. Beware, a single integer will still delete program lines!
+  LOAD "filename" BANK NEW numvar - loads a file into a bank and assigns a BankID to the numvar
+  More optimisations to expressions: LET a=(b/2)/8 for example now devolves into the much quicker LET a=b*0.0625. Also works for strings of multiplies, divides, adds and subtracts.
+  SAVE now saves by default as ASCII text, and does not use the binary format anymore. The binary format can still be loaded, however
+  More dithers to GRAPHIC REMAP - dtFLOYD, dtJARVIS, dtSTUCKI, dtBURKES, dtSIERRA3, dtSIERRA2, dtSIERRA, dtATKINSON, dtSTEVENSON - all quite slow though
+  Sprite frame numbering starts at 1 and counts up, rather than frame zero
+  You can now jump to the declaration of a LABEL by typing the label (@mylabel, for example) and pressing TAB in the editor
+  Better error positioning in the direct command window. Errors are produced by a "dummy run", so may not match where you expect them to!
+  SPFRAME(id) returns the current frame number of the specified sprite's animation or -1 if stopped
+  SPCOLL(id) returns the collided state of the specified sprite
+  Sprite collision detection - with sprites and scenery, event driven with ON COLLIDE ...
+  SPRITE MIRROR/FLIP id - Does what it says on the tin. Permanently.
+  SPRITE FRAME id,n [PAUSE m] - sets a sprite's current anim frame, and optionally delays the next frame
+  SPRITE ANIM STOP id - halts the sprite's animation
+  SPRITE ANIM PLAY id,start [TO end] [OPTION opt] allows better control of animation with loops, pingpong etc
+  SPRITE POINT id,x,y - sets the sprite "hotspot" which is basically an offset used when drawing the sprite
+  Better error positions for syntax errors in the editor
+  MENUBOX can now take a string array rather than a list of options. LET a=MENUBOX("Title",a$())
+  
+Fixed:
+
+  Strange bug that prevented strings from being sliced by one index
+  An obscure bug that caused some commands to be replaced by others - Delphi was at fault here
+  RGB and HSV were incorrectly optimised by the compiler
+  Scrolling via the text output routines (CAT, PRINT, LIST et al) no longer corrupts text
+  OUT now attempts to create the destination if it exists
+  Eliminated flicker in the editor when mousewheel scrolling
+  Loading of string and numeric dynamic arrays now work correctly
+  LIST BANK doesn't get confused with Bank ID numbers now
+  Sprites can now be loaded correctly when saved with SAVE "filename" BANK id
+  Sprites attached to an invisible window were showing incorrectly
+  Automatically remove invalid characters and empty statements from the ends of lines
+  Range checking in SPRITE CLONE operations
+  Matrix addition, subtraction got their parameters wrong. D'oh!
+  Labels declared alone on the last line of the program with no following statement were incorrectly stored
+  Colour fonts weren't very transparent, really
+  Fixed an offset bug in the DEBUG command, ironically enough
+  A bug in the sprite frame address handling
+  PALETTE COPY could overwrite screen information by trying to write to palette entries > 255
+  A nasty bug in the dynamic array hashing function
+  A bug in BIN followed by anything but a sequence of 1s and 0s
+  
+
+v0.0.0.780
+==========
+
+Added:
+
+  SCALE to PRINT and TEXT. PRINT SCALE 2,2;"Hi!" will display 2x text size. SCALE 2,3 will do 2x width and 3x height
+  MATRIX maths with the MAT command from the original Dartmouth spec. Add, sub, mul, scale, inversion, identities etc 
+  BIN <binary number> from Sinclair BASIC makes an entrance. Pointless (use the % symbol to denote binary) but included for completeness
+  Dynamic array allocation - DIM a() - note the empty brackets, then just use it. Elements are added as they are written to the array in the positions you choose
+  Factorial operator - PRINT 3! displays 6. High priority. PRINT 2+3! shows 8, as does PRINT 3!+2
+  LCM(a,b) and GCD(a,b) functions - Lowest common multiple and greatest common divisor
+  
+Fixed:
+
+  SPRITEw and SPRITEh had their parameters swapped
+  MESSAGEBOX froze the screen when a key was held down
+  PRINT on its own didn't issue a carriage return
+  A silly bug in command history after NEW
+  An issue with ENDIF triggering a segfault when used in certain conditions
+  Bug in NEW caused by the associative array hash tables
+  SUB (as in GO SUB) caused issues when loading
+  
+
+v0.0.0.777
+==========
+
+Added:
+
+  ADD, SUB, MUL and DIV operators - as for +-/*, but work on integers and return integers
+  Speedup in the POLYGON command
+  Associative arrays - access arrays using a key string. KEY array(index)="mykey", then LET array("mykey")=1 etc
+  KEY CLEAR array([index]) clears a key from an array element. Omit the element to clear all keys in the array
+  
+Bugs Fixed:
+
+  Fixed a rare bug in the mouse handling code that could cause a crash when switching from fullscreen to windowed mode
+
+v0.0.0.775
+==========
+
+Added:
+
+  Inline IF support - IIF(condition,true-expr,false-expr) will return the correct expression's result based on the condition. Also, IIF$ for strings
+  SORT array() or array$() will sort a one-dimensional array
+  INCLUDE "myfile1","myfile2"... to add procedures from other files into your program at runtime
+  RENUMBER now respects RESTORE and RUN when used with a numeric parameter
+  CASE structure - CASE, WHEN, WHEN IN, OTHERWISE and END CASE - See documentation for details
+  Music files can now be stored in and played from a memory bank
+  WINDOW MERGE id can now be used to close a window and copy its contents to the display - specify ALL instead of an id to merge all open windows
+  MUSICPOS function - returns the position of the currently playing music in seconds
+  MUSICLEN function - returns the length of the current music in seconds
+  Auto-arrays: for simple one-dimensional arrays, you can DIM a=1,2,3,4,5 to automatically fill the array
+  BASE$(value,base) returns a string of the number converted to the chosen base. 2 = Binary, 16 = Hex etc.
+  SEARCH(array() FOR value) will return the first item in the array that contains the value specified (or string). SEARCH(array() NEXT) will return the value of the next item, assuming that SEARCH has already been called.
+
+Bugs Fixed:
+
+  Fixed an /old/ bug which inappropriately truncated arrays when LISTed
+  
+
+v0.0.0.767
+==========
+
+Added:
+
+Bugs Fixed:
+
+  Fixed plain-text loading
+  Fixed UDGs in the editor - CTRL keypresses were filtered out for some reason
+
+
+v0.0.0.766
+==========
+
+Added:
+
+  SAVE "" now saves to the current program name
+  PRINT now obeys the ORIGIN command's function for text placement with AT
+  Significant speedups in handling arrays
+  CLIP OFF - turn off global clipping
+  OUT - send text output to a variable (OUT var$), a stream (OUT stream-id) or the default screen (OUT SCREEN)
+  OUT can be embedded in a PRINT or TEXT command
+  INV n, UNDER, POLYTERM and COMPSIMPSON maths functions as requested
+  Improved the speed that statements containing DATA and LABEL are executed (or rather, aren't executed!)
+  FOR EACH n IN [1,2,3] will loop three times and set n to 1, 2 and 3 with each run through. Also works for strings - FOR EACH n$ IN ["a" TO "z"] for example
+  LIST now works as per Mallard BASIC ( LIST TO 100, LIST 50 TO 100, LIST 100 TO )
+  CAT can now recurse directories if you so choose - CAT "filespec" ALL
+  Python-style string multiplication - 2*"Hello" will create the string "HelloHello"
+  
+Bugs fixed:
+
+  ORIGIN (as a command on its own) didn't work at all!
+  Fixed a bug where embedded colour commands in a POLYGON array() FILL a$ command would fail to draw any solid colour
+  Fixed WINDOW CLIP n OFF - it didn't work :)
+  Fixed a very, very nasty bug where a GOSUB after an ELSE would return to the statement after the IF
+  Fixed an issue with CLIP being changed mid-PRINT stream - also affects the new OUT command
+  Fixed a problem with files attached to streams not being released after STREAM CLOSE
+  Fixed an issue where COPY failed to perform due to file already existing
+  Fixed an issue with the "$:" (Current directory) assign
+  Fixed a problem with BASS not recognising the correct upper and lower limits to sound frequencies
+  Fixed autosave issues (empty autosaves should be gone now)
+  Fixed the delay in startup of the Windows build
+  Autosaves are only made when a command changes the current program
+  Fixed an error in the reported statement number after a direct command
+  Fixed a problem with foreign installs converting ansi text to unicode in the loader
+  Fixed a bug which could result in an empty, but filenamed autosave
+  
+
+v0.0.0.755
+==========
+
+Added:
+
+  DRAW x1,y1 TO x2,y2[,angle] - draws a line from one point to the next, ignoring the last PLOTted position. 
+  MSECS function - returns the current time in milliseconds since the computer was turned on.
+  SAMPLE PLAY now accepts a note-string as the RATE parameter, ie RATE "c#3" will play the sample at a modified rate that corresponds with the note specified. Assumes that the sample was created at middle-c (c5)
+  
+Bugs fixed:
+
+  Fixed a crash when passing a CHR$ 8 as a texture to a graphical fill command. WHY WOULD YOU DO THAT?
+  All keyboard types (within reason!) should work with SpecBAS now, including those weird US ones :)
+  Error propagation in file commands
+  SAVE to a non-existant directory now produces an error
+  Fixed OPTION "Base",dimension - BASE now works properly in DIM
+  Fixed stack corruption in the coordinate conversion functions
+  COPY didn't send to the current package properly
+  ERASEing package files tended to erase the entire package... oops!
+  
+
+v0.0.0.754
+==========
+
+Added:
+
+  BEEP support, with various types of waveform and full ADSR envelope control
+  Sprite cloning - creates clones of a sprite at your coordinates, inheriting the original's animation and other 
+  properties. Useful for static animated graphics.
+
+Bugs fixed:
+
+  Fixed a crash using SPRITE ERASE
+  Fixed(?) a floating point error in sprite movement, with values too small to be useful
+  Fixed the priority of the IN operator - it was previously treated as a function, now it has proper priority
+  Fixed sprite flickering that resulted from an above fix :)
+  Fixed several bugs where BankID was confused with the index of a bank in the banklist
+  Sprite counts and window-to-sprites lookup tables were not updated properly when sprites are erased
+  A second stab at the "double extension" image loading bug should finally nail this issue
+  
+
+v0.0.0.753
+==========
+
+Bugs fixed:
+
+  ON ERROR now allows errors until your handler code returns
+  FOR..EACH now updates the variable with the last value in the array when the loop runs out
+  Key and mouse flags are cleared before a command is executed
+  More bugfixes to the optimiser - errors are properly handled now
+  Compound ops now propagate any errors that might occur
+  Fixed RENUMBER where the upper bound specified is the last line
+  Fixed GLOBAL (now works as intended)
+  Fixed PROCID with procedures with no parameters
+  Fixed INPUT FORMAT's escaped characters
+  Fixed INPUT with print-seperators
+  Mouse delta functions no longer require a MOUSEMOVE event to process
+  Fixed file-renaming bug in the Windows build
+  
+
+v0.0.0.752
+==========
+
+Added:
+
+  Nothing.
+  
+Bugs fixed:
+
+  Sprites when moved disregarded Y-coordinates in their delta calculations
+  DIM no longer accepts negative index sizes
+  Spaces in variable names are accepted now, but no single word may be a reserved word
+  Fixed issues with LPAD$, RPAD$ and ITEM$
+  Fixed an issue with mixed fixed-length and variable length strings in a structure
+  Updated documentation - ERASE STRUCT should in fact be STRUCT ERASE
+  
+
+v0.0.0.748
+==========
+
+Added:
+
+  ORIGIN x1,y1 TO x2,y2 can now be used as a standalone command for setting the logical coordinate system of the current drawing surface
+  CLIP command - used alone, sets a clipping rectangle, i.e CLIP 0,0 TO 100,100 would restrict all drawing operations to that rectangle in the current window
+  CLIP colour item - use in a PRINT/PLOT/DRAW etc statement as you would with INK/PAPER etc
+  OVER modes - 0 is normal, then 1 for xor-mode, 2 to 7 for more - see the documentation
+
+Bugs fixed:
+
+  Tilemaps can now have non-square tiles
+  PRINT CODE <numeric> no longer crashes, and produces an error
+  Angle mode (RADIANS) correctly set as default on NEW now
+  Fixed a crash when using CONTINUE when a program has stopped
+  Small changes to the way colours work in the editor means less corruption.
+  
+
+v0.0.0.747
+==========
+
+Added:
+
+  GRAPHIC ORIGIN x1,y1 TO x2,y2 - as for windows, sets a coordinate system for drawing on a graphic
+  WINDOW ORIGIN x1,y1 TO x2,y2 - allows you to specify a coordinate system for a window which all graphic commands will use
+  KEYBOARD command - allows you to specify a keyboard definition file for localisation
+  CENTRE as part of the PRINT/INPUT items list - takes one parameter. CENTRE 10 will centre any following text on row 10
+  Command line options - start SpecBAS with an optional filename, followed by an optional starting line
+  CONST optimisations to commonly used string operations - variable lookups will now be much faster
+  Changed the way that MOUSEX and MOUSEY work - they now return the mouse coordinate in the current window's space, not screen space
+  Added a small speedup by changing floats passed in procedures to their var equivalents
+
+Bugs Fixed:
+
+  The "Scroll?" message appears as it should do
+  WINX returns the correct value now
+  WINX and WINY take a parameter now - the window ID
+  Fixed the keypad "." key - now works as a "." key if numlock is turned on
+  Fixed a bug in LOCAL that caused SpecBAS to crash
+  PROCedure and FN names can now be any letter-case
+  Fixed ASCII loading on all platforms
+  Fixed SAVE "myprog" LINE n problem where a program would launch from the start, not the specified line
+
+
+v0.0.0.746
+==========
+
+Added:
+
+  RAINBOW command - takes two parameters, index 1 and index 2 and then smoothly graduates the palette between those indexes
+  GLOBAL command, works just like LOCAL but creates global variables
+  Changed the way that variables are declared in procedures - all variables are local unless specified previously with a GLOBAL command
+
+Bugs Fixed:
+
+  Fixed ROUND so that it actually works :)
+  Fixed LOCAL variables so that they actually work now :) Given the above changes, this may seem redundant but is actually useful in recursive procedures
+  Fixed mouse pointer not reappearing in the editor when a program has set it to hidden
+  Fixed a small bug which caused a crash when the upper bound+1 of an array was accessed
+  REM commands now split and wordwrap properly if the SPLITREMS sysvar is non-zero
+  Fixed an issue with PALETTE commands not properly affecting the palette
+  
+  
+v0.0.0.743
+==========
+
+Added:
+
+  Updated POLYGON to take an array of points as a parameter
+  TRANSFORM2D and TRANSFORM3D which process an array of 2d or 3d coordinates to roate, scale and translate to another array
+  PROJECT3D works on an array of 3d coords and creates an array of 2d coordinates from it ready for displaying
+  Updated PLOT to allow an array of 2D points as a parameter
+  Shift-Enter editor control - hides all editor windows temporarily
+
+Bugs fixed:
+
+  Fixed autosave issues - in windows, saving the autosave could crash, sometimes it wouldn't save and others it would get corrupted
+  Also fixed the autosave name issue - it now saves the name of your program inside the program
+  Fixed a serious memory leak when working with arrays
+  Fixed a problem in DIM with fixed-length strings
+  Fixed (Finally!) a bug which caused weird cursor behaviour in the list window
+  Fixed a small error that prevented LIST VAR str-array$() from working
+  Fixed a bug in string slicing with a literal string and a single index
+  Fixed an issue with AND in bracketed expressions
+  Fixed a hang when a closing brace is omitted in a variable subscript
+  Fixed a small problem with moving around the listing after inserting a line
+  Fixed a crash when assigning to RESULT$ in a procedure using CALL
+  Fixed some nasty crashes when using referred parameters in string-procedures
+  Fixed a hang when a long line is REMmed out  
+
+
+v0.0.0.741
+==========
+
+Added:
+
+  Pandora version now adds a battery meter - the stripes on the direct command window gradually drain out :-)
+  NUB-assignment for the Pandora port
+  EDITORWRAP sysvar - produces listings akin to the 128k Spectrum's editor lines
+  SPLITSTATEMENTS sysvar - set to TRUE (1) - the default, splits statements in the editor at ":" marks
+  SPLITREMS sysvar - when true, wordwraps REM statements so they remain visible
+  A new optimisation to line-search, which removes the increasing time-penalty as lines are jumped to later in the program
+  MENUBOX function - supply title and at least two option strings, eg LET a=MENUBOX("myMenu","option1","option2") will return the option selected or -1 of the user ESCaped
+  GETOPT and GETOPT$ functions - like the OPTION keyword, takes a string parameter which is the name of the sysvar you want to query. Use GETOPT$ for string types
+  OPTION keyword - allows you to change Sysvars. OPTION "MATHMODE",1 will set the MATHMODE system variable to 1 (Degrees mode). See SysVars.txt for more info on which exist and what they do
+  Initial options setting - a program, called "s:startup-sequence" which is executed on startup and on NEW. Use it to set stuff like editor fonts etc
+  Autosave is now stored in the "s:" assign
+  Altered the editor (and fixed a couple of bugs along the way) to allow the use of any size fonts as the editor font 
+  VOLUME command - takes a value from 0 to 1, with 1 being 100% volume. Initially set at 0.5
+  VOL function - returns the current volume level
+  Keyclicks in the editor, a blend of 48k and 128k styles
+  Changed how LOCAL works in procedures - you can now create multiple variables with one call to LOCAL a,b,c and assign values to them with LOCAL a=1,b=2,c=33 for example
+  Lines that are bugged, or use deprecated commands would cause SpecBAS to crash when LOADing programs that contain them. Now a "REM" is prepended to any problematic lines
+  PUSH command - takes the form PUSH line[,statement] and puts the indicated program location onto the GOSUB stack, for use by RETURN et al
+  POPLINE and POPST functions. POPST non-destructively returns the statement to be jumped to on the next RETURN, POPLINE returns the line number and removes that entry from the stack
+  POP command - takes the form POP numvar[,numvar] and places the current GOSUB stack item into the two (or one, if statement number isn't needed) variables. Destructive
+  Added the BASE directive to the DIM command. You can now have any number as the base of the indices - DIM A(10) BASE 0 will create an array where indices are from 0 to 9, as opposed to 1 to 10 in Sinclair BASIC. The default is 1
+  
+Bugs fixed:
+
+  Fixed parameter range for ACS/ATN/ASN, and fixed the conversion order (degrees vs radians) for those functions
+  The fix for preserving PRPOSX et al caused a small error, which has been fixed
+  Flickering editor cursor when sprites were active onscreeen
+  The TAB and print-comma now behave properly, taking half the screen each
+  Multiple INPUT items retain their values on-screen during INPUT
+  Preserve PRPOSX, PRPOSY etc (print and drawing positions) when switching between windows properly
+  Sound sample volume works now
+  Odd resolutions like 1366x768 no longer crash SpecBAS or make the mouse pointer behave in silly ways
+  Wildcards in disk commands work again now
+  Now handling LN and LOG with negative numbers properly - they cause an error
+  Saving a program to a location outside a package file (when a package file is open) failed
+  DIM with a BASE command on a pre-existing array could in some circumstances cause a crash
+  Autosave bugs fixed - now doesn't save over the old one when loading a new file
+  
+
+v0.0.0.730
+==========
+
+Added:
+
+  FPS <n> command - sets the number of frames drawn per second in your program. Use with caution! Too high a value can cause your program to become unresponsive, and uses of WAIT SCREEN will be affected
+  Mouse clicks can now clear error messages (and the (C) message on NEW)
+  MOUSE commands! MOUSE SHOW/MOUSE HIDE are self-explanatory. MOUSE GRAPHIC gfx$|bankID|DEFAULT [POINT x,y] sets a graphic (as a string or a graphic bank) as the mouse pointer. Set the hotspot with the POINT x,y parameter. This is the first of the new UI commands
+  DEBUG command - DEBUG LineNum[,StatementNum] will list your code in "opcode" form used by the VM. It's RPN and quite revealing. I'll be using it to build and test the code optimiser
+  More optimisation thanks to the structure revealed by the DEBUG command - calculations involving constants are now precalculated
+  Functions are now optimised - if they are called only with constants (ie, no variables) then they are interpreted and the result stored
+  Operators that can work on strings or numerics (+, =, <, >, <>, >=, <=, AND) now no longer do type checking at runtime - it's done at syntax (line entry) now
+  Compound instructions in the tokeniser now take care of common sequences involving variables, though they do shortcutting rather than reduction. More SPEED!
+
+Bugs Fixed:
+
+  Another rather daft bug which caused string array queries to fail after the first run through - me confusing specbas arrays with pascal arrays :)
+  Fixed an obscure bug which caused regions of graphics grabbed from the edges of bitmaps to grab one pixel-too-few
+  Fixed OVER 1 and the mouse pointer being drawn wrongly in the editor
+  Tweaked the main thread's scheduling to avoid hogging the CPU (or one of the CPU Cores) whilst a program is running
+  Fixed filled rectangles which didn't update properly
+  Extraneous keyword added to ELSE clauses - doesn't have any effect on your code, but will slow it down fractionally
+  Fixed a bug which caused a freeze if an empty procedure (10 DEF PROC myproc: END PROC) was generated
+  Fixed a bug in DELETE <start> TO <finish> which, if <finish> was out of range of the end of the program, would crash SpecBAS
+  
+
+v0.0.0.723
+==========
+
+Added:
+
+  The IN operator. Inherited from Pascal, and improved - fantastically useful for shortcutting lots of tests such as OR etc in IF statements. 
+  Use IN with IF - IF a$(1) IN ("0" TO "9") will test the first character of a$ against a range of strings - if it's greater than or equal to "0" and less than or equal to "9" then it returns TRUE. Ranges can be infinite at either end - ("0" TO ) or ( TO "9") are equally valid. Works with numbers too - IF a IN (1,2,3) returns true if a matches any of 1, 2 or 3. Multiple ranges and values can be specified.
+  A nice way to iterate through all values in an array. Use FOR EACH n IN myarray() to start it. n will pretend to be each value in that array, and each NEXT n will move it to the next one in the array. You can use LET n=value, or query n as you please. Any writes to that variable will alter the contents of the array at the current point. Use string vars for string arrays - ie, FOR EACH n$ IN mystring$(): LET n$="Hello": NEXT n$... This command may get expanded to include sets later.
+  
+  
+Bugs Fixed:
+
+  A really silly bug to do with certain optimisations in variable code caused structures to fail when queried twice.
+  INC with a range didn't return to the start of the range in some cases. Now all values are clamped to that range regardless of how far they overrun. 
+  As above but for DEC :)
+  Fixed the editor history which was inserting blank lines for duplicate commands.
+  
+
+v0.0.0.723
+==========
+
+Added:
+
+  Simple optimisation. You won't notice it (probably), but it's the beginning of a much more aggressive optimisation system.
+  Added INPUT, with full-screen placement, formatting (masks) etc, fully compatible with the original Sinclair BASIC version.
+
+Bugs Fixed:
+
+  READ couldn't take STRUCTure members as parameters - can now.
+  READ wouldn't accept array parameters correctly.
+  RESTORE could be confused by labels when searching for more DATA, but now correctly ignores them.
+  PROC and CALL will refuse to accept REFerenced STRUCTure members, as they're not true variables. For now.
+  OVER status now reset properly on NEW.
+  The editor history (SHIFT/up+down) now no longer stores duplicate command lines.
+  Fixed INPUT FORMAT for case-changing masks.
+  
+
+v0.0.0.718
+==========
+
+Bugs Fixed:
+
+  BANK COPY didn't work for extended copy operations.
+  Mouse button order was wrong on linux builds.
+  Not a bug as such, but now LET with simple variables (non-arrays, non-slicers) is much, much faster. This is a by-product of the new STRUCT work that's going on.
+  CAT now returns files matching a trailing mask properly - ie, CAT "chimes*" matches both "chimes" and "chimes.wav"
+  REF now works as the manual says it does for PROCedures. You can also specify it in the PROC/CALL parameter list if you want to force a proc to work on your var as a reference.
+   
+Added:
+ 
+  PROCID() function returns the internal procedure-list index of the specified procedure.
+  PROC PROCID(n;p1,p2,p3...) calls a procedure using the procedure-list index instead of the name. This way you can call procedures based on a variable's contents.
+  CALL PROCID(n;p1,p2,p3...) and CALL PROCID$(n;p1...) allows you to call procedures as functions (as before) but with the procedure index value rather than the name. Note! that if you want to return a value, use PROCID, for a string use PROCID$ - but make sure your procedure uses the correct RESULT or RESULT$ variable or things may get weird.
+  A little more info about the files (total size and count) to a vanilla CAT command
+  LIST BANK [n [DATA]] - lists all memory banks. If n is specified, lists detailed info for bank n. If DATA is added, a hexdump of the memory is displayed.
+  LIST VAR [a()] - either lists all variables and their contents or lists the contents of a specific string or number array
+  LIST ASSIGN - lists all filesystem ASSIGNs and their associated paths.
+  Structures! 
+  DEF STRUCT name(params[=defaultvalue]) creates a structure in memory. These can be assigned to strings, with LET a$=STRUCT name[(default param=value)].
+  Access structures in strings using a "." to separate member parameters - LET a$.myval=10 or LET a$.mystr$="Hello"
+  Can also be used with arrays - DIM a$(10) STRUCT mystruct[(default param=value)] for truly useful databasing.
+  Remove structures with STRUCT ERASE name.
+  LIST STRUCT will list all structures declared. Add a structure name, and it will list that structure's parameters. Add a stringvar instead, and it will list any structure members present in that variable, if a structure has been assigned to it.
+  BTSET(m,n) and BTCLEAR(m,n) take two parameters and return a value m with bit n set or cleared.
+  LPAD$ and RPAD$(src$,pad$,count) will return a string with padding (pad$) added to the left or right of src$, count times.
+  Added a raftload of new functions from the AMOS interpreter - TWOPOWER, TWOLOG, BYTE/WORD/NYBBLESWAP, LOWORD, HIWORD, LOBYTE, HIBYTE, POLAR, POLARDIST, CLAMP, INRANGE, ITEM$, INSERT$ and a load of others - see handbook for usage.
+  
+
+v0.0.0.711
+==========
+
+Bugs Fixed:
+
+  FLOOR crashed SpecBAS!
+  Fixed GETTILE, the parameters were reversed.
+  
+ Added:
+ 
+  Added a raftload of new functions - mostly bit-twiddling (HIBYTE, LOBYTE, HIWORD, LOWORD, WORDSWAP, BYTESWAP, NYBBLESWAP) do as they describe on a single parameter
+  CLAMP(n,m TO p) clamps a value into a range, INRANGE (same params) returns TRUE or FALSE if a value is in the specified range
+  ITEM$(a$,pos[,b$]) returns an item from a list - ie, ITEM$("a|b|c",2) returns "b". Default separator is "|" but you can specify your own with the third parameter.
+  INSERT$(a$,b$,pos) returns a string of a$ with b$ inserted at position pos.
+  POLAR(dx,dy) returns the angle of the point at dx,dy from an origin of 0,0.
+  POLARDIST(dx,dy) returns the distance of the point at dx,dy to the origin at 0,0.
+  BIT(n,m) returns the bit value (1/0) of value n at bit m - bit 0 being the least.
+  Optimised the Tilemap rotation and scaling somewhat, much faster now.
+ 
+
+v0.0.0.710
+==========
+
+Bugs Fixed:
+
+  Fixed a parser issue where invalid characters after a binary number (%1234, for example) had characters deleted.
+  Fixed an issue with saving to assigns when inside a package (SAVE "sys:myfile" for example).
+  Fixed an issue with CAT after a package was closed - the current directory wasn't reset.
+  Fixed bug in DRAW with only one distance parameter (turtle graphics).
+  Fixed bug in WINDOW PUT for -ve offsets.
+  Fixed bug with RUN in a program.
+  Fixed editor issues with OVER.
+  PAUSE was unreliable at 1-frame resolution.
+  Major changes to the interpreter and how it handles tokens.
+
+Added:
+
+  Added SAVE <filename> BANK <id> DATA - which will save the bank's memory without the bank header.
+  Added TILEMAP commands for handling large graphics built from tiles.
+  Added new optimisations to the interpreter's main loop - about 50% speed-up in token evaluation.
+  MERGE <start> TO <finish>   -   merges lines together with ":" separators. Multistatement lines are faster to execute.
+  Upgraded texture routines to use transparencies
+  Amended documentation - still more to do yet though.
+  Updated all commands that take a string-graphic as their parameter to also accept "GRAPHIC bankid" in place of that parameter.
+  Added OVER support to many graphics ops. 
+  Added WINDOW PUT GRAPHIC <graphicID>,winid,x,y support 
+  Added GRAPHIC SCROLL and GRAPHIC ROLL commands 
+  LIST <linenum> now moves the editor highlight to the line specified.
+  Pressing TAB with a number on the command line now brings that line number to the command line for editing. Adding a statement number jumps to that statement - ie, 10:3 <TAB> will bring line 10 down and jump to statement 3.
+  Pressing TAB on an error (NOT error 0, "Ok") will jump directly to the line and statement containing the error and bring it down for editing.
+
+
+v0.0.0.692
+==========
+
+Bugs Fixed:
+
+  fixed bug in DRAW with only one distance parameter (turtle graphics).
+  Fixed bug in WINDOW PUT for -ve offsets.
+  Fixed bug with RUN in a program.
+  Fixed editor issues with OVER
+  PAUSE was unreliable at 1-frame resolution
+  Mouse wheel operations caused a crash in the interpreter is ON ERROR was used in a program
+  EXIT used inappropriately crashed the program rather than generate an error.
+  
+Added:
+
+  MERGE <start> TO <finish>   -   merges lines together with ":" separators. Multistatement lines are faster to execute.
+
+
+v0.0.0.691
+==========
+
+Bugs Fixed:
+
+  GIF images now load correctly on the windows build.
+  A tokenisation problem (ta, ^Pete!) prevented LOAD DATA from working... but only in linux :(
+  Some linux-based palette problems may be fixed now.
+  
+
+v0.0.0.690
+==========
+
+Added:
+
+  Assigns - you can now assign a "drive" to a folder on the host filesystem - "SYS:" for example maps to "/"
+  Sound and Graphics commands now work with packaged files - they unpack to a "TEMP:" assign.
+  New filesystem commands - COPY/ERASE/MOVE/MAKEDIR/RENAME, also package aware.
+  POWER function - power(a,b) raises a to the power of b.
+  PACKAGE command - see the reference document on handling packages. Essentially they're archives which can be mounted as a filesystem.
+  LOAD/SAVE filename$ DATA [var] commands - load and save variables and arrays to disk.
+
+Bugs Fixed:
+
+  RENUMBER didn't renumber GOTO/GOSUB that had a statement following them.
+  A line entered or edited in the editor is automatically jumped to.
+  A small bug in IF THEN ELSE caused code to flow incorrectly.
+  PALETTE COPY didn't update the internal palette properly, which caused issues with the editor.
+  UDGs in the editor line would not display properly due to a line length issue.
+  A colon character inside a REM statement would wrongly cause a line split in the editor.
+  Samples, when played through a channel, create a channel when doing so - so you need to specify a numeric var after the CHANNEL parameter.
+  The editor would wrongly size the horizontal scrollbar.
+  Sprites, when moved a distance over set time at a set rate of pixels/frame would crash is the rate was <1.
+  Sprites would not display sometimes; this was due to the screen refresh being ignored.
+  Banks were not cleared properly on RUN which led to weird errors with sprites.
+  "File not found" errors when loading graphics showed up as "-10 0:1" which is just wrong.
+
+
+v0.0.0.648
+==========
+
+Added:
+
+  Editor command history. Use Shift-up/down to access it.
+
+Bugs Fixed:
+
+  Documented POINT in the reference document.
+  Accessing string arrays was a little... weird, mostly due to overzealous optimisation.
+  Files not found when loading graphics are reported as such.
+  Scroll? was incompatible with CONTINUE.
+  Functions followed by variables were not tokenised properly after editing.
+
+
+v0.0.0.646
+==========
+
+Added:
+
+  Back to basics with LIST [n [TO m]] - LIST the program from any line to any other subsequent line, or list the lot in one go.
+  ERASE start TO finish - deletes all lines inclusively of those specified.
+  FCODE and FCHR$ for working with floating point values in strings.
+  Editor marks - set a mark with CTRL-SHIFT-Fn (F1 - F10), and then jump to that mark with CTRl-Fn.
+  RENUMBER command. Renumbers either the whole program or a range of lines, with GOTO/GOSUB fixing for absolute values.
+  Simple syntax highlighting to the LIST window. Let me know what you think. And indentation isn't possible, sorry.
+  CONTINUE - so Piez will stop pestering me. Resumes execution at the next statement after BREAK was detected.
+  READ LINE strvar - will read whatever comes next in a DATA sequence as a string and put it into the specified string variable.
+  The ITEM function - returns information about the next DATA item (0 - no more DATA, 1 - number, 2 - string).
+  The FPEEK function and FPOKE command - both for reading/writing floating point values (8 bytes in size) from and to memory banks.
+  Inline ascii characters in strings - represented by the # character:
+
+    10 LET a$="Hello"#32"there!"
+  
+  Will assign the string "Hello there!" to a$. This is much, much faster than using the "Hello"+chr$ 32+"there!" method, as there are no function calls made.
+
+Bugs fixed:
+
+  WINDOW FRONT/BACK operations would cause the new editor to crash with a window ID conflict.
+  WINDOW GRAB with invalid coordinates will now error correctly.
+  Some graphics banks would corrupt for no reason, but there was a very good reason... a bug.
+  Small bug in file handling in the windows build meant that loading graphics into a graphic bank was pretty hit and miss.
+  Thread affinity on windows - SpecBAS was running both threads on only one core on a dual-core (or more) CPU.
+  Hex values accepted spaces, which was causing problems with "$abcd AND 1" for example.
+  Lonely characters of invalid stature were causing problems.
+  The SpecBAS window can no longer be resized using the usual means.
+  GOSUB from a direct command didn't return properly if it was the last command on the line.
+
+
+v0.0.0.644
+==========
+
+Added:
+	
+  The GRAPHIC bank type - see the manual for full details, but in a nutshell allows you to load in a variety of graphic file formats (PNG, GIF, BMP). Also provides commands and functions to manipulate graphic banks' palettes and remap graphic to your screen palette, with a variety of dithering options.
+  Changed the way that WINw and WINh work to return the width and height of any window, not just the current.
+
+Bugs Fixed:
+
+  Screen updates for the Circle and Ellipse command were broken.
+  INC and DEC had small bugs when overflowing a ranged increment.
+
+v0.0.0.642
+==========
+
+Added:
+
+  Error and Copyright window - same as the old "bottom of the screen" error, but less destructive and more visible in some conditions.
+  Mouse Wheel support - MOUSEWHEEL function returns the mousewheel position, which starts at 0 and is inc/decremented when the wheel turns
+  ON WHEELUP and ONWHEELDOWN events to the ON... structure.
+  You can now also use the mouse wheel to scroll your program.
+
+Bugs Fixed:
+
+  double-word commands were not parsed properly.
+  A bug in the editor meant that open windows would cause issues during editing.
+  Crash in the linux version when reducing screen size.
+  The new editor didn't respect temporary colour attributes.
+  
+v0.0.0.634
+==========
+
+Added:
+
+  New Editor. Hide the LISTING window by entering an empty direct command, again to make the window visible again.
+  Use the mouse to manipulate the scroll bars, click to select a line, double click to edit that line. CTRL-F1 and others function as before.
+
+v0.0.0.630
+==========
+
+Bugs fixed:
+
+  SPRITEs wouldn't animate correctly (unless you really wanted frames to change over a period of years).
+
+v0.0.0.629
+==========
+
+Added:
+
+  STEP and FRAMES to SPRITE MOVE command - STEP now moves a set number or pixels per frame, FRAMES moves to the destination over a fixed time.
+  ROTATE and SCALE in a SPRITE command now use the FRAMES command, not the STEP command.
+
+Bugs fixed:
+
+  CW/CCW and the delta-angles in rotation commands were backwards
+  Movement of a sprite over a fixed framecount tended to accelerate the sprite towards the end of a move
+  
+
+v0.0.0.628
+==========
+
+Added:
+
+  CAT [EXP] command - displays a file listing (like DIR in DOS). Use CAT EXP to get more info in the list.
+  TEXT command - like PRINT, but does not wrap or scroll at screen boundaries.
+  PRINT now behaves like the Speccy's PRINT command, including the "Scroll?" prompt.
+  SPRITES! Check the documentation for the sprites commands.
+  Rotation and scaling of WINDOW PUT graphics
+  Time commands - TIME - returns integer date + fractional time. Use with YEAR/MONTH$/DAY$/MONTH/DAY/HOUR/MINUTE/SECOND to decode.
+
+Bugs fixed:
+
+  PRINT now scrolls properly with trailing CHR$ 13's.
+  Filename handling should be better for any platform now.
+  Streams return correct data when reading from a file.
+
+v0.0.0.601
+==========
+
+Added:
+
+  CALL function allows you to CALL a procedure and get a return value back from it. 
+	String array elements are no longer fixed width, but can be set to a default length with DIM a$(n) LEN m
+	Variables (and array elements) can be referenced rather than evaluated as procedure parameters with the REF token.
+	EXIT PROC added to break out of a procedure early
+	Banks are now cleared on RUN and CLEAR - added "BANK PROTECT n" and "BANK UNPROTECT n" commands to allow banks to survive this.
+
+Bugs fixed:
+
+	Direct commands would fail if a procedure was unfinished in the listing.
+	UDGs outside of string literals in a command no longer crash specbas
+	PROC now calls the correct line after DEF PROC
+	Loading ASCII text files would fail in some circumstances
+
+v0.0.0.587
+==========
+
+Added:
+
+	ELSE for IF..THEN commands. Fully nestable.
+	DEF PROC, PROC, END PROC and LOCAL commands for procedures. 
+	DEF FN for user-defined functions 
+
+Bugs fixed:
+  
+	INC/DEC stack imbalance.
+	Stack imbalance in MOVE for graphics.
+
+v0.0.0.301
+==========
+
+Added:
+
+	SOUND! SAMPLE, MUSIC and CHANNEL commands, with more to come.
+	BANK COPY extension to copy chunks of banks from one to another.
+
+Bugs fixed:
+
+	POKE/DPOKE/QPOKE all work properly now, and the DPOKE/QPOKE accept larger values than 255.
+	POKE/DPOKE/QPOKE to the screen bank cause the screen to update as if a graphics command was used.
+	Constants like KEY_1 didn't work due to the tokeniser - they do now.
+
+
+v0.0.0.276
+==========
+
+Bugs fixed:
+
+	RESTORE no longer crashes SpecBAS when no program is in memory.
+	GOSUB when used with a LABEL returned to the wrong statement.
+
+Added:
+
+	Added DRPOSX and DRPOSY functions which return the last point drawn for the current window.
+	You can now save programs in plain text with the SAVE filename ASCII command.
+
+
+v0.0.0.274
+==========
+
+Bugs fixed:
+
+	Many unbalanced stack issues with commands. INC, DEC, WHILE, NEXT affected and fixed.
+	GOSUB with a label didn't return properly.
+	The correct PAPER is scrolled in with the SCROLL command.
+
+Added:
+
+	Function TOKEN$ takes a string parameter and converts it to a executable code.
+	Command EXECUTE executes a string which has been compiled with TOKEN$.
+	FOR..NEXT, DO [WHILE]..LOOP [UNTIL] now work on direct commands, as do Labels.
+	New graphics commands - MOVE, DRAW n, ROTATE and also the HEADING function.
+
+Changed:
+
+	WAIT SCREEN now issues a screen update, so no longer need SCREEN UPDATE: WAIT SCREEN blocks
+	VAL and VAL$ can now use compiled code made by the TOKEN$ command
+
+
+v0.0.0.250
+==========
+
+Bugs fixed:
+
+	NEW was screwing things up. Bad, bad NEW.
+
+Added:
+
+	WAIT gets the SCREEN parameter followed by a millisecond count - waits like WAIT n, but won't return until the current screen operation is done
+
+
+v0.0.0.250
+==========
+
+Bugs fixed:
+
+	WINDOW ERASE and WINDOW NEW could cause access violations
+
+Added:
+
+	WAIT has been extended - WAIT 0 now waits for the display to finish drawing if it's in progress when the WAIT is called
+
+
+v0.0.0.245
+==========
+
+Bugs fixed:
+
+	RGBf and RGBn were reversed
+	CLS n didn't clean the stack properly
+
+Added:
+	Divide by zero protection
+	QCHR$, DCHR$ to convert Longword and Word values to strings
+	QCODE, DCODE to convert 4byte and 2byte strings to values
+
+v0.0.0.237
+==========
+
+	Source change for a slightly easier linux port
+
+v0.0.0.236
+==========
+
+Bugs fixed:
+
+	Windows not deleted properly on RUN.
+
+Added:
+	Re-worked ON command. Now accepts ON MOUSEDOWN, ON MOUSEUP, 
+	ON MOUSEMOVE, ON KEYDOWN ON KEYUP. Removed ON ERROR GOTO and 
+	ON ERROR GOSUB, now can execute any code after ON ERROR
+	Current program execution point is stored as a GOSUB point 
+	on the stack, so you *must* RETURN when an ON <whatever> is executed
+
+v0.0.0.225
+==========
+
+Bugs fixed:
+	
+	Current working directory is changed when a program is loaded, 
+	so data files in the same folder can be loaded.
+
+Added:
+
+	GETDIR - returns the current directory as a string
+	SETDIR strexpr - Sets the current directory
+
+
+v0.0.0.222
+==========
+
+Bugs fixed:
+
+	FONTs can be loaded from disk now, but still need to be assigned with the FONT command, even if you load them into the current font bank
+
+
+v0.0.0.220
+==========
+
+Added:
+
+BANK commands -
+
+	BANK NEW numvar <,size> - creates a new bank of the optionally specified size
+	BANK SIZE id,size - resizes the specified bank's data area
+	BANK ERASE id - removes the bank from the bank list
+	BANK COPY src TO dst - copies one bank to another. Duplicates
+	BANKSIZE id - Function returns the size of the specified bank
+
+	LOAD filename BANK id - loads the file to the specified bank number. If bank number is -1, then new bank is created. If file was previously saved bank, then that bank will be recreated with loaded data, otherwise the data will be loaded as raw binary bytes
+	SAVE filename BANK id - saves the specified bank. Bank must exist
+
+STREAM commands -
+
+	STREAM NEW numvar,[BankID|Filename$] - opens a new stream. Stream ID is returned in numvar. If number is specified, then the stream will work with the bank specified's data. If string is specified, then the stream will be associated with the file specified in the string
+	STREAM READ id,strvar,count - reads COUNT bytes into strvar. May read less if less bytes available
+	STREAM WRITE id,string - writes the string out to the stream's associated data. If the bank or file is smaller then the amount to be written, it is extended to fit
+	STREAM SEEK id,position - moves the read/write position of the stream to the specified position
+	STREAM CLOSE id - removes the stream and closes any file associated with it
+
+	STREAMLEN id - returns the size of the data associated with the stream
+	STREAMPOS id - returns the position of the read/write pointer for the stream

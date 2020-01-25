@@ -59,11 +59,16 @@ Type
     okBtn, caBtn: SP_Button;
     Width, Height, FW, FH: Integer;
     Caption: aString;
-    Procedure Open(BpType, Line, Statement, PassCount: Integer; Caption, Condition, VarName: aString);
+    Accepted: Boolean;
+    BpLine, BpSt, BpPasses: Integer;
+    BpCondition: aString;
+    Procedure Open(BpIndex, BpType, Line, Statement, PassCount: Integer; Caption, Condition, VarName: aString);
     Procedure PlaceControls;
     Procedure ValidateFields;
     Procedure TypeChange(Sender: SP_BaseComponent; Text: aString);
     Procedure edtLineChange(Sender: SP_BaseComponent; Text: aString);
+    procedure okBtnClick(Sender: SP_BaseComponent);
+    procedure caBtnClick(Sender: SP_BaseComponent);
   End;
 
   Function OpenFileReq(Caption, Filename: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
@@ -795,15 +800,9 @@ Begin
 
 End;
 
-{ SP_BreakPointWindow = Class
-    cmbType: SP_ComboBox;
-    edtLine, edtStatement, edtCondition, edtPassCount: SP_Edit;
-    lblLine, lblStatement, lblCondition, lblPassCount: SP_Label;
-    okBtn, caBtn: SP_Button;
-    Procedure Open(Line, Statement, PassCount: Integer; Caption, Condition, VarName: aString);
-  End; }
+{ Breakpoint Window }
 
-Procedure SP_BreakpointWindow.Open(BpType, Line, Statement, PassCount: Integer; Caption, Condition, VarName: aString);
+Procedure SP_BreakpointWindow.Open(BpIndex, BpType, Line, Statement, PassCount: Integer; Caption, Condition, VarName: aString);
 Var
   Font, w, h, cw, OldFocus: Integer;
   win: pSP_Window_Info;
@@ -868,8 +867,10 @@ begin
 
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
+  caBtn.OnClick := caBtnClick;
   okBtn := SP_Button.Create(Win^.Component);
   okBtn.Caption := 'Okay';
+  okBtn.OnClick := okBtnClick;
 
   // Populate with data passed in
 
@@ -896,9 +897,11 @@ begin
   edtPassCount.Text := IntToString(PassCount);
 
   PlaceControls;
+  ValidateFields;
 
   // Now run the dialog
 
+  Accepted := False;
   OldFocus := FocusedWindow;
   FocusedWindow := -1;
   SP_DisplayFPListing(-1);
@@ -908,8 +911,30 @@ begin
 
   WaitForDialog;
 
+  If Accepted Then Begin
+
+    // No need to validate the input, it's already validated on control change
+
+    Case cmbType.ItemIndex of
+      0: // Source breakpoint
+        Begin
+          SP_AddSourceBreakpoint(False, BpLine, BpSt, BpPasses, BpCondition);
+        End;
+      1: // Conditional breakpoint
+        Begin
+          SP_AddConditionalBreakpoint(BpIndex, BpPasses, BpCondition, False);
+        End;
+      2: // Data breakpoint
+        Begin
+          SP_AddConditionalBreakpoint(BpIndex, BpPasses, BpCondition, True);
+        End;
+    End;
+
+  End;
+
   SP_SetSystemFont(Font, Error);
   SP_DeleteWindow(FDWindowID, Error);
+  SP_DisplayFPListing(-1);
   SP_InvalidateWholeDisplay;
   FocusedWindow := OldFocus;
 
@@ -973,7 +998,7 @@ End;
 
 Procedure SP_BreakPointWindow.ValidateFields;
 Var
-  i: Integer;
+  i, ln, st: Integer;
   Found: TPoint;
   Error: TSP_ErrorCode;
   Line, Statement: aFloat;
@@ -985,6 +1010,8 @@ Begin
   Text := edtLine.Text;
 
   If cmbType.ItemIndex = 0 Then Begin
+
+    // Line, statement
 
     i := 1;
     Found.y := -1;
@@ -1007,9 +1034,15 @@ Begin
     End Else
       Error.Code := SP_ERR_SYNTAX_ERROR;
 
-    b := (Error.Code = SP_ERR_OK) and SP_GetNumber(l, i, line, True);
+    ln := StrToIntDef(l, MAXINT);
+    st := StrToIntDef(s, MAXINT);
+
+    BpLine := Ln;
+    BpSt := St;
+
+    b := (Error.Code = SP_ERR_OK) and SP_GetNumber(l, i, line, True) and (ln <> MAXINT) and (ln > 0);
     i := 1;
-    b := b And SP_GetNumber(s, i, statement, True);
+    b := b And SP_GetNumber(s, i, statement, True) and (st <> MAXINT) and (st > 0);
 
     If Not b Then Begin
       searchOpt := [soForward, soCondenseSpaces];
@@ -1026,10 +1059,13 @@ Begin
 
     b := True;
 
+  // Condition
+
   b2 := True;
   If edtCondition.Text <> '' Then Begin
     Error.Code := SP_ERR_OK;
     b2 := SP_FPCheckExpression(edtCondition.Text, Error) and (Error.ReturnType = SP_VALUE);
+    BpCondition := edtCondition.Text;
     If not b2 Then
       lblCondition.FontClr := 2
     else
@@ -1037,9 +1073,11 @@ Begin
   End Else
     lblCondition.FontClr := 0;
 
+  // Pass count
+
   If edtPassCount.Text <> '' Then Begin
     Error.Code := SP_ERR_OK;
-    SP_FPExecuteNumericExpression(edtPassCount.Text, Error);
+    BpPasses := Round(SP_FPExecuteNumericExpression(edtPassCount.Text, Error));
     b3 := (Error.Code = SP_ERR_OK) and (Error.ReturnType = SP_VALUE);
   End Else
     b3 := False;
@@ -1060,6 +1098,21 @@ Procedure SP_BreakPointWindow.edtLineChange(Sender: SP_BaseComponent; Text: aStr
 Begin
 
   ValidateFields;
+
+End;
+
+Procedure SP_BreakPointWindow.okBtnClick(Sender: SP_BaseComponent);
+Begin
+
+  Accepted := True;
+  ToolWindowDone := True;
+
+End;
+
+Procedure SP_BreakPointWindow.caBtnClick(Sender: SP_BaseComponent);
+Begin
+
+  ToolWindowDone := True;
 
 End;
 

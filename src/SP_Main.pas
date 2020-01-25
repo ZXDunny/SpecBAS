@@ -119,7 +119,7 @@ Begin
       SP_NeedDisplayUpdate := True;
   End;
 
-  Result := (NUMSPRITES > 0) or (SP_NeedDisplayUpdate And Not SCREENLOCK);
+  Result := (NUMSPRITES > 0) or SP_NeedDisplayUpdate;
   FrameElapsed := True;
 
   Inc(AutoFrameCount);
@@ -145,6 +145,8 @@ Procedure SP_MainLoop;
 Var
   Error: TSP_ErrorCode;
 Begin
+
+  INSTARTUP := True;
 
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
 

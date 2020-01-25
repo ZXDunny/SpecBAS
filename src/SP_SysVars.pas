@@ -49,6 +49,7 @@ Var
   {$ENDIF}
   BUILDSTR:                 aString;      // Build number of SpecBAS
   HARDWARE:                 aString;      // The hardware platform SpecBAS is running on (Windows/Linux x86/Pandora/Pi etc).
+  INSTARTUP:                Boolean;      // Flag that the system is starting up - no recentfiles to be added
   SCREENCHANGE:             Boolean;      // Screen resolution changing?
   SPFULLSCREEN:             Boolean;      // True if we're in Fullscreen mode.
   SCRUPDATENOW:             Boolean;
@@ -205,6 +206,7 @@ Var
   FC:                       Integer;      // Frame Counter
   FCM:                      Integer;
   SKIPDRAW:                 Boolean;      // Did we skip the last wait for vbl?
+  DEBUGGING:                Boolean;
 
   GFXLOCK:                  Integer;      // State of the GRAPHICS mode
   CAPSLOCK:                 Integer;      // State of the CAPSLOCK key

@@ -68,7 +68,7 @@ Var
   BreakNow: Boolean;
 Begin
 
-  If fWidth < iFW Then Exit;
+  If (fWidth < iFW) and Not fAutoSize Then Exit;
 
   i := 1;
   lsp := 1;

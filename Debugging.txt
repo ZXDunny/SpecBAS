@@ -1,0 +1,41 @@
+SpecBAS now has debugging support. 
+
+You can open the Debug Panel by pressing CTRL+B or using the View menu.
+Currently it only shows variables. When running, new variables will be coloured green and variables that change their contents will be coloured red.
+
+You can insert a breakpoint using the F5 key. If you're in the editor, the breakpoint will be at the first statement on the line the cursor occupies. In Direct mode, it will place the breakpoint at the first statement of the currently highlighted line. A breakpoint is a red circle in the gutter. Larger than an error circle.
+
+When the program is run, if a breakpoint is encountered then execution will stop and you'll be immediately returned to the editor with no error message.
+
+Note that you're no longer running the program - you can make changes as you see fit.
+
+The place you stop at will be pointed to by a small yellow arrow in the gutter. This points to the statement that will be executed next by CONTINUE, or by stepping.
+
+You can use F7 to single step. This will execute one statement (and one only) and then return to editing mode. Single step will not close the editors. You can use F7 from either the editor or direct command mode. While the program is running (some statements may take a while to execute) the program pointer arrow will turn red. Repeated stepping with F7 will advance through the program one statement at a time.
+
+You can close the editor from the direct command window by pressing ENTER as usual. F7 will still work as normal, and you can, for example, see graphical commands executing as you step. Using F7 repeatedly from the editor window will hide the display, but is useful if you're interested in seeing which variables change as the program runs.
+
+F8 will "Step over" - it will execute statements until the statement after the next one is executed. 
+
+Consider:
+
+10 FOR F=1 TO 10
+20 PRINT F
+30 NEXT F
+40 STOP
+
+If you single step, you'll execute the loop ten times before you reach stop. Using F8 instead will execute line 10, then 20, then 30 - but as you're "stepping over" the "NEXT F", it will loop back and run the whole sequence ten times in a flash, before stopping at the STOP line. F8 is useful for breaking out of any loop or skipping over a PROC call. (If breaking out of a loop, make sure you F8 on the NEXT or LOOP statement). Note that a simple loop comprised of DO...LOOP or a loop that can never end cannot be broken out of in this way.
+
+To resume execution as normal, press SHIFT+F9 to CONTINUE.
+
+Lastly, I've added a status area to the editor and direct command windows. Depending on which is active, it shows the CONTINUE location in []s (Say, [10:1]) followed by cursor location and INS/OVR status. The direct command window shows status in the title bar, and the editor to the right of the menu strip.
+
+Any suggestions as to what I should enable next, or any ideas you may have for new debugging features are welcome.
+
+Currently I'm aiming for:
+
+Context (right click) menu in the editor for cut/copy/paste and token help
+hint boxes which show up when you hover over a variable or keyword to show contents or help respectively
+Disassembly - mostly for me - in the panel
+Watches - an expression that is evaluated every statement
+Breakpoints - more types. Currently only code breakpoints, but breakpoints that trigger when a variable is read or written, or when a condition becomes true are planned

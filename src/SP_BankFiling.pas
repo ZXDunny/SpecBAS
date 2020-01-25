@@ -193,19 +193,20 @@ Type
   Function  INIFindSection(Var INI: TAnsiStringList; Section: aString): Integer;
   Function  INIFindEntry(Var INI: TAnsiStringList; Section, Entry: aString): Integer;
 
-  Function  INIRead(Var INI: TAnsiStringList; Section, Entry: aString; Default: Boolean): Boolean; Overload;
-  Function  INIRead(Var INI: TAnsiStringList; Section, Entry: aString; Default: aFloat): aFloat; Overload;
-  Function  INIRead(Var INI: TAnsiStringList; Section, Entry: aString; Default: aString): aString; Overload;
-  Function  INIRead(Var INI: TAnsiStringList; Section, Entry: aString; Default: Integer): Integer; OverLoad;
-  Function  INIRead(Var INI: TAnsiStringList; Section, Entry: aString; Default: LongWord): LongWord; OverLoad;
+  Function  INIReadBool(Var INI: TAnsiStringList; Section, Entry: aString; Default: Boolean): Boolean;
+  Function  INIReadFloat(Var INI: TAnsiStringList; Section, Entry: aString; Default: aFloat): aFloat;
+  Function  INIReadString(Var INI: TAnsiStringList; Section, Entry: aString; Default: aString): aString;
+  Function  INIReadInt(Var INI: TAnsiStringList; Section, Entry: aString; Default: Integer): Integer;
+  Function  INIReadLong(Var INI: TAnsiStringList; Section, Entry: aString; Default: LongWord): LongWord;
+  Function  INIReadWord(Var INI: TAnsiStringList; Section, Entry: aString; Default: Word): Word;
 
-  Procedure INIWrite(Var INI: TAnsiStringList; Section, Entry: aString; Value: Boolean); OverLoad;
-  Procedure INIWrite(Var INI: TAnsiStringList; Section, Entry: aString; Value: aString); Overload;
-  Procedure INIWrite(Var INI: TAnsiStringList; Section, Entry: aString; Value: Integer); Overload;
-  Procedure INIWrite(Var INI: TAnsiStringList; Section, Entry: aString; Value: aFloat); Overload;
-  Procedure INIWrite(Var INI: TAnsiStringList; Section, Entry: aString; Value: LongWord); Overload;
-  Procedure INIWrite(Var INI: TAnsiStringList; Section, Entry: aString; Value: Word); Overload;
-  Procedure INIWrite(Var INI: TAnsiStringList; Section, Entry: aString; Value: Byte); Overload;
+  Procedure INIWriteBool(Var INI: TAnsiStringList; Section, Entry: aString; Value: Boolean);
+  Procedure INIWriteString(Var INI: TAnsiStringList; Section, Entry: aString; Value: aString);
+  Procedure INIWriteInt(Var INI: TAnsiStringList; Section, Entry: aString; Value: Integer);
+  Procedure INIWriteFloat(Var INI: TAnsiStringList; Section, Entry: aString; Value: aFloat);
+  Procedure INIWriteLong(Var INI: TAnsiStringList; Section, Entry: aString; Value: LongWord);
+  Procedure INIWriteWord(Var INI: TAnsiStringList; Section, Entry: aString; Value: Word);
+  Procedure INIWriteByte(Var INI: TAnsiStringList; Section, Entry: aString; Value: Byte);
 
   Procedure SP_SaveBankAsText(Filename: aString; BankNum: LongWord; Var Error: TSP_ErrorCode);
   Function  SP_LoadBankFromText(Filename: aString; BankNum: Integer; Var Error: TSP_ErrorCode): Integer;
@@ -259,7 +260,7 @@ Begin
     End;
 End;
 
-Function INIRead(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: Boolean): Boolean;
+Function INIReadBool(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: Boolean): Boolean;
 Var
   EntryPos: Integer;
   Value: AnsiString;
@@ -277,7 +278,7 @@ Begin
   End;
 End;
 
-Function INIRead(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: AnsiString): AnsiString;
+Function INIReadString(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: AnsiString): AnsiString;
 Var
   EntryPos: Integer;
   Value: AnsiString;
@@ -290,7 +291,7 @@ Begin
   End Else Result := Value;
 End;
 
-Function INIRead(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: aFloat): aFloat;
+Function INIReadFloat(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: aFloat): aFloat;
 Var
   EntryPos, Idx: Integer;
   Value: AnsiString;
@@ -307,7 +308,7 @@ Begin
   End Else Result := StrToFloat(Value);
 End;
 
-Function INIRead(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: Integer): Integer;
+Function INIReadInt(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: Integer): Integer;
 Var
   EntryPos: Integer;
   Value: AnsiString;
@@ -317,10 +318,11 @@ Begin
   If Value = '' Then Begin
      Result := Default;
      INI[EntryPos] := INI[EntryPos] + IntToString(Default);
-  End Else Result := StrToIntDef(Value, 0);
+  End Else
+    Result := StrToIntDef(Value, Default);
 End;
 
-Function INIRead(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: LongWord): LongWord;
+Function INIReadLong(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: LongWord): LongWord;
 Var
   EntryPos: Integer;
   Value: AnsiString;
@@ -330,10 +332,23 @@ Begin
   If Value = '' Then Begin
      Result := Default;
      INI[EntryPos] := INI[EntryPos] + IntToString(Default);
-  End Else Result := StrToIntDef(Value, 0);
+  End Else Result := StrToIntDef(Value, Default);
 End;
 
-Procedure INIWrite(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: Boolean);
+Function INIReadWord(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: Word): Word;
+Var
+  EntryPos: Integer;
+  Value: AnsiString;
+Begin
+  EntryPos := INIFindEntry(INI, Section, Entry);
+  Value := Copy(INI[EntryPos], Length(Entry)+2, 999999);
+  If Value = '' Then Begin
+     Result := Default;
+     INI[EntryPos] := INI[EntryPos] + IntToString(Default);
+  End Else Result := StrToIntDef(Value, Default);
+End;
+
+Procedure INIWriteBool(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: Boolean);
 Var
   EntryPos: Integer;
 Begin
@@ -344,7 +359,7 @@ Begin
     INI[EntryPos] := INI[EntryPos] + '0';
 End;
 
-Procedure INIWrite(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: AnsiString);
+Procedure INIWriteString(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: AnsiString);
 Var
   EntryPos: Integer;
 Begin
@@ -352,7 +367,7 @@ Begin
   INI[EntryPos] := INI[EntryPos] + Value;
 End;
 
-Procedure INIWrite(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: Integer);
+Procedure INIWriteInt(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: Integer);
 Var
   EntryPos: Integer;
 Begin
@@ -360,7 +375,7 @@ Begin
   INI[EntryPos] := INI[EntryPos] + IntToString(Value);
 End;
 
-Procedure INIWrite(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: LongWord);
+Procedure INIWriteLong(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: LongWord);
 Var
   EntryPos: Integer;
 Begin
@@ -368,7 +383,7 @@ Begin
   INI[EntryPos] := INI[EntryPos] + IntToString(Value);
 End;
 
-Procedure INIWrite(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: Word);
+Procedure INIWriteWord(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: Word);
 Var
   EntryPos: Integer;
 Begin
@@ -376,7 +391,7 @@ Begin
   INI[EntryPos] := INI[EntryPos] + IntToString(Value);
 End;
 
-Procedure INIWrite(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: Byte);
+Procedure INIWriteByte(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: Byte);
 Var
   EntryPos: Integer;
 Begin
@@ -384,7 +399,7 @@ Begin
   INI[EntryPos] := INI[EntryPos] + IntToString(Value);
 End;
 
-Procedure INIWrite(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: aFloat);
+Procedure INIWriteFloat(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: aFloat);
 Var
   Idx, EntryPos: Integer;
   ValueStr: AnsiString;
@@ -446,8 +461,8 @@ Var
   Procedure GetData;
   Begin
     Buffer := '';
-    DataSize := INIRead(INI, 'Data', 'Content Size', 0);
-    Data := INIRead(INI, 'Data', 'Content', '');
+    DataSize := INIReadInt(INI, 'Data', 'Content Size', 0);
+    Data := INIReadString(INI, 'Data', 'Content', '');
     Buffer := ReadRawHex(Data);
     DataSize := Length(Buffer);
     SetLength(Bank.Memory, DataSize);
@@ -490,10 +505,10 @@ Begin
 
       Bank := @NewBank;
       If IsBinary Then BankType := '' Else Begin
-        BankType := INIRead(INI, 'Bank Info', 'Bank Type', '');
-        Bank^.Protection := INIRead(INI, 'Bank Info', 'Protection', False);
-        Bank^.ID := INIRead(INI, 'Bank Info', 'OriginalID', 0);
-        Bank^.System := INIRead(INI, 'Bank Info', 'System', False);
+        BankType := INIReadString(INI, 'Bank Info', 'Bank Type', '');
+        Bank^.Protection := INIReadBool(INI, 'Bank Info', 'Protection', False);
+        Bank^.ID := INIReadInt(INI, 'Bank Info', 'OriginalID', 0);
+        Bank^.System := INIReadBool(INI, 'Bank Info', 'System', False);
       End;
 
       If BankType <> '' Then Begin
@@ -513,7 +528,7 @@ Begin
             SetLength(Bank^.Info, SizeOf(SP_Graphic_Info));
             Gfx := @Bank^.Info[0];
 
-            TempStr := INIRead(INI, 'Info', 'Palette', '');
+            TempStr := INIReadString(INI, 'Info', 'Palette', '');
             If TempStr <> '' Then Begin
             Idx := 0;
               While (TempStr <> '') And (Idx < 256) Do Begin
@@ -525,24 +540,24 @@ Begin
               End;
             End;
 
-            Gfx^.Width := INIRead(INI, 'Info', 'Width', 0);
-            Gfx^.Height := INIRead(INI, 'Info', 'Height', 0);
-            Gfx^.Depth := INIRead(INI, 'Info', 'Depth', 8);
-            Gfx^.Transparent := INIRead(INI, 'Info', 'Transparent', $FFFF);
-            Gfx^.orgx := INIRead(INI, 'Info', 'OriginX', 0);
-            Gfx^.orgy := INIRead(INI, 'Info', 'OriginY', 0);
-            Gfx^.orgw := INIRead(INI, 'Info', 'OriginWidth', Gfx^.Width);
-            Gfx^.orgh := INIRead(INI, 'Info', 'OriginHeight', Gfx^.Height);
-            Gfx^.winscalex := INIRead(INI, 'Info', 'WinScaleX', 1);
-            Gfx^.winscaley := INIRead(INI, 'Info', 'WinScaleY', 1);
-            Gfx^.scalex := INIRead(INI, 'Info', 'ScaleX', 1);
-            Gfx^.scaley := INIRead(INI, 'Info', 'ScaleY', 1);
-            Gfx^.clipx1 := INIRead(INI, 'Info', 'ClipX1', 0);
-            Gfx^.clipx2 := INIRead(INI, 'Info', 'ClipX2', 0);
-            Gfx^.clipy1 := INIRead(INI, 'Info', 'ClipY1', Gfx^.Width);
-            Gfx^.clipy2 := INIRead(INI, 'Info', 'ClipY2', Gfx^.Height);
-            Gfx^.winscale := INIRead(INI, 'Info', 'WinScale', False);
-            Gfx^.winorigin := INIRead(INI, 'Info', 'WinOrigin', False);
+            Gfx^.Width := INIReadLong(INI, 'Info', 'Width', 0);
+            Gfx^.Height := INIReadLong(INI, 'Info', 'Height', 0);
+            Gfx^.Depth := INIReadLong(INI, 'Info', 'Depth', 8);
+            Gfx^.Transparent := INIReadWord(INI, 'Info', 'Transparent', $FFFF);
+            Gfx^.orgx := INIReadFloat(INI, 'Info', 'OriginX', 0);
+            Gfx^.orgy := INIReadFloat(INI, 'Info', 'OriginY', 0);
+            Gfx^.orgw := INIReadFloat(INI, 'Info', 'OriginWidth', Gfx^.Width);
+            Gfx^.orgh := INIReadFloat(INI, 'Info', 'OriginHeight', Gfx^.Height);
+            Gfx^.winscalex := INIReadFloat(INI, 'Info', 'WinScaleX', 1);
+            Gfx^.winscaley := INIReadFloat(INI, 'Info', 'WinScaleY', 1);
+            Gfx^.scalex := INIReadFloat(INI, 'Info', 'ScaleX', 1);
+            Gfx^.scaley := INIReadFloat(INI, 'Info', 'ScaleY', 1);
+            Gfx^.clipx1 := INIReadInt(INI, 'Info', 'ClipX1', 0);
+            Gfx^.clipx2 := INIReadInt(INI, 'Info', 'ClipX2', 0);
+            Gfx^.clipy1 := INIReadInt(INI, 'Info', 'ClipY1', Gfx^.Width);
+            Gfx^.clipy2 := INIReadInt(INI, 'Info', 'ClipY2', Gfx^.Height);
+            Gfx^.winscale := INIReadBool(INI, 'Info', 'WinScale', False);
+            Gfx^.winorigin := INIReadBool(INI, 'Info', 'WinOrigin', False);
 
             GetData;
 
@@ -554,12 +569,12 @@ Begin
               SetLength(Bank^.Info, SizeOf(SP_Font_Info));
               Font := @Bank^.Info[0];
 
-              Font^.FontType := INIRead(INI, 'Info', 'FontType', SP_FONT_TYPE_MONO);
-              Font^.Width := INIRead(INI, 'Info', 'Width', 0);
-              Font^.Height := INIRead(INI, 'Info', 'Height', 0);
-              Font^.Transparent := INIRead(INI, 'Info', 'Transparent', 65535);
+              Font^.FontType := INIReadInt(INI, 'Info', 'FontType', SP_FONT_TYPE_MONO);
+              Font^.Width := INIReadInt(INI, 'Info', 'Width', 0);
+              Font^.Height := INIReadInt(INI, 'Info', 'Height', 0);
+              Font^.Transparent := INIReadInt(INI, 'Info', 'Transparent', 65535);
 
-              TempStr := INIRead(INI, 'Info', 'Palette', '');
+              TempStr := INIReadString(INI, 'Info', 'Palette', '');
               If TempStr <> '' Then Begin
               Idx := 0;
                 While (TempStr <> '') And (Idx < 256) Do Begin
@@ -587,55 +602,55 @@ Begin
                 Bank^.InfoLength := Length(Bank^.Info);
                 Window := @Bank^.Info[0];
 
-                Window^.ID := INIRead(INI, 'Info', 'ID', Idx);
-                Window^.Width := INIRead(INI, 'Info', 'Width', 0);
-                Window^.Height := INIRead(INI, 'Info', 'Height', 0);
-                Window^.Stride := INIRead(INI, 'Info', 'Stride', Window^.Width);
-                Window^.Inverse := INIRead(INI, 'Info', 'Inverse', 0);
-                Window^.Italic := INIRead(INI, 'Info', 'Italic', 0);
-                Window^.Bold := INIRead(INI, 'Info', 'Bold', 0);
-                Window^.Over := INIRead(INI, 'Info', 'Over', 0);
-                Window^.Left := INIRead(INI, 'Info', 'Left', 0);
-                Window^.Top := INIRead(INI, 'Info', 'Top', 0);
-                Window^.PR_PosX := INIRead(INI, 'Info', 'PR_PosX', 0);
-                Window^.PR_PosY := INIRead(INI, 'Info', 'PR_PosY', 0);
-                Window^.DR_PosX := INIRead(INI, 'Info', 'DR_PosX', 0);
-                Window^.DR_PosY := INIRead(INI, 'Info', 'DR_PosY', 0);
-                Window^.ScrollCnt := INIRead(INI, 'Info', 'ScrollCnt', 0);
-                Window^.Bpp := INIRead(INI, 'Info', 'Bpp', 8);
-                Window^.Heading := INIRead(INI, 'Info', 'Heading', 0);
-                Window^.OrgX := INIRead(INI, 'Info', 'OrgX', 0);
-                Window^.OrgY := INIRead(INI, 'Info', 'OrgY', 0);
-                Window^.OrgW := INIRead(INI, 'Info', 'OrgW', Window^.Width);
-                Window^.OrgH := INIRead(INI, 'Info', 'OrgH', Window^.Height);
-                Window^.WinScaleX := INIRead(INI, 'Info', 'WinScaleX', 1);
-                Window^.WinScaleY := INIRead(INI, 'Info', 'WinScaleY', 1);
-                Window^.ScaleX := INIRead(INI, 'Info', 'ScaleX', 0);
-                Window^.ScaleY := INIRead(INI, 'Info', 'ScaleY', 0);
-                Window^.ClipX1 := INIRead(INI, 'Info', 'ClipX1', 0);
-                Window^.ClipX2 := INIRead(INI, 'Info', 'ClipX2', 0);
-                Window^.ClipY1 := INIRead(INI, 'Info', 'ClipY1', 0);
-                Window^.ClipY2 := INIRead(INI, 'Info', 'ClipY2', 0);
-                Window^.WinScale := INIRead(INI, 'Info', 'WinScale', False);
-                Window^.WinOrigin := INIRead(INI, 'Info', 'WinOrigin', False);
-                Window^.Visible := INIRead(INI, 'Info', 'Visible', True);
-                Window^.AlphaEnabled := INIRead(INI, 'Info', 'AlphaEnabled', False);
-                Window^.FontTrans := INIRead(INI, 'Info', 'FontTrans', False);
-                Window^.System := INIRead(INI, 'Info', 'System', False);
-                Window^.Offset := INIRead(INI, 'Info', 'Offset', eIdx);
-                Window^.Transparent := INIRead(INI, 'Info', 'Transparent', $FFFF);
-                Window^.Ink := INIRead(INI, 'Info', 'Ink', 0);
-                Window^.Paper := INIRead(INI, 'Info', 'Paper', 8);
+                Window^.ID := INIReadInt(INI, 'Info', 'ID', Idx);
+                Window^.Width := INIReadInt(INI, 'Info', 'Width', 0);
+                Window^.Height := INIReadInt(INI, 'Info', 'Height', 0);
+                Window^.Stride := INIReadInt(INI, 'Info', 'Stride', Window^.Width);
+                Window^.Inverse := INIReadInt(INI, 'Info', 'Inverse', 0);
+                Window^.Italic := INIReadInt(INI, 'Info', 'Italic', 0);
+                Window^.Bold := INIReadInt(INI, 'Info', 'Bold', 0);
+                Window^.Over := INIReadInt(INI, 'Info', 'Over', 0);
+                Window^.Left := INIReadInt(INI, 'Info', 'Left', 0);
+                Window^.Top := INIReadInt(INI, 'Info', 'Top', 0);
+                Window^.PR_PosX := INIReadFloat(INI, 'Info', 'PR_PosX', 0);
+                Window^.PR_PosY := INIReadFloat(INI, 'Info', 'PR_PosY', 0);
+                Window^.DR_PosX := INIReadFloat(INI, 'Info', 'DR_PosX', 0);
+                Window^.DR_PosY := INIReadFloat(INI, 'Info', 'DR_PosY', 0);
+                Window^.ScrollCnt := INIReadInt(INI, 'Info', 'ScrollCnt', 0);
+                Window^.Bpp := INIReadInt(INI, 'Info', 'Bpp', 8);
+                Window^.Heading := INIReadFloat(INI, 'Info', 'Heading', 0);
+                Window^.OrgX := INIReadFloat(INI, 'Info', 'OrgX', 0);
+                Window^.OrgY := INIReadFloat(INI, 'Info', 'OrgY', 0);
+                Window^.OrgW := INIReadFloat(INI, 'Info', 'OrgW', Window^.Width);
+                Window^.OrgH := INIReadFloat(INI, 'Info', 'OrgH', Window^.Height);
+                Window^.WinScaleX := INIReadFloat(INI, 'Info', 'WinScaleX', 1);
+                Window^.WinScaleY := INIReadFloat(INI, 'Info', 'WinScaleY', 1);
+                Window^.ScaleX := INIReadFloat(INI, 'Info', 'ScaleX', 0);
+                Window^.ScaleY := INIReadFloat(INI, 'Info', 'ScaleY', 0);
+                Window^.ClipX1 := INIReadInt(INI, 'Info', 'ClipX1', 0);
+                Window^.ClipX2 := INIReadInt(INI, 'Info', 'ClipX2', 0);
+                Window^.ClipY1 := INIReadInt(INI, 'Info', 'ClipY1', 0);
+                Window^.ClipY2 := INIReadInt(INI, 'Info', 'ClipY2', 0);
+                Window^.WinScale := INIReadBool(INI, 'Info', 'WinScale', False);
+                Window^.WinOrigin := INIReadBool(INI, 'Info', 'WinOrigin', False);
+                Window^.Visible := INIReadBool(INI, 'Info', 'Visible', True);
+                Window^.AlphaEnabled := INIReadBool(INI, 'Info', 'AlphaEnabled', False);
+                Window^.FontTrans := INIReadBool(INI, 'Info', 'FontTrans', False);
+                Window^.System := INIReadBool(INI, 'Info', 'System', False);
+                Window^.Offset := INIReadLong(INI, 'Info', 'Offset', eIdx);
+                Window^.Transparent := INIReadWord(INI, 'Info', 'Transparent', $FFFF);
+                Window^.Ink := INIReadLong(INI, 'Info', 'Ink', 0);
+                Window^.Paper := INIReadLong(INI, 'Info', 'Paper', 8);
                 Window^.CaptionHeight := 0;
                 Window^.Component := Nil; // TO DO: Save/load components in a window? Worth the bother?
                 Buffer := '';
-                TempStr2 := INIRead(INI, 'Info', 'Content', '');
+                TempStr2 := INIReadString(INI, 'Info', 'Content', '');
                 Buffer := ReadRawHex(TempStr2);
                 Ps := (Window^.Width * Window^.Height * (Window^.Bpp Div 8));
                 SetLength(Bank^.Memory, Ps);
                 CopyMem(@Bank^.Memory[0], @Buffer[1], Ps);
                 Window^.Surface := @Bank^.Memory[0];
-                TempStr2 := INIRead(INI, 'Info', 'Palette', '');
+                TempStr2 := INIReadString(INI, 'Info', 'Palette', '');
                 If TempStr2 <> '' Then Begin
                 Idx2 := 0;
                   While (TempStr2 <> '') And (Idx2 < 256) Do Begin
@@ -656,12 +671,12 @@ Begin
                   Bank^.InfoLength := Length(Bank^.Info);
                   Sample := @Bank^.Info[0];
 
-                  Sample^.Size := INIRead(INI, 'Info', 'Size', 0);
-                  Sample^.Rate := INIRead(INI, 'Info', 'Rate', 44100);
-                  Sample^.Bits := INIRead(INI, 'Info', 'Bits', 16);
-                  Sample^.Volume := INIRead(INI, 'Info', 'Volume', 1.0);
-                  Sample^.Channels := INIRead(INI, 'Info', 'Channels', 2);
-                  Sample^.Panning := INIRead(INI, 'Info', 'Panning', 0);
+                  Sample^.Size := INIReadLong(INI, 'Info', 'Size', 0);
+                  Sample^.Rate := INIReadLong(INI, 'Info', 'Rate', 44100);
+                  Sample^.Bits := INIReadLong(INI, 'Info', 'Bits', 16);
+                  Sample^.Volume := INIReadFloat(INI, 'Info', 'Volume', 1.0);
+                  Sample^.Channels := INIReadLong(INI, 'Info', 'Channels', 2);
+                  Sample^.Panning := INIReadFloat(INI, 'Info', 'Panning', 0);
 
                   GetData;
 
@@ -676,68 +691,77 @@ Begin
                       SP_BlockSprites;
 
                       Bank^.DataType := SP_SPRITE_BANK;
-                      SetLength(Bank^.Info, SizeOf(SP_Sprite_Info));
+                      SetLength(Bank^.Info, SizeOf(SP_Sprite_Info) + 32);
                       Bank^.InfoLength := Length(Bank^.Info);
+                      SetLength(Bank^.Memory, 0);
                       Sprite := @Bank^.Info[0];
 
-                      Sprite^.X := INIRead(INI, 'Info', 'X', 0.0);
-                      Sprite^.Y := INIRead(INI, 'Info', 'Y', 0.0);
-                      Sprite^.MoveX := INIRead(INI, 'Info', 'MoveX', 0.0);
-                      Sprite^.MoveY := INIRead(INI, 'Info', 'MoveY', 0.0);
-                      Sprite^.DstX := INIRead(INI, 'Info', 'DstX', 0.0);
-                      Sprite^.DstY := INIRead(INI, 'Info', 'DstY', 0.0);
-                      Sprite^.MoveDuration := INIRead(INI, 'Info', 'MoveDuration', 0);
-                      Sprite^.MoveStart := INIRead(INI, 'Info', 'MoveStart', 0);
-                      Sprite^.DstTime := INIRead(INI, 'Info', 'DstTime', 0);
-                      Sprite^.Angle := INIRead(INI, 'Info', 'Angle', 0.0);
-                      Sprite^.DstAngle := INIRead(INI, 'Info', 'DstAngle', 0.0);
-                      Sprite^.AngleTime := INIRead(INI, 'Info', 'AngleTime', 0);
-                      Sprite^.AngleDir := INIRead(INI, 'Info', 'AngleDir', 0);
-                      Sprite^.Scale := INIRead(INI, 'Info', 'Scale', 0.0);
-                      Sprite^.DstScale := INIRead(INI, 'Info', 'DstScale', 0.0);
-                      Sprite^.ScaleTime := INIRead(INI, 'Info', 'ScaleTime', 0);
-                      Sprite^.AnimStart := INIRead(INI, 'Info', 'AnimStart', 0);
-                      Sprite^.AnimEnd := INIRead(INI, 'Info', 'AnimEnd', 0);
-                      Sprite^.AnimMode := INIRead(INI, 'Info', 'AnimMode', 0);
-                      Sprite^.AnimDelta := INIRead(INI, 'Info', 'AnimDelta', 0);
-                      Sprite^.ResumeDelta := INIRead(INI, 'Info', 'ResumeDelta', 0);
-                      Sprite^.NumFrames := INIRead(INI, 'Info', 'NumFrames', 0);
-                      Sprite^.CurFrame := INIRead(INI, 'Info', 'CurFrame', 0);
-                      Sprite^.FrameCounter := INIRead(INI, 'Info', 'FrameCounter', 0);
-                      Sprite^.OverMode := INIRead(INI, 'Info', 'OverMode', 0);
-                      Sprite^.CanCollide := INIRead(INI, 'Info', 'CanCollide', True);
-                      Sprite^.Collided := INIRead(INI, 'Info', 'Collided', False);
-                      Sprite^.HotSpot := INIRead(INI, 'Info', 'HotSpot', True);
-                      Sprite^.Enabled := INIRead(INI, 'Info', 'Enabled', True);
-                      Sprite^.NumClones := INIRead(INI, 'Info', 'NumClones', 0);
-                      Sprite^.HotX := INIRead(INI, 'Info', 'HotX', 0);
-                      Sprite^.HotY := INIRead(INI, 'Info', 'HotY', 0);
-                      Sprite^.WrapMode := INIRead(INI, 'Info', 'WrapMode', 0);
+                      Sprite^.X := INIReadFloat(INI, 'Info', 'X', 0.0);
+                      Sprite^.Y := INIReadFloat(INI, 'Info', 'Y', 0.0);
+                      Sprite^.MoveX := INIReadFloat(INI, 'Info', 'MoveX', 0.0);
+                      Sprite^.MoveY := INIReadFloat(INI, 'Info', 'MoveY', 0.0);
+                      Sprite^.DstX := INIReadFloat(INI, 'Info', 'DstX', 0.0);
+                      Sprite^.DstY := INIReadFloat(INI, 'Info', 'DstY', 0.0);
+                      Sprite^.MoveDuration := INIReadLong(INI, 'Info', 'MoveDuration', 0);
+                      Sprite^.MoveStart := INIReadLong(INI, 'Info', 'MoveStart', 0);
+                      Sprite^.DstTime := INIReadLong(INI, 'Info', 'DstTime', 0);
+                      Sprite^.Angle := INIReadFloat(INI, 'Info', 'Angle', 0.0);
+                      Sprite^.DstAngle := INIReadFloat(INI, 'Info', 'DstAngle', 0.0);
+                      Sprite^.AngleTime := INIReadLong(INI, 'Info', 'AngleTime', 0);
+                      Sprite^.AngleDir := INIReadInt(INI, 'Info', 'AngleDir', 0);
+                      Sprite^.Scale := INIReadFloat(INI, 'Info', 'Scale', 0.0);
+                      Sprite^.DstScale := INIReadFloat(INI, 'Info', 'DstScale', 0.0);
+                      Sprite^.ScaleTime := INIReadLong(INI, 'Info', 'ScaleTime', 0);
+                      Sprite^.AnimStart := INIReadInt(INI, 'Info', 'AnimStart', 0);
+                      Sprite^.AnimEnd := INIReadInt(INI, 'Info', 'AnimEnd', 0);
+                      Sprite^.AnimMode := INIReadLong(INI, 'Info', 'AnimMode', 0);
+                      Sprite^.AnimDelta := INIReadInt(INI, 'Info', 'AnimDelta', 0);
+                      Sprite^.ResumeDelta := INIReadInt(INI, 'Info', 'ResumeDelta', 0);
+                      Sprite^.NumFrames := INIReadLong(INI, 'Info', 'NumFrames', 0);
+                      Sprite^.CurFrame := INIReadInt(INI, 'Info', 'CurFrame', 0);
+                      Sprite^.FrameCounter := INIReadLong(INI, 'Info', 'FrameCounter', 0);
+                      Sprite^.OverMode := INIReadInt(INI, 'Info', 'OverMode', 0);
+                      Sprite^.CanCollide := INIReadBool(INI, 'Info', 'CanCollide', True);
+                      Sprite^.Collided := INIReadBool(INI, 'Info', 'Collided', False);
+                      Sprite^.HotSpot := INIReadBool(INI, 'Info', 'HotSpot', True);
+                      Sprite^.Enabled := INIReadBool(INI, 'Info', 'Enabled', True);
+                      Sprite^.NumClones := INIReadLong(INI, 'Info', 'NumClones', 0);
+                      Sprite^.HotX := INIReadInt(INI, 'Info', 'HotX', 0);
+                      Sprite^.HotY := INIReadInt(INI, 'Info', 'HotY', 0);
+                      Sprite^.WrapMode := INIReadInt(INI, 'Info', 'WrapMode', 0);
 
-                      For Idx := 0 To Sprite^.NumClones -1 Do Begin
-                        Sprite^.Clones[Idx].X := INIRead(INI, 'Clone'+IntToStr(Idx), 'X', 0.0);
-                        Sprite^.Clones[Idx].Y := INIRead(INI, 'Clone'+IntToStr(Idx), 'Y', 0.0);
-                      End;
+                      If Sprite^.NumClones > 0 Then
+                        For Idx := 0 To Sprite^.NumClones -1 Do Begin
+                          Sprite^.Clones[Idx].X := INIReadFloat(INI, 'Clone'+IntToStr(Idx), 'X', 0.0);
+                          Sprite^.Clones[Idx].Y := INIReadFloat(INI, 'Clone'+IntToStr(Idx), 'Y', 0.0);
+                        End;
 
                       For Idx := 0 To Sprite^.NumFrames -1 Do Begin
-                        TempStr2 := INIRead(INI, 'Frame '+IntToStr(Idx), 'FrameData', '');
+                        TempStr2 := INIReadString(INI, 'Frame '+IntToStr(Idx), 'FrameData', '');
                         Buffer := ReadRawHex(TempStr2);
-                        Fw := INIRead(INI, 'Frame '+IntToStr(Idx), 'Width', 0);
-                        Fh := INIRead(INI, 'Frame '+IntToStr(Idx), 'Height', 0);
-                        Fd := INIRead(INI, 'Frame '+IntToStr(Idx), 'Delay', 1);
-                        Ft := INIRead(INI, 'Frame '+IntToStr(Idx), 'Transparency', $FFFF);
+
+                        Fw := INIReadInt(INI, 'Frame '+IntToStr(Idx), 'Width', 0);
+                        Fh := INIReadInt(INI, 'Frame '+IntToStr(Idx), 'Height', 0);
+                        Fd := INIReadInt(INI, 'Frame '+IntToStr(Idx), 'Delay', 1);
+                        Ft := INIReadInt(INI, 'Frame '+IntToStr(Idx), 'Transparency', $FFFF);
                         Ps := (Fw * Fh) + (SizeOf(LongWord) * 3) + SizeOf(Word);
+
                         eIdx := Length(Bank^.Memory);
-                        SetLength(Bank^.Memory, Length(Bank^.Memory) + Ps);
+                        SetLength(Bank^.Memory, eIdx + Ps);
+
                         pLongWord(@Bank^.Memory[eIdx])^ := Fd;
                         Inc(eIdx, SizeOf(LongWord));
+
                         pLongWord(@Bank^.Memory[eIdx])^ := Fw;
                         Inc(eIdx, SizeOf(LongWord));
+
                         pLongWord(@Bank^.Memory[eIdx])^ := Fh;
                         Inc(eIdx, SizeOf(LongWord));
+
                         pWord(@Bank^.Memory[eIdx])^ := Ft;
                         Inc(eIdx, SizeOf(Word));
-                        CopyMem(@Bank^.Memory[eIdx], @Buffer[1], Ps);
+
+                        CopyMem(@Bank^.Memory[eIdx], @Buffer[1], Length(Buffer));
                       End;
 
                       SP_UnblockSprites;
@@ -864,8 +888,8 @@ Const
 
   Procedure WriteData;
   Begin
-    INIWrite(INI, 'Data', 'Content Size', LongWord(Length(Bank^.Memory)));
-    INIWrite(INI, 'Data', 'Content', RawHexDump(@Bank^.Memory[0], Length(Bank^.Memory)));
+    INIWriteLong(INI, 'Data', 'Content Size', LongWord(Length(Bank^.Memory)));
+    INIWriteString(INI, 'Data', 'Content', RawHexDump(@Bank^.Memory[0], Length(Bank^.Memory)));
   End;
 
 Begin
@@ -886,168 +910,168 @@ Begin
       Case Bank^.DataType of
         SP_OBJECT_BANK:
           Begin
-            INIWrite(INI, 'Bank Info', 'Bank Type', 'Object Bank');
+            INIWriteString(INI, 'Bank Info', 'Bank Type', 'Object Bank');
             WriteData;
           End;
         SP_GRAPHIC_BANK:
           Begin
             Gfx := @Bank^.Info[0];
-            INIWrite(INI, 'Bank Info', 'Bank Type', 'Graphic Bank');
+            INIWriteString(INI, 'Bank Info', 'Bank Type', 'Graphic Bank');
             TempStr := '';
             For Idx := 0 To 255 Do
               TempStr := TempStr + 'R:' + IntToHex(Gfx^.Palette[Idx].r, 2) + ',G:' + IntToHex(Gfx^.Palette[Idx].g, 2) +
                                   ',B:' + IntToHex(Gfx^.Palette[Idx].g, 2) + ',A:' + IntToHex(Gfx^.Palette[Idx].a, 2) + ';';
-            INIWrite(INI, 'Info', 'Palette', TempStr);
-            INIWrite(INI, 'Info', 'Width', Gfx^.Width);
-            INIWrite(INI, 'Info', 'Height', Gfx^.Height);
-            INIWrite(INI, 'Info', 'Depth', Gfx^.Depth);
-            INIWrite(INI, 'Info', 'Transparent', Gfx^.Transparent);
-            INIWrite(INI, 'Info', 'OriginX', Gfx^.orgx);
-            INIWrite(INI, 'Info', 'OriginY', Gfx^.orgy);
-            INIWrite(INI, 'Info', 'OriginWidth', Gfx^.orgw);
-            INIWrite(INI, 'Info', 'OriginHeight', Gfx^.orgh);
-            INIWrite(INI, 'Info', 'WinScaleX', Gfx^.winscalex);
-            INIWrite(INI, 'Info', 'WinScaleY', Gfx^.winscaley);
-            INIWrite(INI, 'Info', 'ScaleX', Gfx^.scalex);
-            INIWrite(INI, 'Info', 'ScaleY', Gfx^.scaley);
-            INIWrite(INI, 'Info', 'ClipX1', Gfx^.clipx1);
-            INIWrite(INI, 'Info', 'ClipX2', Gfx^.clipx2);
-            INIWrite(INI, 'Info', 'ClipY1', Gfx^.clipy1);
-            INIWrite(INI, 'Info', 'ClipY2', Gfx^.clipy2);
-            INIWrite(INI, 'Info', 'WinScale', Gfx^.winscale);
-            INIWrite(INI, 'Info', 'WinOrigin', Gfx^.winorigin);
+            INIWriteString(INI, 'Info', 'Palette', TempStr);
+            INIWriteLong(INI, 'Info', 'Width', Gfx^.Width);
+            INIWriteLong(INI, 'Info', 'Height', Gfx^.Height);
+            INIWriteLong(INI, 'Info', 'Depth', Gfx^.Depth);
+            INIWriteWord(INI, 'Info', 'Transparent', Gfx^.Transparent);
+            INIWriteFloat(INI, 'Info', 'OriginX', Gfx^.orgx);
+            INIWriteFloat(INI, 'Info', 'OriginY', Gfx^.orgy);
+            INIWriteFloat(INI, 'Info', 'OriginWidth', Gfx^.orgw);
+            INIWriteFloat(INI, 'Info', 'OriginHeight', Gfx^.orgh);
+            INIWriteFloat(INI, 'Info', 'WinScaleX', Gfx^.winscalex);
+            INIWriteFloat(INI, 'Info', 'WinScaleY', Gfx^.winscaley);
+            INIWriteFloat(INI, 'Info', 'ScaleX', Gfx^.scalex);
+            INIWriteFloat(INI, 'Info', 'ScaleY', Gfx^.scaley);
+            INIWriteInt(INI, 'Info', 'ClipX1', Gfx^.clipx1);
+            INIWriteInt(INI, 'Info', 'ClipX2', Gfx^.clipx2);
+            INIWriteInt(INI, 'Info', 'ClipY1', Gfx^.clipy1);
+            INIWriteInt(INI, 'Info', 'ClipY2', Gfx^.clipy2);
+            INIWriteBool(INI, 'Info', 'WinScale', Gfx^.winscale);
+            INIWriteBool(INI, 'Info', 'WinOrigin', Gfx^.winorigin);
             WriteData;
           End;
         SP_FONT_BANK:
           Begin
             Font := @Bank^.Info[0];
-            INIWrite(INI, 'Bank Info', 'Bank Type', 'Font Bank');
-            INIWrite(INI, 'Info', 'FontType', Font^.FontType);
-            INIWrite(INI, 'Info', 'Width', Font^.Width);
-            INIWrite(INI, 'Info', 'Height', Font^.Height);
-            INIWrite(INI, 'Info', 'Transparent', Font^.Transparent);
+            INIWriteString(INI, 'Bank Info', 'Bank Type', 'Font Bank');
+            INIWriteInt(INI, 'Info', 'FontType', Font^.FontType);
+            INIWriteInt(INI, 'Info', 'Width', Font^.Width);
+            INIWriteInt(INI, 'Info', 'Height', Font^.Height);
+            INIWriteInt(INI, 'Info', 'Transparent', Font^.Transparent);
             TempStr := '';
             For Idx := 0 To 255 Do
               TempStr := TempStr + 'R:' + IntToHex(Font^.Palette[Idx].r, 2) + ',G:' + IntToHex(Font^.Palette[Idx].g, 2) +
                                   ',B:' + IntToHex(Font^.Palette[Idx].g, 2) + ',A:' + IntToHex(Font^.Palette[Idx].a, 2) + ';';
-            INIWrite(INI, 'Info', 'Palette', TempStr);
+            INIWriteString(INI, 'Info', 'Palette', TempStr);
             WriteData;
           End;
         SP_WINDOW_BANK:
           Begin
             Window := @Bank.Info[0];
-            INIWrite(INI, 'Info', 'ID', Window^.ID);
-            INIWrite(INI, 'Info', 'Width', Window^.Width);
-            INIWrite(INI, 'Info', 'Height', Window^.Height);
-            INIWrite(INI, 'Info', 'Stride', Window^.Stride);
-            INIWrite(INI, 'Info', 'Inverse', Window^.Inverse);
-            INIWrite(INI, 'Info', 'Italic', Window^.Italic);
-            INIWrite(INI, 'Info', 'Bold', Window^.Bold);
-            INIWrite(INI, 'Info', 'Over', Window^.Over);
-            INIWrite(INI, 'Info', 'Left', Window^.Left);
-            INIWrite(INI, 'Info', 'Top', Window^.Top);
-            INIWrite(INI, 'Info', 'PR_PosX', Window^.pr_posx);
-            INIWrite(INI, 'Info', 'PR_PosY', Window^.pr_posy);
-            INIWrite(INI, 'Info', 'DR_PosX', Window^.dr_posx);
-            INIWrite(INI, 'Info', 'DR_PosY', Window^.dr_posy);
-            INIWrite(INI, 'Info', 'ScrollCnt', Window^.scrollcnt);
-            INIWrite(INI, 'Info', 'Bpp', Window^.bpp);
-            INIWrite(INI, 'Info', 'Heading', Window^.heading);
-            INIWrite(INI, 'Info', 'OrgX', Window^.orgx);
-            INIWrite(INI, 'Info', 'OrgY', Window^.orgy);
-            INIWrite(INI, 'Info', 'OrgW', Window^.orgw);
-            INIWrite(INI, 'Info', 'OrgH', Window^.orgh);
-            INIWrite(INI, 'Info', 'WinScaleX', Window^.winscalex);
-            INIWrite(INI, 'Info', 'WinScaleY', Window^.winscaley);
-            INIWrite(INI, 'Info', 'ScaleX', Window^.scalex);
-            INIWrite(INI, 'Info', 'ScaleY', Window^.scaley);
-            INIWrite(INI, 'Info', 'ClipX1', Window^.clipx1);
-            INIWrite(INI, 'Info', 'ClipX2', Window^.clipx2);
-            INIWrite(INI, 'Info', 'ClipY1', Window^.clipy1);
-            INIWrite(INI, 'Info', 'ClipY2', Window^.clipy2);
-            INIWrite(INI, 'Info', 'WinScale', Window^.winscale);
-            INIWrite(INI, 'Info', 'WinOrigin', Window^.winorigin);
-            INIWrite(INI, 'Info', 'Visible', Window^.visible);
-            INIWrite(INI, 'Info', 'AlphaEnabled', Window^.alphaenabled);
-            INIWrite(INI, 'Info', 'FontTrans', Window^.fonttrans);
-            INIWrite(INI, 'Info', 'System', Window^.system);
-            INIWrite(INI, 'Info', 'Transparent', Window^.transparent);
-            INIWrite(INI, 'Info', 'Offset', Window^.offset);
-            INIWrite(INI, 'Info', 'Ink', Window^.ink);
-            INIWrite(INI, 'Info', 'Paper', Window^.paper);
-            INIWrite(INI, 'Info', 'CAptionHeight', Window^.CaptionHeight);
-            INIWrite(INI, 'Info', 'Content', RawHexDump(@Bank^.Memory[dIdx], Window^.Width * Window^.Height * (Window^.Bpp Div 8)));
+            INIWriteInt(INI, 'Info', 'ID', Window^.ID);
+            INIWriteInt(INI, 'Info', 'Width', Window^.Width);
+            INIWriteInt(INI, 'Info', 'Height', Window^.Height);
+            INIWriteInt(INI, 'Info', 'Stride', Window^.Stride);
+            INIWriteInt(INI, 'Info', 'Inverse', Window^.Inverse);
+            INIWriteInt(INI, 'Info', 'Italic', Window^.Italic);
+            INIWriteInt(INI, 'Info', 'Bold', Window^.Bold);
+            INIWriteInt(INI, 'Info', 'Over', Window^.Over);
+            INIWriteINt(INI, 'Info', 'Left', Window^.Left);
+            INIWriteInt(INI, 'Info', 'Top', Window^.Top);
+            INIWriteFloat(INI, 'Info', 'PR_PosX', Window^.pr_posx);
+            INIWriteFloat(INI, 'Info', 'PR_PosY', Window^.pr_posy);
+            INIWriteFloat(INI, 'Info', 'DR_PosX', Window^.dr_posx);
+            INIWriteFloat(INI, 'Info', 'DR_PosY', Window^.dr_posy);
+            INIWriteInt(INI, 'Info', 'ScrollCnt', Window^.scrollcnt);
+            INIWriteInt(INI, 'Info', 'Bpp', Window^.bpp);
+            INIWriteFloat(INI, 'Info', 'Heading', Window^.heading);
+            INIWriteFloat(INI, 'Info', 'OrgX', Window^.orgx);
+            INIWriteFloat(INI, 'Info', 'OrgY', Window^.orgy);
+            INIWriteFloat(INI, 'Info', 'OrgW', Window^.orgw);
+            INIWriteFloat(INI, 'Info', 'OrgH', Window^.orgh);
+            INIWriteFloat(INI, 'Info', 'WinScaleX', Window^.winscalex);
+            INIWriteFloat(INI, 'Info', 'WinScaleY', Window^.winscaley);
+            INIWriteFloat(INI, 'Info', 'ScaleX', Window^.scalex);
+            INIWriteFloat(INI, 'Info', 'ScaleY', Window^.scaley);
+            INIWriteInt(INI, 'Info', 'ClipX1', Window^.clipx1);
+            INIWriteInt(INI, 'Info', 'ClipX2', Window^.clipx2);
+            INIWriteInt(INI, 'Info', 'ClipY1', Window^.clipy1);
+            INIWriteInt(INI, 'Info', 'ClipY2', Window^.clipy2);
+            INIWriteBool(INI, 'Info', 'WinScale', Window^.winscale);
+            INIWriteBool(INI, 'Info', 'WinOrigin', Window^.winorigin);
+            INIWriteBool(INI, 'Info', 'Visible', Window^.visible);
+            INIWriteBool(INI, 'Info', 'AlphaEnabled', Window^.alphaenabled);
+            INIWriteBool(INI, 'Info', 'FontTrans', Window^.fonttrans);
+            INIWriteBool(INI, 'Info', 'System', Window^.system);
+            INIWriteWord(INI, 'Info', 'Transparent', Window^.transparent);
+            INIWriteLong(INI, 'Info', 'Offset', Window^.offset);
+            INIWriteLong(INI, 'Info', 'Ink', Window^.ink);
+            INIWriteLong(INI, 'Info', 'Paper', Window^.paper);
+            INIWriteInt(INI, 'Info', 'CaptionHeight', Window^.CaptionHeight);
+            INIWriteString(INI, 'Info', 'Content', RawHexDump(@Bank^.Memory[dIdx], Window^.Width * Window^.Height * (Window^.Bpp Div 8)));
             TempStr := '';
             For eIdx := 0 To 255 Do
               TempStr := TempStr + 'R:' + IntToHex(Window^.Palette[eIdx].r, 2) + ',G:' + IntToHex(Window^.Palette[eIdx].g, 2) +
                                   ',B:' + IntToHex(Window^.Palette[eIdx].g, 2) + ',A:' + IntToHex(Window^.Palette[eIdx].a, 2) + ';';
-            INIWrite(INI, 'Info', 'Palette', TempStr);
+            INIWriteString(INI, 'Info', 'Palette', TempStr);
           End;
         SP_PROGRAM_BANK:
           Begin
             Prog := @Bank^.Info[0];
-            INIWrite(INI, 'Bank Info', 'Bank Type', 'Program Bank');
-            INIWrite(INI, 'Info', 'Name', Prog^.Name);
-            INIWrite(INI, 'Info', 'LineCount', Prog^.NumLines);
+            INIWriteString(INI, 'Bank Info', 'Bank Type', 'Program Bank');
+            INIWriteString(INI, 'Info', 'Name', Prog^.Name);
+            INIWriteLong(INI, 'Info', 'LineCount', Prog^.NumLines);
             cIdx := -1;
             For Idx := 0 To Prog^.NumLines -1 Do Begin
               Line := pSP_LineInfo(@Bank^.Memory[SizeOf(SP_Program_Info)+(Idx * SizeOf(SP_LineInfo))]);
               TempStr := StringFromPtr(@Bank^.Memory[Line^.Offset], Line^.LineLen);
-              INIWrite(INI, 'Program Lines', 'Line ' + IntToStr(Idx +1), SP_Detokenise(TempStr, cIdx, False, False));
+              INIWriteString(INI, 'Program Lines', 'Line ' + IntToStr(Idx +1), SP_Detokenise(TempStr, cIdx, False, False));
             End;
           End;
         SP_SAMPLE_BANK:
           Begin
             Sample := @Bank^.Info[0];
-            INIWrite(INI, 'Bank Info', 'Bank Type', 'Sample Bank');
-            INIWrite(INI, 'Info', 'Size', Sample^.Size);
-            INIWrite(INI, 'Info', 'Rate', Sample^.Rate);
-            INIWrite(INI, 'Info', 'Bits', Sample^.Bits);
-            INIWrite(INI, 'Info', 'Volume', Sample^.Volume);
-            INIWrite(INI, 'Info', 'Channels', Sample^.Channels);
-            INIWrite(INI, 'Info', 'Panning', Sample^.Panning);
+            INIWriteString(INI, 'Bank Info', 'Bank Type', 'Sample Bank');
+            INIWriteLong(INI, 'Info', 'Size', Sample^.Size);
+            INIWriteLong(INI, 'Info', 'Rate', Sample^.Rate);
+            INIWriteLong(INI, 'Info', 'Bits', Sample^.Bits);
+            INIWriteFloat(INI, 'Info', 'Volume', Sample^.Volume);
+            INIWriteLong(INI, 'Info', 'Channels', Sample^.Channels);
+            INIWriteFloat(INI, 'Info', 'Panning', Sample^.Panning);
             WriteData;
           End;
         SP_SPRITE_BANK:
           Begin
             Sprite := @Bank^.Info[0];
-            INIWrite(INI, 'Bank Info', 'Bank Type', 'Sprite Bank');
-            INIWrite(INI, 'Info', 'X', Sprite^.X);
-            INIWrite(INI, 'Info', 'Y', Sprite^.Y);
-            INIWrite(INI, 'Info', 'MoveX', Sprite^.MoveX);
-            INIWrite(INI, 'Info', 'MoveY', Sprite^.MoveY);
-            INIWrite(INI, 'Info', 'DstX', Sprite^.DstX);
-            INIWrite(INI, 'Info', 'DstY', Sprite^.DstY);
-            INIWrite(INI, 'Info', 'MoveDuration', Sprite^.MoveDuration);
-            INIWrite(INI, 'Info', 'MoveStart', Sprite^.MoveStart);
-            INIWrite(INI, 'Info', 'DstTime', Sprite^.DstTime);
-            INIWrite(INI, 'Info', 'Angle', Sprite^.Angle);
-            INIWrite(INI, 'Info', 'DstAngle', Sprite^.DstAngle);
-            INIWrite(INI, 'Info', 'AngleTime', Sprite^.AngleTime);
-            INIWrite(INI, 'Info', 'AngleDir', Sprite^.AngleDir);
-            INIWrite(INI, 'Info', 'Scale', Sprite^.Scale);
-            INIWrite(INI, 'Info', 'DstScale', Sprite^.DstScale);
-            INIWrite(INI, 'Info', 'ScaleTime', Sprite^.ScaleTime);
-            INIWrite(INI, 'Info', 'AnimStart', Sprite^.AnimStart);
-            INIWrite(INI, 'Info', 'AnimEnd', Sprite^.AnimEnd);
-            INIWrite(INI, 'Info', 'AnimMode', Sprite^.AnimMode);
-            INIWrite(INI, 'Info', 'AnimDelta', Sprite^.AnimDelta);
-            INIWrite(INI, 'Info', 'ResumeDelta', Sprite^.ResumeDelta);
-            INIWrite(INI, 'Info', 'NumFrames', Sprite^.NumFrames);
-            INIWrite(INI, 'Info', 'CurFrame', Sprite^.CurFrame);
-            INIWrite(INI, 'Info', 'FrameCounter', Sprite^.FrameCounter);
-            INIWrite(INI, 'Info', 'OverMode', Sprite^.OverMode);
-            INIWrite(INI, 'Info', 'CanCollide', Sprite^.CanCollide);
-            INIWrite(INI, 'Info', 'Collided', Sprite^.Collided);
-            INIWrite(INI, 'Info', 'HotSpot', Sprite^.HotSpot);
-            INIWrite(INI, 'Info', 'Enabled', Sprite^.Enabled);
-            INIWrite(INI, 'Info', 'NumClones', Sprite^.NumClones);
-            INIWrite(INI, 'Info', 'HotX', Sprite^.HotX);
-            INIWrite(INI, 'Info', 'HotY', Sprite^.HotY);
-            INIWrite(INI, 'Info', 'WrapMode', Sprite^.WrapMode);
+            INIWriteString(INI, 'Bank Info', 'Bank Type', 'Sprite Bank');
+            INIWriteFloat(INI, 'Info', 'X', Sprite^.X);
+            INIWriteFloat(INI, 'Info', 'Y', Sprite^.Y);
+            INIWriteFloat(INI, 'Info', 'MoveX', Sprite^.MoveX);
+            INIWriteFloat(INI, 'Info', 'MoveY', Sprite^.MoveY);
+            INIWriteFloat(INI, 'Info', 'DstX', Sprite^.DstX);
+            INIWriteFloat(INI, 'Info', 'DstY', Sprite^.DstY);
+            INIWriteLong(INI, 'Info', 'MoveDuration', Sprite^.MoveDuration);
+            INIWriteLong(INI, 'Info', 'MoveStart', Sprite^.MoveStart);
+            INIWriteLong(INI, 'Info', 'DstTime', Sprite^.DstTime);
+            INIWriteFloat(INI, 'Info', 'Angle', Sprite^.Angle);
+            INIWriteFloat(INI, 'Info', 'DstAngle', Sprite^.DstAngle);
+            INIWriteLong(INI, 'Info', 'AngleTime', Sprite^.AngleTime);
+            INIWriteInt(INI, 'Info', 'AngleDir', Sprite^.AngleDir);
+            INIWriteFloat(INI, 'Info', 'Scale', Sprite^.Scale);
+            INIWriteFloat(INI, 'Info', 'DstScale', Sprite^.DstScale);
+            INIWriteLong(INI, 'Info', 'ScaleTime', Sprite^.ScaleTime);
+            INIWriteInt(INI, 'Info', 'AnimStart', Sprite^.AnimStart);
+            INIWriteInt(INI, 'Info', 'AnimEnd', Sprite^.AnimEnd);
+            INIWriteLong(INI, 'Info', 'AnimMode', Sprite^.AnimMode);
+            INIWriteInt(INI, 'Info', 'AnimDelta', Sprite^.AnimDelta);
+            INIWriteInt(INI, 'Info', 'ResumeDelta', Sprite^.ResumeDelta);
+            INIWriteLong(INI, 'Info', 'NumFrames', Sprite^.NumFrames);
+            INIWriteInt(INI, 'Info', 'CurFrame', Sprite^.CurFrame);
+            INIWriteLong(INI, 'Info', 'FrameCounter', Sprite^.FrameCounter);
+            INIWriteInt(INI, 'Info', 'OverMode', Sprite^.OverMode);
+            INIWriteBool(INI, 'Info', 'CanCollide', Sprite^.CanCollide);
+            INIWriteBool(INI, 'Info', 'Collided', Sprite^.Collided);
+            INIWriteBool(INI, 'Info', 'HotSpot', Sprite^.HotSpot);
+            INIWriteBool(INI, 'Info', 'Enabled', Sprite^.Enabled);
+            INIWriteLong(INI, 'Info', 'NumClones', Sprite^.NumClones);
+            INIWriteInt(INI, 'Info', 'HotX', Sprite^.HotX);
+            INIWriteInt(INI, 'Info', 'HotY', Sprite^.HotY);
+            INIWriteInt(INI, 'Info', 'WrapMode', Sprite^.WrapMode);
             For Idx := 0 To Sprite^.NumClones -1 Do Begin
-              INIWrite(INI, 'Clone'+IntToStr(Idx), 'X', Sprite^.Clones[Idx].X);
-              INIWrite(INI, 'Clone'+IntToStr(Idx), 'Y', Sprite^.Clones[Idx].Y);
+              INIWriteFloat(INI, 'Clone'+IntToStr(Idx), 'X', Sprite^.Clones[Idx].X);
+              INIWriteFloat(INI, 'Clone'+IntToStr(Idx), 'Y', Sprite^.Clones[Idx].Y);
             End;
             For Idx := 0 To Sprite^.NumFrames -1 Do Begin
               SP_GetFrameData(Sprite, sPtr, sDataLen, Idx);
@@ -1060,41 +1084,41 @@ Begin
               Transparency := pWord(sPtr)^;
               Inc(pWord(sPtr));
               TempStr := RawHexDump(sPtr, sDataLen - (SizeOf(LongWord) * 3) - SizeOf(Word));
-              INIWrite(INI, 'Frame '+IntToStr(Idx), 'Width', Width);
-              INIWrite(INI, 'Frame '+IntToStr(Idx), 'Height', Height);
-              INIWrite(INI, 'Frame '+IntToStr(Idx), 'Delay', Delay);
-              INIWrite(INI, 'Frame '+IntToStr(Idx), 'Transparency', Transparency);
-              INIWrite(INI, 'Frame '+IntToStr(Idx), 'FrameData', TempStr);
+              INIWriteInt(INI, 'Frame '+IntToStr(Idx), 'Width', Width);
+              INIWriteInt(INI, 'Frame '+IntToStr(Idx), 'Height', Height);
+              INIWriteInt(INI, 'Frame '+IntToStr(Idx), 'Delay', Delay);
+              INIWriteInt(INI, 'Frame '+IntToStr(Idx), 'Transparency', Transparency);
+              INIWriteString(INI, 'Frame '+IntToStr(Idx), 'FrameData', TempStr);
             End;
           End;
         SP_TILEMAP_BANK:
           Begin
             TMap := @Bank^.Info[0];
-            INIWrite(INI, 'Bank Info', 'Bank Type', 'TileMap Bank');
-            INIWrite(INI, 'Info', 'InternalGFX', tMap^.InternalGfx);
-            INIWrite(INI, 'Info', 'InternalGFXLen', tMap^.InternalGfx);
-            INIWrite(INI, 'Info', 'NumTiles', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'NumTilesX', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'NumTilesY', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'MapWidth', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'MapHeight', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'TileWidth', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'TileHeight', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'GraphicWidth', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'GraphicTransparent', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'Rotation', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'Scaling', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'DrawX', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'DrawY', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'DrawW', tMap^.GraphicID);
-            INIWrite(INI, 'Info', 'DrawH', tMap^.GraphicID);
+            INIWriteString(INI, 'Bank Info', 'Bank Type', 'TileMap Bank');
+            INIWriteBool(INI, 'Info', 'InternalGFX', tMap^.InternalGfx);
+            INIWriteLong(INI, 'Info', 'InternalGFXLen', tMap^.InternalGFXLen);
+            INIWriteInt(INI, 'Info', 'NumTiles', tMap^.NumTiles);
+            INIWriteInt(INI, 'Info', 'NumTilesX', tMap^.NumTilesX);
+            INIWriteInt(INI, 'Info', 'NumTilesY', tMap^.NumTilesY);
+            INIWriteInt(INI, 'Info', 'MapWidth', tMap^.MapWidth);
+            INIWriteInt(INI, 'Info', 'MapHeight', tMap^.MapHeight);
+            INIWriteInt(INI, 'Info', 'TileWidth', tMap^.TileWidth);
+            INIWriteInt(INI, 'Info', 'TileHeight', tMap^.TileHeight);
+            INIWriteInt(INI, 'Info', 'GraphicWidth', tMap^.GraphicWidth);
+            INIWriteWord(INI, 'Info', 'GraphicTransparent', tMap^.GraphicTransparent);
+            INIWriteFloat(INI, 'Info', 'Rotation', tMap^.Rotation);
+            INIWriteFloat(INI, 'Info', 'Scaling', tMap^.Scaling);
+            INIWriteInt(INI, 'Info', 'DrawX', tMap^.DrawX);
+            INIWriteInt(INI, 'Info', 'DrawY', tMap^.DrawY);
+            INIWriteInt(INI, 'Info', 'DrawW', tMap^.DrawW);
+            INIWriteInt(INI, 'Info', 'DrawH', tMap^.DrawH);
             WriteData;
           End;
       End;
 
-      INIWrite(INI, 'Bank Info', 'OriginalID', Bank^.ID);
-      INIWrite(INI, 'Bank Info', 'Protection', Bank^.Protection);
-      INIWrite(INI, 'Bank Info', 'System', Bank^.System);
+      INIWriteInt(INI, 'Bank Info', 'OriginalID', Bank^.ID);
+      INIWriteBool(INI, 'Bank Info', 'Protection', Bank^.Protection);
+      INIWriteBool(INI, 'Bank Info', 'System', Bank^.System);
 
       For Idx := 0 To INI.Count -1 Do Begin
         INI[Idx] := INI[Idx] + #13#10;

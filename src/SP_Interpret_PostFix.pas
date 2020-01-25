@@ -104,6 +104,7 @@ Type
     Condition: aString;
     Compiled_Condition: aString;
     CurResult: aString;
+    HasResult: Boolean;
     Line, Statement: Integer;
   End;
 
@@ -130,7 +131,8 @@ Procedure SP_ClearEvery;
 Procedure SP_StackToString(NumIndices: Integer); inline;
 Procedure SP_SetHandler(Var Token: pToken; Var StrPtr: pByte);
 Procedure SP_AddHandlers(Var Tokens: aString);
-Procedure SP_AddBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integer; Condition: aString);
+Procedure SP_AddSourceBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integer; Condition: aString);
+Procedure SP_AddConditionalBreakpoint(BpIndex, Passes: Integer; Condition: aString; IsData: Boolean);
 Procedure SP_MakeListVarOutput(Var List: TAnsiStringlist);
 
 Procedure SP_InterpretCONTSafe(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
@@ -943,7 +945,9 @@ Var
   SP_EveryCount: Integer = 0;
   SP_FnList: Array of SP_Function_Record;
   SP_IncludeList: Array of SP_IncludedFile;
-  SP_BreakpointList: Array of TSP_BreakpointInfo;
+  SP_SourceBreakpointList,
+  SP_ConditionalBreakPointList,
+  SP_DataBreakPointList: Array of TSP_BreakpointInfo;
   IgnoreEvery: Boolean = False;
   EveryEnabled: Boolean = True;
   ReEnableEvery: Boolean = False;
@@ -984,6 +988,8 @@ Const
   OnMenuHide:   Word = 2048;
   OnMenuItem:   Word = 4096;
 
+  SM_None     = 0;
+  SM_NoError  = 1;
   SM_Single   = 2;
   SM_StepOver = 3;
 
@@ -996,7 +1002,7 @@ implementation
 
 Uses SP_Main, SP_Editor, SP_FPEditor;
 
-Procedure SP_AddBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integer; Condition: aString);
+Procedure SP_AddSourceBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integer; Condition: aString);
 Var
   s: aString;
   i, l: Integer;
@@ -1010,29 +1016,29 @@ Begin
   // Otherwise, it's removed.
 
   Found := False;
-  l := Length(SP_BreakPointList);
+  l := Length(SP_SourceBreakPointList);
   For i := 0 To l -1 Do
-    If (SP_BreakPointList[i].Line = Line) And (SP_BreakpointList[i].Statement = Statement) Then Begin
+    If (SP_SourceBreakPointList[i].Line = Line) And (SP_SourceBreakPointList[i].Statement = Statement) Then Begin
       Found := True;
       Break;
     End;
 
   If not Found Then Begin
-    SetLength(SP_BreakpointList, l +1);
-    SP_BreakPointList[l].bpType := Ord(Hidden) +1;
-    SP_BreakPointList[l].Line := Line;
-    SP_BreakPointList[l].Statement := Statement;
+    SetLength(SP_SourceBreakPointList, l +1);
+    SP_SourceBreakPointList[l].bpType := Ord(Hidden) +1;
+    SP_SourceBreakPointList[l].Line := Line;
+    SP_SourceBreakPointList[l].Statement := Statement;
     i := l;
   End Else Begin
     If Not Hidden Then Begin
       // User breakpoint. If there's a hidden BP here, make it Shown, otherwise delete it.
-      isHidden := SP_BreakpointList[i].bpType = BP_IsHidden;
+      isHidden := SP_SourceBreakPointList[i].bpType = BP_IsHidden;
       If isHidden Then
-        SP_BreakPointList[i].bpType := BP_Stop
+        SP_SourceBreakPointList[i].bpType := BP_Stop
       Else Begin
         For i := i To l -2 Do
-          SP_BreakPointList[i] := SP_BreakPointList[i +1];
-        SetLength(SP_BreakpointList, l -1);
+          SP_SourceBreakPointList[i] := SP_SourceBreakPointList[i +1];
+        SetLength(SP_SourceBreakPointList, l -1);
         Exit;
       End;
     End; // A breakpoint here should remain, so do nothing.
@@ -1048,8 +1054,55 @@ Begin
   SP_TestConsts(s, 1, Error, False);
   SP_AddHandlers(s);
 
-  SP_BreakPointList[i].Condition := Condition;
-  SP_BreakPointList[i].Compiled_Condition := s;
+  SP_SourceBreakPointList[i].PassNum := Passes;
+  SP_SourceBreakPointList[i].Condition := Condition;
+  SP_SourceBreakPointList[i].Compiled_Condition := #$F + s;
+
+  SP_GetDebugStatus;
+
+End;
+
+Procedure SP_AddConditionalBreakpoint(BpIndex, Passes: Integer; Condition: aString; IsData: Boolean);
+Var
+  l, i: Integer;
+  s: aString;
+  Error: TSP_ErrorCode;
+Begin
+
+  // Adds a conditional breakpoint to the current list of breakpoints.
+  // No line or statement associated with this breakpoint, it's evaluated after every
+  // statement.
+
+  // VERY SLOW, use sparingly!
+
+  If BpIndex = -1 Then Begin
+    // New breakpoint, add to the list
+    l := Length(SP_ConditionalBreakpointList);
+    SetLength(SP_ConditionalBreakpointList, l +1);
+  End Else Begin
+    // Edit an existing breakpoint
+    l := BPIndex;
+  End;
+
+  Error.Position := 1;
+  Error.Code := SP_ERR_OK;
+  s := SP_TokeniseLine(Condition, True, False) + #255;
+  s := SP_Convert_Expr(s, Error.Position, Error, -1) + #255;
+  SP_RemoveBlocks(s);
+  SP_TestConsts(s, 1, Error, False);
+  SP_AddHandlers(s);
+
+  If IsData Then
+    SP_ConditionalBreakPointList[l].bpType := BP_Data
+  Else
+    SP_ConditionalBreakPointList[l].bpType := BP_Conditional;
+  SP_ConditionalBreakPointList[l].Condition := Condition;
+  SP_ConditionalBreakPointList[l].PassNum := Passes;
+  SP_ConditionalBreakPointList[l].Compiled_Condition := #$F + s;
+  SP_ConditionalBreakPointList[l].CurResult := '';
+  SP_ConditionalBreakPointList[l].HasResult := False;
+
+  SP_GetDebugStatus;
 
 End;
 
@@ -3257,11 +3310,12 @@ End;
 
 Procedure SP_Interpret(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
 Var
-  Idx, Idx2, CurST, OldST: Integer;
+  Idx, Idx2, CurST, OldST, OldEC: Integer;
   Info: TSP_iInfo;
   pInfo: pSP_iInfo;
   BreakNow: Boolean;
   Ls: TSP_GOSUB_Item;
+  res: aString;
 Label
   Next_Statement;
 Begin
@@ -3295,27 +3349,62 @@ Begin
 
       If Token^.Token <> SP_TERMINAL Then Begin
 
-        // Test for debugging - a break here is pre-execution so leave CONTINUE point as-is
+        // Test for debugging - a source breakpoint triggered here is pre-execution so leave CONTINUE point as-is
+        If DEBUGGING Then Begin
 
-        If Token^.BPIndex >= 0 Then
-          With SP_BreakPointList[Token^.BPIndex] Do Begin
-            BreakNow := PassCount = 0;
-            If Condition <> '' Then
-              BreakNow := (SP_FPExecuteNumericExpression(Compiled_Condition, Info.Error^) <> 0) And BreakNow;
-            If BreakNow Then Begin
-              BPSIGNAL := True;
-              Break;
-            End Else
-              If PassCount > 0 Then
-                Dec(PassCount);
+          If Token^.BPIndex >= 0 Then
+            With SP_SourceBreakPointList[Token^.BPIndex] Do Begin
+              BreakNow := PassCount = 0;
+              If Condition <> '' Then
+                BreakNow := (SP_FPExecuteNumericExpression(Compiled_Condition, Info.Error^) <> 0) And BreakNow;
+              If BreakNow Then Begin
+                BPSIGNAL := True;
+                Break;
+              End Else
+                If PassCount > 0 Then
+                  Dec(PassCount);
+            End;
+
+          If (OldSt <> Error^.Statement) Then Begin
+            // Test for single step
+            If STEPMODE = SM_Single Then Begin
+              CurST := SP_GetStatementFromOffset(Error^.Line, (NativeUInt(StrPtr) - NativeUInt(StrStart)) +1);
+              If CurST <> CONTSTATEMENT Then Begin
+                BPSIGNAL := True;
+                Break;
+              End;
+            End;
+            // Test conditional and data breakpoints - this is post execution so alter CONTINUE.
+            For Idx := 0 To Length(SP_ConditionalBreakPointList) -1 Do
+              With SP_ConditionalBreakPointList[Idx] Do Begin
+                OldEC := Info.Error^.Code;
+                BreakNow := PassCount = 0;
+                If bpType = BP_Conditional Then
+                  BreakNow := (SP_FPExecuteNumericExpression(Compiled_Condition, Info.Error^) <> 0) And BreakNow
+                Else Begin
+                  res := SP_FPExecuteAnyExpression(Compiled_Condition, Info.Error^);
+                  BreakNow := ((HasResult And (res <> CurResult)) or (Not HasResult)) and BreakNow and (Info.Error^.Code = SP_ERR_OK);
+                  If Info.Error^.Code = SP_ERR_OK Then Begin
+                    CurResult := res;
+                    HasResult := True;
+                  End;
+                End;
+                Info.Error^.Code := OldEC;
+                If BreakNow Then Begin
+                  BPSIGNAL := True;
+                  BREAKSIGNAL := True;
+                  CONTLINE := Info.Error^.Line;
+                  CONTSTATEMENT := SP_GetStatementFromOffset(Info.Error^.Line, (NativeUInt(StrPtr) - NativeUInt(StrStart)) +1) +1;
+                  Info.Error^.Code := SP_ERR_BREAKPOINT;
+                  Info.Error^.Line := CONTLINE;
+                  Info.Error^.Statement := CONTSTATEMENT;
+                  Exit;
+                End Else
+                  If PassCount > 0 Then
+                    Dec(PassCount);
+              End;
           End;
 
-        If (STEPMODE = SM_Single) And (OldSt <> Error^.Statement) Then Begin
-          CurST := SP_GetStatementFromOffset(Error^.Line, (NativeUInt(StrPtr) - NativeUInt(StrStart)) +1);
-          If CurST <> CONTSTATEMENT Then Begin
-            BPSIGNAL := True;
-            Break;
-          End;
         End;
 
         If BREAKSIGNAL Then
@@ -9224,6 +9313,7 @@ RunIt :
     STEPMODE := 0;
   End;
   SP_PreParse(True, Info^.Error^);
+  SP_GetDebugStatus;
 
 End;
 
@@ -9323,7 +9413,7 @@ Begin
     End Else Begin
       Token := pToken(@SP_Program[NXTLINE][NXTSTATEMENT]);
       If Token^.BPIndex >= 0 Then
-        Inc(SP_BreakPointList[Token^.BPIndex].PassCount);
+        Inc(SP_SourceBreakPointList[Token^.BPIndex].PassCount);
     End;
     Info^.Error^.Statement := CONTSTATEMENT;
     Info^.Error^.ReturnType := SP_JUMP;

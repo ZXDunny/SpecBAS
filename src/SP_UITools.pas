@@ -67,8 +67,10 @@ Type
     Procedure ValidateFields;
     Procedure TypeChange(Sender: SP_BaseComponent; Text: aString);
     Procedure edtLineChange(Sender: SP_BaseComponent; Text: aString);
-    procedure okBtnClick(Sender: SP_BaseComponent);
-    procedure caBtnClick(Sender: SP_BaseComponent);
+    Procedure okBtnClick(Sender: SP_BaseComponent);
+    Procedure caBtnClick(Sender: SP_BaseComponent);
+    Procedure Accept(Sender: SP_BaseComponent; s: aString);
+    Procedure Abort(Sender: SP_BaseComponent);
   End;
 
   Function OpenFileReq(Caption, Filename: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
@@ -861,6 +863,8 @@ begin
   lblPassCount.Caption := 'Pass count';
 
   cmbType.ChainControl := edtLine;
+  cmbType.OnAccept := Accept;
+  cmbType.OnAbort := Abort;
   edtLine.ChainControl := edtCondition;
   edtCondition.ChainControl := edtPassCount;
   edtPassCount.ChainControl := cmbType;
@@ -968,6 +972,13 @@ Begin
   Inc(y, FH + BSize);
   edtPassCount.SetBounds(edtLine.Left, y, 7 * FW, FH);
   lblPassCount.SetBounds(edtPassCount.Left - BSize - (Length(lblPassCount.Caption) * FW), y + 2, Length(lblPassCount.Caption) * FW, FH);
+  edtCondition.OnAccept := Accept;
+  edtLine.OnAccept := Accept;
+  edtPassCount.OnAccept := Accept;
+
+  edtCondition.OnAbort := Abort;
+  edtLine.OnAbort := Abort;
+  edtPassCount.OnAbort := Abort;
 
   cw := Fw * (Length(caBtn.Caption) +2);
   caBtn.SetBounds(Width - (cw + BSize), Height - (FH + 4 + BSize), cw, FH + 4);
@@ -1115,6 +1126,22 @@ Begin
   ToolWindowDone := True;
 
 End;
+
+Procedure SP_BreakpointWindow.Accept(Sender: SP_BaseComponent; s: aString);
+Begin
+
+  If OkBtn.Enabled Then
+    OkBtnClick(Sender);
+
+  End;
+
+Procedure SP_BreakpointWindow.Abort(Sender: SP_BaseComponent);
+Begin
+
+  ToolWindowDone := True;
+
+End;
+
 
 Initialization
 

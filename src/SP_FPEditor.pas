@@ -5417,6 +5417,7 @@ Begin
 
     // CTRL+SHIFT (AltGr) - UDG.
 
+    SP_PlaySystem(CLICKCHAN, CLICKBANK);
     If (KEYSTATE[K_CONTROL] = 0) or ((KEYSTATE[K_CONTROL] = 1) And (KEYSTATE[K_ALT] = 1)) Then Begin
       {$IFDEF DARWIN}
       If (NewChar in [65..90]) And (((KEYSTATE[K_SHIFT] = 0) And (CAPSLOCK = 0)) or ((KEYSTATE[K_SHIFT] = 1) And (CAPSLOCK = 1))) Then Begin
@@ -5608,7 +5609,6 @@ Begin
       End;
     End;
     SP_CursorPosChanged;
-    SP_PlaySystem(CLICKCHAN, CLICKBANK);
   End;
 
   // When a key is pressed, clear the error state and set the cursor back to
@@ -7106,6 +7106,7 @@ Begin
       CURSORCHAR := Ord(EDITLINE[CURSORPOS]);
 
   End Else Begin
+    SP_PlaySystem(CLICKCHAN, CLICKBANK);
     {$IFDEF DARWIN}
     If (NewChar in [65..90]) And (((KEYSTATE[K_SHIFT] = 0) And (CAPSLOCK = 0)) or ((KEYSTATE[K_SHIFT] = 1) And (CAPSLOCK = 1))) Then Begin
       NewChar := NewChar + 32;
@@ -7258,7 +7259,6 @@ Begin
           End;
       End;
     End;
-    SP_PlaySystem(CLICKCHAN, CLICKBANK);
   End;
 
   SP_EditorDisplayEditLine;

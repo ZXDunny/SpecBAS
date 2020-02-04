@@ -33,6 +33,7 @@ Type
     Event: Byte; // 0 = key down, 1 = key up
     Key: Word;
     Lkc: Byte;
+    Flags: Byte;
   End;
 
   TSP_Zone = Packed Record
@@ -45,12 +46,12 @@ Type
   TCB_GetKeyLockState = Procedure;
 
   Procedure SP_LoadKeyboardDefinition(Name: aString; Var Error: TSP_ErrorCode);
-  Procedure SP_BufferKey(Key: Word; Event: Byte; Lkc: Byte);
+  Procedure SP_BufferKey(Key: Word; Event, Lkc, Flags: Byte);
   Procedure SP_ClearKeyBuffer(ClearStates: Boolean);
   Function  SP_KeyEventWaiting: Boolean;
   Procedure SP_UnBufferKey;
   Function  SP_DecodeKey(Var Char: Byte; RawKey: Boolean): Byte;
-  Procedure SP_KeyDown(Key: Word);
+  Procedure SP_KeyDown(Key: Word; Flags: Byte);
   Procedure SP_KeyUp(Key: Word);
 
   Function  SP_NewZone(Var Error: TSP_ErrorCode): Integer;
@@ -227,6 +228,10 @@ Const
   K_PA1 =           253;
   K_OEM_CLEAR =     254;
 
+  // Key flags
+
+  KF_NOCLICK =      1;
+
 Var
 
   CharStr:        array[0..255] of aString;
@@ -285,17 +290,18 @@ Begin
 
 End;
 
-Procedure SP_KeyDown(Key: Word);
+Procedure SP_KeyDown(Key: Word; Flags: Byte);
 Begin
 
   If SystemState in [SS_ERROR] Then
 
-    SP_BufferKey(Key, 0, LASTKEYCHAR)
+    SP_BufferKey(Key, 0, LASTKEYCHAR, 0)
 
   Else Begin
 
     KEYSTATE[Key] := 1;
     LASTKEY := Key;
+    LASTKEYFLAG := Flags;
 
     If Key = K_ESCAPE Then
       BREAKSignal := True;
@@ -311,7 +317,7 @@ Begin
 
   If SystemState in [SS_ERROR] Then
 
-    SP_BufferKey(Key, 1, LASTKEYCHAR)
+    SP_BufferKey(Key, 1, LASTKEYCHAR, 0)
 
   Else Begin
 
@@ -329,12 +335,13 @@ Begin
 
 End;
 
-Procedure SP_BufferKey(Key: Word; Event: Byte; Lkc: Byte);
+Procedure SP_BufferKey(Key: Word; Event, Lkc, Flags: Byte);
 Begin
   KeyLock.Enter;
   KeyBuffer[KeyBufferPos].Key := Key;
   KeyBuffer[KeyBufferPos].Event := Event;
   KeyBuffer[KeyBufferPos].Lkc := Lkc;
+  KeyBuffer[KeyBufferPos].Flags := Flags;
   Inc(KeyBufferPos);
   KeyLock.Leave;
 End;
@@ -348,6 +355,7 @@ Begin
   KeyBufferPos := 0;
   LASTKEY := 0;
   LASTKEYCHAR := 0;
+  LASTKEYFLAG := 0;
   If ClearStates Then
     For Idx := 0 To High(KEYSTATE) Do
       KEYSTATE[Idx] := 0;
@@ -378,7 +386,7 @@ Begin
     Case KeyBuffer[0].Event of
       0: // KeyDown
         Begin
-          SP_KeyDown(KeyBuffer[0].Key);
+          SP_KeyDown(KeyBuffer[0].Key, KeyBuffer[0].Flags);
           LASTKEYCHAR := KeyBuffer[0].Lkc;
         End;
       1: // KeyUp
@@ -392,6 +400,7 @@ Begin
       KeyBuffer[Idx].Key := KeyBuffer[Idx +1].Key;
       KeyBuffer[Idx].Event := KeyBuffer[Idx +1].Event;
       KeyBuffer[Idx].Lkc := KeyBuffer[Idx +1].Lkc;
+      KeyBuffer[Idx].Flags := KeyBuffer[Idx +1].Flags;
     End;
   End;
 

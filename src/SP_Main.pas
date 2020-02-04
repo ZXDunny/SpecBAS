@@ -414,6 +414,7 @@ Begin
       SP_TextOut32(-1, 2, SCREENHEIGHT - 2 - Height, 'Scroll?', CINK, CPAPER, True);
 
     LASTKEY := 0;
+    LASTKEYFLAG := 0;
     While (LASTKEY = 0) And not QUITMSG Do
       CB_Yield;
 

@@ -59,7 +59,7 @@ Begin
                 lk := 0
               Else
                 lk := Ord(c);
-              SP_BufferKey(Ord(c), 0, lk);
+              SP_BufferKey(Ord(c), 0, lk, KF_NOCLICK);
             End;
             For i := Length(Data) DownTo 1 Do Begin
               c := Data[i];
@@ -67,7 +67,7 @@ Begin
                 lk := 0
               Else
                 lk := Ord(c);
-              SP_BufferKey(Ord(c), 1, lk);
+              SP_BufferKey(Ord(c), 1, lk, KF_NOCLICK);
             End;
           End;
         End;

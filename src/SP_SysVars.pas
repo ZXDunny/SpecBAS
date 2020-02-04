@@ -217,6 +217,7 @@ Var
   KEYSTATE:   array[0..255] of Byte;      // The state of the keyboard
   LASTKEY:                  Byte;         // The last key that went down. 0 if key in previous LASTKEY goes up.
   LASTKEYCHAR:              Byte;         // Decoded key - takes international keymaps into account.
+  LASTKEYFLAG:              Byte;         // For the last key pressed, these are its flags (currently KF_NOCLICK possible)
   REPDEL:                   LongWord;     // The delay in frames before a key repeats when held down
   REPPER:                   LongWord;     // Delay between successive repeats of a key that is held down
   REPCOUNT:                 LongWord;     // The current counter for key repeats

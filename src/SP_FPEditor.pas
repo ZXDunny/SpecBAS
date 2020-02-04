@@ -4633,6 +4633,12 @@ Var
   Sel: SP_SelectionInfo;
   Changed, SelWasActive, b: Boolean;
   Error: TSP_ErrorCode;
+
+  Procedure PlayClick;
+  Begin
+    If LASTKEYFLAG And KF_NOCLICK = 0 Then SP_PlaySystem(CLICKCHAN, CLICKBANK);
+  End;
+
 Begin
 
   // Test for control keys, then convert to ASCII using the
@@ -4838,21 +4844,21 @@ Begin
                   Exit;
                 End;
           End;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_ALT, K_ALTGR:
         Begin
           If KEYSTATE[K_SHIFT] = 1 Then Begin
             GFXLOCK := 1-GFXLOCK;
-            SP_PlaySystem(CLICKCHAN, CLICKBANK);
+            PlayClick;
           End;
         End;
 
       K_RETURN:
         Begin
           Listing.CommenceUndo;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
           If KEYSTATE[K_CONTROL] = 0 Then Begin // Regular ENTER key pressed.
             SP_FPDeleteSelection(Sel);
             CompilerLock.Enter;
@@ -5054,7 +5060,7 @@ Begin
           End;
           FPCDes := Listing.FPCPos;
           FPCDesLine := Listing.FPCLine;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_LEFT:
@@ -5080,7 +5086,7 @@ Begin
           If KEYSTATE[K_SHIFT] = 0 Then SP_FPClearSelection(Sel);
           FPCDes := Listing.FPCPos;
           FPCDesLine := Listing.FPCLine;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_RIGHT: // CTRL - word jump. Shift - extend selection
@@ -5111,7 +5117,7 @@ Begin
           If KEYSTATE[K_SHIFT] = 0 Then SP_FPClearSelection(Sel);
           FPCDes := Listing.FPCPos;
           FPCDesLine := Listing.FPCLine;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_UP: // CTRL - Line up, jump to start of current line, or previous line. Shift - extend selection
@@ -5133,7 +5139,7 @@ Begin
           If Listing.FPCPos > Length(s) Then
             Listing.FPCPos := Length(s);
           If KEYSTATE[K_SHIFT] = 0 Then SP_FPClearSelection(Sel);
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_DOWN:
@@ -5153,7 +5159,7 @@ Begin
           If Listing.FPCPos > Length(s) Then
             Listing.FPCPos := Length(s);
           If KEYSTATE[K_SHIFT] = 0 Then SP_FPClearSelection(Sel);
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_HOME:
@@ -5174,7 +5180,7 @@ Begin
           If KEYSTATE[K_SHIFT] = 0 Then SP_FPClearSelection(Sel);
           FPCDes := Listing.FPCPos;
           FPCDesLine := Listing.FPCLine;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_END:
@@ -5188,7 +5194,7 @@ Begin
           FPCDes := Listing.FPCPos;
           FPCDesLine := Listing.FPCLine;
           If KEYSTATE[K_SHIFT] = 0 Then SP_FPClearSelection(Sel);
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_PRIOR:
@@ -5203,7 +5209,7 @@ Begin
           SP_CalculateFPCursorPos;
           FPCDes := Listing.FPCPos;
           If KEYSTATE[K_SHIFT] = 0 Then SP_FPClearSelection(Sel);
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_NEXT:
@@ -5219,7 +5225,7 @@ Begin
           SP_CalculateFPCursorPos;
           FPCDes := Listing.FPCPos;
           If KEYSTATE[K_SHIFT] = 0 Then SP_FPClearSelection(Sel);
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_BACK:
@@ -5338,7 +5344,7 @@ Begin
           FPCDes := Listing.FPCPos;
           FPCDesLine := Listing.FPCLine;
           SP_FPClearSelection(Sel);
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_DELETE:
@@ -5396,19 +5402,19 @@ Begin
           FPCDesLine := Listing.FPCLine;
           SP_FPClearSelection(Sel);
           Changed := True;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_INSERT:
         Begin
           INSERT := Not INSERT;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_ESCAPE:
         Begin // No idea. Switch to Direct command?
           SP_SwitchFocus(fwDirect);
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
     End;
@@ -5417,7 +5423,7 @@ Begin
 
     // CTRL+SHIFT (AltGr) - UDG.
 
-    SP_PlaySystem(CLICKCHAN, CLICKBANK);
+    PlayClick;
     If (KEYSTATE[K_CONTROL] = 0) or ((KEYSTATE[K_CONTROL] = 1) And (KEYSTATE[K_ALT] = 1)) Then Begin
       {$IFDEF DARWIN}
       If (NewChar in [65..90]) And (((KEYSTATE[K_SHIFT] = 0) And (CAPSLOCK = 0)) or ((KEYSTATE[K_SHIFT] = 1) And (CAPSLOCK = 1))) Then Begin
@@ -5441,7 +5447,7 @@ Begin
         End;
         Changed := True;
         SP_FPClearSelection(Sel);
-        SP_PlaySystem(CLICKCHAN, CLICKBANK);
+        PlayClick;
       End Else Begin
         If KEYSTATE[K_CONTROL] = 0 Then Begin
           If INSERT Then
@@ -6586,6 +6592,12 @@ Var
   Error: TSP_ErrorCode;
   SB: pSP_ScrollBar;
   s: aString;
+
+  Procedure PlayClick;
+  Begin
+    If LASTKEYFLAG And KF_NOCLICK = 0 Then SP_PlaySystem(CLICKCHAN, CLICKBANK);
+  End;
+
 Begin
 
   // Direct command window. It's easier to have a clone of the editor's handler as there are so
@@ -6770,13 +6782,13 @@ Begin
                   End;
                 End;
           End;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
 
       K_RETURN:
         Begin
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
           If KEYSTATE[K_CONTROL] = 0 Then Begin
             If EDITLINE = '' Then Begin
               // Hide or show the editor
@@ -6817,7 +6829,7 @@ Begin
         Begin
           If KEYSTATE[K_SHIFT] = 1 Then Begin
             GFXLOCK := 1-GFXLOCK;
-            SP_PlaySystem(CLICKCHAN, CLICKBANK);
+            PlayClick;
           End;
         End;
 
@@ -6832,7 +6844,7 @@ Begin
             CURSORBG := 10;
             Exit;
           End;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
           DWSelP := CURSORPOS;
         End;
 
@@ -6852,7 +6864,7 @@ Begin
             End;
           If KEYSTATE[K_SHIFT] = 0 Then
             DWSelP := CURSORPOS;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_RIGHT:
@@ -6867,7 +6879,7 @@ Begin
             End;
           If KEYSTATE[K_SHIFT] = 0 Then
             DWSelP := CURSORPOS;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_UP:
@@ -6917,7 +6929,7 @@ Begin
               End;
             End;
           End;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_DOWN:
@@ -6968,7 +6980,7 @@ Begin
               End;
             End;
           End;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_HOME:
@@ -6981,7 +6993,7 @@ Begin
             CURSORPOS := 1;
           If KEYSTATE[K_SHIFT] = 0 Then
             DWSelP := CURSORPOS;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_END:
@@ -7009,7 +7021,7 @@ Begin
           End;
           If KEYSTATE[K_SHIFT] = 0 Then
             DWSelP := CURSORPOS;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_PRIOR:
@@ -7021,7 +7033,7 @@ Begin
             SP_DisplayFPListing(-1);
             SP_ScrollInView;
           End;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_NEXT:
@@ -7033,7 +7045,7 @@ Begin
             SP_DisplayFPListing(-1);
             SP_ScrollInView;
           End;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_BACK:
@@ -7055,7 +7067,7 @@ Begin
                 Dec(CURSORPOS);
               End;
           DWSelP := CURSORPOS;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_DELETE:
@@ -7078,13 +7090,13 @@ Begin
                 End;
           End;
           DWSelP := CURSORPOS;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_INSERT:
         Begin
           INSERT := Not INSERT;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
       K_ESCAPE:
@@ -7095,7 +7107,7 @@ Begin
             EDITLINE := ''
           End Else
             SP_SwitchFocus(fwEditor);
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+          PlayClick;
         End;
 
     End;
@@ -7106,7 +7118,7 @@ Begin
       CURSORCHAR := Ord(EDITLINE[CURSORPOS]);
 
   End Else Begin
-    SP_PlaySystem(CLICKCHAN, CLICKBANK);
+    PlayClick;
     {$IFDEF DARWIN}
     If (NewChar in [65..90]) And (((KEYSTATE[K_SHIFT] = 0) And (CAPSLOCK = 0)) or ((KEYSTATE[K_SHIFT] = 1) And (CAPSLOCK = 1))) Then Begin
       NewChar := NewChar + 32;

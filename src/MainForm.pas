@@ -1033,7 +1033,7 @@ begin
   If Not Handled Then Begin
     K_DOWNFLAG := True;
     LASTKEYCHAR := Ord(aStr[1]);
-    If SystemState = SS_EDITOR Then SP_BufferKey(Key, 0, LASTKEYCHAR) Else SP_KeyDown(Key);
+    If SystemState = SS_EDITOR Then SP_BufferKey(Key, 0, LASTKEYCHAR, 0) Else SP_KeyDown(Key, 0);
     Key := 0;
   End;
 
@@ -1057,7 +1057,7 @@ begin
   If Not Handled Then Begin
     K_UPFLAG := True;
     LASTKEYCHAR := 0;
-    If SystemState = SS_EDITOR Then SP_BufferKey(Key, 1, LASTKEYCHAR) Else SP_KeyUp(Key);
+    If SystemState = SS_EDITOR Then SP_BufferKey(Key, 1, LASTKEYCHAR, 0) Else SP_KeyUp(Key);
   End;
 
 end;

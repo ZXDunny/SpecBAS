@@ -47,6 +47,7 @@ Type
     Class Procedure FPMenu_CONTINUE_Cursor(Sender: SP_BaseComponent);
     Class Procedure FPMenu_DebugPanel(Sender: SP_BaseComponent);
     Class Procedure FPMenu_BreakpointAdd(Sender: SP_BaseComponent);
+    Class Procedure FPMenu_AddWatch(Sender: SP_BaseComponent);
 
   End;
 
@@ -204,7 +205,7 @@ Begin
   FPRunMenu.AddItem(CreateItem('Step over', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_StepOver));
   FPRunMenu.AddItem(CreateItem('CONTINUE to cursor', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_CONTINUE_Cursor));
   FPRunMenu.AddItem(CreateItem('Add breakpoint...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_BreakpointAdd));
-  FPRunMenu.AddItem(CreateItem('Add watch...', False, True, False, False, Nil, Nil));
+  FPRunMenu.AddItem(CreateItem('Add watch...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_AddWatch));
 
   // Tools menu
 
@@ -502,6 +503,11 @@ End;
 Class Procedure SP_MenuActionProcs.FPMenu_BreakpointAdd(Sender: SP_BaseComponent);
 Begin
   AddControlMsg(clKeyPress, aChar(K_CONTROL) + aChar(K_N));
+End;
+
+Class Procedure SP_MenuActionProcs.FPMenu_AddWatch(Sender: SP_BaseComponent);
+Begin
+  AddControlMsg(clKeyPress, aChar(K_CONTROL) + aChar(K_W));
 End;
 
 end.

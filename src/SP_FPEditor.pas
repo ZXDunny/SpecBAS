@@ -221,7 +221,8 @@ Function  IsSelActive: Boolean;
 Procedure SP_HideFindResults(Clear: Boolean);
 Procedure SP_ShowFindResults;
 Procedure SP_GetSelectionInfo(Var Sel: SP_SelectionInfo);
-Procedure StartBPEditOp(BpIndex: Integer);
+Procedure StartWatchOp(Index: Integer);
+Procedure StartBPEditOp(BPIndex: Integer; Bp: pSP_BreakPointInfo);
 Procedure StartGotoOp;
 Procedure StartFindOp(Find: Boolean);
 Procedure StartFileOp(Operation: Integer; Filename: aString);
@@ -317,7 +318,7 @@ Var
   FPFindResults: Array of SP_SearchInfo;
   FPSearchOptions: SP_SearchOptions;
 
-  // Go to dialog
+  // Go to and Watch edit dialog
   GotoWindow: SP_TextRequester;
 
 Const
@@ -5594,7 +5595,7 @@ Begin
         'n':
           Begin
             // Add new breakpoint
-            StartBPEditOp(-1);
+            StartBPEditOp(-1, nil);
           End;
         's':
           Begin
@@ -5603,7 +5604,7 @@ Begin
           End;
         'w':
           Begin
-            SP_SelectWord;
+            StartWatchOp(-1);
           End;
         'b':
           Begin
@@ -7250,7 +7251,7 @@ Begin
         'n':
           Begin
             // Add new breakpoint
-            StartBPEditOp(-1);
+            StartBPEditOp(-1, nil);
           End;
         's':
           Begin
@@ -7259,7 +7260,7 @@ Begin
           End;
         'w':
           Begin
-            SP_SelectWord;
+            StartWatchOp(-1);
           End;
         'b':
           Begin
@@ -8141,7 +8142,7 @@ Begin
 
   End;
 
-  If FPDebugPanelVisible And not QUITMSG Then SP_FillDebugPanel;
+  SP_FillDebugPanel;
   If FocusedWindow = FWEditor Then
     SYSTEMSTATE := SS_EDITOR
   Else
@@ -9118,7 +9119,7 @@ Begin
 
 End;
 
-Procedure StartBPEditOp(BPIndex: Integer);
+Procedure StartBPEditOp(BPIndex: Integer; Bp: pSP_BreakPointInfo);
 Var
   BPWindow: SP_BreakpointWindow;
 Begin
@@ -9127,11 +9128,35 @@ Begin
   If BPIndex = -1 Then Begin
     // New breakpoint
     If FocusedWindow = FWDirect Then
-      BPWindow.Open(BpIndex, BP_Stop, PROGLINE, 1, 0, 'Add breakpoint', '', '')
+      BPWindow.Open(BpIndex, BP_Stop, PROGLINE, 1, 0, 'Add breakpoint', '')
     Else
-      BPWindow.Open(BpIndex, BP_Stop, Listing.Flags[Listing.FPCLine].Line, Listing.Flags[Listing.FPCLine].Statement, 0, 'Add breakpoint', '', '');
+      BPWindow.Open(BpIndex, BP_Stop, Listing.Flags[Listing.FPCLine].Line, Listing.Flags[Listing.FPCLine].Statement, 0, 'Add breakpoint', '');
   End Else Begin
     // Edit current breakpoint
+    With Bp^ Do
+      BPWindow.Open(BpIndex, bpType, Line, Statement, PassCount, 'Edit breakpoint', Condition);
+  End;
+
+End;
+
+Procedure StartWatchOp(Index: Integer);
+Var
+  Error: TSP_ErrorCode;
+  t: aString;
+Begin
+
+  If Index = -1 Then
+    t := ''
+  Else
+    t := SP_WatchList[Index].Expression;
+
+  Error.Code := SP_ERR_OK;
+  GotoWindow := SP_TextRequester.Create;
+  GotoWindow.Open('Create new watch', t, tkAnyExpression, False, Error);
+
+  If FPGotoText <> '' Then Begin
+    SP_AddWatch(Index, FPGotoText);
+    SP_FillDebugPanel;
   End;
 
 End;
@@ -9148,7 +9173,7 @@ Var
 Begin
 
   GotoWindow := SP_TextRequester.Create;
-  GotoWindow.Open('GO TO line or label', '', Error);
+  GotoWindow.Open('GO TO line or label', '', tkLineStatement, True, Error);
 
   i := 1;
   Found.y := -1;
@@ -9861,7 +9886,7 @@ Begin
   End;
 
   SP_Reset_Temp_Colours;
-  If FPDebugPanelVisible Then SP_FillDebugPanel;
+  SP_FillDebugPanel;
 
   If Not Assigned(CompilerThread) Then
     CompilerThread := TCompilerThread.Create(False);
@@ -9923,7 +9948,6 @@ Begin
   SP_PrepareBreakPoints(False);
   SetLength(SP_SourceBreakpointList, 0);
   SetLength(SP_ConditionalBreakpointList, 0);
-  SetLength(SP_DataBreakpointList, 0);
   BPSIGNAL := False;
   STEPMODE := 0;
   SP_GetDebugStatus;
@@ -9933,7 +9957,8 @@ End;
 Procedure SP_GetDebugStatus;
 Begin
 
-  DEBUGGING := (Length(SP_SourceBreakpointList) > 0) or (Length(SP_ConditionalBreakpointList) > 0) or (Length(SP_DataBreakpointList) > 0) or (STEPMODE > 0);
+  DEBUGGING := (Length(SP_SourceBreakpointList) > 0) or (Length(SP_ConditionalBreakpointList) > 0) or (STEPMODE > 0);
+  SP_FillDebugPanel;
 
 End;
 

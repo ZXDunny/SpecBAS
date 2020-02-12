@@ -23,6 +23,7 @@ SP_ListBox = Class(SP_BaseComponent)
   Public
 
     fStrings:     Array of aString;
+    fObjects:     Array of TObject;
     fHeaders:     Array of SP_ListBoxHeader;
     fSelected:    Array of Boolean;
     fCount:       Integer;
@@ -54,6 +55,8 @@ SP_ListBox = Class(SP_BaseComponent)
     Procedure     Clear;
     Procedure     SetItem(Index: Integer; Value: aString);
     Function      GetItem(Index: Integer): aString;
+    Procedure     SetObject(Index: Integer; Value: TObject);
+    Function      GetObject(Index: Integer): TObject;
     Procedure     SetHeader(Index: Integer; Value: SP_ListBoxHeader);
     Procedure     SetFontClr(c: Byte); Override;
     Procedure     SetDisabledFontClr(c: Byte); Override;
@@ -95,6 +98,7 @@ SP_ListBox = Class(SP_BaseComponent)
     Procedure     Sort(Index: Integer);
 
     Property      Items[Index: Integer]:     aString          read GetItem          write SetItem;
+    Property      Objects[Index: Integer]:   TObject          read GetObject        write SetObject;
     Property      Selected[Index: Integer]:  Boolean          read GetSelected;
     Property      Headers[Index: Integer]:   SP_ListBoxHeader read GetHeader        write SetHeader;
     Property      ColWidths[Index: Integer]: Integer          read GetColWidth      write SetColWidth;
@@ -112,6 +116,7 @@ SP_ListBox = Class(SP_BaseComponent)
     Property      HeaderClr:                 Integer          read fHeaderClr       write SetHeaderClr;
     Property      SortIndClr:                Integer          read fSortIndClr      write SetSortIndClr;
     Property      SortedColumnClr:           Integer          read fSortedColumnClr write SetSortedColumnClr;
+    Property      SelectedIndex:             Integer          read fSelectedIdx;
 
     Constructor   Create(Owner: SP_BaseComponent);
     Destructor    Destroy; Override;
@@ -256,13 +261,31 @@ Begin
 
 End;
 
+Procedure SP_ListBox.SetObject(Index: Integer; Value: TObject);
+Begin
+
+  If (Index >= 0) And (Index < Length(fStrings)) Then
+    fObjects[Index] := Value;
+
+End;
+
+Function SP_ListBox.GetObject(Index: Integer): TObject;
+Begin
+
+  If (Index >= 0) And (Index < Length(fStrings)) Then
+    Result := fObjects[Index]
+  Else
+    Result := Nil;
+
+End;
+
 Procedure SP_ListBox.AddHeader(Value: SP_ListBoxHeader);
 Begin
 
   SetLength(fHeaders, fHCount +1);
   fHeaders[fHCount].Caption := Value.Caption;
   fHeaders[fHCount].Width := Value.Width;
-  fHeaders[fHCount].Justify := -1;
+  fHeaders[fHCount].Justify := Value.Justify;
   Inc(fHCount);
   SetUIElements;
 
@@ -292,7 +315,7 @@ Begin
   End;
   fHeaders[Index].Caption := Value.Caption;
   fHeaders[Index].Width := Value.Width;
-  fHeaders[Index].Justify := -1;
+  fHeaders[Index].Justify := Value.Justify;
   Inc(fHCount);
   SetUIElements;
 
@@ -339,7 +362,7 @@ Begin
   If (Index >= 0) And (Index < fHCount) Then Begin
     fHeaders[Index].Caption := Value.Caption;
     fHeaders[Index].Width := Value.Width;
-    fHeaders[Index].Justify := -1;
+    fHeaders[Index].Justify := Value.Justify;
     SetUIElements;
   End;
 
@@ -413,10 +436,12 @@ Procedure SP_ListBox.Clear;
 Begin
 
   SetLength(fStrings, 0);
+  SetLength(fObjects, 0);
   SetLength(fSelected, 0);
   SetLength(fHeaders, 0);
   fHCount := 0;
   fCount := 0;
+  SetUIElements;
 
 End;
 
@@ -424,8 +449,10 @@ Procedure SP_ListBox.Add(Caption: aString);
 Begin
 
   SetLength(fStrings, fCount +1);
+  SetLength(fObjects, fCount +1);
   SetLength(fSelected, fCount +1);
   fStrings[fCount] := Caption;
+  fObjects[fCount] := nil;
   fSelected[fCount] := False;
   Inc(fCount);
 
@@ -443,10 +470,14 @@ Begin
   For i := fCount DownTo Index +1 Do Begin
     fStrings[i] := fStrings[i -1];
     fSelected[i] := fSelected[i -1];
+    fObjects[i] := fObjects[i -1];
   End;
   fStrings[Index] := Caption;
   fSelected[Index] := False;
+  fObjects[Index] := Nil;
   Inc(fCount);
+  If Index <= fSelectedIdx Then
+    Inc(fSelectedIdx);
 
   SetUIElements;
 
@@ -461,6 +492,7 @@ Begin
   For i := Index To fCount -1 Do Begin
     fStrings[i] := fStrings[i+1];
     fSelected[i] := fSelected[i+1];
+    fObjects[i] := fObjects[i+1];
   End;
   SetLength(fStrings, fCount);
   SetLength(fSelected, fCount);
@@ -537,6 +569,7 @@ Var
   I, J: Integer;
   Ps, T: aString;
   b: Boolean;
+  o: TObject;
 Begin
 
   If fCount <= 1 Then Exit; // Already sorted.
@@ -576,6 +609,9 @@ Begin
       b := fSelected[I];
       fSelected[I] := fSelected[J];
       fSelected[J] := b;
+      o := fObjects[I];
+      fObjects[I] := fObjects[J];
+      fObjects[J] := o;
       Inc(I);
       Dec(J);
     End;
@@ -593,7 +629,7 @@ Var
   ScrollBarsDone: Boolean;
 Begin
 
-  If (Width = 0) or (Height = 0) or (fLockCount > 0) Then Begin
+  If (Width = 0) or (Height = 0) Then Begin
     fNeedPaint := True;
     Exit;
   End;
@@ -899,6 +935,7 @@ Begin
                 fSelected[j] := False;
 
               fSelected[i] := True;
+              fSelectedIdx := i;
               fLastSelected := i;
 
             End;
@@ -914,11 +951,36 @@ Begin
 
         End;
 
+        fSelCount := 0;
+        For i := 0 To Length(fSelected) -1 Do
+          If fSelected[i] Then
+            Inc(fSelCount);
+
         fSelectAnchor := i;
         ScrollInView;
 
         Select(fLastSelected);
         SP_PlaySystem(CLICKCHAN, CLICKBANK);
+
+      End Else Begin
+
+        // Clicked outside the list bounds, so select none and fire an OnSelect event
+
+        SP_PlaySystem(CLICKCHAN, CLICKBANK);
+        fSelectedIdx := -1;
+        For i := 0 to Length(fSelected) -1 Do
+          fSelected[i] := False;
+        fLastSelected := -1;
+        fSelectAnchor := -1;
+        fSelCount := 0;
+
+        fSelCount := 0;
+        For i := 0 To Length(fSelected) -1 Do
+          If fSelected[i] Then
+            Inc(fSelCount);
+
+        Select(-1);
+        Paint;
 
       End;
 
@@ -1005,7 +1067,7 @@ Begin
       Begin
         If fChosen Then Begin
           If Assigned(OnChoose) Then
-            OnChoose(Copy(fStrings[i], 1, Pos(#255, fStrings[i]) -1));
+            OnChoose(Self, fLastSelected, Copy(fStrings[i], 1, Pos(#255, fStrings[i]) -1));
           Handled := True;
         End;
       End;
@@ -1026,8 +1088,8 @@ Procedure SP_ListBox.DoDoubleClick(X, Y, Btn: Integer);
 Begin
 
   If (Y < iFH) And fShowHeaders Then Exit;
-  If Assigned(OnChoose) Then
-    OnChoose(Copy(fStrings[fLastSelected], 1, Pos(#255, fStrings[fLastSelected]) -1));
+  If Assigned(OnChoose) and (fLastSelected <> -1) Then
+    OnChoose(Self, fLastSelected, Copy(fStrings[fLastSelected], 1, Pos(#255, fStrings[fLastSelected]) -1));
 
 End;
 

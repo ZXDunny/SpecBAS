@@ -29,9 +29,9 @@ SP_Button = Class(SP_BaseComponent)
     Procedure MouseUp(X, Y, Btn: Integer); Override;
     Procedure CentreCaption;
 
-    Property CaptionPos: TPoint           read fCaptionPos  write SetCaptionPos;
-    Property Caption:    aString          read fCaption     write SetCaption;
-    Property State: SP_ButtonState        read fState       write SetState;
+    Property  CaptionPos: TPoint           read fCaptionPos  write SetCaptionPos;
+    Property  Caption:    aString          read fCaption     write SetCaption;
+    Property  State:      SP_ButtonState   read fState       write SetState;
 
     Constructor Create(Owner: SP_BaseComponent);
 

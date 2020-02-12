@@ -98,6 +98,11 @@ Type
     ProcIndex, NumVars, VarPosN, VarPosS, VarPosNA, VarPosSA, CALLType: Integer;
   End;
 
+  TSP_WatchInfo = Packed Record
+    Expression,
+    Compiled_Expression: aString;
+  End;
+
   TSP_BreakpointInfo = Packed Record
     bpType: Integer;
     PassCount, PassNum: Integer;
@@ -107,6 +112,7 @@ Type
     HasResult: Boolean;
     Line, Statement: Integer;
   End;
+  pSP_BreakPointInfo = ^TSP_BreakPointInfo;
 
   TSP_iInfo = Packed Record
     StrPtr: pByte;
@@ -131,6 +137,8 @@ Procedure SP_ClearEvery;
 Procedure SP_StackToString(NumIndices: Integer); inline;
 Procedure SP_SetHandler(Var Token: pToken; Var StrPtr: pByte);
 Procedure SP_AddHandlers(Var Tokens: aString);
+Procedure SP_AddWatch(Index: Integer; Expr: aString);
+Procedure SP_DeleteWatch(Index: Integer);
 Procedure SP_AddSourceBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integer; Condition: aString);
 Procedure SP_AddConditionalBreakpoint(BpIndex, Passes: Integer; Condition: aString; IsData: Boolean);
 Procedure SP_MakeListVarOutput(Var List: TAnsiStringlist);
@@ -946,8 +954,8 @@ Var
   SP_FnList: Array of SP_Function_Record;
   SP_IncludeList: Array of SP_IncludedFile;
   SP_SourceBreakpointList,
-  SP_ConditionalBreakPointList,
-  SP_DataBreakPointList: Array of TSP_BreakpointInfo;
+  SP_ConditionalBreakPointList: Array of TSP_BreakpointInfo;
+  SP_WatchList: Array of TSP_WatchInfo;
   IgnoreEvery: Boolean = False;
   EveryEnabled: Boolean = True;
   ReEnableEvery: Boolean = False;
@@ -1002,6 +1010,47 @@ implementation
 
 Uses SP_Main, SP_Editor, SP_FPEditor;
 
+Procedure SP_AddWatch(Index: Integer; Expr: aString);
+Var
+  s: aString;
+  l: Integer;
+  Error: TSP_ErrorCode;
+Begin
+
+  // Add a new watch (if Index is -1) or replace an existing watch.
+
+  l := Length(SP_WatchList);
+  If Index = -1 Then Begin
+    SetLength(SP_WatchList, l+1);
+    Index := l;
+  End;
+
+  With SP_WatchList[Index] Do Begin
+    Expression := Expr;
+    Error.Position := 1;
+    Error.Code := SP_ERR_OK;
+    s := SP_TokeniseLine(Expression, True, False) + #255;
+    s := SP_Convert_Expr(s, Error.Position, Error, -1) + #255;
+    SP_RemoveBlocks(s);
+    SP_TestConsts(s, 1, Error, False);
+    SP_AddHandlers(s);
+    Compiled_Expression := #$F + s;
+  End;
+
+End;
+
+Procedure SP_DeleteWatch(Index: Integer);
+Var
+  i, l: Integer;
+Begin
+
+  l := Length(SP_WatchList);
+  For i := Index To l -2 Do
+    SP_WatchList[i] := SP_WatchList[i +1];
+  SetLength(SP_WatchList, l -1);
+
+End;
+
 Procedure SP_AddSourceBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integer; Condition: aString);
 Var
   s: aString;
@@ -1039,6 +1088,7 @@ Begin
         For i := i To l -2 Do
           SP_SourceBreakPointList[i] := SP_SourceBreakPointList[i +1];
         SetLength(SP_SourceBreakPointList, l -1);
+        SP_GetDebugStatus;
         Exit;
       End;
     End; // A breakpoint here should remain, so do nothing.

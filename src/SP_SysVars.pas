@@ -551,6 +551,9 @@ Const
   RadioOn: Array[0..7] of Byte =
     (60, 66, 129, 129, 129, 129, 66, 60);
 
+  EditGlyph: Array[0..7] of Byte =
+    (4, 10, 23, 46, 92, 184, 240, 224);
+
   DefaultFont: Array[0..(96*64)-1] Of Byte =
   (0, 0, 0, 0, 0, 0, 0, 0,
    0, 0, 0, 0, 0, 0, 0, 0,

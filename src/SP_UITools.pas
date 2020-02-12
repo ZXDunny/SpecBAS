@@ -44,7 +44,9 @@ Type
   SP_TextRequester = Class
     LineEdt: SP_Edit;
     okBtn, caBtn: SP_Button;
-    Function Open(Caption, DefaultText: aString; Var Error: TSP_ErrorCode): aString;
+    shouldEvaluate: Boolean;
+    TextKind: Integer;
+    Function Open(Caption, DefaultText: aString; Kind: Integer; Evaluate: Boolean; Var Error: TSP_ErrorCode): aString;
     Procedure okBtnClick(Sender: SP_BaseComponent);
     Procedure caBtnClick(Sender: SP_BaseComponent);
     Procedure Abort(Sender: SP_BaseComponent);
@@ -62,7 +64,7 @@ Type
     Accepted: Boolean;
     BpLine, BpSt, BpPasses: Integer;
     BpCondition: aString;
-    Procedure Open(BpIndex, BpType, Line, Statement, PassCount: Integer; Caption, Condition, VarName: aString);
+    Procedure Open(BpIndex, BpType, Line, Statement, PassCount: Integer; Caption, Condition: aString);
     Procedure PlaceControls;
     Procedure ValidateFields;
     Procedure TypeChange(Sender: SP_BaseComponent; Text: aString);
@@ -74,6 +76,18 @@ Type
   End;
 
   Function OpenFileReq(Caption, Filename: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
+
+Const
+
+  tkLineStatement = 0;
+  tkAnyExpression = 1;
+  tkString        = 2;
+  tkNumeric       = 3;
+  tkText          = 4;
+
+Var
+
+  DefaultWindow: Integer;
 
 implementation
 
@@ -112,7 +126,7 @@ Var
   Error: TSP_ErrorCode;
 Begin
 
-  FPEditorDefaultWindow := SCREENBANK;
+  DefaultWindow := SCREENBANK;
   FPEditorDRPOSX := DRPOSX;
   FPEditorDRPOSY := DRPOSY;
   FPEditorPRPOSX := PRPOSX;
@@ -140,7 +154,7 @@ Begin
   PRPOSY := FPEditorPRPOSY;
   COVER := FPEditorOVER;
   T_OVER := COVER;
-  SP_SetDrawingWindow(FPEditorDefaultWindow);
+  SP_SetDrawingWindow(DefaultWindow);
 
   MODALWINDOW := Result;
 
@@ -366,7 +380,7 @@ Begin
   pBtn.Paint;
   okBtn.Paint;
 
-  SP_SetDrawingWindow(FPEditorDefaultWindow);
+  SP_SetDrawingWindow(DefaultWindow);
 
   DisplaySection.Leave;
 
@@ -538,7 +552,7 @@ Begin
 
   OldFocus := FocusedWindow;
   FocusedWindow := -1;
-  SP_SetDrawingWindow(FPEditorDefaultWindow);
+  SP_SetDrawingWindow(DefaultWindow);
   SP_DisplayFPListing(-1);
 
   SP_GetSelectionInfo(Sel);
@@ -668,7 +682,7 @@ End;
 
 { Text requester }
 
-Function SP_TextRequester.Open(Caption, DefaultText: aString; Var Error: TSP_ErrorCode): aString;
+Function SP_TextRequester.Open(Caption, DefaultText: aString; Kind: Integer; Evaluate: Boolean; Var Error: TSP_ErrorCode): aString;
 Var
   Font, w, h, cw, OldFocus: Integer;
   win: pSP_Window_Info;
@@ -677,6 +691,8 @@ Begin
   DisplaySection.Enter;
 
   ToolWindowDone := False;
+  shouldEvaluate := Evaluate;
+  TextKind := Kind;
 
   Font := SP_SetFPEditorFont;
   If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then Begin
@@ -725,7 +741,7 @@ Begin
   OldFocus := FocusedWindow;
   FocusedWindow := -1;
   SP_DisplayFPListing(-1);
-  SP_SetDrawingWindow(FPEditorDefaultWindow);
+  SP_SetDrawingWindow(DefaultWindow);
 
   DisplaySection.Leave;
 
@@ -772,39 +788,90 @@ Var
   i: Integer;
 Begin
 
-  i := 1;
-  Found.y := -1;
-  Error.Code := SP_ERR_OK;
+  If LineEdt.Text <> '' Then Begin
 
-  If Pos(':', lineEdt.Text) > 0 Then Begin
-    LineTxt := Copy(Text, 1, Pos(':', Text) -1);
-    StatementTxt := Copy(Text, Pos(':', Text) +1);
+    i := 1;
+    Found.y := -1;
+    Error.Code := SP_ERR_OK;
+
+    If Pos(':', lineEdt.Text) > 0 Then Begin
+      LineTxt := Copy(Text, 1, Pos(':', Text) -1);
+      StatementTxt := Copy(Text, Pos(':', Text) +1);
+    End Else Begin
+      LineTxt := Text;
+      StatementTxt := '1';
+    End;
+
+    If TextKind = tkLineStatement Then Begin
+
+      l := SP_FPExecuteAnyExpression(LineTxt, Error);
+      If Error.Code = SP_ERR_OK Then
+        s := SP_FPExecuteAnyExpression(StatementTxt, Error);
+
+      b := (Error.Code = SP_ERR_OK) and SP_GetNumber(l, i, line, True);
+      i := 1;
+      b := b And SP_GetNumber(s, i, statement, True);
+
+      If Not b Then Begin
+        searchOpt := [soForward, soCondenseSpaces];
+        Found := SP_FindText('LABEL @'+lineEdt.Text, 0, 1, searchOpt);
+        b := Found.y >= 0;
+      End;
+
+    End Else Begin
+
+      b := SP_FPCheckExpression(Text, Error);
+
+      If TextKind = tkAnyExpression Then Begin
+
+        If b and ShouldEvaluate Then Begin
+          SP_FPExecuteAnyExpression(Text, Error);
+          b := Error.Code = SP_ERR_OK;
+        End;
+
+      End Else
+
+        If TextKind = tkString Then Begin
+
+          If b and ShouldEvaluate Then Begin
+            SP_FPExecuteStringExpression(Text, Error);
+            b := Error.Code = SP_ERR_OK;
+          End;
+
+        End Else
+
+          If TextKind = tkNumeric Then Begin
+
+            If b and ShouldEvaluate Then Begin
+              SP_FPExecuteNumericExpression(Text, Error);
+              b := Error.Code = SP_ERR_OK;
+            End;
+
+          End Else
+
+            If TextKind = tkText Then Begin
+
+              b := True;
+
+            End;
+
+    End;
+
+    okBtn.Enabled := b;
+    lineEdt.ValidText := b;
+
   End Else Begin
-    LineTxt := Text;
-    StatementTxt := '1';
+
+    okBtn.Enabled := False;
+    lineEdt.ValidText := False;
+
   End;
-
-  l := SP_FPExecuteAnyExpression(LineTxt, Error);
-  If Error.Code = SP_ERR_OK Then
-    s := SP_FPExecuteAnyExpression(StatementTxt, Error);
-
-  b := (Error.Code = SP_ERR_OK) and SP_GetNumber(l, i, line, True);
-  i := 1;
-  b := b And SP_GetNumber(s, i, statement, True);
-
-  If Not b Then Begin
-    searchOpt := [soForward, soCondenseSpaces];
-    Found := SP_FindText('LABEL @'+lineEdt.Text, 0, 1, searchOpt);
-    b := Found.y >= 0;
-  End;
-  okBtn.Enabled := b;
-  lineEdt.ValidText := b;
 
 End;
 
 { Breakpoint Window }
 
-Procedure SP_BreakpointWindow.Open(BpIndex, BpType, Line, Statement, PassCount: Integer; Caption, Condition, VarName: aString);
+Procedure SP_BreakpointWindow.Open(BpIndex, BpType, Line, Statement, PassCount: Integer; Caption, Condition: aString);
 Var
   Font, w, h, cw, OldFocus: Integer;
   win: pSP_Window_Info;
@@ -893,7 +960,7 @@ begin
     BP_Data:
       Begin
         cmbType.ItemIndex := 2;
-        edtCondition.Text := VarName;
+        edtCondition.Text := Condition;
       End;
   End;
 
@@ -909,7 +976,7 @@ begin
   OldFocus := FocusedWindow;
   FocusedWindow := -1;
   SP_DisplayFPListing(-1);
-  SP_SetDrawingWindow(FPEditorDefaultWindow);
+  SP_SetDrawingWindow(DefaultWindow);
 
   DisplaySection.Leave;
 
@@ -920,8 +987,9 @@ begin
     // No need to validate the input, it's already validated on control change
 
     Case cmbType.ItemIndex of
-      0: // Source breakpoint
+      0: // Source breakpoint - remove the old one first!
         Begin
+          SP_AddSourceBreakpoint(False, Line, Statement, 0, '');
           SP_AddSourceBreakpoint(False, BpLine, BpSt, BpPasses, BpCondition);
         End;
       1: // Conditional breakpoint
@@ -995,7 +1063,7 @@ Begin
   SP_FillRect(1, FH +2, Width -2, Height - (FH + 3), SP_UIWindowBack);
   SP_MoveWindow(FDWindowID, (DISPLAYWIDTH - Width) Div 2, (DISPLAYHEIGHT - Height) Div 2, Error);
 
-  SP_SetDrawingWindow(FPEditorDefaultWindow);
+  SP_SetDrawingWindow(DefaultWindow);
 
 End;
 

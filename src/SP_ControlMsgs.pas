@@ -2,7 +2,7 @@ unit SP_ControlMsgs;
 
 interface
 
-USes SyncObjs, SP_Util;
+USes SyncObjs, SP_Interpret_PostFix, SP_Util;
 
 Type
 
@@ -19,6 +19,8 @@ Const
 
   clInterpretCommand = 1;
   clKeyPress         = 2;
+  clBPEdit           = 3;
+  clEditWatch        = 4;
 
 Var
 
@@ -37,6 +39,8 @@ Var
   i: Integer;
   lk: Byte;
   Error: TSP_ErrorCode;
+  Bp: pSP_BreakPointInfo;
+  p: NativeUInt;
 Begin
 
   ControlMsgLock.Enter;
@@ -70,6 +74,20 @@ Begin
               SP_BufferKey(Ord(c), 1, lk, KF_NOCLICK);
             End;
           End;
+        End;
+
+      clBPEdit:
+        Begin
+          i := pLongWord(@ControlMsgList[0].Data[1])^;
+          p := pNativeUInt(@ControlMsgList[0].Data[SizeOf(LongWord) +1])^;
+          BP := pSP_BreakPointInfo(pNativeUInt(p));
+          StartBPEditOp(i, Bp);
+        End;
+
+      clEditWatch:
+        Begin
+          i := pLongWord(@ControlMsgList[0].Data[1])^;
+          StartWatchOp(i);
         End;
 
     End;

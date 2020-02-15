@@ -2250,7 +2250,10 @@ Var
 Begin
 
   s := Listing[Idx];
-  Result := SP_GetLineNumberFromText(s);
+  If SP_WasPrevSoft(Idx) Then
+    Result := -1
+  Else
+    Result := SP_GetLineNumberFromText(s);
 
 End;
 

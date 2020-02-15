@@ -267,13 +267,17 @@ Var
   xi, yi, zi, aaa, aba, aab, abb, baa, bba, bab, bbb: Integer;
 Begin
 
-  xi := Round(x) And $FF;
-  yi := Round(y) And $FF;
-  zi := Round(z) And $FF;
+  x := Abs(x);
+  y := Abs(y);
+  z := Abs(z);
 
-  xf := x-Round(x);
-  yf := y-Round(y);
-  zf := z-Round(z);
+  xi := Trunc(x) And $FF;
+  yi := Trunc(y) And $FF;
+  zi := Trunc(z) And $FF;
+
+  xf := x-Trunc(x);
+  yf := y-Trunc(y);
+  zf := z-Trunc(z);
 
   u := fade(xf);
   v := fade(yf);
@@ -295,7 +299,7 @@ Begin
   x2 := lerp(grad(abb, xf  , yf-1, zf-1), grad(bbb, xf-1, yf-1, zf-1), u);
   y2 := lerp (x1, x2, v);
 
-  result := (lerp(y1, y2, w)+1)/2;
+  result := lerp(y1, y2, w) + 0.5;
 
 End;
 

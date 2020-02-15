@@ -2713,7 +2713,7 @@ var
   SnapX, SnapY: Boolean;
 begin
 
-  If ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
+  If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
 
   If SCREENBPP = 8 Then Begin
 
@@ -2799,6 +2799,8 @@ var
   Graphic: pSP_Graphic_Info;
   x, y, r, rx2, xmn, xmx, ymn, ymx, w: Integer;
 begin
+
+  If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
 
   If SCREENBPP = 8 Then Begin
 
@@ -2912,6 +2914,8 @@ var
   xmn, xmx, ymn, ymx, w: Integer;
   DstA: pByte;
 begin
+
+  If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
 
   If SCREENBPP = 8 Then Begin
 

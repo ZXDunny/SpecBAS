@@ -205,12 +205,12 @@ Var
         End;
       1, 2: // Watches and breakpoints
         Begin
+          FPDebugBPAdd.Visible := True;
           If FPDebugPanel.Enabled Then Begin
             FPDebugBPEdt.Visible := True;
-            FPDebugBPAdd.Visible := True;
             FPDebugBPDel.Visible := True;
-            ShowBtns := True;
           End;
+          ShowBtns := True;
         End;
     End;
     If ShowBtns Then

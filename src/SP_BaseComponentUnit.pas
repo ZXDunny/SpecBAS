@@ -113,6 +113,7 @@ SP_BaseComponent = Class
     fLastKey: Byte;
     fOverrideScl: Boolean;
     ControlID: Integer;
+    Dbl: Boolean;
 
     Procedure SetVisible(Value: Boolean);
     Procedure SetTransparent(Value: Boolean);
@@ -1870,21 +1871,17 @@ Begin
 End;
 
 Procedure SP_BaseComponent.MouseDown(X, Y, Btn: Integer);
-Var
-  Dbl: Boolean;
 Begin
 
+  Dbl := False;
   If Enabled Then Begin
-    Dbl := False;
     fCanClick := True;
     If (Abs(fMouseClickPos.X - X) < 4) Then
       If (Abs(fMouseClickPos.Y - Y) < 4) Then
         If (FRAMES - fMouseClickTime < FPS/2) Then
           If (fMouseLastBtn = Btn) Then Begin
-            If Assigned(fOnDblClick) Then Begin
-              fOnDblClick(X, Y, Btn);
-              dbl := True;
-            End;
+            DoubleClick(X, Y, Btn);
+            dbl := True;
           End;
 
     fMouseClickPos := Point(X, Y);

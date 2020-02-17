@@ -116,6 +116,9 @@ Begin
   FPDebugPanel := nil;
   FPDebugCombo.Free;
   FPDebugCombo := nil;
+  FPDebugBPAdd.Free;
+  FPDebugBPDel.Free;
+  FPDebugBPEdt.Free;
   FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
   SP_UpdateAfterDebug;
 

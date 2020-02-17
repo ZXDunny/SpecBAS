@@ -51,6 +51,9 @@ SP_ListBox = Class(SP_BaseComponent)
     fSortIndClr,
     fSortedColumnClr,
     fHeaderClr:   Integer;
+    fMouseMode:   Integer;
+    fHeaderGrab:  Integer;
+    fLastMouseX:  Integer;
 
     Procedure     Clear;
     Procedure     SetItem(Index: Integer; Value: aString);
@@ -83,9 +86,11 @@ SP_ListBox = Class(SP_BaseComponent)
     Procedure     SetSortIndClr(c: Integer);
     Procedure     SetSortedColumnClr(c: Integer);
 
-    Procedure     DoMouseWheel(X, Y, Btn, Delta: Integer);
-    Procedure     DoMouseDown(X, Y, Btn: Integer);
-    Procedure     DoDoubleClick(X, Y, Btn: Integer);
+    Procedure     MouseWheel(X, Y, Btn, Delta: Integer); Override;
+    Procedure     MouseDown(X, Y, Btn: Integer); Override;
+    Procedure     MouseMove(X, Y, Btn: Integer); Override;
+    Procedure     MouseUp(X, Y, Btn: Integer); Override;
+    Procedure     DoubleClick(X, Y, Btn: Integer);
     Procedure     Unlock; Override;
     Procedure     Add(Caption: aString);
     Procedure     Insert(Index: Integer; Caption: aString);
@@ -123,6 +128,11 @@ SP_ListBox = Class(SP_BaseComponent)
 
 End;
 
+Const
+
+  mmNone = 0;
+  mmHeaderDrag = 1;
+
 implementation
 
 Uses Math, SP_Components, SP_SysVars, SP_Input, SP_Sound;
@@ -158,12 +168,10 @@ Begin
   CanFocus := True;
   fChosen := False;
   fSortByAlpha := False;
-  OnDblClick := DoDoubleClick;
-  OnMouseDown := DoMouseDown;
-  OnMouseWheel := DoMouseWheel;
   fHeaderClr := SP_UIHalfLight;
   fSortIndClr := SP_UITextDisabled;
   fSortedColumnClr := SP_UIHighlight;
+  fMouseMode := 0;
   fCount := 0;
 
 End;
@@ -786,13 +794,15 @@ Begin
       Else
         c := fDisabledFontClr;
       Print(-fHScroll.Pos + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False);
-      If fFocused Then
-        c := SP_UISelectionOutline
-      Else
-        c := SP_UISelectionUnfocusedOutline;
-      r.Left := Ord(fBorder) * 2;
-      r.Right := (Width - (Ord(fBorder) * 4)) - (fVScroll.Width * Ord(fVScroll.Visible));
-      DrawRect(r, c);
+      If fEnabled Then Begin
+        If fFocused Then
+          c := SP_UISelectionOutline
+        Else
+          c := SP_UISelectionUnfocusedOutline;
+        r.Left := Ord(fBorder) * 2;
+        r.Right := (Width - (Ord(fBorder) * 4)) - (fVScroll.Width * Ord(fVScroll.Visible));
+        DrawRect(r, c);
+      End;
 
     End;
 
@@ -862,20 +872,50 @@ Begin
 
 End;
 
-Procedure SP_ListBox.DoMouseWheel(X, Y, Btn, Delta: Integer);
+Procedure SP_ListBox.MouseWheel(X, Y, Btn, Delta: Integer);
 Begin
+
+  Inherited;
 
   If fVScroll.Visible Then
     fVScroll.Pos := fVScroll.TargetPos + (Delta * fVScroll.WheelStep);
 
 End;
 
-Procedure SP_ListBox.DoMouseDown(X, Y, Btn: Integer);
-Var
-  i, j: Integer;
+Procedure SP_ListBox.MouseMove(X, Y, Btn: Integer);
+begin
+
+  Inherited;
+
+  If fMouseMode = mmHeaderDrag Then Begin
+    Inc(fHeaders[fHeaderGrab].Width, X - fLastMouseX);
+    If fHeaders[fHeaderGrab].Width >= BSize Then Begin
+      fLastMouseX := X;
+      SetUIElements;
+    End Else
+      fHeaders[fHeaderGrab].Width := BSize;
+  End;
+
+end;
+
+Procedure SP_ListBox.MouseUp(X, Y, Btn: Integer);
 Begin
 
-  if fEnabled then Begin
+  Inherited;
+
+  If fMouseMode = mmHeaderDrag Then
+    fMouseMode := mmNone;
+
+End;
+
+Procedure SP_ListBox.MouseDown(X, Y, Btn: Integer);
+Var
+  i, j, oj: Integer;
+Begin
+
+  Inherited;
+
+  if fEnabled And not Dbl then Begin
 
     Dec(Y, 2);
     If fBorder Then Begin
@@ -885,25 +925,41 @@ Begin
 
     If Btn = 1 Then Begin
 
-      If fShowHeaders And fCanUserSort and (fHCount > 0) Then Begin
+      If fShowHeaders And (fHCount > 0) Then Begin
 
         Inc(X, fHScroll.Pos);
         If Y < iFH then Begin
-          i := 0;
+          i := 0; oj := 0;
           j := fHeaders[i].Width;
           While X >= j Do Begin
             Inc(i);
+            oj := j;
             Inc(j, fHeaders[i].Width);
           End;
 
-          if fSortedBy = i Then
-            fSortDir := 1-fSortDir
-          Else
-            fSortedBy := i;
-          Sort(fSortedBy);
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
-          ScrollInView;
-          Exit;
+          If (x < oj + BSize) and (i > 0) Then Begin // Grabbed a header separator
+            fMouseMode := mmHeaderDrag;
+            fHeaderGrab := i - 1;
+            fLastMouseX := X;
+            Exit;
+          End Else
+            If x > j - BSize Then Begin
+              fMouseMode := mmHeaderDrag;
+              fHeaderGrab := i;
+              fLastMouseX := X;
+              Exit;
+            End;
+
+          If fCanUserSort Then Begin
+            if fSortedBy = i Then
+              fSortDir := 1 - fSortDir
+            Else
+              fSortedBy := i;
+            Sort(fSortedBy);
+            SP_PlaySystem(CLICKCHAN, CLICKBANK);
+            ScrollInView;
+            Exit;
+          End;
 
         End;
 
@@ -1084,7 +1140,7 @@ Begin
 
 End;
 
-Procedure SP_ListBox.DoDoubleClick(X, Y, Btn: Integer);
+Procedure SP_ListBox.DoubleClick(X, Y, Btn: Integer);
 Begin
 
   If (Y < iFH) And fShowHeaders Then Exit;

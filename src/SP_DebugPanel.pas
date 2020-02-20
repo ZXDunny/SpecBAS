@@ -2,7 +2,7 @@ unit SP_DebugPanel;
 
 interface
 
-uses Math, Classes, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUnit, SP_ControlMsgs, SP_ButtonUnit, SP_Input;
+uses Math, Classes, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUnit, SP_ControlMsgs, SP_ButtonUnit, SP_Input, SP_ContainerUnit;
 
 Type
 
@@ -20,13 +20,17 @@ Type
 Procedure SP_OpenDebugPanel;
 Procedure SP_CloseDebugPanel;
 Procedure SP_FillDebugPanel;
+Procedure SP_ResizeDebugPanel(X: Integer);
 
 var
 
   FPDebugPanel: SP_ListBox;
   FPDebugCombo: SP_ComboBox;
+  FPSizeGrabber: SP_Container;
+  FPResizingDebugPanel: Boolean;
   FPDebugPanelVisible: Boolean;
   FPDebugPanelWidth: Integer;
+  FPDebugLastMouseX: Integer;
   FPDebugPanelMode: Integer;
   FPDebugBPAdd,
   FPDebugBPDel,
@@ -35,15 +39,49 @@ var
 implementation
 
 Uses SP_FPEditor, SP_Errors, SP_Graphics, SP_BankManager, SP_BankFiling, SP_SysVars, SP_Components, SP_Variables, SP_AnsiStringList,
-     SP_Interpret_PostFix, SP_FileIO, SP_Main;
+     SP_Interpret_PostFix, SP_FileIO, SP_Main, SP_MenuActions;
 
 Procedure SP_UpdateAfterDebug;
 Begin
 
+  FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
   SP_FPWrapProgram;
   SP_AddFPScrollBars(False);
   SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, FocusedWindow = fwEditor);
   SP_DisplayFPListing(-1);
+
+End;
+
+Procedure SP_ResizeDebugPanel(X: Integer);
+Var
+  Delta: Integer;
+  Win: pSP_Window_Info;
+  Error: TSP_ErrorCode;
+Begin
+
+  Delta := FPDebugLastMouseX - X;
+  If Delta <> 0 Then Begin
+    Inc(FPDebugPanelWidth, Delta);
+    If (FPDebugPanelWidth >= 100) And (FPDebugPanelWidth < FPClientWidth - (FPClientWidth Div 4)) Then
+      FPDebugLastMouseX := X
+    Else
+      If FPDebugPanelWidth < 100 Then Begin
+        Delta := 0;
+        FPDebugPanelWidth := 100
+      End Else Begin
+        FPDebugPanelWidth := FPClientWidth - (FPClientWidth Div 4);
+        Delta := 0;
+      End;
+
+    If Delta <> 0 Then Begin
+      SP_GetWindowDetails(FPWindowID, Win, Error);
+      FPDebugCombo.SetBounds(Win^.Width - BSize - FPDebugPanelWidth, FPClientTop + BSize, Trunc(FPDebugPanelWidth * EDFONTSCALEX), FH);
+      FPDebugPanel.SetBounds(FPDebugCombo.Left, FPDebugPanel.Top, FPDebugPanelWidth, FPDebugPanel.Height);
+      FPSizeGrabber.SetBounds(FPDebugCombo.Left - BSize, FPDebugCombo.Top, BSize, FPDebugPanel.Height + BSize + FPDebugCombo.Height);
+      SP_UpdateAfterDebug;
+    End;
+
+  End;
 
 End;
 
@@ -60,6 +98,7 @@ Begin
   If Not Assigned(FPDebugPanel) Then Begin
     FPDebugPanel := SP_ListBox.Create(Win^.Component);
     FPDebugCombo := SP_ComboBox.Create(Win^.Component);
+    FPSizeGrabber := SP_Container.Create(Win^.Component);
   End;
   FPDebugPanelVisible := True;
   FW := Trunc(FONTWIDTH * EDFONTSCALEX);
@@ -93,10 +132,18 @@ Begin
     FPDebugBPDel.OnClick := SP_DebugPanelActionProcs.ButtonClick;
     FPDebugBPAdd := SP_Button.Create(Win^.Component);
     FPDebugBPAdd.OnClick := SP_DebugPanelActionProcs.ButtonClick;
+    FPSizeGrabber.SetBounds(Left - BSize, Top, BSize, FPDebugPanel.Height + BSize + Height);
+    FPSizeGRabber.Border := False;
+    FPSizeGrabber.Caption := '';
+    FPSizeGrabber.Erase := True;
+    FPSizeGrabber.Transparent := False;
+    FPSizeGrabber.OnMouseDown := SP_MenuActionProcs.GrabberMouseDown;
+    FPSizeGrabber.OnMouseMove := SP_MenuActionProcs.GrabberMouseMove;
+    FPSizeGrabber.OnMouseUp := SP_MenuActionProcs.GrabberMouseUp;
+
   End;
   FocusedControl := Nil;
 
-  FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
   SP_FillDebugPanel;
   SP_UpdateAfterDebug;
 
@@ -119,6 +166,7 @@ Begin
   FPDebugBPAdd.Free;
   FPDebugBPDel.Free;
   FPDebugBPEdt.Free;
+  FPSizeGrabber.Free;
   FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
   SP_UpdateAfterDebug;
 
@@ -529,3 +577,4 @@ Begin
 End;
 
 end.
+

@@ -138,7 +138,7 @@ SP_BaseComponent = Class
     Procedure SetAlign(newAlign: Integer); Virtual;
     Procedure SetOverrideScaling(b: Boolean);
 
-    Procedure Erase;
+    Procedure DoErase;
     Function  DecodeKey(Var Char: Byte): Byte;
     Procedure PerformKeyDown(Var Handled: Boolean); Virtual;
     Procedure PerformKeyUp(Var Handled: Boolean); Virtual;
@@ -225,12 +225,13 @@ SP_BaseComponent = Class
     Property MaxWidth:      Integer             read fMaxWidth      write SetMaxWidth;
     Property MaxHeight:     Integer             read fMaxHeight     write SetMaxHeight;
     Property Canvas:        NativeUInt          read GetCanvas;
-    Property DisabledFontClr:   Byte                read fDisabledFontClr   write SetDisabledFontClr;
+    Property DisabledFontClr:   Byte            read fDisabledFontClr   write SetDisabledFontClr;
     Property HighlightClr:  Byte                read fHighlightClr  write SetHighlightClr;
     Property UnfocusedHighlightClr: Byte        read fUnfocusedHighlightClr write SetUnfocusedHighlightClr;
     Property Transparent:   Boolean             read fTransparent   write SetTransparent;
     property OverrideScaling: Boolean           read fOverrideScl   write SetOverrideScaling;
     Property OnFocus: SP_FocusEvent             read fOnFocus       write fOnFocus;
+    Property Erase: Boolean                     read fErase         write fErase;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -1255,7 +1256,7 @@ Begin
 
     // Erase the background if desired
 
-    Erase;
+    DoErase;
 
     // Now execute the before, during and after paint events.
     // the "during" event actually paints the component, so should be set.
@@ -1494,7 +1495,7 @@ begin
 
 end;
 
-Procedure SP_BaseComponent.Erase;
+Procedure SP_BaseComponent.DoErase;
 Var
   Error: TSP_ErrorCode;
 Begin

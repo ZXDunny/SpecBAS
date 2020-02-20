@@ -249,7 +249,7 @@ End;
 Procedure SP_ComboBox.PlaceItems;
 Begin
 
-  Erase;
+  DoErase;
 
   Btn.SetBounds(Width - Height, 0, Height, Height);
   Btn.Caption := #252;

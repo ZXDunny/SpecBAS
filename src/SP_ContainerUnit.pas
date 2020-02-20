@@ -61,6 +61,7 @@ Begin
 
   Inherited;
   fCaption := '';
+  fErase := True;
 
 End;
 
@@ -82,7 +83,10 @@ Begin
     c := fDisabledFontClr;
 
   If fBorder Then Begin
-    yo := Round(iFH/2);
+    If fCaption <> '' Then
+      yo := 0
+    Else
+      yo := Round(iFH/2);
     DrawRect(0, yo, Width -1, Height -1, fBorderClr);
     If fCaption <> '' Then
       PRINT(ifW, 0, ' '+fCaption+' ', c, fBackgroundClr, iSX, iSY, False, False);

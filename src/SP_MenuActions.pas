@@ -49,6 +49,10 @@ Type
     Class Procedure FPMenu_BreakpointAdd(Sender: SP_BaseComponent);
     Class Procedure FPMenu_AddWatch(Sender: SP_BaseComponent);
 
+    Class Procedure GrabberMouseDown(X, Y, Btn: Integer);
+    Class Procedure GrabberMouseMove(X, Y, Btn: Integer);
+    Class Procedure GrabberMouseUp(X, Y, Btn: Integer);
+
   End;
 
   Procedure SP_CreateEditorMenu;
@@ -508,6 +512,24 @@ End;
 Class Procedure SP_MenuActionProcs.FPMenu_AddWatch(Sender: SP_BaseComponent);
 Begin
   AddControlMsg(clKeyPress, aChar(K_CONTROL) + aChar(K_W));
+End;
+
+Class Procedure SP_MenuActionProcs.GrabberMouseDown(X, Y, Btn: Integer);
+Begin
+  DisplaySection.Leave;
+  AddControlMsg(clGrabberMouseDown, LongWordToString(MOUSEX));
+End;
+
+Class Procedure SP_MenuActionProcs.GrabberMouseMove(X, Y, Btn: Integer);
+Begin
+  DisplaySection.Leave;
+  AddControlMsg(clGrabberMouseMove, LongWordToString(MOUSEX));
+End;
+
+Class Procedure SP_MenuActionProcs.GrabberMouseUp(X, Y, Btn: Integer);
+Begin
+  DisplaySection.Leave;
+  AddControlMsg(clGrabberMouseUp, '');
 End;
 
 end.

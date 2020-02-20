@@ -568,7 +568,6 @@ begin
         SP_DisplayMainMenu;
         SP_SetMenuSelection(X, Y, CURMENU);
         SP_InvalidateWholeDisplay;
-        Refresh_Display;
         MENU_SHOWFLAG := True;
         Exit;
 

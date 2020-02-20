@@ -21,6 +21,9 @@ Const
   clKeyPress         = 2;
   clBPEdit           = 3;
   clEditWatch        = 4;
+  clGrabberMouseDown = 5;
+  clGrabberMouseMove = 6;
+  clGrabberMouseUp   = 7;
 
 Var
 
@@ -31,7 +34,7 @@ implementation
 
 Uses
 
-  SP_FPEditor, SP_Errors, SP_Input, SP_SysVars;
+  SP_FPEditor, SP_Errors, SP_Input, SP_SysVars, SP_DebugPanel;
 
 Procedure ProcessNextControlMsg;
 Var
@@ -88,6 +91,23 @@ Begin
         Begin
           i := pLongWord(@ControlMsgList[0].Data[1])^;
           StartWatchOp(i);
+        End;
+
+      clGrabberMouseDown:
+        Begin
+          FPDebugLastMouseX := Integer(pLongWord(@ControlMsgList[0].Data[1])^);
+          FPResizingDebugPanel := True;
+        End;
+
+      clGrabberMouseMove:
+        Begin
+          If FPResizingDebugPanel Then
+            SP_ResizeDebugPanel(Integer(pLongWord(@ControlMsgList[0].Data[1])^));
+        End;
+
+      clGrabberMouseUp:
+        Begin
+          FPResizingDebugPanel := False;
         End;
 
     End;

@@ -604,6 +604,7 @@ Begin
   SP_FPEditorError(Error);
 
   FPDebugPanelVisible := False;
+  FPResizingDebugPanel := False;
   FPDebugPanelWidth := 200;
   FPCDragging := False;
   DWCDragging := False;
@@ -3335,8 +3336,13 @@ Begin
   // Gets the Line (result.x) and character position (result.y) of a given coordinate in the editor window.
 
   VertSB := @FPScrollBars[SP_FindScrollBar(FPVertSc)];
-  Idx := Trunc(VertSB^.Position/FPFh);
-  OfsY := -(Trunc(VertSB^.Position) Mod FPFh) + FPPaperTop;
+  If X >= VertSB^.BoundsRect.Left Then Begin
+    Result.Y := -1;
+    Exit;
+  End Else Begin
+    Idx := Trunc(VertSB^.Position/FPFh);
+    OfsY := -(Trunc(VertSB^.Position) Mod FPFh) + FPPaperTop;
+  End;
 
   If Not EDITORWRAP Then Begin
     HorzSB := @FPScrollBars[SP_FindScrollBar(FPHorzSc)];
@@ -3400,7 +3406,6 @@ Begin
     FPClickTime := CB_GETTICKS;
     IsDouble := False;
   End;
-
 
   // Which window is the mouse pointer in? Windows are stored in back to front order, so work backwards.
 
@@ -5825,6 +5830,8 @@ Begin
         If Idx = Min Then Inc(indent, ns);
       End Else Begin
         SP_InsertLine(Idx, s, '', '');
+        Listing.Flags[Idx].Indent := indent;
+        If Idx = Min Then Inc(indent, ns);
         s := '';
       End;
       If Idx = Min Then Dec(MaxW, ns);
@@ -5887,10 +5894,6 @@ Begin
   End;
 
   SP_CursorPosChanged;
-  For Idx := 0 To Listing.Count -1 Do Begin
-    SP_FPApplyHighlighting(Idx);
-    AddDirtyLine(Idx);
-  End;
 
   CompilerLock.Leave;
 

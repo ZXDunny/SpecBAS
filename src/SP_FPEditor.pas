@@ -5732,7 +5732,7 @@ End;
 
 Procedure SP_FPWordWrapLine(Line: Integer; FromHere: Boolean);
 Var
-  Idx, lIdx, MaxW, Min, Max, tx, cp, sp, ns, l, indent: Integer;
+  Idx, lIdx, MaxW, Min, Max, tx, cp, sp, ns, l, indent, state: Integer;
   s, s2, s3, os, nl: aString;
   HasNumber, c: Boolean;
 Begin
@@ -5760,8 +5760,10 @@ Begin
 
   ns := 0;
   nl := Listing[Min];
+  state := Listing.Flags[Min].State;
   For Idx := Min To Max Do
     ns := ns + Length(Listing[Idx]);
+
   If ns < MaxW-indent Then Begin
     CompilerLock.Leave;
     FILECHANGED := c;
@@ -5828,10 +5830,12 @@ Begin
         SP_InsertLine(Idx, s3, '', '', False);
         Listing.Flags[Idx].ReturnType := spSoftReturn;
         Listing.Flags[Idx].Indent := indent;
+        Listing.Flags[Idx].State := state;
         If Idx = Min Then Inc(indent, ns);
       End Else Begin
         SP_InsertLine(Idx, s, '', '', False);
         Listing.Flags[Idx].Indent := indent;
+        Listing.Flags[Idx].State := state;
         If Idx = Min Then Inc(indent, ns);
         s := '';
       End;
@@ -5851,6 +5855,7 @@ Begin
       End;
       Listing.Flags[Idx].ReturnType := spHardReturn;
       Listing.Flags[Idx].Indent := indent;
+      Listing.Flags[Idx].State := state;
       If Idx = Min Then Inc(indent, ns);
       If Idx = Min Then Dec(MaxW, ns);
       Inc(Idx);
@@ -5861,8 +5866,6 @@ Begin
   Listing.Flags[Idx].ReturnType := spHardReturn;
   lIdx := Idx;
   SP_CursorPosChanged;
-//  For Idx := Min To lIdx Do
-//    SP_FPApplyHighlighting(Idx);
   FILECHANGED := c;
   Listing.OnChange := ListingChange;
 
@@ -5889,7 +5892,6 @@ Begin
       Inc(Idx);
     Inc(Idx);
   End;
-  SetAllToCompile;
   AddVisibleDirty;
   SP_CursorPosChanged;
 

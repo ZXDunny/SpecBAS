@@ -42,10 +42,15 @@ Uses SP_FPEditor, SP_Errors, SP_Graphics, SP_BankManager, SP_BankFiling, SP_SysV
      SP_Interpret_PostFix, SP_FileIO, SP_Main, SP_MenuActions;
 
 Procedure SP_UpdateAfterDebug;
+Var
+  NewPW: Integer;
+  b: Boolean;
 Begin
 
+  NewPW := (FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible))) Div FPFw;
+  b := Abs((FPPaperWidth Div FPFw) - NewPW) > 0;
   FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
-  SP_FPWrapProgram;
+  If b Then SP_FPWrapProgram;
   SP_AddFPScrollBars(False);
   SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, FocusedWindow = fwEditor);
   SP_DisplayFPListing(-1);
@@ -167,7 +172,6 @@ Begin
   FPDebugBPDel.Free;
   FPDebugBPEdt.Free;
   FPSizeGrabber.Free;
-  FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
   SP_UpdateAfterDebug;
 
 End;

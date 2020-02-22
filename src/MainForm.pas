@@ -677,7 +677,7 @@ begin
 
   End Else
 
-    If MOUSEVISIBLE Then Begin
+    If MOUSEVISIBLE And Not SIZINGMAIN Then Begin
 
       // Now check for controls under the mouse
 

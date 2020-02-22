@@ -111,8 +111,8 @@ Procedure SP_InitFPEditor;
 Procedure SP_ForceCompile;
 Procedure SP_StopCompiler;
 Procedure SP_AddLine(Const l, s, c: aString);
-Procedure SP_InsertLine(Index: Integer; Const l, s, c: aString);
-Procedure SP_DeleteLine(Index: Integer);
+Procedure SP_InsertLine(Index: Integer; Const l, s, c: aString; MarkDirty: Boolean = True);
+Procedure SP_DeleteLine(Index: Integer; MarkDirty: Boolean = True);
 Procedure SP_ClearListing;
 Function  SP_WasPrevSoft(Idx: Integer): Boolean; Inline;
 Procedure SP_CompiledListingAdd(const s: aString);
@@ -404,7 +404,7 @@ Begin
           Exit;
     Inc(MaxCompileLines);
     If MaxCompileLines >= Length(CompileList) Then
-      SetLength(CompileList, Length(CompileList) + 10);
+      SetLength(CompileList, Length(CompileList) + 1000);
     CompileList[MaxCompileLines] := Line;
   End;
 End;
@@ -685,7 +685,7 @@ Begin
   CompilerLock.Leave;
 End;
 
-Procedure SP_InsertLine(Index: Integer; Const l, s, c: aString);
+Procedure SP_InsertLine(Index: Integer; Const l, s, c: aString; MarkDirty: Boolean = True);
 Var
   i: Integer;
 Begin
@@ -700,13 +700,13 @@ Begin
   If (i > 0) And Not SP_WasPrevSoft(Index) Then Begin
     Listing.Flags[Index].State := spLineDirty;
     Listing.Flags[Index].GutterSize := SP_LineNumberSize(Index);
-    AddDirtyLine(Index);
+    If MarkDirty Then AddDirtyLine(Index);
   End Else
     Listing.Flags[Index].State := spLineNull;
   CompilerLock.Leave;
 End;
 
-Procedure SP_DeleteLine(Index: Integer);
+Procedure SP_DeleteLine(Index: Integer; MarkDirty: Boolean = True);
 Var
   i: Integer;
 Begin
@@ -714,10 +714,12 @@ Begin
   Listing.Delete(Index);
   SP_CompiledListingDelete(Index);
   SyntaxListing.Delete(Index);
-  For i := Index To Listing.Count -1 Do Begin
-    AddDirtyLine(i);
+  If MarkDirty Then Begin
+    For i := Index To Listing.Count -1 Do Begin
+      AddDirtyLine(i);
+    End;
+    AddDirtyLine(Listing.Count);
   End;
-  AddDirtyLine(Listing.Count);
   CompilerLock.Leave;
 End;
 
@@ -2581,6 +2583,7 @@ Begin
             SP_FillRect((FPGutterWidth * FPFw) + FPPaperLeft +1, OfsY, FPPaperWidth - (FPGutterWidth * FPFw), FPFh, lineClr);
           End;
         End;
+        If SyntaxListing[Idx] = '' Then SP_FPApplyHighlighting(Idx);
         CodeLine := SyntaxListing[Idx];
         // If this line is part of a selection then insert the necessary colour commands now
         ContainsSelection := False;
@@ -4605,8 +4608,10 @@ Procedure RefreshDirtyLines;
 Var
   i: Integer;
 Begin
-  While MaxDirtyLines >= 0 Do
-      SP_DisplayFPListing(DirtyLines[0]);
+  While MaxDirtyLines >= 0 Do Begin
+    i := DirtyLines[0];
+    SP_DisplayFPListing(i);
+  End;
 End;
 
 Procedure SP_ToggleEditorMark(i: Integer);
@@ -5759,10 +5764,6 @@ Begin
     ns := ns + Length(Listing[Idx]);
   If ns < MaxW-indent Then Begin
     CompilerLock.Leave;
-    If nl <> '' Then Begin
-      SP_MarkAsDirty(Min);
-      SP_FPApplyHighlighting(Min);
-    End;
     FILECHANGED := c;
     Listing.OnChange := ListingChange;
     Exit;
@@ -5773,7 +5774,7 @@ Begin
     If Listing.FPSelLine = Idx Then sp := Length(s) + Listing.FPSelPos;
     If Listing.FPCLine = Idx Then cp := Length(s) + Listing.FPCPos;
     s := s + Listing[Min];
-    SP_DeleteLine(Min);
+    SP_DeleteLine(Min, False);
   End;
 
   HasNumber := s[1] in ['0'..'9'];
@@ -5824,12 +5825,12 @@ Begin
         s2 := '';
       End;
       If s3 <> '' Then Begin
-        SP_InsertLine(Idx, s3, '', '');
+        SP_InsertLine(Idx, s3, '', '', False);
         Listing.Flags[Idx].ReturnType := spSoftReturn;
         Listing.Flags[Idx].Indent := indent;
         If Idx = Min Then Inc(indent, ns);
       End Else Begin
-        SP_InsertLine(Idx, s, '', '');
+        SP_InsertLine(Idx, s, '', '', False);
         Listing.Flags[Idx].Indent := indent;
         If Idx = Min Then Inc(indent, ns);
         s := '';
@@ -5838,7 +5839,7 @@ Begin
       Inc(Idx);
     End Else Begin
       If s2 <> '' Then s := s2 + s;
-      SP_InsertLine(Idx, s, '', '');
+      SP_InsertLine(Idx, s, '', '', False);
       s := '';
       If cp >= 0 Then Begin
         Listing.FPCLine := Idx;
@@ -5860,10 +5861,8 @@ Begin
   Listing.Flags[Idx].ReturnType := spHardReturn;
   lIdx := Idx;
   SP_CursorPosChanged;
-  For Idx := Min To lIdx Do Begin
-    SP_MarkAsDirty(Idx);
-    SP_FPApplyHighlighting(Idx);
-  End;
+//  For Idx := Min To lIdx Do
+//    SP_FPApplyHighlighting(Idx);
   FILECHANGED := c;
   Listing.OnChange := ListingChange;
 
@@ -5884,15 +5883,14 @@ Begin
 
   Idx := 0;
   While Idx < Listing.Count Do Begin
-    Idx2 := Idx;
     SP_FPUnWrapLine(Idx);
-    Idx := Idx2;
     SP_FPWordWrapLine(Idx);
     While (Idx < Listing.Count) And (Listing.Flags[Idx].ReturnType = spSoftReturn) Do
       Inc(Idx);
     Inc(Idx);
   End;
-
+  SetAllToCompile;
+  AddVisibleDirty;
   SP_CursorPosChanged;
 
   CompilerLock.Leave;

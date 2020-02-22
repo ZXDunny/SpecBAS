@@ -13,7 +13,7 @@ Type
     ReturnType: Integer;
     Indent: Integer;
     GutterSize: Integer;
-    Break: Boolean;
+    Break, NeedWrap: Boolean;
     Line, Statement: Integer;
   End;
   pLineFlags = ^TLineFlags;
@@ -41,6 +41,7 @@ Type
     fRedoCursorPos, fRedoSelectionInfo: TPoint;
     fBufferSize, fRedoBufferSize: Integer;
     fBufferPtr, fRedoBufferPtr: Integer;
+    fCount: Integer;
   Public
     Delimiter: AnsiChar;
     StrictDelimiter: Boolean;
@@ -49,7 +50,6 @@ Type
     Function  Add(s: AnsiString): Integer;
     Procedure Delete(Index: Integer);
     Procedure Insert(Index: Integer; s: AnsiString);
-    Function  Count: Integer;
     Procedure SetObject(Index: Integer; o: TObject);
     Function  GetObject(Index: Integer): TObject;
     Procedure SetString(Index: Integer; s: AnsiString);
@@ -79,6 +79,7 @@ Type
     Procedure SetCapacity(v: Integer);
     Procedure LoadFromFile(Filename: AnsiString);
     Procedure SaveToFile(Filename: AnsiString);
+    Procedure Resize(NewSize: Integer);
     Property  Strings[Index: Integer]: AnsiString read GetString write SetString; default;
     Property  Flags[Index: Integer]: pLineFlags read GetFlags write SetFlags;
     Property  Objects[Index: Integer]: TObject read GetObject write SetObject;
@@ -90,6 +91,7 @@ Type
     Property  FPCPos: Integer read fFPCPos write SetFPCPos;
     Property  CanUndo: Boolean read GetCanUndo;
     Property  CanRedo: Boolean read GetCanRedo;
+    Property  Count: Integer read fCount;
     Constructor Create;
     Destructor Destroy; override;
   end;
@@ -114,6 +116,7 @@ Constructor TAnsiStringlist.Create;
 Begin
   fBufferSize := 1000;
   fRedoBufferSize := 1000;
+  fCount := 0;
   Clear;
 End;
 
@@ -123,6 +126,20 @@ Begin
   Inherited;
 End;
 
+Procedure TAnsiStringlist.Resize(NewSize: Integer);
+Var
+  l: Integer;
+begin
+
+  l := Length(fStrings);
+  If NewSize > l Then Begin
+    SetLength(fStrings, l + fBufferSize);
+    SetLength(fObjects, l + fBufferSize);
+    SetLength(fFlags, l + fBufferSize);
+  End;
+
+end;
+
 Procedure TAnsiStringlist.Clear;
 Var
   i: Integer;
@@ -130,29 +147,27 @@ Begin
   For i := 0 to Count -1 Do
     If Assigned(OnChange) Then
       OnChange(i, 1);
-  SetLength(fStrings, 0);
-  SetLength(fObjects, 0);
+  Resize(0);
   SetLength(fUndoList, 0);
-  SetLength(fFlags, 0);
   fUndoInProgress := False;
   fBufferPtr := -1;
   fRedoBufferPtr := -1;
+  fCount := 0;
 End;
 
 Function TAnsiStringlist.Add(s: AnsiString): Integer;
 Var
   l: Integer;
 Begin
-  l := Length(fStrings);
-  SetLength(fStrings, l +1);
-  SetLength(fObjects, l +1);
-  SetLength(fFlags, l +1);
+  l := Count;
+  Resize(l +1);
   AddUndoItem(opAdd, l);
   fStrings[l] := s;
   fObjects[l] := nil;
   Result := l;
   If Assigned(OnChange) Then
     OnChange(l, 2);
+  Inc(fCount);
 End;
 
 Procedure TAnsiStringlist.Delete(Index: Integer);
@@ -160,18 +175,17 @@ Var
   i, l: Integer;
 Begin
   AddUndoItem(opDelete, Index);
-  l := Length(fStrings);
+  l := Count;
   If Index < l Then Begin
     For i := Index to l -2 do Begin
       fStrings[i] := fStrings[i+1];
       fObjects[i] := fObjects[i+1];
       fFlags[i] := fFlags[i+1];
     End;
-    SetLength(fStrings, l -1);
-    SetLength(fObjects, l -1);
-    SetLength(fFlags, l -1);
+    Resize(l -1);
     If Assigned(OnChange) Then
       OnChange(Index, 1);
+    Dec(fCount);
   End;
 End;
 
@@ -180,13 +194,11 @@ Var
   l, i: Integer;
 Begin
   AddUndoItem(opInsert, Index);
-  l := Length(fStrings);
+  l := Count;
   If l = 0 Then
     Add(s)
   Else Begin
-    SetLength(fStrings, l +1);
-    SetLength(fObjects, l +1);
-    SetLength(fFlags, l +1);
+    Resize(l +1);
     for i := l DownTo Index +1 Do Begin
       fStrings[i] := fStrings[i -1];
       fObjects[i] := fObjects[i -1];
@@ -196,12 +208,8 @@ Begin
     fObjects[Index] := nil;
     If Assigned(OnChange) Then
       OnChange(Index, 2);
+    Inc(fCount);
   End;
-End;
-
-Function  TAnsiStringlist.Count: Integer;
-Begin
-  Result := Length(fStrings);
 End;
 
 Procedure TAnsiStringlist.SetString(Index: Integer; s: AnsiString);
@@ -236,7 +244,7 @@ Var
   i: Integer;
 Begin
   Result := '';
-  For i := 0 To Length(fStrings) -1 Do
+  For i := 0 To Count -1 Do
     Result := Result + fStrings[i] + #13#10;
 End;
 
@@ -273,7 +281,7 @@ Begin
     c := Delimiter;
 
   Result := '';
-  For i := 0 To Length(fStrings) -1 Do
+  For i := 0 To Count -1 Do
     Result := Result + fStrings[i] + c;
 End;
 
@@ -330,7 +338,7 @@ Procedure TAnsiStringlist.Sort;
   end;
 begin
   AddUndoItem(opAll, 0);
-  QuickSort(0, Length(fStrings) -1);
+  QuickSort(0, Count -1);
   If Assigned(OnChange) Then
     OnChange(-1, 0);
 end;
@@ -438,7 +446,7 @@ Begin
 
       opAdd:
         Begin
-          LineIndex := Length(fStrings) -1;
+          LineIndex := Count -1;
         End;
 
       opInsert:
@@ -456,9 +464,9 @@ Begin
 
       opAll:
         Begin
-          s := LongWordToString(Length(fStrings));
+          s := LongWordToString(Count);
           SetLength(t, SizeOf(TLineFlags) + SizeOf(NativeUInt) + SizeOf(LongWord));
-          For i := 0 To Length(fStrings) -1 Do Begin
+          For i := 0 To Count -1 Do Begin
             pLongWord(@t[1])^ := Length(fStrings[i]);
             CopyMem(@t[5], @fFlags[i].State, SizeOf(TLineFlags));
             pNativeUInt(@t[SizeOf(LongWord) + SizeOf(TLineFlags)])^ := NativeUInt(fObjects[i]);
@@ -483,16 +491,15 @@ Var
   Var
     i, l: Integer;
   Begin
-    l := Length(fStrings);
+    l := Count;
     If Index < l Then Begin
       For i := Index to l -2 do Begin
         fStrings[i] := fStrings[i+1];
         fObjects[i] := fObjects[i+1];
         fFlags[i] := fFlags[i+1];
       End;
-      SetLength(fStrings, l -1);
-      SetLength(fObjects, l -1);
-      SetLength(fFlags, l -1);
+      Resize(l -1);
+      Dec(fCount);
     End;
   End;
 
@@ -558,21 +565,17 @@ Begin
 
           opDelete:
             Begin
-              l2 := Length(fStrings);
+              l2 := Count;
               If l2 = 0 Then Begin
                 AddRedoItem(opAdd, l2);
-                SetLength(fStrings, l2 +1);
-                SetLength(fObjects, l2 +1);
-                SetLength(fFlags, l2 +1);
+                Resize(l2 +1);
                 fStrings[l2] := Operation;
                 fObjects[l2] := Obj;
                 CopyMem(@fFlags[l2].State, @Flags.State, SizeOf(TLineFlags));
                 Result := Result + LongWordToString(0);
               End Else Begin
                 AddRedoItem(opInsert, LineIndex);
-                SetLength(fStrings, l2 +1);
-                SetLength(fObjects, l2 +1);
-                SetLength(fFlags, l2 +1);
+                Resize(l2 +1);
                 for j := l2 DownTo LineIndex +1 Do Begin
                   fStrings[j] := fStrings[j -1];
                   fObjects[j] := fObjects[j -1];
@@ -583,17 +586,17 @@ Begin
                 CopyMem(@fFlags[LineIndex].State, @Flags.State, SizeOf(TLineFlags));
                 Result := Result + LongWordToString(LineIndex);
               End;
+              Inc(fCount);
             End;
 
           opAll:
             Begin
               AddRedoItem(opAll, 0);
               l2 := pLongWord(@Operation[1])^;
-              If l2 <> Length(fStrings) Then Begin
-                SetLength(fStrings, l2);
-                SetLength(fFlags, l2);
-                SetLength(fObjects, l2);
+              If l2 <> Count Then Begin
+                Resize(l2);
               End;
+              fCount := l2;
               ptr := @Operation[5];
               For i := 0 to l2 -1 do Begin
                 SetLength(fStrings[i], pLongWord(Ptr)^);
@@ -698,7 +701,7 @@ Begin
 
       opAdd:
         Begin
-          LineIndex := Length(fStrings) -1;
+          LineIndex := Count -1;
         End;
 
       opInsert:
@@ -716,9 +719,9 @@ Begin
 
       opAll:
         Begin
-          s := LongWordToString(Length(fStrings));
+          s := LongWordToString(Count);
           SetLength(t, SizeOf(TLineFlags) + SizeOf(NativeUInt) + SizeOf(LongWord));
-          For i := 0 To Length(fStrings) -1 Do Begin
+          For i := 0 To Count -1 Do Begin
             pLongWord(@t[1])^ := Length(fStrings[i]);
             CopyMem(@t[5], @fFlags[i].State, SizeOf(TLineFlags));
             pNativeUInt(@t[SizeOf(LongWord) + SizeOf(TLineFlags)])^ := NativeUInt(fObjects[i]);
@@ -750,17 +753,16 @@ Var
   Var
     i, l: Integer;
   Begin
-    l := Length(fStrings);
+    l := Count;
     If Index < l Then Begin
       For i := Index to l -2 do Begin
         fStrings[i] := fStrings[i+1];
         fObjects[i] := fObjects[i+1];
         fFlags[i] := fFlags[i+1];
       End;
-      SetLength(fStrings, l -1);
-      SetLength(fObjects, l -1);
-      SetLength(fFlags, l -1);
+      Resize(l -1);
     End;
+    Dec(fCount);
   End;
 
 Begin
@@ -825,21 +827,17 @@ Begin
 
           opDelete:
             Begin
-              l2 := Length(fStrings);
+              l2 := Count;
               If l2 = 0 Then Begin
                 AddUndoItem(opAdd, l2);
-                SetLength(fStrings, l2 +1);
-                SetLength(fObjects, l2 +1);
-                SetLength(fFlags, l2 +1);
+                Resize(l2 +1);
                 fStrings[l2] := Operation;
                 fObjects[l2] := Obj;
                 CopyMem(@fFlags[l2].State, @Flags.State, SizeOf(TLineFlags));
                 Result := Result + LongWordToString(0);
               End Else Begin
                 AddUndoItem(opInsert, LineIndex);
-                SetLength(fStrings, l2 +1);
-                SetLength(fObjects, l2 +1);
-                SetLength(fFlags, l2 +1);
+                Resize(l2 +1);
                 for j := l2 DownTo LineIndex +1 Do Begin
                   fStrings[j] := fStrings[j -1];
                   fObjects[j] := fObjects[j -1];
@@ -850,16 +848,15 @@ Begin
                 CopyMem(@fFlags[LineIndex].State, @Flags.State, SizeOf(TLineFlags));
                 Result := Result + LongWordToString(LineIndex);
               End;
+              Inc(fCount);
             End;
 
           opAll:
             Begin
               AddUndoItem(opAll, 0);
               l2 := pLongWord(@Operation[1])^;
-              If l2 <> Length(fStrings) Then Begin
-                SetLength(fStrings, l2);
-                SetLength(fFlags, l2);
-                SetLength(fObjects, l2);
+              If l2 <> Count Then Begin
+                Resize(l2);
               End;
               ptr := @Operation[5];
               For i := 0 to l2 -1 do Begin
@@ -873,6 +870,7 @@ Begin
                 Inc(Ptr, Length(fStrings[i]));
                 Result := Result + LongWordToString(i);
               End;
+              fCount := l2;
             End;
 
         End;
@@ -909,7 +907,7 @@ End;
 Procedure TAnsiStringList.SetCapacity(v: Integer);
 Begin
 
-  SetLength(fStrings, v);
+  Resize(v);
 
 End;
 

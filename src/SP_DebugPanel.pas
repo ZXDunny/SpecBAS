@@ -79,11 +79,13 @@ Begin
       End;
 
     If Delta <> 0 Then Begin
+      DisplaySection.Enter;
       SP_GetWindowDetails(FPWindowID, Win, Error);
       FPDebugCombo.SetBounds(Win^.Width - BSize - FPDebugPanelWidth, FPClientTop + BSize, Trunc(FPDebugPanelWidth * EDFONTSCALEX), FH);
       FPDebugPanel.SetBounds(FPDebugCombo.Left, FPDebugPanel.Top, FPDebugPanelWidth, FPDebugPanel.Height);
       FPSizeGrabber.SetBounds(FPDebugCombo.Left - BSize, FPDebugCombo.Top, BSize, FPDebugPanel.Height + BSize + FPDebugCombo.Height);
       SP_UpdateAfterDebug;
+      DisplaySection.Leave;
     End;
 
   End;

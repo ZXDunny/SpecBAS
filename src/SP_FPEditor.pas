@@ -369,7 +369,8 @@ Var
 Begin
   MaxCompileLines := -1;
   for i := 0 To Listing.Count -1 do
-    AddCompileLine(i);
+    If SP_LineHasNumber(i) <> 0 Then
+      AddCompileLine(i);
 End;
 
 Procedure ListingChange(Index, Operation: Integer);
@@ -398,6 +399,7 @@ Begin
   While (i > 0) And (SP_lineHasNumber(i) = 0) Do Dec(i);
   if i >= 0 Then Begin
     Line := i;
+    Listing.Flags[Line].State := spLineDirty;
     if MaxCompileLines >= 0 Then
       For i := 0 to MaxCompileLines Do
         If CompileList[i] = Line Then
@@ -5767,6 +5769,7 @@ Begin
   If ns < MaxW-indent Then Begin
     CompilerLock.Leave;
     FILECHANGED := c;
+    AddCompileLine(Min);
     Listing.OnChange := ListingChange;
     Exit;
   End;
@@ -5862,6 +5865,7 @@ Begin
     End;
   Until s = '';
 
+  AddCompileLine(Min);
   Dec(Idx);
   Listing.Flags[Idx].ReturnType := spHardReturn;
   lIdx := Idx;
@@ -9558,8 +9562,14 @@ Begin
   HasErrors := False;
   HasDirty := False;
   For Idx := 0 To Listing.Count -1 Do Begin
+
     HasErrors := HasErrors or (Listing.Flags[Idx].State in [spLineError, spLineDuplicate]);
-    HasDirty := HasDirty or (Listing.Flags[Idx].State in [spLineDirty]);
+
+    If Listing.Flags[Idx].State in [spLineDirty] Then Begin
+      AddCompileLine(Idx);
+      HasDirty := True;
+    End;
+
     If HasErrors Then Begin
       Listing.FPCLine := Idx;
       i := 1;

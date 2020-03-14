@@ -5668,17 +5668,14 @@ Begin
   c := FILECHANGED;
   Listing.OnChange := nil;
 
-  CompilerLock.Enter;
   s := '';
   lMin := Line;
   While (lMin > 0) And SP_WasPrevSoft(lMin) Do Dec(lMin);
   lMax := lMin;
   While (lMax < Listing.Count -1) And (Listing.Flags[lMax].ReturnType = spSoftReturn) Do Inc(lMax);
 
-  If lMin = lMax Then Begin
-    CompilerLock.Leave;
+  If lMin = lMax Then
     Exit; // No need to unwrap this line
-  End;
 
   // Fix the cursor position
 
@@ -5686,8 +5683,8 @@ Begin
   l := 0;
   Flag := spLineNull;
   For Idx := lMin To lMax Do Begin
-    s := s + Listing[lMin];
-    Flag := Max(Flag, Listing.Flags[lMin].State);
+    s := s + Listing[Idx];
+    Flag := Max(Flag, Listing.Flags[Idx].State);
     If Listing.FPCLine = Idx Then Begin
       Listing.FPCLine := lMin;
       Listing.FPCPos := Listing.FPCPos +l;
@@ -5696,19 +5693,20 @@ Begin
       Listing.FPSelLine := lMin;
       Inc(Listing.FPSelPos, l);
     End;
-    Inc(l, Length(Listing[lMin]));
-    SP_DeleteLine(lMin);
+    Inc(l, Length(Listing[Idx]));
   End;
 
-  SP_InsertLine(lMin, s, '', '');
+  CompilerLock.Enter;
+  For Idx := lMin To lMax Do SP_DeleteLine(lMin, False);
+  SP_InsertLine(lMin, s, '', '', False);
   Listing.Flags[lMin].ReturnType := spHardReturn;
   Listing.Flags[lMin].Indent := oldIndent;
   Listing.Flags[lMin].State := Flag;
-  SP_CursorPosChanged;
+  CompilerLock.Leave;
+
   FILECHANGED := c;
   Listing.OnChange := ListingChange;
 
-  CompilerLock.Leave;
 
 End;
 
@@ -5746,8 +5744,6 @@ Begin
   // Then gather all subsequent lines together (exclusive of that discovered line) and split them with
   // soft-return flags as they are added.
 
-  CompilerLock.Enter;
-
   c := FILECHANGED;
   Listing.OnChange := nil;
 
@@ -5767,7 +5763,6 @@ Begin
     ns := ns + Length(Listing[Idx]);
 
   If ns < MaxW-indent Then Begin
-    CompilerLock.Leave;
     FILECHANGED := c;
     AddCompileLine(Min);
     Listing.OnChange := ListingChange;
@@ -5868,12 +5863,8 @@ Begin
   AddCompileLine(Min);
   Dec(Idx);
   Listing.Flags[Idx].ReturnType := spHardReturn;
-  lIdx := Idx;
-  SP_CursorPosChanged;
   FILECHANGED := c;
   Listing.OnChange := ListingChange;
-
-  CompilerLock.Leave;
 
 End;
 
@@ -5886,8 +5877,6 @@ Begin
 
   // Runs through the whole program, wraps all lines
 
-  CompilerLock.Enter;
-
   Idx := 0;
   While Idx < Listing.Count Do Begin
     SP_FPUnWrapLine(Idx);
@@ -5898,8 +5887,6 @@ Begin
   End;
   AddVisibleDirty;
   SP_CursorPosChanged;
-
-  CompilerLock.Leave;
 
 End;
 

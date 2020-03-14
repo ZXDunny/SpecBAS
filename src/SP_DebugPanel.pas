@@ -448,8 +448,21 @@ Begin
               Enabled := True;
             End;
           End;
-        3: // Disassembly
+        3: // Labels - double click to jump
           Begin
+
+          End;
+        4: // Procedures/functions
+          Begin
+
+          End;
+        5: // Disassembly
+          Begin
+
+          End;
+        6: // Map
+          Begin
+
           End;
       End;
       SetButtons;

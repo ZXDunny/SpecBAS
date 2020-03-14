@@ -848,6 +848,7 @@ Begin
       SP_SPRITE_BANK:
         Begin
           Sprite := pSP_Sprite_Info(@SP_BankList[BankID].Info[0]);
+          Sprite^.ID := SP_BankList[BankID]^.ID;
           Sprite^.Window := pSP_Window_Info(WINDOWPOINTER);
           SP_SpriteToWindow(Sprite, pSP_Window_Info(WINDOWPOINTER)^.ID);
           Sprite^.Data := @SP_BankList[BankID].Memory[0];

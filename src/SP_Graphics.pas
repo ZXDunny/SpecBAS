@@ -1239,7 +1239,7 @@ Begin
         Window^.SpriteCount := 0;
 
         Dec(NUMWINDOWS);
-        SP_DeleteBank(WindowID, Error);
+        SP_DeleteBank(BankIdx, Error);
 
       End;
 

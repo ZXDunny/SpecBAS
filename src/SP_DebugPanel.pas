@@ -6,6 +6,8 @@ uses Math, Classes, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUn
 
 Type
 
+  SP_LabelInfo = Record Line, Statement: Integer; Name: aString; End;
+
   SP_DebugPanelActionProcs = Class
 
   Public
@@ -14,6 +16,7 @@ Type
     Class Procedure DblClick(Sender: SP_BaseComponent; Index: Integer; Text: aString);
     Class Procedure PanelSelect(Sender: SP_BaseComponent; Index: Integer);
     Class Procedure ButtonClick(Sender: SP_BaseComponent);
+    Class Procedure SelectItem(Sender: SP_BaseComponent; Index: Integer);
 
   End;
 
@@ -21,6 +24,7 @@ Procedure SP_OpenDebugPanel;
 Procedure SP_CloseDebugPanel;
 Procedure SP_FillDebugPanel;
 Procedure SP_ResizeDebugPanel(X: Integer);
+Procedure SP_FPUpdateLabelList;
 
 var
 
@@ -35,6 +39,7 @@ var
   FPDebugBPAdd,
   FPDebugBPDel,
   FPDebugBPEdt: SP_Button;
+  FPLabelList: Array of SP_LabelInfo;
 
 implementation
 
@@ -132,6 +137,7 @@ Begin
     FPDebugPanel.OnChoose := SP_DebugPanelActionProcs.DblClick;
     FPDebugPanel.OnSelect := SP_DebugPanelActionProcs.PanelSelect;
     FPDebugPanel.MultiSelect := False;
+    FPDebugPanel.OnSelect := SP_DebugPanelActionProcs.SelectItem;
     OnChange := SP_DebugPanelActionProcs.PanelSwitch;
     FPDebugBPEdt := SP_Button.Create(Win^.Component);
     FPDebugBPEdt.OnClick := SP_DebugPanelActionProcs.ButtonClick;
@@ -242,7 +248,7 @@ Var
 
   Procedure SetButtons;
   Var
-    xPos, i: Integer;
+    xPos, i, hMod: Integer;
     Btn: SP_Button;
     ShowBtns: Boolean;
   Const
@@ -270,10 +276,15 @@ Var
           ShowBtns := True;
         End;
     End;
+    If not EDITORWRAP then Begin
+      With FPScrollBars[SP_FindScrollBar(FPHorzSc)].BoundsRect do
+        hMod := (Bottom - Top) + BSize;
+    End Else
+      hMod := 0;
     If ShowBtns Then
-      FPDebugPanel.Height := FPPaperHeight - (FPDebugCombo.Height + BSize) - (FH + BSize * 3)
+      FPDebugPanel.Height := hMod + FPPaperHeight - (FPDebugCombo.Height + BSize) - (FH + BSize * 3)
     Else
-      FPDebugPanel.Height := FPPaperHeight - (FPDebugCombo.Height + BSize);
+      FPDebugPanel.Height := hMod + FPPaperHeight - (FPDebugCombo.Height + BSize);
     xPos := FPDebugPanel.Left + FPDebugPanel.Width + BSize;
     For i := 0 to 2 Do Begin
       Case i of
@@ -450,6 +461,29 @@ Begin
           End;
         3: // Labels - double click to jump
           Begin
+            If Length(FPLabelList) = 0 Then Begin
+              Clear;
+              Add(' No labels defined');
+              Enabled := False;
+            End Else Begin
+              Clear;
+              MaxW := 0;
+              MaxP := 0;
+              For i := 0 To Length(FPLabelList) -1 Do Begin
+                s := FPLabelList[i].Name;
+                j := FPLabelList[i].Line;
+                vContent := ' ' + IntToString(Listing.Flags[j].Line) + ':' + IntToString(FPLabelList[i].Statement);
+                MaxW := Max(MaxW, Length(vContent) +1);
+                MaxP := Max(MaxP, Length(s) +1);
+                Add(s + #255 + vContent);
+              End;
+              MaxW := Max(6, MaxW);
+              MaxP := Max(16, MaxP);
+              AddHeader(' Name', MaxW * iFW);
+              AddHeader(' Line:Statement', MaxP * iFW);
+              Sort(0);
+              Enabled := True;
+            End;
 
           End;
         4: // Procedures/functions
@@ -478,6 +512,7 @@ End;
 Class Procedure SP_DebugPanelActionProcs.PanelSwitch(Sender: SP_BaseComponent; Text: aString);
 Begin
 
+  SP_FPUpdateLabelList;
   SP_FillDebugPanel;
 
 End;
@@ -539,12 +574,69 @@ Begin
 
 End;
 
+Class Procedure SP_DebugPanelActionProcs.SelectItem(Sender: SP_BaseComponent; Index: Integer);
+var
+  i, j: Integer;
+  Error: TSP_ErrorCode;
+Begin
+
+  If Index < 0 Then Exit;
+
+  Case FPDebugCombo.ItemIndex of
+    3: // Labels - highlight all @Label instances
+      Begin
+        FPSearchTerm := '@' + FPLabelList[Index].Name;
+        FPSearchOptions := [soForward, soStart];
+        SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
+        FPShowingSearchResults := True;
+        j := -1;
+        For i := 0 To Length(FPFindResults) -1 Do Begin
+          If FPFindResults[i].Line <> j Then Begin
+            SP_FPApplyHighlighting(FPFindResults[i].Line);
+            AddDirtyLine(FPFindResults[i].Line);
+          End;
+          j := FPFindResults[i].Line;
+        End;
+        SP_DisplayFPListing(-1);
+      End;
+    4: // Procs and FNs - highlight all usages
+      Begin
+      End;
+  End;
+
+End;
+
 Class Procedure SP_DebugPanelActionProcs.DblClick(Sender: SP_BaseComponent; Index: Integer; Text: aString);
+Var
+  s: aString;
+  Error: TSP_ErrorCode;
 Begin
 
   // User double clicked (or used the enter key) on a breakpoint so open it and edit it.
 
-  SP_EditBreakpoint(Index, False);
+  Case FPDebugCombo.ItemIndex of
+    0: // Variables - edit the var
+      Begin
+      End;
+    1: // Watches - edit the watch
+      Begin
+        AddControlMsg(clEditWatch, LongWordToString(FPDebugPanel.SelectedIndex));
+      End;
+    2: // Breakpoints - edit the breakpoint
+      Begin
+        SP_EditBreakpoint(Index, False);
+      End;
+    3: // Labels - double click to jump to that label declaration
+      Begin
+        s := EDITLINE;
+        EDITLINE := '@' + FPLabelList[Index].Name;
+        SP_FPBringToEditor(0, 0, Error, False);
+        EDITLINE := s;
+      End;
+    4: // Procs and FNs - jump to declaration
+      Begin
+      End;
+  End;
 
 End;
 
@@ -594,6 +686,63 @@ Begin
   End;
 
 End;
+
+Procedure SP_FPUpdateLabelList;
+var
+  i, j, l, ps, St: Integer;
+  inRem, inClr, inString: Boolean;
+  s, lbl: aString;
+Label
+  Again;
+Begin
+
+  SetLength(FPLabelList, 0);
+  For i := 0 To Listing.Count -1 Do
+    If Listing.Flags[i].HasLabel Then Begin
+      j := i;
+      While (j > 0) And (SP_LineHasNumber(j) = 0) Do Dec(j);
+      InString := False; InClr := False; InREM := False;
+      St := Listing.Flags[j].Statement;
+      While j < i Do Begin
+        s := s + Listing[j];
+        Inc(j);
+      End;
+      ScanForStatements(s, St, InString, InREM, InClr);
+      s := lower(Listing[i]);
+      If (i < Listing.Count -2) And (SP_LineHasNumber(i + 1) = 0) Then
+        s := s + Lower(Listing[i + 1]);
+    Again:
+      j := 1;
+      InString := False; InClr := False; InREM := False;
+      ps := Pos('label', s);
+      if ps > 0 Then Begin
+        ScanForStatements(Copy(s, 1, ps -1), St, InString, InREM, InClr);
+        If not InString then Begin
+          Inc(ps, 5);
+          while (ps < length(s)) and (s[ps] <= ' ') do inc(ps);
+          if s[ps] = '@' Then begin
+            Inc(ps);
+            while (ps <= length(s)) and (s[ps] in ['0'..'9', 'a'..'z', '_']) do Begin
+              lbl := lbl + s[ps];
+              inc(ps);
+            end;
+          end;
+          if lbl <> '' then begin
+            l := Length(FPLabelList);
+            SetLength(FPLabelList, l +1);
+            FPLabelList[l].Line := i;
+            FPLabelList[l].Statement := St;
+            FPLabelList[l].Name := lbl;
+          End;
+          s := Copy(s, ps);
+          Goto Again;
+        End;
+      End;
+    End;
+
+  SP_FillDebugPanel;
+
+end;
 
 end.
 

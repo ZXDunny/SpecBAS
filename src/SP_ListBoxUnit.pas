@@ -90,7 +90,7 @@ SP_ListBox = Class(SP_BaseComponent)
     Procedure     MouseDown(X, Y, Btn: Integer); Override;
     Procedure     MouseMove(X, Y, Btn: Integer); Override;
     Procedure     MouseUp(X, Y, Btn: Integer); Override;
-    Procedure     DoubleClick(X, Y, Btn: Integer);
+    Procedure     DoubleClick(X, Y, Btn: Integer); Override;
     Procedure     Unlock; Override;
     Procedure     Add(Caption: aString);
     Procedure     Insert(Index: Integer; Caption: aString);

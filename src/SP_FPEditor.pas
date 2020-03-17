@@ -180,6 +180,7 @@ Procedure SP_SelectWord;
 Procedure SP_FPClearSelection(Var Sel: SP_SelectionInfo);
 Procedure SP_FPDeleteSelection(Var Sel: SP_SelectionInfo);
 Procedure SP_FPEditorPerformEdit(Key: Byte);
+Procedure SP_FPBringToEditor(LineNum, Statement: Integer; Var Error: TSP_ErrorCode; DoEdit: Boolean = True);
 Procedure SP_FindAll(Text: aString; Const Options: SP_SearchOptions; Var Error: TSP_ErrorCode);
 Function  SP_FindText(Text: aString; StartAtL, StartAtP: Integer; const Options: SP_SearchOptions): TPoint;
 Procedure SP_DWPerformEdit(Char: Byte);
@@ -377,6 +378,13 @@ Procedure ListingChange(Index, Operation: Integer);
 Var
   c: Boolean;
 Begin
+
+  Listing.Flags[Index].HasLabel := Pos('label', lower(Listing[Index])) > 0;
+  If FPDebugPanelVisible And (FPDebugCombo.ItemIndex = 3) Then Begin
+    SP_DisplayFPListing(Index);
+    SP_FPUpdateLabelList;
+  End;
+
   Case Operation of
     0: // Changed line
       AddCompileLine(Index);
@@ -4649,6 +4657,7 @@ Var
   Sel: SP_SelectionInfo;
   Changed, SelWasActive, b: Boolean;
   Error: TSP_ErrorCode;
+  Flags: TLineFlags;
 
   Procedure PlayClick;
   Begin
@@ -5674,8 +5683,11 @@ Begin
   lMax := lMin;
   While (lMax < Listing.Count -1) And (Listing.Flags[lMax].ReturnType = spSoftReturn) Do Inc(lMax);
 
-  If lMin = lMax Then
+  If lMin = lMax Then Begin
+    Listing.OnChange := ListingChange;
+    FILECHANGED := c;
     Exit; // No need to unwrap this line
+  End;
 
   // Fix the cursor position
 
@@ -5706,7 +5718,6 @@ Begin
 
   FILECHANGED := c;
   Listing.OnChange := ListingChange;
-
 
 End;
 
@@ -6425,7 +6436,7 @@ Begin
 
 End;
 
-Procedure SP_FPBringToEditor(LineNum, Statement: Integer; Var Error: TSP_ErrorCode);
+Procedure SP_FPBringToEditor(LineNum, Statement: Integer; Var Error: TSP_ErrorCode; DoEdit: Boolean = True);
 Var
   Idx, St, cPos: Integer;
   uLabel: aString;
@@ -6523,7 +6534,7 @@ Begin
   // Set the current edit line into the history. At this point,
   // Linenum is the INDEX of the line we want to pull, and st is the statement number. CURSORPOS may
   // also be set.
-  If StripSpaces(EDITLINE) <> '' Then
+  If DoEdit and (StripSpaces(EDITLINE) <> '') Then
     If HistoryPos = Length(EditorHistory) Then Begin
       SetLength(EditorHistory, Length(EditorHistory) +1);
       EditorHistory[Length(EditorHistory) -1] := EDITLINE;
@@ -6533,35 +6544,37 @@ Begin
     St := Statement;
     DWStoreEditorState;
     PROGLINE := SP_GetLineNumberFromText(Listing[LineNum]);
-    EDITLINE := SP_DeTokenise(SP_TokeniseLine(SP_GetLineTextFromNumber(PROGLINE), False, True), CPos, False, False);
-    If LabelSearch Then Begin
-      searchOpt := [soForward, soCondenseSpaces, soInEditLine];
-      lFound := SP_FindText('LABEL '+uLabel, 0, 1, searchOpt);
-    End;
-    If lFound.X > 0 Then Begin
-      CURSORPOS := lFound.X
-    End Else
-      If Statement > 1 Then Begin
-        Idx := CURSORPOS;
-        While (Idx <= Length(EDITLINE)) Do Begin
-          If EDITLINE[Idx] = ':' Then Begin
-            Dec(Statement);
-            If Statement = 1 Then Break;
-          End;
-          Inc(Idx);
-        End;
-        If Idx < Length(EDITLINE) Then Begin
-          Inc(Idx);
-          While (Idx < Length(EDITLINE)) And (EDITLINE[Idx] <= ' ') Do
-            Inc(Idx);
-          CURSORPOS := Idx;
-        End;
-      End Else Begin
-        Statement := 1;
-        CURSORPOS := 1;
-        While (CURSORPOS <= Length(EDITLINE)) And ((EDITLINE[CURSORPOS] in ['0'..'9']) Or (EDITLINE[CURSORPOS] <= ' ')) Do
-          Inc(CURSORPOS);
+    If DoEdit Then Begin
+      EDITLINE := SP_DeTokenise(SP_TokeniseLine(SP_GetLineTextFromNumber(PROGLINE), False, True), CPos, False, False);
+      If LabelSearch Then Begin
+        searchOpt := [soForward, soCondenseSpaces, soInEditLine];
+        lFound := SP_FindText('LABEL '+uLabel, 0, 1, searchOpt);
       End;
+      If lFound.X > 0 Then Begin
+        CURSORPOS := lFound.X
+      End Else
+        If Statement > 1 Then Begin
+          Idx := CURSORPOS;
+          While (Idx <= Length(EDITLINE)) Do Begin
+            If EDITLINE[Idx] = ':' Then Begin
+              Dec(Statement);
+              If Statement = 1 Then Break;
+            End;
+            Inc(Idx);
+          End;
+          If Idx < Length(EDITLINE) Then Begin
+            Inc(Idx);
+            While (Idx < Length(EDITLINE)) And (EDITLINE[Idx] <= ' ') Do
+              Inc(Idx);
+            CURSORPOS := Idx;
+          End;
+        End Else Begin
+          Statement := 1;
+          CURSORPOS := 1;
+          While (CURSORPOS <= Length(EDITLINE)) And ((EDITLINE[CURSORPOS] in ['0'..'9']) Or (EDITLINE[CURSORPOS] <= ' ')) Do
+            Inc(CURSORPOS);
+        End;
+    End;
     Found := SP_FindFPLineStatement(SP_GetLineNumberFromText(Listing[LineNum]), St);
     Listing.FPCLine := Found.X;
     Listing.FPCPos := Found.Y;
@@ -6576,9 +6589,11 @@ Begin
       SP_CalculateFPCursorPos;
       SP_ScrollInView;
     End;
-    DWSelP := CURSORPOS;
-    If DWWindowID >= 0 Then
-      SP_EditorDisplayEditLine;
+    If DoEdit Then Begin
+      DWSelP := CURSORPOS;
+      If DWWindowID >= 0 Then
+        SP_EditorDisplayEditLine;
+    End;
   End;
 End;
 

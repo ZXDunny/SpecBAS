@@ -13,7 +13,7 @@ Type
     ReturnType: Integer;
     Indent: Integer;
     GutterSize: Integer;
-    Break, NeedWrap: Boolean;
+    Break, NeedWrap, HasLabel: Boolean;
     Line, Statement: Integer;
   End;
   pLineFlags = ^TLineFlags;

@@ -11159,14 +11159,17 @@ Begin
 
   // LABEL labelname
 
-  Inc(Position);
-  LabelLen := pLongWord(@Tokens[Position])^;
-  Inc(Position, SizeOf(LongWord));
-  LabelText := Copy(Tokens, Position, LabelLen);
-  Inc(Position, LabelLen);
+  If Tokens[Position] <> SP_TERMINAL_CHAR Then Begin
+    Inc(Position);
+    LabelLen := pLongWord(@Tokens[Position])^;
+    Inc(Position, SizeOf(LongWord));
+    LabelText := Copy(Tokens, Position, LabelLen);
+    Inc(Position, LabelLen);
 
-  Result := CreateToken(SP_LABEL, 0, LabelLen) + LabelText;
-  Result := CreateToken(SP_SKIP_STATEMENT, 0, SizeOf(LongWord)) + LongWordToString(Length(Result) + SizeOf(TToken) + SizeOf(LongWord)) + Result;
+    Result := CreateToken(SP_LABEL, 0, LabelLen) + LabelText;
+    Result := CreateToken(SP_SKIP_STATEMENT, 0, SizeOf(LongWord)) + LongWordToString(Length(Result) + SizeOf(TToken) + SizeOf(LongWord)) + Result;
+  End Else
+    Error.Code := SP_ERR_SYNTAX_ERROR;
 
 End;
 

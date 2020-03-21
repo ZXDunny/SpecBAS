@@ -405,7 +405,7 @@ Begin
                 End;
                 Add(s + #255 + vContent);
               End;
-              AddHeader(' Expr', Max(5, MaxW) * iFW);
+              AddHeader(' Expr', Max(6, MaxW) * iFW);
               AddHeader(' Result', Max(7, MaxP) * iFW);
               Sort(0);
               Enabled := True;
@@ -470,7 +470,7 @@ Begin
               MaxW := 0;
               MaxP := 0;
               For i := 0 To Length(FPLabelList) -1 Do Begin
-                s := FPLabelList[i].Name;
+                s := ' ' + FPLabelList[i].Name;
                 j := FPLabelList[i].Line;
                 vContent := ' ' + IntToString(Listing.Flags[j].Line) + ':' + IntToString(FPLabelList[i].Statement);
                 MaxW := Max(MaxW, Length(vContent) +1);
@@ -481,7 +481,6 @@ Begin
               MaxP := Max(16, MaxP);
               AddHeader(' Name', MaxW * iFW);
               AddHeader(' Line:Statement', MaxP * iFW);
-              Sort(0);
               Enabled := True;
             End;
 
@@ -713,6 +712,7 @@ Begin
         s := s + Lower(Listing[i + 1]);
     Again:
       j := 1;
+      lbl := '';
       InString := False; InClr := False; InREM := False;
       ps := Pos('label', s);
       if ps > 0 Then Begin

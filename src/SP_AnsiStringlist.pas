@@ -122,6 +122,7 @@ End;
 
 Destructor TAnsiStringlist.Destroy;
 Begin
+  OnChange := nil;
   Clear;
   Inherited;
 End;

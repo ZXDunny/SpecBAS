@@ -1144,8 +1144,11 @@ Procedure SP_ListBox.DoubleClick(X, Y, Btn: Integer);
 Begin
 
   If (Y < iFH) And fShowHeaders Then Exit;
-  If Assigned(OnChoose) and (fLastSelected <> -1) Then
-    OnChoose(Self, fLastSelected, Copy(fStrings[fLastSelected], 1, Pos(#255, fStrings[fLastSelected]) -1));
+  If Assigned(OnDblClick) and (fLastSelected <> -1) Then
+    OnDblClick(X, Y, Btn)
+  Else
+    If Assigned(OnChoose) and (fLastSelected <> -1) Then
+      OnChoose(Self, fLastSelected, Copy(fStrings[fLastSelected], 1, Pos(#255, fStrings[fLastSelected]) -1));
 
 End;
 

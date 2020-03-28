@@ -697,7 +697,7 @@ Begin
 
   SetLength(FPLabelList, 0);
   For i := 0 To Listing.Count -1 Do
-    If Listing.Flags[i].HasLabel Then Begin
+    If Listing.Flags[i].PoI Then Begin
       j := i;
       While (j > 0) And (SP_LineHasNumber(j) = 0) Do Dec(j);
       InString := False; InClr := False; InREM := False;

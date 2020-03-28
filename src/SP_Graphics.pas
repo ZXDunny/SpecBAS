@@ -182,12 +182,12 @@ Const
     // User interface colours - from the Speccy - Dark colours:
 
     (B: $00; G: $00; R: $00; A: $FF), // Black
-    (B: $C0; G: $00; R: $00; A: $FF), // Blue
-    (B: $00; G: $00; R: $C0; A: $FF), // Red
-    (B: $C0; G: $00; R: $C0; A: $FF), // Magenta
-    (B: $00; G: $C0; R: $00; A: $FF), // Green
-    (B: $C0; G: $C0; R: $00; A: $FF), // Cyan
-    (B: $00; G: $C0; R: $C0; A: $FF), // Yellow
+    (B: $B0; G: $00; R: $00; A: $FF), // Blue
+    (B: $00; G: $00; R: $B0; A: $FF), // Red
+    (B: $B0; G: $00; R: $B0; A: $FF), // Magenta
+    (B: $00; G: $B0; R: $00; A: $FF), // Green
+    (B: $B0; G: $B0; R: $00; A: $FF), // Cyan
+    (B: $00; G: $B0; R: $B0; A: $FF), // Yellow
     (B: $C0; G: $C0; R: $C0; A: $FF), // White
 
   // BRIGHT black makes no sense, so have a half-bright white:

@@ -379,7 +379,7 @@ Var
   c: Boolean;
 Begin
 
-  Listing.Flags[Index].HasLabel := Pos('label', lower(Listing[Index])) > 0;
+  Listing.Flags[Index].PoI := Pos('label', lower(Listing[Index])) > 0;
   If FPDebugPanelVisible And (FPDebugCombo.ItemIndex = 3) Then Begin
     SP_DisplayFPListing(Index);
     SP_FPUpdateLabelList;

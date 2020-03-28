@@ -91,7 +91,7 @@ type
 
 var
   Main: TMain;
-  RealScreenWidth, RealScreenHeight, ScrWidth, ScrHeight: Integer;
+  RealScreenWidth, RealScreenHeight, ScrWidth, ScrHeight, OrgWidth, OrgHeight: Integer;
   GLX, GLY, GLW, GLH, GLMX, GLMY, GLMW, GLMH: Integer;
   iRect: TRect;
   BASThread: TSpecBAS_Thread;
@@ -823,6 +823,9 @@ begin
 
   DisplaySection.Enter;
 
+  OrgWidth := Screen.Width;
+  OrgHeight := Screen.Height;
+
   MOUSEVISIBLE := FALSE;
 
   PCOUNT := ParamCount;
@@ -967,12 +970,20 @@ begin
     SP_RmDir('/keyboards', Error);
     SP_RmDir('/include', Error);
   End;
+
+  DisplaySection.Enter;
+
   Bitmap.Free;
   {$IFDEF OPENGL}
   DeactivateRenderingContext;
   wglDeleteContext(RC);
   ReleaseDC(Handle, DC);
   {$ENDIF}
+
+  SetScreenResolution(OrgWidth, OrgHeight, False);
+
+  DisplaySection.Leave;
+
 end;
 
 Function TMain.GetCharFromVirtualKey(Var Key: Word): astring;

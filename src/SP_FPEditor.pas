@@ -2646,7 +2646,10 @@ Begin
             St := 1;
             NumberLine := StringOfChar(aChar(' '), FPGutterWidth - Cpx) + Copy(CodeLine, 1, cIdx -1);
             If DoDraw Then
-              SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, -1, True);
+              If ContainsSelection Then
+                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, gutterClr, True)
+              Else
+                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, -1, True);
             DoDrawSt := False;
             Listing.Flags[Idx].Line := LineNum;
             Listing.Flags[Idx].Statement := 1;

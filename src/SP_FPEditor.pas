@@ -379,7 +379,8 @@ Var
   c: Boolean;
 Begin
 
-  Listing.Flags[Index].PoI := Pos('label', lower(Listing[Index])) > 0;
+  If Index > -1 Then
+    Listing.Flags[Index].PoI := Pos('label', lower(Listing[Index])) > 0;
   If FPDebugPanelVisible And (FPDebugCombo.ItemIndex = 3) Then Begin
     SP_DisplayFPListing(Index);
     SP_FPUpdateLabelList;
@@ -389,7 +390,8 @@ Begin
     0: // Changed line
       AddCompileLine(Index);
     1: // Removed line
-      RemoveCompileLine(Index);
+      if Index > -1 Then
+        RemoveCompileLine(Index);
     2: // Added line
       AddCompileLine(Index);
   End;
@@ -9654,7 +9656,7 @@ Begin
   SearchClr   := #17#208#0#0#0#26#8#0#0#0#27#8#0#0#0;  // Search term highlight
   NoSearchClr := #28#0#0#0#0#26#8#0#0#0#27#8#0#0#0;    // End of search term
   BraceHltClr := #17#6#0#0#0#26#8#0#0#0#27#8#0#0#0;    // Bracket highlight - applies to ()[]
-  BraceClr    := #16#3#0#0#0#26#0#0#0#0#27#1#0#0#0;    // Bracket colour, no highlight
+  BraceClr    := #16#1#0#0#0#26#0#0#0#0#27#1#0#0#0;    // Bracket colour, no highlight
 
   // These are just numbers, corresponding to entries in the default palette
 

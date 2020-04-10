@@ -928,6 +928,11 @@ Begin
     While pIdx < Length(Indices) Do Begin
       LongWordPtr := @Indices[pIdx];
       IndexCount := IndexCount * integer(LongWordPtr^);
+      If IndexCount < 0 Then Begin
+        SetLength(NumArrays, Length(NumArrays) -1);
+        Error.Code := SP_ERR_OUT_OF_MEMORY;
+        Exit;
+      End;
       NumArrays[Idx].Indices[pIdx Div 4] := LongWordPtr^;
       Inc(pIdx, 4);
     End;

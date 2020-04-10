@@ -6,7 +6,7 @@ uses Math, Classes, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUn
 
 Type
 
-  SP_LabelInfo = Record Line, Statement: Integer; Name: aString; End;
+  SP_PoIInfo = Record PoI_Type, Line, Statement: Integer; Name: aString; End;
 
   SP_DebugPanelActionProcs = Class
 
@@ -24,7 +24,7 @@ Procedure SP_OpenDebugPanel;
 Procedure SP_CloseDebugPanel;
 Procedure SP_FillDebugPanel;
 Procedure SP_ResizeDebugPanel(X: Integer);
-Procedure SP_FPUpdateLabelList;
+Procedure SP_FPUpdatePoIList;
 
 var
 
@@ -39,7 +39,13 @@ var
   FPDebugBPAdd,
   FPDebugBPDel,
   FPDebugBPEdt: SP_Button;
-  FPLabelList: Array of SP_LabelInfo;
+  FPPoIList: Array of SP_PoIInfo;
+
+Const
+
+  PoI_Label = 0;
+  PoI_Proc = 1;
+  PoI_Fn = 2;
 
 implementation
 
@@ -56,6 +62,8 @@ Begin
   b := Abs((FPPaperWidth Div FPFw) - NewPW) > 0;
   FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
   If b Then SP_FPWrapProgram;
+  If FPShowingSearchResults Then
+    SP_DebugPanelActionProcs.SelectItem(Nil, FPDebugPanel.SelectedIndex);
   SP_AddFPScrollBars(False);
   SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, FocusedWindow = fwEditor);
   SP_DisplayFPListing(-1);
@@ -245,6 +253,10 @@ Var
   List, OldVars, OldContents, OldWatches, OldExprs: TAnsiStringlist;
   Error: TSP_ErrorCode;
   Hdr: SP_ListBoxHeader;
+
+Const
+
+  PoINameT: Array[0..2] of aString = ('@', 'Proc', 'Fn');
 
   Procedure SetButtons;
   Var
@@ -461,33 +473,56 @@ Begin
           End;
         3: // Labels - double click to jump
           Begin
-            If Length(FPLabelList) = 0 Then Begin
-              Clear;
-              Add(' No labels defined');
-              Enabled := False;
-            End Else Begin
-              Clear;
-              MaxW := 0;
-              MaxP := 0;
-              For i := 0 To Length(FPLabelList) -1 Do Begin
-                s := ' ' + FPLabelList[i].Name;
-                j := FPLabelList[i].Line;
-                vContent := ' ' + IntToString(Listing.Flags[j].Line) + ':' + IntToString(FPLabelList[i].Statement);
+            Clear;
+            MaxW := 0;
+            MaxP := 0;
+            For i := 0 To Length(FPPoIList) -1 Do
+              If FPPoIList[i].PoI_Type = PoI_Label Then Begin
+                s := ' ' + FPPoIList[i].Name;
+                j := FPPoIList[i].Line;
+                vContent := ' ' + IntToString(Listing.Flags[j].Line) + ':' + IntToString(FPPoIList[i].Statement);
                 MaxW := Max(MaxW, Length(vContent) +1);
                 MaxP := Max(MaxP, Length(s) +1);
                 Add(s + #255 + vContent);
+                Objects[Count -1] := TObject(i);
               End;
+            If Count > 0 Then Begin
               MaxW := Max(6, MaxW);
               MaxP := Max(16, MaxP);
-              AddHeader(' Name', MaxW * iFW);
-              AddHeader(' Line:Statement', MaxP * iFW);
+              AddHeader(' Name', MaxP * iFW);
+              AddHeader(' Line:Statement', MaxW * iFW);
               Enabled := True;
+            End Else Begin
+              Add(' No labels defined');
+              Enabled := False;
             End;
-
           End;
         4: // Procedures/functions
           Begin
-
+            Clear;
+            MaxW := 0;
+            MaxP := 0;
+            For i := 0 To Length(FPPoIList) -1 Do
+              If FPPoIList[i].PoI_Type in [PoI_Proc, PoI_Fn] Then Begin
+                s := ' ' + PoINameT[FPPoIList[i].PoI_Type] + ' ' + FPPoIList[i].Name;
+                j := FPPoIList[i].Line;
+                vContent := ' ' + IntToString(Listing.Flags[j].Line) + ':' + IntToString(FPPoIList[i].Statement);
+                MaxW := Max(MaxW, Length(vContent) +1);
+                MaxP := Max(MaxP, Length(s) +1);
+                Add(s + #255 + vContent);
+                Objects[Count -1] := TObject(i);
+              End;
+            If Count > 0 Then Begin
+              MaxW := Max(6, MaxW);
+              MaxP := Max(16, MaxP);
+              AddHeader(' Name', MaxP * iFW);
+              AddHeader(' Line:Statement', MaxW * iFW);
+              Enabled := True;
+              Sort(0);
+            End Else Begin
+              Add(' No Fn/Procs defined');
+              Enabled := False;
+            End;
           End;
         5: // Disassembly
           Begin
@@ -511,7 +546,7 @@ End;
 Class Procedure SP_DebugPanelActionProcs.PanelSwitch(Sender: SP_BaseComponent; Text: aString);
 Begin
 
-  SP_FPUpdateLabelList;
+  SP_FPUpdatePoIList;
   SP_FillDebugPanel;
 
 End;
@@ -575,16 +610,18 @@ End;
 
 Class Procedure SP_DebugPanelActionProcs.SelectItem(Sender: SP_BaseComponent; Index: Integer);
 var
+  s: aString;
   i, j: Integer;
   Error: TSP_ErrorCode;
 Begin
 
   If Index < 0 Then Exit;
+  Index := Integer(FPDebugPanel.Objects[Index]);
 
   Case FPDebugCombo.ItemIndex of
     3: // Labels - highlight all @Label instances
       Begin
-        FPSearchTerm := '@' + FPLabelList[Index].Name;
+        FPSearchTerm := '@' + FPPoIList[Index].Name;
         FPSearchOptions := [soForward, soStart];
         SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
         FPShowingSearchResults := True;
@@ -598,8 +635,35 @@ Begin
         End;
         SP_DisplayFPListing(-1);
       End;
-    4: // Procs and FNs - highlight all usages
+    4: // Procs and FNs - highlight all usages. Find "Fn x" and "Proc x", "DEF FN x" and "DEF PROC x" as well as "CALL x".
       Begin
+        i := 1;
+        s := FPPoIList[Index].Name;
+        if Pos('(', s) > 0 Then
+          s := Copy(s, 1, Pos('(', s) -1);
+        if FPPoIList[Index].PoI_Type = PoI_Fn then
+          FPSearchTerm := 'fn ' + s
+        else
+          FPSearchTerm := 'proc ' + s;
+        FPSearchOptions := [soForward, soStart];
+        SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
+        FPSearchTerm := 'def ' + FPSearchTerm;
+        FPSearchOptions := [soForward, soStart, soNoClear];
+        SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
+        if FPPoIList[Index].PoI_Type = PoI_Proc then Begin
+          FPSearchTerm := 'call ' + s;
+          SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
+        End;
+        FPShowingSearchResults := True;
+        j := -1;
+        For i := 0 To Length(FPFindResults) -1 Do Begin
+          If FPFindResults[i].Line <> j Then Begin
+            SP_FPApplyHighlighting(FPFindResults[i].Line);
+            AddDirtyLine(FPFindResults[i].Line);
+          End;
+          j := FPFindResults[i].Line;
+        End;
+        SP_DisplayFPListing(-1);
       End;
   End;
 
@@ -628,7 +692,8 @@ Begin
     3: // Labels - double click to jump to that label declaration
       Begin
         s := EDITLINE;
-        EDITLINE := '@' + FPLabelList[Index].Name;
+        Index := Integer(FPDebugPanel.Objects[Index]);
+        EDITLINE := '@' + FPPoIList[Index].Name;
         SP_FPBringToEditor(0, 0, Error, False);
         EDITLINE := s;
       End;
@@ -686,16 +751,27 @@ Begin
 
 End;
 
-Procedure SP_FPUpdateLabelList;
+Procedure SP_FPUpdatePoIList;
 var
-  i, j, l, ps, St: Integer;
+  i, j, l, ps, St, bc, ofs: Integer;
   inRem, inClr, inString: Boolean;
   s, lbl: aString;
+
+  Procedure AddToList(iType: Integer; iName: aString; iLine, iStatement: Integer);
+  Begin
+    l := Length(FPPoIList);
+    SetLength(FPPoIList, l +1);
+    FPPoIList[l].Line := iLine;
+    FPPoIList[l].Statement := iStatement;
+    FPPoIList[l].Name := iName;
+    FPPoIList[l].PoI_Type := iType;
+  End;
+
 Label
   Again;
 Begin
 
-  SetLength(FPLabelList, 0);
+  SetLength(FPPoIList, 0);
   For i := 0 To Listing.Count -1 Do
     If Listing.Flags[i].PoI Then Begin
       j := i;
@@ -714,7 +790,7 @@ Begin
       j := 1;
       lbl := '';
       InString := False; InClr := False; InREM := False;
-      ps := Pos('label', s);
+      ps := Pos('label', s); // Label search
       if ps > 0 Then Begin
         ScanForStatements(Copy(s, 1, ps -1), St, InString, InREM, InClr);
         If not InString then Begin
@@ -727,15 +803,58 @@ Begin
               inc(ps);
             end;
           end;
-          if lbl <> '' then begin
-            l := Length(FPLabelList);
-            SetLength(FPLabelList, l +1);
-            FPLabelList[l].Line := i;
-            FPLabelList[l].Statement := St;
-            FPLabelList[l].Name := lbl;
-          End;
+          If lbl <> '' Then
+            AddToList(PoI_Label, lbl, i, St);
           s := Copy(s, ps);
           Goto Again;
+        End;
+      End Else Begin
+        ps := Pos('def proc', s); ofs := 8; // Procedure search
+        If ps = 0 then begin
+          ps := Pos('def fn', s); ofs := 6;// Look for a function if no procedures found
+        end;
+        if ps > 0 Then Begin
+          ScanForStatements(Copy(s, 1, ps -1), St, InString, InREM, InClr);
+          If Not InString Then Begin
+            Inc(ps, ofs);
+            while (ps < length(s)) and (s[ps] <= ' ') do inc(ps);
+            while (ps <= length(s)) and (s[ps] in ['0'..'9', 'a'..'z', '_']) do Begin
+              lbl := lbl + s[ps];
+              inc(ps);
+            end;
+            while (ps < length(s)) and (s[ps] <= ' ') do inc(ps);
+            if (ps <= Length(s)) and (s[ps] = '(') Then Begin // Optional parameter list. Let's hoover it up.
+              lbl := lbl + '(';
+              Inc(ps);
+              bc := 0;
+              while (ps < Length(s)) and (s[ps] in ['_', '0'..'9', 'a'..'z', '0'..'9', '(', ')', ',', ' ']) Do Begin
+                if s[ps] = '(' then Begin
+                  Inc(ps);
+                  lbl := lbl + '(';
+                  Inc(bc);
+                end else
+                  if s[ps] = ')' then begin
+                    Inc(ps);
+                    lbl := lbl + ')';
+                    if bc = 0 then
+                      break
+                    else
+                      dec(bc);
+                  end else begin
+                    if s[ps] <> ' ' then
+                      lbl := lbl + s[ps];
+                    inc(ps);
+                  end;
+              end;
+            end;
+            if lbl <> '' Then
+              if ofs = 8 then
+                AddToList(PoI_Proc, lbl, i, St)
+              else
+                AddToList(PoI_Fn, lbl, i, St);
+            s := Copy(s, ps);
+            Goto Again;
+          End;
         End;
       End;
     End;

@@ -641,7 +641,7 @@ Var
   Handled: Boolean;
 begin
 
-  If (X = LastMouseX) And (Y = LastMouseY) Then Exit;
+  If ((X = LastMouseX) And (Y = LastMouseY)) or SIZINGMAIN Then Exit;
 
   LastMouseX := X;
   LastMouseY := Y;

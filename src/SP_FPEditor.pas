@@ -67,7 +67,7 @@ Uses Types, Classes, Clipbrd, SyncObjs, SysUtils, Math{$IFNDEF FPC}, Windows{$EN
 Type
 
   pSP_EditorEvent = Pointer;
-  SP_SearchOptions = Set Of (soStart, soCursorPos, soForward, soBackwards, soInREM, soInString, soMatchCase, soLoop, soInSelection, soCondenseSpaces, soInEditLine, soWholeWords, soExpression, soAll);
+  SP_SearchOptions = Set Of (soStart, soCursorPos, soForward, soBackwards, soInREM, soInString, soMatchCase, soLoop, soInSelection, soCondenseSpaces, soInEditLine, soWholeWords, soExpression, soAll, soNoClear);
   SP_EventData = Record Pos, Key, Button, X, Y, tsData: Integer; ObjectPtr: Pointer; End;
   SP_EventHandler = Procedure(Var Data: SP_EventData);
   SP_EventOnLaunch = Procedure(Event: pSP_EditorEvent);
@@ -376,14 +376,21 @@ End;
 
 Procedure ListingChange(Index, Operation: Integer);
 Var
+  s: aString;
   c: Boolean;
 Begin
 
-  If Index > -1 Then
-    Listing.Flags[Index].PoI := Pos('label', lower(Listing[Index])) > 0;
-  If FPDebugPanelVisible And (FPDebugCombo.ItemIndex = 3) Then Begin
+  If Index > -1 Then Begin
+    s := Lower(Listing[Index]);
+    c := Pos('label', s) > 0;
+    c := c or (Pos('def proc', s) > 0);
+    c := c or (Pos('def fn', s) > 0);
+    Listing.Flags[Index].PoI := c;
+  End;
+
+  If FPDebugPanelVisible And (FPDebugCombo.ItemIndex in  [3, 4]) Then Begin
     SP_DisplayFPListing(Index);
-    SP_FPUpdateLabelList;
+    SP_FPUpdatePoIList;
   End;
 
   Case Operation of
@@ -820,7 +827,7 @@ Begin
   DWPaperWidth := DWClientWidth - (BSize * 2);
   DWPaperHeight := DWClientHeight - (BSize * 2);
   sz := Trunc(Max(EDFONTSCALEX * FONTWIDTH, EDFONTSCALEY * FONTHEIGHT));
-  DWTextLeft := DWPaperLeft + sz + FPFw;
+  DWTextLeft := DWPaperLeft + sz + BSize;
   DWTextWidth := (DWPaperWidth - DWTextLeft) Div FPFw;
 
   SP_FillRect(0, 0, DWWindowWidth -1, DWWindowHeight -1, 7);
@@ -1940,6 +1947,16 @@ Begin
             If Paper >= 0 Then t := t + #17 + LongWordToString(Paper);
             If Italic >= 0 Then t := t + #26 + LongWordToString(Italic);
             If Bold >= 0 Then t := t + #27 + LongWordToString(Bold);
+            k := 0; m := 0;
+            while (k < Length(SynLine)) and (k < fLen) do Begin
+              if SynLine[m + i] < ' ' Then
+                Inc(m, 5)
+              else begin
+                Inc(m);
+                Inc(k);
+              end;
+            end;
+            fLen := m;
             SynLine := Copy(SynLine, 1, i -1) + SearchClr + Copy(SynLine, i, fLen) + NoSearchClr + t + Copy(SynLine, i + fLen);
           End;
           Inc(j);
@@ -6126,8 +6143,8 @@ End;
 
 Procedure SP_FindAll(Text: aString; Const Options: SP_SearchOptions; Var Error: TSP_ErrorCode);
 Var
-  e, i, j, k, l, fl, tl, rs, StartL, FinishL, StartP, FinishP: Integer;
-  InString, InREM, Match: Boolean;
+  e, f, i, j, k, l, fl, tl, rs, StartL, FinishL, StartP, FinishP, p1, p2, l1, l2, t: Integer;
+  InString, InREM, Match, b: Boolean;
   Sel: SP_SelectionInfo;
   ps, pd: pByte;
   s: aString;
@@ -6137,15 +6154,16 @@ Begin
 
   Error.Code := SP_ERR_OK;
 
-  If Length(FPFindResults) > 0 Then Begin
-    For i := 0 to Length(FPFindResults) -1 Do Begin
-      l := FPFindResults[i].Line;
-      FPFindResults[i].Line := -1;
-      SP_FPApplyHighlighting(l);
-      AddDirtyLine(l);
+  If Not (soNoClear in Options) Then
+    If Length(FPFindResults) > 0 Then Begin
+      For i := 0 to Length(FPFindResults) -1 Do Begin
+        l := FPFindResults[i].Line;
+        FPFindResults[i].Line := -1;
+        SP_FPApplyHighlighting(l);
+        AddDirtyLine(l);
+      End;
+      SetLength(FPFindResults, 0);
     End;
-    SetLength(FPFindResults, 0);
-  End;
 
   If soExpression in Options Then Begin
     Text := SP_FPExecuteAnyExpression(Text, Error);
@@ -6231,22 +6249,43 @@ Begin
         If (soWholeWords in Options) Then Match := Match And ((k = 1) or Not (s[k -1] in ['a'..'z', 'A'..'Z', '0'..'9'])) And ((k = l) or Not (s[k +1] in ['a'..'z', 'A'..'Z', '0'..'9']));
         If Match Then Begin
           fl := Length(FPFindResults);
-          SetLength(FPFindResults, fl +1);
-          FPFindResults[fl].Line := i;
-          FPFindResults[fl].Position := k;
-          If k + tl -1 > e Then Begin
-            FPFindResults[fl].Length := (e - k) + 1;
-            FPFindResults[fl].Split := True;
-            Inc(fl);
+          b := False;
+          if (soNoClear in Options) then Begin
+            f := 0;
+            p1 := k; l1 := p1 + tl -1;
+            While f < fl Do With FPFindResults[f] Do Begin
+              If Line = i Then Begin
+                p2 := Position; l2 := p2 + Length -1;
+                if p1 > p2 then begin t := p1; p1 := p2; p2 := t; End;
+                if l1 > l2 then begin t := l1; l1 := l2; l2 := t; End;
+                if (p1 <= l2) and (l1 >= p2) then begin
+                  Position := Min(p1, p2);
+                  Length := (Max(l1, l2) - Position) +1;
+                  b := True;
+                  Break;
+                end;
+              End;
+              Inc(f);
+            End;
+          end;
+          if not b then Begin
             SetLength(FPFindResults, fl +1);
-            FPFindResults[fl].Line := i +1;
-            FPFindResults[fl].Position := 1;
-            FPFindResults[fl].Length := tl - ((e - k) +1);
-            rs := FPFindResults[fl].Length + 1;
-            Break;
-          End Else Begin
-            FPFindResults[fl].Length := tl;
-            FPFindResults[fl].Split := False;
+            FPFindResults[fl].Line := i;
+            FPFindResults[fl].Position := k;
+            If k + tl -1 > e Then Begin
+              FPFindResults[fl].Length := (e - k) + 1;
+              FPFindResults[fl].Split := True;
+              Inc(fl);
+              SetLength(FPFindResults, fl +1);
+              FPFindResults[fl].Line := i +1;
+              FPFindResults[fl].Position := 1;
+              FPFindResults[fl].Length := tl - ((e - k) +1);
+              rs := FPFindResults[fl].Length + 1;
+              Break;
+            End Else Begin
+              FPFindResults[fl].Length := tl;
+              FPFindResults[fl].Split := False;
+            End;
           End;
           Inc(k, tl);
           Inc(ps, tl);

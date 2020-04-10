@@ -258,7 +258,7 @@ Begin
   Else
     cap := 'C' + IntToString(CURSORPOS) + ' ' + cap;
 
-  Ink := 7 * Ord(FocusedWindow <> fwEditor);
+  Ink := 7;// * Ord(FocusedWindow <> fwEditor);
   If PROGSTATE = SP_PR_RUN Then i := 2 Else i := Ink;
 
   Li := SP_ConvertLineStatement(CONTLINE, CONTSTATEMENT);
@@ -276,8 +276,8 @@ Begin
     cap := #16 + LongWordToString(Ink) + '[' + #16 + LongWordToString(i) + IntToString(j) + ':' + IntToString(CSTATEMENT) + #16 + LongWordToString(Ink) + '] ' + cap;
 
   If FocusedWindow = fwEditor Then Begin
-    FPDirectStatusLabel.Caption := '';
-    FPEditorStatusLabel.Caption := cap
+    FPDirectStatusLabel.Caption := cap;
+    FPEditorStatusLabel.Caption := ''
   End Else Begin
     FPDirectStatusLabel.Caption := cap;
     FPEditorStatusLabel.Caption := '';

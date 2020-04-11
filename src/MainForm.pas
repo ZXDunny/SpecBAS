@@ -1023,52 +1023,25 @@ Var
   k: Word;
   aStr: aString;
   Err: TSP_ErrorCode;
-  Handled: Boolean;
 begin
 
   k := Key And $5FF;
   aStr := aString(GetCharFromVirtualKey(k));
   Key := k;
   If aStr = '' Then aStr := #0;
-  Handled := False;
-  If ControlsAreInUse Then Begin
-    DisplaySection.Enter;
-    If ControlKeyEvent(aStr, Key, True) Then Begin
-      Key := 0;
-      Handled := True;
-    End;
-    DisplaySection.Leave;
-  End;
-
-  If Not Handled Then Begin
-    K_DOWNFLAG := True;
-    LASTKEYCHAR := Ord(aStr[1]);
-    If SystemState = SS_EDITOR Then SP_BufferKey(Key, 0, LASTKEYCHAR, 0) Else SP_KeyDown(Key, 0);
-    Key := 0;
-  End;
+  K_DOWNFLAG := True;
+  LASTKEYCHAR := Ord(aStr[1]);
+  If SystemState = SS_EDITOR Then SP_BufferKey(Key, 0, LASTKEYCHAR, 0) Else SP_KeyDown(Key, 0);
+  Key := 0;
 
 end;
 
 procedure TMain.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
-Var
-  Handled: Boolean;
 begin
 
-  Handled := False;
-  If ControlsAreInUse Then Begin
-    DisplaySection.Enter;
-    If ControlKeyEvent('', Key, False) Then Begin
-      Key := 0;
-      Handled := True;
-    End;
-    DisplaySection.Leave;
-  End;
-
-  If Not Handled Then Begin
-    K_UPFLAG := True;
-    LASTKEYCHAR := 0;
-    If SystemState = SS_EDITOR Then SP_BufferKey(Key, 1, LASTKEYCHAR, 0) Else SP_KeyUp(Key);
-  End;
+  K_UPFLAG := True;
+  LASTKEYCHAR := 0;
+  If SystemState = SS_EDITOR Then SP_BufferKey(Key, 1, LASTKEYCHAR, 0) Else SP_KeyUp(Key);
 
 end;
 

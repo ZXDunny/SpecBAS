@@ -47,6 +47,14 @@ Const
   PoI_Proc = 1;
   PoI_Fn = 2;
 
+  dbgVariables = 1;
+  dbgWatches = 2;
+  dbgBreakpoints = 4;
+  dbgLabels = 8;
+  dbgProcs = 16;
+  dbgDisassembly = 32;
+  dbgProgMap = 64;
+
 implementation
 
 Uses SP_FPEditor, SP_Errors, SP_Graphics, SP_BankManager, SP_BankFiling, SP_SysVars, SP_Components, SP_Variables, SP_AnsiStringList,
@@ -140,7 +148,7 @@ Begin
     FPDebugPanel.BackgroundClr := debugPanel;
     FPDebugPanel.HeaderClr := BackgroundClr;
     FPDebugPanel.Transparent := False;
-    FPDebugPanel.CanFocus := False;
+//    FPDebugPanel.CanFocus := False;
     FPDebugPanel.SortByAlpha := True;
     FPDebugPanel.OnChoose := SP_DebugPanelActionProcs.DblClick;
     FPDebugPanel.OnSelect := SP_DebugPanelActionProcs.PanelSelect;
@@ -248,7 +256,7 @@ End;
 Procedure SP_FillDebugPanel;
 Var
   Changed: Boolean;
-  i, MaxW, MaxWC, MaxP, p, j: Integer;
+  i, MaxW, MaxWC, MaxP, p, j, OldP: Integer;
   s, vType, vName, vContent, vExtra, vPass: aString;
   List, OldVars, OldContents, OldWatches, OldExprs: TAnsiStringlist;
   Error: TSP_ErrorCode;
@@ -334,8 +342,11 @@ Begin
             End Else Begin
               OldVars := TAnsiStringlist.Create;
               OldContents := TAnsiStringlist.Create;
+
               For i := 0 To Count -1 Do Begin
-                s := Copy(Items[i], 7);
+                s := FPDebugPanel.Items[i];
+                if s[1] = ' ' then s := Copy(s, 2);
+                if s[1] < ' ' then s := Copy(s, 6);
                 OldVars.Add(Copy(s, 1, Pos(#255, s) -1));
                 OldContents.Add(Copy(s, Pos(#255, s) +7));
               End;
@@ -346,21 +357,21 @@ Begin
                 s := List[i];
                 vName := Copy(s, 1, Pos('=', s) -1);
                 MaxP := Max(MaxP, Length(vName));
-                If OldVars.IndexOf(vName) >= 0 Then
-                  vName := #16#0#0#0#0 + vName
-                Else
+                OldP := OldVars.IndexOf(vName);
+                If OldP >= 0 Then Begin
+                  // Variable already exists from previous update - check for changes
+                  vContent := Copy(s, Pos('=', s) +1);
+                  MaxW := Max(MaxW, Length(vContent));
+                  If OldContents[OldP] <> vContent then
+                    vContent := #16 + LongWordToString(debugChg) + vContent
+                  Else
+                    vContent := #16#0#0#0#0 + vContent;
+                End Else Begin
                   vName := #16 + LongWordToString(debugNew) + vName;
-                vContent := Copy(s, Pos('=', s) +1);
-                MaxW := Max(MaxW, Length(vContent));
-                If OldContents.IndexOf(vContent) >= 0 Then
-                  vContent := #16#0#0#0#0 + vContent
-                Else
-                  If Ord(vName[2]) = debugNew and $FF Then
-                    vContent := #16 + LongWordToString(debugNew) + vContent
-                  Else Begin
-                    vContent := #16 + LongWordToString(debugChg) + vContent;
-                    vName[2] := LongWordToString(debugChg)[1];
-                  End;
+                  vContent := Copy(s, Pos('=', s) +1);
+                  MaxW := Max(MaxW, Length(vContent));
+                  vContent := #16 + LongWordToString(debugNew) + vContent;
+                End;
                 Add(' ' + vName + #255 + ' ' + vContent);
               End;
               MaxW := Max(10, MaxW);
@@ -598,7 +609,7 @@ Begin
         SP_ConditionalBreakPointList[i] := SP_ConditionalBreakPointList[i +1];
       SetLength(SP_ConditionalBreakPointList, Length(SP_ConditionalBreakPointList) -1);
     End;
-    SP_GetDebugStatus;
+    SP_GetDebugStatus(dbgBreakpoints);
     SP_DisplayFPListing(-1);
   End Else Begin
     pLongWord(@s[1])^ := Index;
@@ -611,7 +622,7 @@ End;
 Class Procedure SP_DebugPanelActionProcs.SelectItem(Sender: SP_BaseComponent; Index: Integer);
 var
   s: aString;
-  i, j: Integer;
+  i, j, p, l: Integer;
   Error: TSP_ErrorCode;
 Begin
 
@@ -648,7 +659,7 @@ Begin
         FPSearchOptions := [soForward, soStart];
         SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
         FPSearchTerm := 'def ' + FPSearchTerm;
-        FPSearchOptions := [soForward, soStart, soNoClear];
+        FPSearchOptions := FPSearchOptions + [soNoClear];
         SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
         if FPPoIList[Index].PoI_Type = PoI_Proc then Begin
           FPSearchTerm := 'call ' + s;
@@ -656,12 +667,27 @@ Begin
         End;
         FPShowingSearchResults := True;
         j := -1;
-        For i := 0 To Length(FPFindResults) -1 Do Begin
-          If FPFindResults[i].Line <> j Then Begin
-            SP_FPApplyHighlighting(FPFindResults[i].Line);
-            AddDirtyLine(FPFindResults[i].Line);
+        i := 0;
+        l := Length(FPFindResults);
+        While i < l Do With FPFindResults[i] Do Begin
+          If Not Split Then Begin
+            // If any alphanumeric or "_" characters follow, then delete this find result.
+            s := lower(Listing[Line]);
+            p := Position + Length;
+            If (p <= System.Length(s)) and (s[p] in ['a'..'z', '0'..'9', '_']) Then Begin
+              For p := i to l -2 Do
+                FPFindResults[p] := FPFindResults[p +1];
+              SetLength(FPFindResults, l -1);
+              Dec(l);
+              Continue;
+            End;
           End;
-          j := FPFindResults[i].Line;
+          If Line <> j Then Begin
+            SP_FPApplyHighlighting(Line);
+            AddDirtyLine(Line);
+          End;
+          j := Line;
+          Inc(i);
         End;
         SP_DisplayFPListing(-1);
       End;

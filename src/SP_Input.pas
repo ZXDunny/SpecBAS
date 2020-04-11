@@ -25,7 +25,7 @@ unit SP_Input;
 
 interface
 
-Uses SP_SysVars, SP_Util, SP_Errors, SP_BankManager, SP_BankFiling, SP_Graphics, SyncObjs;
+Uses SP_SysVars, SP_Util, SP_Errors, SP_BankManager, SP_BankFiling, SP_Graphics, SyncObjs, SP_Components;
 
 Type
 
@@ -241,7 +241,7 @@ Var
 
 implementation
 
-Uses SP_FileIO;
+Uses SP_FileIO, SP_Main;
 
 Procedure SP_LoadKeyboardDefinition(Name: aString; Var Error: TSP_ErrorCode);
 Var
@@ -300,6 +300,14 @@ Begin
   Else Begin
 
     KEYSTATE[Key] := 1;
+
+    If ControlsAreInUse Then Begin
+      DisplaySection.Enter;
+      If ControlKeyEvent(aChar(LASTKEYCHAR), Key, True) Then
+        Key := 0;
+      DisplaySection.Leave;
+    End;
+
     LASTKEY := Key;
     LASTKEYFLAG := Flags;
 
@@ -322,6 +330,13 @@ Begin
   Else Begin
 
     KEYSTATE[Key] := 0;
+
+    If ControlsAreInUse Then Begin
+      DisplaySection.Enter;
+      If ControlKeyEvent('', Key, False) Then
+        Key := 0;
+      DisplaySection.Leave;
+    End;
 
     For Idx := 0 To 255 Do
       If KEYSTATE[Idx] <> 0 Then Begin

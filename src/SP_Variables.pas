@@ -202,8 +202,8 @@ Procedure SP_ClearVarIndices;
 Procedure SP_SaveVar(const Filename, VarName: aString; IsArray: Boolean; var Error: TSP_ErrorCode);
 Procedure SP_LoadVar(const Filename, VarName: aString; Var Error: TSP_ErrorCode);
 
-Function  SP_NumArrayToString(Index: Integer): aString;
-Function  SP_StrArrayToString(Index: Integer): aString;
+Function  SP_NumArrayToString(Index, MaxLen: Integer): aString;
+Function  SP_StrArrayToString(Index, MaxLen: Integer): aString;
 
 Function  SP_NewStruct(const Name: aString): Integer;
 Procedure SP_DeleteStruct(const Name: aString; Var Error: TSP_ErrorCode);
@@ -3992,9 +3992,9 @@ Begin
 
 End;
 
-Function  SP_NumArrayToString(Index: Integer): aString;
+Function  SP_NumArrayToString(Index, MaxLen: Integer): aString;
 Var
-  Idx, Idx2, IndexSize: Integer;
+  Idx, Idx2, IndexSize, c: Integer;
   nArr: pSP_NumArray;
   Strs, Strs2: TAnsiStringList;
   Str: aString;
@@ -4006,6 +4006,7 @@ Begin
 
   // Gather all values into strings, comma separated, the size of the last index.
 
+  c := 0;
   Idx := 0;
   If nArr^.NumIndices > 0 Then
     IndexSize := nArr^.Indices[nArr^.NumIndices -1]
@@ -4019,9 +4020,11 @@ Begin
         If Idx2 < IndexSize -1 Then
           Str := Str + ',';
         Inc(Idx);
+        If Length(Str) > MaxLen Then Break;
       End;
       Str := Str + ')';
       Strs.Add(String(Str));
+      If Length(Str) > MaxLen Then Break;
     End;
   End Else
     Strs.Add('()');
@@ -4039,10 +4042,13 @@ Begin
     While Idx < Strs.Count Do Begin
       Str := '(';
       For Idx2 := 0 To IndexSize -1 Do Begin
-        Str := Str + aString(Strs[Idx]);
-        If Idx2 < IndexSize -1 Then
-          Str := Str + ',';
-        Inc(Idx);
+        If Strs[Idx] <> '' Then Begin
+          Str := Str + aString(Strs[Idx]);
+          If Idx2 < IndexSize -1 Then
+            Str := Str + ',';
+          Inc(Idx);
+        End Else
+          Break;
       End;
       Str := Str + ')';
       Strs2.Add(String(Str));
@@ -4060,13 +4066,14 @@ Begin
 
   Result := '';
   For Idx := 0 To Strs.Count -1 Do
-    Result := Result + aString(Strs[Idx]);
+    if Copy(Strs[Idx], 1, 2) <> ',,' Then
+      Result := Result + aString(Strs[Idx]);
   Strs.Free;
   Strs2.Free;
 
 End;
 
-Function  SP_StrArrayToString(Index: Integer): aString;
+Function  SP_StrArrayToString(Index, MaxLen: Integer): aString;
 Var
   Idx, Idx2, IndexSize: Integer;
   sArr: pSP_StrArray;
@@ -4093,9 +4100,11 @@ Begin
         If Idx2 < IndexSize -1 Then
           Str := Str + ',';
         Inc(Idx);
+        If Length(Str) > MaxLen Then Break;
       End;
       Str := Str + ')';
       Strs.Add(string(Str));
+      If Length(Str) > MaxLen Then Break;
     End;
   End Else
     Strs.Add('()');
@@ -4113,10 +4122,13 @@ Begin
     While Idx < Strs.Count Do Begin
       Str := '(';
       For Idx2 := 0 To IndexSize -1 Do Begin
-        Str := Str + aString(Strs[Idx]);
-        If Idx2 < IndexSize -1 Then
-          Str := Str + ',';
-        Inc(Idx);
+        If Strs[Idx] <> '' Then Begin
+          Str := Str + aString(Strs[Idx]);
+          If Idx2 < IndexSize -1 Then
+            Str := Str + ',';
+          Inc(Idx);
+        End Else
+          Break;
       End;
       Str := Str + ')';
       Strs2.Add(string(Str));
@@ -4134,7 +4146,8 @@ Begin
 
   Result := '';
   For Idx := 0 To Strs.Count -1 Do
-    Result := Result + aString(Strs[Idx]);
+    if Copy(Strs[Idx], 1, 2) <> ',,' Then
+      Result := Result + aString(Strs[Idx]);
   Strs.Free;
   Strs2.Free;
 

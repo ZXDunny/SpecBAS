@@ -253,7 +253,7 @@ Function  SP_IsSourceBreakPoint(Line, Statement: Integer): Boolean;
 Procedure SP_SingleStep;
 Function  SP_StepOver: Boolean;
 Procedure SP_ClearBreakPoints;
-Procedure SP_GetDebugStatus;
+Procedure SP_GetDebugStatus(StatType: Integer);
 
 
 Var
@@ -6143,7 +6143,7 @@ End;
 
 Procedure SP_FindAll(Text: aString; Const Options: SP_SearchOptions; Var Error: TSP_ErrorCode);
 Var
-  e, f, i, j, k, l, fl, tl, rs, StartL, FinishL, StartP, FinishP, p1, p2, l1, l2, t: Integer;
+  e, f, i, j, k, l, fl, tl, rs, StartL, FinishL, StartP, FinishP, p1, p2, l1, l2, t, ol: Integer;
   InString, InREM, Match, b: Boolean;
   Sel: SP_SelectionInfo;
   ps, pd: pByte;
@@ -6255,6 +6255,7 @@ Begin
             p1 := k; l1 := p1 + tl -1;
             While f < fl Do With FPFindResults[f] Do Begin
               If Line = i Then Begin
+                ol := Length;
                 p2 := Position; l2 := p2 + Length -1;
                 if p1 > p2 then begin t := p1; p1 := p2; p2 := t; End;
                 if l1 > l2 then begin t := l1; l1 := l2; l2 := t; End;
@@ -6264,6 +6265,14 @@ Begin
                   b := True;
                   Break;
                 end;
+                if Split then
+                  if Length > ol then Begin
+                    l1 := Length - ol;
+                    Length := ol;
+                    Inc(f);
+                    if l1 > FPFindResults[f].Length then
+                      FPFindResults[f].Length := l1;
+                  End;
               End;
               Inc(f);
             End;
@@ -7750,6 +7759,7 @@ Begin
 
   Error.Code := SP_ERR_OK;
   SP_FPCycleEditorWindows(1);
+  FPDebugPanelVisible := False;
   SP_DeleteWindow(FPWindowID, Error);
   SP_DeleteWindow(DWWindowID, Error);
   FPWIndowID := -1;
@@ -8198,14 +8208,13 @@ Begin
 
   End;
 
-  SP_FillDebugPanel;
   If FocusedWindow = FWEditor Then
     SYSTEMSTATE := SS_EDITOR
   Else
     SYSTEMSTATE := SS_DIRECT;
 
   STEPMODE := SM_None;
-  SP_GetDebugStatus;
+  SP_GetDebugStatus(-1);
 
 End;
 
@@ -9212,7 +9221,7 @@ Begin
 
   If FPGotoText <> '' Then Begin
     SP_AddWatch(Index, FPGotoText);
-    SP_FillDebugPanel;
+    SP_GetDebugStatus(dbgWatches);
   End;
 
 End;
@@ -9859,7 +9868,7 @@ Begin
 
   End;
 
-  SP_GetDebugStatus;
+  SP_GetDebugStatus(dbgBreakpoints);
 
 End;
 
@@ -9880,7 +9889,7 @@ Begin
 
   SP_SwitchFocus(fwDirect);
   STEPMODE := SM_Single;
-  SP_GetDebugStatus;
+  SP_GetDebugStatus(MAXINT);
 
   Listing.CompleteUndo;
   If Assigned(CompilerThread) Then SP_StopCompiler;
@@ -9924,7 +9933,6 @@ Begin
     SP_PrepareBreakpoints(False);
   End;
   STEPMODE := 0;
-  SP_GetDebugStatus;
   SCREENLOCK := False;
   PROGSTATE := SP_PR_STOP;
   SYSTEMSTATE := SS_DIRECT;
@@ -9948,7 +9956,7 @@ Begin
   End;
 
   SP_Reset_Temp_Colours;
-  SP_FillDebugPanel;
+  SP_GetDebugStatus(dbgVariables or dbgWatches);
 
   If Not Assigned(CompilerThread) Then
     CompilerThread := TCompilerThread.Create(False);
@@ -9974,7 +9982,7 @@ Begin
     Result := False;
   SP_ClearKeyBuffer(True);
   LASTKEY := 0;
-  SP_GetDebugStatus;
+  SP_GetDebugStatus(dbgVariables or dbgWatches);
 
 End;
 
@@ -10012,15 +10020,16 @@ Begin
   SetLength(SP_ConditionalBreakpointList, 0);
   BPSIGNAL := False;
   STEPMODE := 0;
-  SP_GetDebugStatus;
+  SP_GetDebugStatus(dbgBreakpoints);
 
 End;
 
-Procedure SP_GetDebugStatus;
+Procedure SP_GetDebugStatus(StatType: Integer);
 Begin
 
   DEBUGGING := (Length(SP_SourceBreakpointList) > 0) or (Length(SP_ConditionalBreakpointList) > 0) or (STEPMODE > 0);
-  SP_FillDebugPanel;
+  If (StatType = -1) or (FPDebugPanelVisible And (StatType And (1 Shl FPDebugCombo.ItemIndex) <> 0)) Then
+    SP_FillDebugPanel;
 
 End;
 

@@ -1008,7 +1008,7 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Editor, SP_FPEditor;
+Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel;
 
 Procedure SP_AddWatch(Index: Integer; Expr: aString);
 Var
@@ -1088,7 +1088,7 @@ Begin
         For i := i To l -2 Do
           SP_SourceBreakPointList[i] := SP_SourceBreakPointList[i +1];
         SetLength(SP_SourceBreakPointList, l -1);
-        SP_GetDebugStatus;
+        SP_GetDebugStatus(dbgBreakpoints);
         Exit;
       End;
     End; // A breakpoint here should remain, so do nothing.
@@ -1108,7 +1108,7 @@ Begin
   SP_SourceBreakPointList[i].Condition := Condition;
   SP_SourceBreakPointList[i].Compiled_Condition := #$F + s;
 
-  SP_GetDebugStatus;
+  SP_GetDebugStatus(dbgBreakpoints);
 
 End;
 
@@ -1152,7 +1152,7 @@ Begin
   SP_ConditionalBreakPointList[l].CurResult := '';
   SP_ConditionalBreakPointList[l].HasResult := False;
 
-  SP_GetDebugStatus;
+  SP_GetDebugStatus(dbgBreakpoints);
 
 End;
 
@@ -9363,7 +9363,7 @@ RunIt :
     STEPMODE := 0;
   End;
   SP_PreParse(True, Info^.Error^);
-  SP_GetDebugStatus;
+  SP_GetDebugStatus(dbgVariables or dbgWatches);
 
 End;
 
@@ -18579,12 +18579,8 @@ Begin
             Str := Str + ',';
         End;
         Str := Str + ')=';
-        TempStr := SP_NumArrayToString(Idx);
-        If Length(TempStr) - Length(Str) - 4 > SCREENWIDTH Div FONTWIDTH Then
-          Str := Str + Copy(TempStr, 1, (SCREENWIDTH Div FONTWIDTH) - Length(Str) - 4) + '...)'
-        Else
-          Str := Str + TempStr;
-        List.Add(Str);
+        TempStr := SP_NumArrayToString(Idx, (SCREENWIDTH Div FONTWIDTH) - Length(Str) - 4);
+        List.Add(Str + TempStr);
       End;
 
     If Length(strArrays) > 0 Then
@@ -18598,13 +18594,9 @@ Begin
             Str := Str + ',';
         End;
         Str := Str + ')=';
-        TempStr := SP_StrArrayToString(Idx);
+        TempStr := SP_StrArrayToString(Idx, (SCREENWIDTH Div FONTWIDTH) - Length(Str) - 4);
         SP_ReplaceSpecialChars(TempStr);
-        If Length(TempStr) - Length(Str) - 4 > SCREENWIDTH Div FONTWIDTH Then
-          Str := Str + Copy(TempStr, 1, (SCREENWIDTH Div FONTWIDTH) - Length(Str) - 4) + '...)'
-        Else
-          Str := Str + TempStr;
-        List.Add(Str);
+        List.Add(Str + TempStr);
       End;
 
     List.Objects[0] := TObject(0);
@@ -18654,7 +18646,7 @@ Begin
           If Idx2 < NumArrays[Idx].NumIndices -1 Then
             Output := Output + ',';
         End;
-        Output := Output + ')=' + SP_NumArrayToString(Idx);
+        Output := Output + ')=' + SP_NumArrayToString(Idx, -1);
         SP_StackPtr^.OpType := SP_STRING;
         SP_StackPtr^.Str := Output + #13;
         SP_Interpret_PRINT(Info);
@@ -18671,7 +18663,7 @@ Begin
           If Idx2 < StrArrays[Idx].NumIndices -1 Then
             Output := Output + ',';
         End;
-        TempStr := SP_StrArrayToString(Idx);
+        TempStr := SP_StrArrayToString(Idx, -1);
         SP_ReplaceSpecialChars(TempStr);
         Output := Output + ')=' + TempStr;
         SP_StackPtr^.OpType := SP_STRING;

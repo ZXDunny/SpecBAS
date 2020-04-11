@@ -259,7 +259,7 @@ Begin
     cap := 'C' + IntToString(CURSORPOS) + ' ' + cap;
 
   Ink := 7;// * Ord(FocusedWindow <> fwEditor);
-  If PROGSTATE = SP_PR_RUN Then i := 2 Else i := Ink;
+  If PROGSTATE = SP_PR_RUN Then i := 12 Else i := Ink;
 
   Li := SP_ConvertLineStatement(CONTLINE, CONTSTATEMENT);
   CLINE := Li.Line;

@@ -246,7 +246,7 @@ Procedure SP_FPSetDisplayColours;
 Procedure SP_ToggleBreakPoint(Hidden: Boolean);
 Procedure SP_FPGotoLine(line, statement: Integer);
 Procedure SP_ToggleEditorMark(i: Integer);
-Procedure SP_JumpToMark(i: Integer);
+Function  SP_JumpToMark(i: Integer): Boolean;
 Procedure SP_ResetConditionalBreakPoints;
 Procedure SP_PrepareBreakpoints(Create: Boolean);
 Function  SP_IsSourceBreakPoint(Line, Statement: Integer): Boolean;
@@ -4655,10 +4655,11 @@ Begin
   AddDirtyLine(EditorMarks[i]);
 End;
 
-Procedure SP_JumpToMark(i: Integer);
+Function SP_JumpToMark(i: Integer): Boolean;
 Var
   Sel: SP_SelectionInfo;
 Begin
+  Result := False;
   If (EditorMarks[i] And $FFFF0000) Shr 16 > 0 Then Begin
     SP_GetSelectionInfo(Sel);
     Listing.FPCLine := ((EditorMarks[i] And $FFFF0000) Shr 16 ) -1;
@@ -4666,6 +4667,7 @@ Begin
     FPCDes := Listing.FPCPos;
     FPCDesLine := Listing.FPCLine;
     SP_FPClearSelection(Sel);
+    Result := True;
   End;
 End;
 
@@ -5533,15 +5535,16 @@ Begin
               If KEYSTATE[K_SHIFT] = 1 Then Begin
                 SP_ToggleEditorMark(Key - K_1);
               End Else Begin
-                SP_JumpToMark(Key - K_1);
-                Idx := Listing.FPCLine;
-                While (Idx >= 0) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Dec(Idx);
-                PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
-                If PROGLINE <= 0 Then Begin
-                  While (Idx < Listing.Count) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Inc(Idx);
+                If SP_JumpToMark(Key - K_1) Then Begin
+                  Idx := Listing.FPCLine;
+                  While (Idx >= 0) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Dec(Idx);
                   PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
+                  If PROGLINE <= 0 Then Begin
+                    While (Idx < Listing.Count) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Inc(Idx);
+                    PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
+                  End;
+                  SP_CalculateFPCursorPos;
                 End;
-                SP_CalculateFPCursorPos;
               End;
               SP_FPClearSelection(Sel);
             End;
@@ -6733,18 +6736,19 @@ Begin
             If KEYSTATE[K_SHIFT] = 1 Then Begin
               SP_ToggleEditorMark(Char - K_F1);
             End Else Begin
-              SP_JumpToMark(Char - K_1);
-              Idx := Listing.FPCLine;
-              While (Idx >= 0) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Dec(Idx);
-              PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
-              If PROGLINE <= 0 Then Begin
-                While (Idx < Listing.Count) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Inc(Idx);
+              If SP_JumpToMark(Char - K_F1) Then Begin
+                Idx := Listing.FPCLine;
+                While (Idx >= 0) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Dec(Idx);
                 PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
+                If PROGLINE <= 0 Then Begin
+                  While (Idx < Listing.Count) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Inc(Idx);
+                  PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
+                End;
+                SP_CalculateFPCursorPos;
+                SP_CursorPosChanged;
+                SP_ScrollInView;
+                SP_FPClearSelection(Sel);
               End;
-              SP_CalculateFPCursorPos;
-              SP_CursorPosChanged;
-              SP_ScrollInView;
-              SP_FPClearSelection(Sel);
             End;
             SP_DisplayFPListing(-1);
           End Else
@@ -7220,15 +7224,16 @@ Begin
             If KEYSTATE[K_SHIFT] = 1 Then Begin
               SP_ToggleEditorMark(Key - 1);
             End Else Begin
-              SP_JumpToMark(Key - 1);
-              Idx := Listing.FPCLine;
-              While (Idx >= 0) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Dec(Idx);
-              PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
-              If PROGLINE <= 0 Then Begin
-                While (Idx < Listing.Count) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Inc(Idx);
+              If SP_JumpToMark(Key - 1) Then Begin
+                Idx := Listing.FPCLine;
+                While (Idx >= 0) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Dec(Idx);
                 PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
+                If PROGLINE <= 0 Then Begin
+                  While (Idx < Listing.Count) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Inc(Idx);
+                  PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
+                End;
+                SP_CalculateFPCursorPos;
               End;
-              SP_CalculateFPCursorPos;
             End;
             SP_FPClearSelection(Sel);
           End;
@@ -9815,11 +9820,13 @@ Begin
       Statement := SP_SourceBreakpointList[i].Statement;
 
       Idx := SP_FindLine(LineNum, True);
-      Tokens := @SP_Program[Idx];
-      stIdx := SP_FindStatement(Tokens, Statement);
-      Token := @Tokens^[stIdx];
-      Token^.BPIndex := i;
-      SP_SourceBreakpointList[i].PassCount := SP_SourceBreakpointList[i].PassNum;
+      If Idx > -1 Then Begin
+        Tokens := @SP_Program[Idx];
+        stIdx := SP_FindStatement(Tokens, Statement);
+        Token := @Tokens^[stIdx];
+        Token^.BPIndex := i;
+        SP_SourceBreakpointList[i].PassCount := SP_SourceBreakpointList[i].PassNum;
+      End;
 
     End;
 

@@ -2516,17 +2516,20 @@ Begin
 
     T_OVER := 0;
     COVER := 0;
-    DisplaySection.Enter;
-    SP_DeleteAllWindows;
-    SP_DeleteAllStreams(Error);
-    SP_DeleteAllBanks(False);
-    SP_ResetConditionalBreakPoints;
 
-    SetLength(SP_FnList, 0);
-    SP_FileCloseAll;
-    NUMSPRITES := 0;
-    DisplaySection.Leave;
+    If SP_Interpreter_Ready Then Begin
+      DisplaySection.Enter;
+      SP_DeleteAllWindows;
+      SP_DeleteAllStreams(Error);
+      SP_DeleteAllBanks(False);
+      SP_FileCloseAll;
+      NUMSPRITES := 0;
+      DisplaySection.Leave;
+    End;
+
     SP_ClearEvery;
+    SP_ResetConditionalBreakPoints;
+    SetLength(SP_FnList, 0);
     EveryEnabled := True;
     ERROR_LineNum := -1;
     MOUSEDOWN_LineNum := -1;

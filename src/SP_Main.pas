@@ -215,8 +215,6 @@ Begin
 
   // Set up the initial copyright message.
 
-  SP_Interpreter_Ready := True;
-
   SP_CLS(CPAPER);
 
   SetLength(SP_Ass_List, 6);

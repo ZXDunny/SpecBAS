@@ -172,7 +172,7 @@ Begin
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
-  Priority := tpIdle;
+  Priority := tpNormal;
   StartTime := CB_GETTICKS;
   LastFrames := 0;
 
@@ -951,7 +951,7 @@ begin
 
   Activate;
 
-  Logging := True;
+  Logging := False;
 
 end;
 

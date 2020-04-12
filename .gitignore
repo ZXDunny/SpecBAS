@@ -4,3 +4,8 @@
 *.dsk
 *.stat
 *.identcache
+sampled.debug
+sampled.sampling
+*.ini
+*.map
+SpecBAS.drc

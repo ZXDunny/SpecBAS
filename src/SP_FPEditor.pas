@@ -7376,6 +7376,9 @@ Const
   stClrCyan = #5;
 Begin
 
+  SP_Interpreter_Ready := True;
+  CB_YIELD;
+
   Window := SCREENBANK;
   ErrorFPS := FPS;
   REPCOUNT := FRAMES;
@@ -7518,18 +7521,12 @@ Begin
 
     SP_InvalidateWholeDisplay;
     SP_NeedDisplayUpdate := True;
-    CauseUpdate := True;
 
     If IsNew Then Begin
 
       If ParamCount = 0 Then Begin
 
-        TargetTicks := CB_GetTicks + LongWord(250);
-        SP_NeedDisplayUpdate := True;
-        While CB_GetTicks < TargetTicks Do Begin
-          SP_WaitForSync;
-        End;
-
+        SP_WaitForSync;
         SP_PlaySignature;
 
         // If the sample bank is playing, draw loading stripes

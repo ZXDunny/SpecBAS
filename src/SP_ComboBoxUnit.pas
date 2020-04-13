@@ -40,6 +40,7 @@ SP_ComboBox = Class(SP_BaseComponent)
     Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetDisabledFontClr(c: Byte); Override;
     Procedure SetChainControl(c: SP_BaseComponent); Override;
+    Procedure SetOnFocus(e: SP_FocusEvent); Override;
 
   Public
 
@@ -102,6 +103,16 @@ Destructor SP_ComboBox.Destroy;
 Begin
 
   Inherited;
+
+End;
+
+Procedure SP_ComboBox.SetOnFocus(e: SP_FocusEvent);
+Begin
+
+  fOnFocus := e;
+  Menu.OnFocus := e;
+  Edit.OnFocus := e;
+  Btn.OnFocus := e;
 
 End;
 

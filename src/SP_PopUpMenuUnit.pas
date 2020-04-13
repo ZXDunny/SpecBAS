@@ -611,8 +611,10 @@ Begin
       ForceCapture := True;
       p := CaptureControl.ScreenToClient(ClientToScreen(Point(X, Y)));
       CaptureControl.MouseDown(p.x, p.y, Btn);
-    End Else
+    End Else Begin
+      SetFocus(False);
       Close;
+    End;
   End Else Begin
     If fSelected >= 0 Then
       If fItems[fSelected].Checkable Then Begin
@@ -648,7 +650,9 @@ Begin
     End;
 
   If Assigned(PrevFocusedControl) Then
-    PrevFocusedControl.SetFocus(True);
+    PrevFocusedControl.SetFocus(True)
+  Else
+    SetFocus(False);
 
 End;
 

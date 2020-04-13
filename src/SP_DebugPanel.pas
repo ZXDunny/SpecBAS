@@ -17,6 +17,7 @@ Type
     Class Procedure PanelSelect(Sender: SP_BaseComponent; Index: Integer);
     Class Procedure ButtonClick(Sender: SP_BaseComponent);
     Class Procedure SelectItem(Sender: SP_BaseComponent; Index: Integer);
+    Class Procedure SetFocus(Sender: SP_BaseComponent; WillFocus: Boolean);
 
   End;
 
@@ -40,6 +41,7 @@ var
   FPDebugBPDel,
   FPDebugBPEdt: SP_Button;
   FPPoIList: Array of SP_PoIInfo;
+  DebugCurWindow: Integer;
 
 Const
 
@@ -148,7 +150,7 @@ Begin
     FPDebugPanel.BackgroundClr := debugPanel;
     FPDebugPanel.HeaderClr := BackgroundClr;
     FPDebugPanel.Transparent := False;
-//    FPDebugPanel.CanFocus := False;
+    FPDebugPanel.OnFocus := SP_DebugPanelActionProcs.SetFocus;
     FPDebugPanel.SortByAlpha := True;
     FPDebugPanel.OnChoose := SP_DebugPanelActionProcs.DblClick;
     FPDebugPanel.OnSelect := SP_DebugPanelActionProcs.PanelSelect;
@@ -169,7 +171,7 @@ Begin
     FPSizeGrabber.OnMouseDown := SP_MenuActionProcs.GrabberMouseDown;
     FPSizeGrabber.OnMouseMove := SP_MenuActionProcs.GrabberMouseMove;
     FPSizeGrabber.OnMouseUp := SP_MenuActionProcs.GrabberMouseUp;
-
+    FPSizeGrabber.OnFocus := SP_DebugPanelActionProcs.SetFocus;
   End;
   FocusedControl := Nil;
 
@@ -773,6 +775,22 @@ Begin
     6: // Program map
       Begin
       End;
+  End;
+
+End;
+
+Class Procedure SP_DebugPanelActionProcs.SetFocus(Sender: SP_BaseComponent; WillFocus: Boolean);
+Begin
+
+  If WillFocus Then Begin
+    If FocusedWindow <> fwNone then
+      DebugCurWindow := FocusedWindow;
+    SP_SwitchFocus(fwNone);
+    If Not Sender.CanFocus Then
+      FocusedControl := nil;
+  End Else Begin
+    SP_SwitchFocus(DebugCurWindow);
+    FocusedControl := nil;
   End;
 
 End;

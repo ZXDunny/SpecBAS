@@ -355,6 +355,7 @@ Const
   spHardReturn = 1;
   spSoftReturn = 2;
 
+  fwNone =  -1;
   fwDirect = 0;
   fwEditor = 1;
 
@@ -1102,7 +1103,7 @@ Begin
     If Id = DWWindowID Then
       Result := fwDirect
     Else
-      Result := -1;
+      Result := fwNone;
 
 End;
 
@@ -1152,6 +1153,14 @@ Begin
           FPCDes := Listing.FPCPos;
           FPCDesLine := Listing.FPCLine;
         End;
+      End;
+    fwNone:
+      Begin
+        SP_Decorate_Window(DWWindowID, 'Direct command', True, False, False);
+        SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, False);
+        SP_EditorDisplayEditLine;
+        Ln := Listing.FPCLine;
+        PROGLINE := SP_GetLineNumberFromIndex(Ln);
       End;
   End;
 
@@ -2481,7 +2490,7 @@ Begin
   Font := SP_SetFPEditorFont;
   SP_GetWindowDetails(FPWindowID, Win, Err);
   SP_SetDrawingWindow(FPWindowID);
-  Editing := FocusedWindow <> fwDirect;
+  Editing := FocusedWindow = fwEditor;
   If Editing Then Begin
     dIdx := Listing.FPCLine;
     cursLineNum := SP_GetLineNumberFromIndex(dIdx);
@@ -3237,7 +3246,8 @@ Begin
       If FocusedWindow = fwEditor Then
         SP_DisplayFPCursor
       Else
-        SP_DisplayDWCursor;
+        If FocusedWindow = fwDirect Then
+          SP_DisplayDWCursor;
       SP_DrawBatteryStatus;
       LocalFlashState := FLASHSTATE;
     End;
@@ -3300,7 +3310,8 @@ Begin
             If FocusedWindow = fwEditor Then
               SP_FPEditorPerformEdit(LASTKEY)
             Else
-              SP_DWPerformEdit(LASTKEY);
+              If FocusedWindow = fwDirect Then
+                SP_DWPerformEdit(LASTKEY);
             Changed := True;
           End;
 
@@ -3311,7 +3322,8 @@ Begin
         If FocusedWindow = fwEditor Then
           SP_FPEditorPerformEdit(LASTKEY)
         Else
-          SP_DWPerformEdit(LASTKEY);
+          If FocusedWindow = fwDirect Then
+            SP_DWPerformEdit(LASTKEY);
         RepeatLen := REPDEL;
         REPCOUNT := FRAMES;
         KeyChar := LASTKEY;
@@ -3458,6 +3470,12 @@ Begin
   End;
 
   If Idx >= 0 Then Begin
+
+    If Idx = FPWindowID Then
+      SP_SwitchFocus(fwEditor)
+    Else
+      If Idx = DWWindowID Then
+        SP_SwitchFocus(fwDirect);
 
     // Run through all our scrollbars for that window.
 

@@ -2285,11 +2285,7 @@ Var
   Exists: Boolean;
 Begin
 
-  If (Lower(Filename) = 's:startup-sequence') or
-     (Lower(Filename) = 's:autosave') or
-     (Lower(Filename) = '/s/startup-sequence') or
-     (Lower(Filename) = '/s/autosave') Then Exit;
-
+  if Lower(Copy(Filename, Length(Filename) - 15, 16)) = 'startup-sequence' then Exit;
   If Not Saving And Not SP_FileExists(Filename) then Exit;
 
   Filename := SP_ConvertPathToAssigns(Filename);

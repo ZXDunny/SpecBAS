@@ -49,6 +49,7 @@ SP_BaseComponent = Class
 
   Public
 
+    fPrevFocus: SP_BaseComponent;
     fLeft, fTop, fWidth, fHeight: Integer;
     fAnchors: SP_AnchorSet;
     fAlign: Integer;
@@ -136,6 +137,7 @@ SP_BaseComponent = Class
     Procedure SetErrorClr(c: Byte); Virtual;
     Procedure SetDisabledFontClr(c: Byte); Virtual;
     Procedure SetAlign(newAlign: Integer); Virtual;
+    Procedure SetOnFocus(e: SP_FocusEvent); Virtual;
     Procedure SetOverrideScaling(b: Boolean);
 
     Procedure DoErase;
@@ -230,7 +232,7 @@ SP_BaseComponent = Class
     Property UnfocusedHighlightClr: Byte        read fUnfocusedHighlightClr write SetUnfocusedHighlightClr;
     Property Transparent:   Boolean             read fTransparent   write SetTransparent;
     property OverrideScaling: Boolean           read fOverrideScl   write SetOverrideScaling;
-    Property OnFocus: SP_FocusEvent             read fOnFocus       write fOnFocus;
+    Property OnFocus: SP_FocusEvent             read fOnFocus       write SetOnFocus;
     Property Erase: Boolean                     read fErase         write fErase;
 
     Constructor Create(Owner: SP_BaseComponent);
@@ -275,6 +277,13 @@ Begin
     ChangeFont;
     Paint;
   end;
+
+End;
+
+Procedure SP_BaseComponent.SetOnFocus(e: SP_FocusEvent);
+Begin
+
+  fOnFocus := e;
 
 End;
 
@@ -979,6 +988,7 @@ Begin
   fAnchors := [aLeft, aTop];
   fAlign := SP_AlignNone;
   If Assigned(fParentControl) Then Inc(ControlCount);
+  fPrevFocus := nil;
 
 End;
 
@@ -1217,27 +1227,39 @@ Var
   ParentCanFocus: Boolean;
 Begin
 
-  ParentCanFocus := True;
-  c := Self;
-  While Assigned(c.fParentControl) And (c.fParentControl.WindowID = -1) Do Begin
-    c := c.fParentControl;
-    ParentCanFocus := ParentCanFocus And c.CanFocus;
-  End;
+  If b Then Begin
 
-  If (b And not CanFocus) or Not ParentCanFocus Then Exit;
-
-  If fEnabled Then Begin
-    c := FocusedControl;
-    If Assigned(FocusedControl) And (FocusedControl <> Self) And b Then
-      FocusedControl.SetFocus(False);
-    If b Then
-      FocusedControl := Self
-    Else
-      FocusedControl := nil;
-    If (fFocused <> b) or (c <> FocusedControl) then Begin
-      fFocused := b;
-      Paint;
+    ParentCanFocus := True;
+    c := Self;
+    While Assigned(c.fParentControl) And (c.fParentControl.WindowID = -1) Do Begin
+      c := c.fParentControl;
+      ParentCanFocus := ParentCanFocus And c.CanFocus;
     End;
+
+    If (b And not CanFocus) or Not ParentCanFocus Then Exit;
+
+    If fEnabled Then Begin
+      c := FocusedControl;
+      fPrevFocus := c;
+      If Assigned(FocusedControl) And (FocusedControl <> Self) And b Then
+        FocusedControl.SetFocus(False);
+      If b Then
+        FocusedControl := Self
+      Else
+        FocusedControl := nil;
+      If (fFocused <> b) or (c <> FocusedControl) then Begin
+        fFocused := b;
+        Paint;
+      End;
+      If b And Assigned(fOnFocus) then
+        fOnFocus(Self, b);
+    End;
+
+  End Else Begin
+
+    If Assigned(fOnFocus) Then
+      fOnFocus(Self, b);
+
   End;
 
 End;

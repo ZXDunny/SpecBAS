@@ -7549,7 +7549,10 @@ Begin
 
       If ParamCount = 0 Then Begin
 
-        SP_WaitForSync;
+        cnt := FRAMES;
+        Repeat
+          SP_WaitForSync;
+        Until (FRAMES - cnt) > 25;
         SP_PlaySignature;
 
         // If the sample bank is playing, draw loading stripes

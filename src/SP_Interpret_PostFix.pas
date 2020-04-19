@@ -8438,10 +8438,10 @@ Begin
   If (Italic >= 0) And (Italic <= 255) Then Begin
     If Italic <> 8 Then
       If OUTSET Then
-        OUTBUFFER := OUTBUFFER + aChar(26) + aChar(Italic)
+        OUTBUFFER := OUTBUFFER + aChar(26) + IntegerToString(Italic)
       Else
         IF T_CENTRE Then
-          T_CENTRETEXT := T_CENTRETEXT + aChar(26) + aChar(Italic)
+          T_CENTRETEXT := T_CENTRETEXT + aChar(26) + IntegerToString(Italic)
         Else Begin
           T_ITALIC := Italic;
         End;
@@ -8462,10 +8462,10 @@ Begin
   If (Bold >= 0) And (Bold <= 255) Then Begin
     If Bold <> 8 Then
       If OUTSET Then
-        OUTBUFFER := OUTBUFFER + aChar(27) + aChar(Bold)
+        OUTBUFFER := OUTBUFFER + aChar(27) + IntegerToString(Bold)
       Else
         IF T_CENTRE Then
-          T_CENTRETEXT := T_CENTRETEXT + aChar(27) + aChar(Bold)
+          T_CENTRETEXT := T_CENTRETEXT + aChar(27) + IntegerToString(Bold)
         Else Begin
           T_BOLD := Bold;
         End;
@@ -8486,10 +8486,10 @@ Begin
   If (Inverse >= 0) And (Inverse <= 255) Then Begin
     If Inverse <> 8 Then
       If OUTSET Then
-        OUTBUFFER := OUTBUFFER + aChar(20) + aChar(Inverse)
+        OUTBUFFER := OUTBUFFER + aChar(20) + IntegerToString(Inverse)
       Else
         IF T_CENTRE Then
-          T_CENTRETEXT := T_CENTRETEXT + aChar(20) + aChar(Inverse)
+          T_CENTRETEXT := T_CENTRETEXT + aChar(20) + IntegerToString(Inverse)
         Else Begin
           T_INVERSE := Inverse;
         End;
@@ -8509,10 +8509,10 @@ Begin
 
   If (Over >= 0) And (Over <= 255) Then Begin
     If OUTSET Then
-      OUTBUFFER := OUTBUFFER + aChar(18) + aChar(Over)
+      OUTBUFFER := OUTBUFFER + aChar(18) + IntegerToString(Over)
     Else
       IF T_CENTRE Then
-        T_CENTRETEXT := T_CENTRETEXT + aChar(18) + aChar(Over)
+        T_CENTRETEXT := T_CENTRETEXT + aChar(18) + IntegerToString(Over)
       Else Begin
         T_OVER := Over;
       End;
@@ -8531,11 +8531,11 @@ Begin
   Dec(SP_StackPtr);
 
   If OUTSET Then
-    OUTBUFFER := OUTBUFFER + aChar(19) + aChar(Trans)
+    OUTBUFFER := OUTBUFFER + aChar(19) + IntegerToString(Trans)
   Else
     If Trans <> 8 Then
       IF T_CENTRE Then
-        T_CENTRETEXT := T_CENTRETEXT + aChar(19) + aChar(Trans)
+        T_CENTRETEXT := T_CENTRETEXT + aChar(19) + IntegerToString(Trans)
       Else Begin
         T_TRANSPARENT := Boolean(Trans);
       End;

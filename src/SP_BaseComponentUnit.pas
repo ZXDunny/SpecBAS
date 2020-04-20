@@ -115,6 +115,7 @@ SP_BaseComponent = Class
     fOverrideScl: Boolean;
     ControlID: Integer;
     Dbl: Boolean;
+    fCurFontID: Integer;
 
     Procedure SetVisible(Value: Boolean);
     Procedure SetTransparent(Value: Boolean);
@@ -139,6 +140,7 @@ SP_BaseComponent = Class
     Procedure SetAlign(newAlign: Integer); Virtual;
     Procedure SetOnFocus(e: SP_FocusEvent); Virtual;
     Procedure SetOverrideScaling(b: Boolean);
+    Procedure SetFont(ID: Integer);
 
     Procedure DoErase;
     Function  DecodeKey(Var Char: Byte): Byte;
@@ -234,6 +236,7 @@ SP_BaseComponent = Class
     property OverrideScaling: Boolean           read fOverrideScl   write SetOverrideScaling;
     Property OnFocus: SP_FocusEvent             read fOnFocus       write SetOnFocus;
     Property Erase: Boolean                     read fErase         write fErase;
+    Property Font: Integer                      read fCurFontID     write SetFont;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -373,6 +376,14 @@ Begin
 
 End;
 
+Procedure SP_BaseComponent.SetFont(ID: integer);
+begin
+
+  fCurFontID := ID;
+  Paint;
+
+end;
+
 Function SP_BaseComponent.GetCanvas: NativeUInt;
 Begin
 
@@ -397,7 +408,7 @@ Begin
 
   Dst := @fCanvas[0];
   IsScaled := False;
-  BankID := SP_FindBankID(FONTBANKID);
+  BankID := SP_FindBankID(Font);
   If BankID <> SP_ERR_BANK_ID_NOT_FOUND Then Begin
 
     Bank := SP_BankList[BankID];
@@ -932,6 +943,10 @@ Var
 Begin
 
   ChangeFont;
+  If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then
+    fCurFontID := EDITORFONT
+  Else
+    fCurFontID := FONTBANKID;
 
   Inc(GlobalControlID);
   ControlID := GlobalControlID;

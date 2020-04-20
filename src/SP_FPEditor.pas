@@ -4170,8 +4170,8 @@ Begin
             Listing.FPCPos := Listing.FPCPos + nCPos;
             SP_FPWordWrapLine(Listing.FPCLine);
             SP_MarkAsDirty(Listing.FPCLine);
-            If not EDITORWRAP Then
-              SP_FPApplyHighlighting(Listing.FPCLine);
+            SP_FPApplyHighlighting(Listing.FPCLine);
+            AddDirtyLine(Listing.FPCLine);
           End Else Begin
             CompilerLock.Enter;
             txt := Listing[Listing.FPCLine];

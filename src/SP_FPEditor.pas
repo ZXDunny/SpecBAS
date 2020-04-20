@@ -4169,10 +4169,9 @@ Begin
             Listing[Listing.FPCLine] := txt;
             Listing.FPCPos := Listing.FPCPos + nCPos;
             SP_FPWordWrapLine(Listing.FPCLine);
-            If not EDITORWRAP Then Begin
-              SP_MarkAsDirty(Listing.FPCLine);
+            SP_MarkAsDirty(Listing.FPCLine);
+            If not EDITORWRAP Then
               SP_FPApplyHighlighting(Listing.FPCLine);
-            End;
           End Else Begin
             CompilerLock.Enter;
             txt := Listing[Listing.FPCLine];
@@ -4189,10 +4188,9 @@ Begin
             End;
             For Idx := Listing.FPCLine To Listing.FPCLine + Strings.Count -1 Do Begin
               SP_FPWordWrapLine(Idx);
-              If Not EDITORWRAP Then Begin
-                SP_MarkAsDirty(Idx);
+              SP_MarkAsDirty(Idx);
+              If Not EDITORWRAP Then
                 SP_FPApplyHighlighting(Idx);
-              End;
             End;
             Inc(Listing.FPCLine, Strings.Count);
             Listing.FPCPos := nCPos +1;

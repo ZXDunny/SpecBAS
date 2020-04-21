@@ -4189,8 +4189,7 @@ Begin
             For Idx := Listing.FPCLine To Listing.FPCLine + Strings.Count -1 Do Begin
               SP_FPWordWrapLine(Idx);
               SP_MarkAsDirty(Idx);
-              If Not EDITORWRAP Then
-                SP_FPApplyHighlighting(Idx);
+              SP_FPApplyHighlighting(Idx);
             End;
             Inc(Listing.FPCLine, Strings.Count);
             Listing.FPCPos := nCPos +1;
@@ -4291,7 +4290,7 @@ Begin
         // Find the start of the word:
         While (Listing.FPCPos > 1) And (s[Listing.FPCPos] in Seps) Do Listing.FPCPos := Listing.FPCPos -1;
         While (Listing.FPCPos > 1) And Not (s[Listing.FPCPos] in Seps) Do Listing.FPCPos := Listing.FPCPos -1;
-        If s[Listing.FPCPos] in Seps Then Listing.FPCPos := Listing.FPCPos +1;
+        If (Listing.FPCPos < Length(s)) And (s[Listing.FPCPos] in Seps) Then Listing.FPCPos := Listing.FPCPos +1;
         // Find the end of the Word:
         Listing.FPSelLine := Listing.FPCLine;
         Listing.FPSelPos := Listing.FPCPos;

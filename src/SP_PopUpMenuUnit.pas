@@ -649,10 +649,7 @@ Begin
       fActivated := False;
     End;
 
-  If Assigned(PrevFocusedControl) Then
-    PrevFocusedControl.SetFocus(True)
-  Else
-    SetFocus(False);
+  SetFocus(False);
 
 End;
 

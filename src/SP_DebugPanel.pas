@@ -23,6 +23,8 @@ Type
 
 Procedure SP_OpenDebugPanel;
 Procedure SP_CloseDebugPanel;
+Procedure SP_User_OpenDebugPanel;
+Procedure SP_User_CloseDebugPanel;
 Procedure SP_FillDebugPanel;
 Procedure SP_ResizeDebugPanel(X: Integer);
 Procedure SP_FPUpdatePoIList;
@@ -33,6 +35,7 @@ var
   FPDebugCombo: SP_ComboBox;
   FPSizeGrabber: SP_Container;
   FPResizingDebugPanel: Boolean;
+  FPUserOpenedDebugPanel: Boolean;
   FPDebugPanelVisible: Boolean;
   FPDebugPanelWidth: Integer;
   FPDebugLastMouseX: Integer;
@@ -113,6 +116,18 @@ Begin
 
   End;
 
+End;
+
+Procedure SP_User_OpenDebugPanel;
+Begin
+  FPUserOpenedDebugPanel := True;
+  SP_OpenDebugPanel;
+End;
+
+Procedure SP_User_CloseDebugPanel;
+Begin
+  FPUserOpenedDebugPanel := False;
+  SP_CloseDebugPanel;
 End;
 
 Procedure SP_OpenDebugPanel;

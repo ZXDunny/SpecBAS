@@ -1084,7 +1084,7 @@ Begin
   SP_FillRect(0, 0, FPWindowWidth -1, FPWindowHeight -1, 7);
   SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, False);
 
-  If FPDebugPanelVisible Then
+  If FPUserOpenedDebugPanel Then
     SP_OpenDebugPanel;
 
   SP_AddFPScrollBars;
@@ -5673,9 +5673,9 @@ Begin
         'b':
           Begin
             If FPDebugPanelVisible Then
-              SP_CloseDebugPanel
+              SP_User_CloseDebugPanel
             Else
-              SP_OpenDebugPanel;
+              SP_User_OpenDebugPanel;
           End;
       End;
     End;
@@ -7351,9 +7351,9 @@ Begin
           Begin
             // Show or hide the debug panel
             If FPDebugPanelVisible Then
-              SP_CloseDebugPanel
+              SP_User_CloseDebugPanel
             Else
-              SP_OpenDebugPanel;
+              SP_User_OpenDebugPanel;
           End;
       End;
     End;

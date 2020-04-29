@@ -667,7 +667,8 @@ Begin
       CloseAll;
       If fItems[i].Enabled And Assigned(fItems[i].OnClick) Then
         fItems[i].OnClick(SP_BaseComponent(fItems[i]));
-    End;
+    End Else
+      CloseAll;
   End Else
     fIgnoreMouseUp := False;
 
@@ -818,9 +819,11 @@ Begin
       K_SPACE:
         Begin
           SP_PlaySystem(CLICKCHAN, CLICKBANK);
-          If fItems[fSelected].Checkable And fItems[fSelected].Enabled Then
-            fItems[fSelected].Checked := Not fItems[fSelected].Checked;
-          Paint;
+          If fSelected >= 0 Then Begin
+            If fItems[fSelected].Checkable And fItems[fSelected].Enabled Then
+              fItems[fSelected].Checked := Not fItems[fSelected].Checked;
+            Paint;
+          End;
         End;
 
     End;

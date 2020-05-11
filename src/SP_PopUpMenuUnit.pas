@@ -811,10 +811,13 @@ Begin
         End;
 
     Else
+      Handled := False;
       Inherited;
     End;
 
-  End Else
+  End Else Begin
+
+    Handled := False;
 
     Case NewChar of
 
@@ -824,9 +827,12 @@ Begin
           If fItems[fSelected].Checkable And fItems[fSelected].Enabled Then
             fItems[fSelected].Checked := Not fItems[fSelected].Checked;
           Paint;
+          Handled := True;
         End;
 
     End;
+
+  End;
 
 End;
 

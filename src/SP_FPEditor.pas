@@ -3239,7 +3239,7 @@ Begin
   Repeat
     SP_WaitForSync;
     ProcessNextControlMsg;
-    If SP_KeyEventWaiting Then
+//    If SP_KeyEventWaiting Then
       SP_UnBufferKey;
     DoTimerEvents;
     If LocalFlashState <> FLASHSTATE Then Begin

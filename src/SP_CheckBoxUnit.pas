@@ -137,6 +137,7 @@ End;
 Procedure SP_CheckBox.PerformKeyDown(Var Handled: Boolean);
 Begin
 
+  Handled := False;
   If cLastKey = K_SPACE Then Begin
     DoCheck(Not Checked);
     Handled := True;

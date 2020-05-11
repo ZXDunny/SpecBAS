@@ -1084,7 +1084,7 @@ Begin
   SP_FillRect(0, 0, FPWindowWidth -1, FPWindowHeight -1, 7);
   SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, False);
 
-  If FPDebugPanelVisible Then
+  If FPUserOpenedDebugPanel Then
     SP_OpenDebugPanel;
 
   SP_AddFPScrollBars;
@@ -2591,7 +2591,7 @@ Begin
         If SP_WasPrevSoft(Idx) Then LineNum := 0 Else LineNum := SP_GetFPLineNumber(Idx);
         If (LineNum <> 0) And (DoneProgLine) Then DontDoProgLine := True;
         If LineNum <= 0 Then LineNum := cIdx;
-        IsProgLine := Not Editing And (LineNum = PROGLINE) And Not DontDoProgLine;
+        IsProgLine := (FocusedWindow = fwDirect) And (LineNum = PROGLINE) And Not DontDoProgLine;
         If IsProgLine Then Begin
           cIdx := Idx;
           pClr := proglineClr;
@@ -2615,7 +2615,7 @@ Begin
         // Current line highlight
         dIdx := Idx;
         If DoDraw Then Begin
-          Highlight := (FocusedWindow = fwEditor) And Editing And (SP_GetLineNumberFromIndex(dIdx) = cursLineNum) And Not Sel.Multiline;
+          Highlight := (FocusedWindow = fwEditor) And (SP_GetLineNumberFromIndex(dIdx) = cursLineNum) And Not Sel.Multiline;
           If Highlight Then Begin
             SP_FillRect(FPPaperLeft, OfsY, (FPFw * FPGutterWidth) +1, FPFh, gClr +1);
             SP_FillRect((FPGutterWidth * FPFw) + FPPaperLeft +1, OfsY, FPPaperWidth - (FPGutterWidth * FPFw), FPFh, lineClr);
@@ -2625,7 +2625,7 @@ Begin
         CodeLine := SyntaxListing[Idx];
         // If this line is part of a selection then insert the necessary colour commands now
         ContainsSelection := False;
-        If (Sel.Active) And Editing Then
+        If (Sel.Active) And (FocusedWindow = fwEditor) Then
           If (Idx >= Sel.StartL) And (Idx <= Sel.EndL) Then Begin
             If (Idx <> Sel.StartL) And (Idx <> Sel.EndL) Then Begin
               CodeLine := SelClr + CodeLine;
@@ -5673,9 +5673,9 @@ Begin
         'b':
           Begin
             If FPDebugPanelVisible Then
-              SP_CloseDebugPanel
+              SP_User_CloseDebugPanel
             Else
-              SP_OpenDebugPanel;
+              SP_User_OpenDebugPanel;
           End;
       End;
     End;
@@ -7351,9 +7351,9 @@ Begin
           Begin
             // Show or hide the debug panel
             If FPDebugPanelVisible Then
-              SP_CloseDebugPanel
+              SP_User_CloseDebugPanel
             Else
-              SP_OpenDebugPanel;
+              SP_User_OpenDebugPanel;
           End;
       End;
     End;

@@ -649,10 +649,7 @@ Begin
       fActivated := False;
     End;
 
-  If Assigned(PrevFocusedControl) Then
-    PrevFocusedControl.SetFocus(True)
-  Else
-    SetFocus(False);
+  SetFocus(False);
 
 End;
 
@@ -670,7 +667,8 @@ Begin
       CloseAll;
       If fItems[i].Enabled And Assigned(fItems[i].OnClick) Then
         fItems[i].OnClick(SP_BaseComponent(fItems[i]));
-    End;
+    End Else
+      CloseAll;
   End Else
     fIgnoreMouseUp := False;
 

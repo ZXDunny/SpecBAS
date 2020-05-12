@@ -1293,7 +1293,7 @@ End;
 Procedure SP_MakeBEEP(Duration, Pitch: aFloat; WaveType: Integer; Attack, Decay, Sustain, Release, Noise, Roughness: aFloat; Error: TSP_ErrorCode);
 Var
   Hz, Phase, Amplitude, AttackVol, AttackInc, DecayVol, DecayDec, ReleaseVol, ReleaseDec, mRoughness, Scalar, ScaleInc: aFloat;
-  Idx, WaveSize, sampAttack, sampDecay, sampRelease, i, DeClickSize: Integer;
+  Idx, WaveSize, sampAttack, sampDecay, sampRelease, i, DeClickSize, BASS_Err: Integer;
   Channel: HCHANNEL;
   Sample: HSAMPLE;
   wSample: Integer;
@@ -1414,17 +1414,23 @@ Begin
   // Finally, play the sample!
 
   Sample := BASS_SampleCreate(WaveSize, 44100, 1, 1, BASS_SAMPLE_OVER_POS);
-  BASS_SampleSetData(Sample, @gBuffer[0]);
+  BASS_Err := BASS_ErrorGetCode;
 
-  Channel := BASS_SampleGetChannel(Sample, true);
-  BASS_ChannelPlay(Channel, True);
+  if BASS_Err = 0 Then Begin
 
-  // Wait for the sample to finish. Pressing ESC will BREAK, other keys are ignored.
+    BASS_SampleSetData(Sample, @gBuffer[0]);
 
-  While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (LASTKEY <> K_Escape) Do CB_YIELD;
-  If LASTKEY = K_Escape Then BREAKSIGNAL := True;
+    Channel := BASS_SampleGetChannel(Sample, true);
+    BASS_ChannelPlay(Channel, True);
 
-  BASS_SampleFree(Sample);
+    // Wait for the sample to finish. Pressing ESC will BREAK, other keys are ignored.
+
+    While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (LASTKEY <> K_Escape) Do CB_YIELD;
+    If LASTKEY = K_Escape Then BREAKSIGNAL := True;
+
+    BASS_SampleFree(Sample);
+
+  End;
 
 End;
 

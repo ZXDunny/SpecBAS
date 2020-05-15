@@ -14144,7 +14144,10 @@ Begin
     End;
 
     SP_GetWindowDetails(SrcIdx, SrcWindow, Error^);
+    If Error.Code <> SP_ERR_OK Then Exit;
+
     SP_GetWindowDetails(DstIdx, DstWindow, Error^);
+    If Error.Code <> SP_ERR_OK Then Exit;
 
     // Convert coords to the ORIGIN-coordinate space for both windows
 

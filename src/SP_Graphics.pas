@@ -973,6 +973,8 @@ Begin
       If BankIdx > -1 Then Begin
 
         Window := @SP_BankList[BankIdx]^.Info[0];
+        If SP_BankList[BankIdx].DataType <> SP_WINDOW_BANK Then
+          Error.Code := SP_ERR_WINDOW_NOT_FOUND;
 
       End Else
 

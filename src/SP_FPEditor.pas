@@ -3239,8 +3239,6 @@ Begin
   Repeat
     SP_WaitForSync;
     ProcessNextControlMsg;
-//    If SP_KeyEventWaiting Then
-      SP_UnBufferKey;
     DoTimerEvents;
     If LocalFlashState <> FLASHSTATE Then Begin
       If FocusedWindow = fwEditor Then
@@ -3251,10 +3249,11 @@ Begin
       SP_DrawBatteryStatus;
       LocalFlashState := FLASHSTATE;
     End;
-    If LASTKEY = 0 Then KeyChar := 0;
     If QUITMSG Then Exit;
     SP_CheckEvents;
     SP_SetGraphicsMode;
+    SP_UnBufferKey;
+    If LASTKEY = 0 Then KeyChar := 0;
     If K_UPFLAG Then Begin
       SP_DrawGraphicsID;
       K_UPFLAG := False;
@@ -3312,6 +3311,7 @@ Begin
             Else
               If FocusedWindow = fwDirect Then
                 SP_DWPerformEdit(LASTKEY);
+            if QUITMSG then Exit;
             Changed := True;
           End;
 
@@ -3324,6 +3324,8 @@ Begin
         Else
           If FocusedWindow = fwDirect Then
             SP_DWPerformEdit(LASTKEY);
+        if QUITMSG then Exit;
+
         RepeatLen := REPDEL;
         REPCOUNT := FRAMES;
         KeyChar := LASTKEY;
@@ -4795,6 +4797,7 @@ Begin
                       EDITLINE := 'CONTINUE';
                     Listing.CompleteUndo;
                     SP_FPExecuteEditLine(EDITLINE);
+                    if QUITMSG then Exit;
                     EDITLINE := s;
                     SP_EditorDisplayEditLine;
                     SP_SwitchFocus(fwEditor);
@@ -4839,6 +4842,7 @@ Begin
                       EDITLINE := 'CONTINUE';
                       Listing.CompleteUndo;
                       SP_FPExecuteEditLine(EDITLINE);
+                      if QUITMSG then Exit;
                       EDITLINE := s;
                       SCREENLOCK := False;
                       SP_EditorDisplayEditLine;
@@ -4866,6 +4870,7 @@ Begin
                       EDITLINE := 'CONTINUE';
                     Listing.CompleteUndo;
                     SP_FPExecuteEditLine(EDITLINE);
+                    if QUITMSG then Exit;
                     EDITLINE := s;
                     SP_EditorDisplayEditLine;
                     SP_SwitchFocus(fwEditor);
@@ -4893,6 +4898,7 @@ Begin
                       EDITLINE := 'RUN ' + IntToString(c);
                     Listing.CompleteUndo;
                     SP_FPExecuteEditLine(EDITLINE);
+                    if QUITMSG then Exit;
                     EDITLINE := s;
                     SP_EditorDisplayEditLine;
                     SP_SwitchFocus(fwEditor);
@@ -6790,6 +6796,7 @@ Begin
                     Else
                       EDITLINE := 'CONTINUE';
                     SP_FPExecuteEditLine(EDITLINE);
+                    if QUITMSG then Exit;
                     EDITLINE := s;
                     SP_EditorDisplayEditLine;
                     SP_SwitchFocus(fwDirect);
@@ -6819,6 +6826,7 @@ Begin
                       s := EDITLINE;
                       EDITLINE := 'CONTINUE';
                       SP_FPExecuteEditLine(EDITLINE);
+                      if QUITMSG then Exit;
                       EDITLINE := s;
                       SCREENLOCK := False;
                       SP_EditorDisplayEditLine;
@@ -6839,6 +6847,7 @@ Begin
                     Else
                       EDITLINE := 'CONTINUE';
                     SP_FPExecuteEditLine(EDITLINE);
+                    if QUITMSG then Exit;
                     EDITLINE := s;
                     SP_EditorDisplayEditLine;
                     SP_SwitchFocus(fwDirect);
@@ -6858,6 +6867,7 @@ Begin
                       Else
                         EDITLINE := 'GO TO ' + IntToString(PROGLINE);
                       SP_FPExecuteEditLine(EDITLINE);
+                      if QUITMSG then Exit;
                       EDITLINE := s;
                       CURSORPOS := c;
                       SP_EditorDisplayEditLine;

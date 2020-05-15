@@ -9241,7 +9241,7 @@ Function  SP_Convert_WINDOW(Var KeyWordID: LongWord; Var Tokens: aString; Var Po
 Var
   Expr, VarResult, RotateExpr, ScaleExpr: aString;
   KeyWordPos: LongWord;
-  GotRotate, GotScale: Boolean;
+  GotRotate, GotScale, IsGraphic: Boolean;
 Begin
 
   // WINDOW [numexpr|
@@ -9258,7 +9258,7 @@ Begin
   //         PUT {strvar|GRAPHIC n},n,x,y[,ROTATE a][,SCALE n][MIRROR][FLIP]|
   //         SCROLL n,x,y|
   //         ROLL n,x,y|
-  //         COPY numexpr,x1,y1,x2,y2 TO numexpr,x3,y3]
+  //         COPY [GRAPHIC]numexpr,x1,y1,x2,y2 TO numexpr,x3,y3]
   //         ORIGIN numexpr,x1,y1[ TO x2,y2]|OFF
   //         CLIP id,x1,y1 TO x2,y2|OFF
   //         TRANSPARENT id{,t|OFF}
@@ -9611,11 +9611,19 @@ Begin
   If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_COPY) Then Begin
     Inc(Position, 1 + SizeOf(LongWord));
 
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GRAPHIC) Then Begin
+      Inc(Position, 1 + SizeOf(LongWord));
+      IsGraphic := True;
+    End;
+
     Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Index
     If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
       Error.Code := SP_ERR_MISSING_NUMEXPR;
       Exit;
-    End;
+    End Else
+      If IsGraphic Then
+        Expr := Expr + CreateToken(SP_SPECIAL_SYMBOL, Position, 1) + aChar(SP_CHAR_UNARYM);
+
     If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
       Inc(Position, 2);
       Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // X

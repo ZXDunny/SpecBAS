@@ -83,7 +83,7 @@ Function  SP_Convert_LET(Var Tokens: aString; Var KeyWordID: LongWord; Var Posit
 Function  SP_Convert_CLS(Var Tokens: aString; Var Position: Integer; Var KeyWordID: LongWord; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_DIM(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_RUN(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
-Function  SP_Convert_GO(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_GO(Var KeyWordID, InitialKWID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_RETURN(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_STOP(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_FOR(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -510,7 +510,7 @@ End;
 
 Function SP_Convert_KeyWord(Var Tokens: aString; Var Position: Integer; Var KeyWordID: LongWord; Var Error: TSP_ErrorCode; Var StList: aString): aString;
 Var
-  Idx, ListLen: Integer;
+  Idx, ListLen, i: Integer;
   Token: pToken;
   KeyWordPos, InitialKW: LongWord;
 Label
@@ -532,6 +532,7 @@ Begin
 
   KeyWordPos := Position;
   CanNewStatement := True;
+  i := Length(Result);
 
   Case KeyWordID of
 
@@ -549,7 +550,7 @@ Begin
     SP_KW_CLS: Result := Result + SP_Convert_CLS(Tokens, Position, KeyWordID, Error);
     SP_KW_DIM: Result := Result + SP_Convert_DIM(KeyWordID, Tokens, Position, Error);
     SP_KW_RUN: Result := Result + SP_Convert_RUN(Tokens, Position, Error);
-    SP_KW_GO: Result := Result + SP_Convert_GO(KeyWordID, Tokens, Position, Error);
+    SP_KW_GO, SP_KW_GOTO, SP_KW_GOSUB: Result := Result + SP_Convert_GO(KeyWordID, InitialKW, Tokens, Position, Error);
     SP_KW_RETURN: Result := Result + SP_Convert_RETURN(Tokens, Position, Error);
     SP_KW_STOP: Result := Result + SP_Convert_STOP(Tokens, Position, Error);
     SP_KW_FOR: Result := Result + SP_Convert_FOR(KeyWordID, Tokens, Position, Error);
@@ -677,6 +678,7 @@ Begin
 
   If (Error.Code = SP_ERR_OK) And (Ord(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in [';', SP_CHAR_SEMICOLON]) Then Begin
     If KeyWordID <> 0 Then Result := Result + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
+    SP_PeepholeOptimiser(Result, i, Error);
     If CanNewStatement Then
       StList := StList + LongWordToString(Length(Tokens) + Length(Result) + 1);
     Tokens[Position +1] := SP_CHAR_SEMICOLON;
@@ -5314,7 +5316,7 @@ Begin
 
         Idx2 := pLongWord(@TestTokens[szValueToken + SizeOf(TToken) +1])^;
         If  (Idx2 = SP_KW_GOTO) or (Idx2 = SP_KW_GOSUB) Then Begin
-          Idx3 := Trunc(gaFloat(@TestTokens[SizeOf(TToken)+1]));
+          Idx3 := Round(gaFloat(@TestTokens[SizeOf(TToken)+1]));
           Case Idx2 of
             SP_KW_GOTO:
               Idx2 := SP_KW_GOTOC;
@@ -6849,22 +6851,25 @@ Begin
 
 End;
 
-Function SP_Convert_GO(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function SP_Convert_GO(Var KeyWordID, InitialKWID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+var
+  b: Boolean;
 Begin
 
   // GO <TO|SUB> <numexpr|Label>
 
   Result := '';
 
-  If Byte(Tokens[Position]) in [SP_KEYWORD, SP_SYMBOL] Then Begin
-    If Byte(Tokens[Position]) = SP_KEYWORD Then Begin
-      KeyWordID := pLongWord(@Tokens[Position +1])^;
-      Inc(Position, 1 + SizeOf(LongWord));
-    End Else Begin
-      KeyWordID := Byte(Tokens[Position +1]);
-      Inc(Position, 2);
-    End;
-    If (KeyWordID = SP_KW_TO) Or (KeyWordID = Ord(SP_CHAR_SUB)) Then Begin
+  If (Byte(Tokens[Position]) in [SP_KEYWORD, SP_SYMBOL]) or DoingRepeatParams Then Begin
+    If Not DoingRepeatParams Then
+      If Byte(Tokens[Position]) = SP_KEYWORD Then Begin
+        KeyWordID := pLongWord(@Tokens[Position +1])^;
+        Inc(Position, 1 + SizeOf(LongWord));
+      End Else Begin
+        KeyWordID := Byte(Tokens[Position +1]);
+        Inc(Position, 2);
+      End;
+    If (KeyWordID = SP_KW_TO) Or (KeyWordID = Ord(SP_CHAR_SUB)) or DoingRepeatParams Then Begin
       Result := SP_Convert_Expr(Tokens, Position, Error, -1);
       If Error.Code <> SP_ERR_OK Then
         Exit
@@ -6874,10 +6879,14 @@ Begin
             Error.Code := SP_ERR_MISSING_NUMEXPR;
             Exit;
           End;
-      If KeyWordID = SP_KW_TO Then
-        KeyWordID := SP_KW_GOTO
-      Else
-        KeyWordID := SP_KW_GOSUB;
+      If Not DoingRepeatParams Then Begin
+        If KeyWordID = SP_KW_TO Then
+          KeyWordID := SP_KW_GOTO
+        Else
+          If KeyWordID = Ord(SP_CHAR_SUB) Then
+            KeyWordID := SP_KW_GOSUB;
+        InitialKWID := KeyWordID;
+      End;
     End Else
       Error.Code := SP_ERR_SYNTAX_ERROR;
   End;

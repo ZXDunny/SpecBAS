@@ -3234,10 +3234,11 @@ Begin
 End;
 
 Procedure SP_FPWaitForUserEvent(Var keyChar: Byte; Var LocalFlashState: Integer);
+var
+  GotKey: Boolean;
 Begin
 
   Repeat
-    SP_WaitForSync;
     ProcessNextControlMsg;
     DoTimerEvents;
     If LocalFlashState <> FLASHSTATE Then Begin
@@ -3252,14 +3253,18 @@ Begin
     If QUITMSG Then Exit;
     SP_CheckEvents;
     SP_SetGraphicsMode;
-    SP_UnBufferKey;
+    GotKey := SP_KeyEventWaiting;
+    If Not GotKey Then
+      SP_WaitForSync
+    Else
+      SP_UnBufferKey;
     If LASTKEY = 0 Then KeyChar := 0;
     If K_UPFLAG Then Begin
       SP_DrawGraphicsID;
       K_UPFLAG := False;
     End;
     If MaxDirtyLines >= 0 Then RefreshDirtyLines;
-  Until M_DOWNFLAG or M_UPFLAG or M_MOVEFLAG or M_WHEELUPFLAG or M_WHEELDNFLAG or (KEYSTATE[LASTKEY] <> 0);
+  Until M_DOWNFLAG or M_UPFLAG or M_MOVEFLAG or M_WHEELUPFLAG or M_WHEELDNFLAG or GotKey or (KEYSTATE[LASTKEY] <> 0);
 
 End;
 

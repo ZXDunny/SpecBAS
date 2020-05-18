@@ -489,6 +489,7 @@ begin
     end;
     Result := ChangeDisplaySettings(DeviceMode, 0) = DISP_CHANGE_SUCCESSFUL;
     SetWindowLongPtr(Main.handle, GWL_STYLE, WS_SYSMENU or WS_POPUP or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or WS_VISIBLE);
+    Main.BorderStyle := bsNone;
     SPFULLSCREEN := True;
   End Else Begin
     If SPFULLSCREEN Then Begin
@@ -503,6 +504,7 @@ begin
     End;
     ChangeDisplaySettings(DeviceMode, 0);
     SPFULLSCREEN := False;
+    Main.BorderStyle := bsSingle;
     End;
     Result := True;
   End;

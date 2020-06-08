@@ -230,14 +230,17 @@ End;
 
 Procedure SP_FileRequester.SelectFile(Sender: SP_BaseComponent; i: Integer);
 Var
-  p, s: aString;
+  p, s, t: aString;
 Begin
 
   p := FilesList.Directory;
   If Copy(p, Length(p), 1) <> '/' Then
     p := p + '/';
   s := FilesList.Items[i];
-  FilenameEdt.Text := Copy(s, 2, Pos(#255, s) -2);
+  If FocusedControl <> FileNameEdt Then
+    FilenameEdt.Text := Copy(s, 2, Pos(#255, s) -2)
+  Else
+    FilenameEdt.GhostText := Copy(s, 2, Pos(#255, s) -2);
 
   okBtn.Enabled := SP_FileExists(p + FilenameEdt.Text) or (ToolMode = 2);
 

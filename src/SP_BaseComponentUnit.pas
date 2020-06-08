@@ -186,6 +186,7 @@ SP_BaseComponent = Class
     Procedure Unlock; Virtual;
     Procedure ChangeFont;
     Procedure SetChainControl(c: SP_BaseComponent); Virtual;
+    Function  GetFocused: Boolean;
 
     Property Align:         Integer             read fAlign         write SetAlign;
     Property Anchors:       SP_AnchorSet        read fAnchors       write fAnchors;
@@ -213,7 +214,7 @@ SP_BaseComponent = Class
     Property Enabled:       Boolean             read fEnabled       write SetEnabled;
     Property Visible:       Boolean             read fVisible       write SetVisible;
     Property CanFocus:      Boolean             read fCanFocus      write fCanFocus;
-    Property Focused:       Boolean             read fFocused       write SetFocus;
+    Property Focused:       Boolean             read GetFocused     write SetFocus;
     Property OnDblClick:    SP_MouseEvent       read fOnDblClick    write fOnDblClick;
     Property ChainControl:  SP_BaseComponent    read fChainControl  write SetChainControl;
     Property OnClick:       SP_ClickEvent       read fOnClick       write fOnClick;
@@ -867,7 +868,7 @@ Begin
     Inc(x1); Inc(y1);
   End;
 
-  If fFocused Then
+  If Focused Then
     FillRect(x1, y1, x2, y2, SP_UIBtnBackFocus)
   Else
     FillRect(x1, y1, x2, y2, SP_UIBtnBack);
@@ -1233,6 +1234,13 @@ Begin
     Dec(Result.x, ar[i].Left);
     Dec(Result.y, ar[i].Top);
   End;
+
+End;
+
+Function SP_BaseComponent.GetFocused: Boolean;
+Begin
+
+  Result := (fFocused and (FocusedControl = Self)) or (CaptureControl = Self);
 
 End;
 

@@ -101,7 +101,7 @@ Begin
   If Enabled Then Begin
     bClr := fBorderClr;
     cClr := fCheckColor;
-    If fFocused Then Begin
+    If Focused Then Begin
       capClr := SP_FocusTextClr;
       cClr := SP_FocusTextClr;
     End Else

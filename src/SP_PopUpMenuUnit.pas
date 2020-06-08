@@ -315,7 +315,7 @@ Begin
         FillRect(e, c);
         MouseInSubMenu := Assigned(SubMenu) And SubMenu.Visible And PtInRect(Rect(0, 0, SubMenu.Width, SubMenu.Height), SubMenu.ScreenToClient(mp));
         If PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp) And Not MouseInSubMenu Then Begin
-          If fFocused Then
+          If Focused Then
             c := SP_UISelectionOutline
           Else
             c := SP_UISelectionUnfocusedOutline;
@@ -803,7 +803,7 @@ Begin
               fItems[fSelected].Checked := Not fItems[fSelected].Checked;
             CloseAll;
             If Assigned(fItems[fSelected].OnClick) And fItems[fSelected].Enabled Then
-              fItems[fSelected].OnClick(Self);
+              fItems[fSelected].OnClick(SP_BaseComponent(fItems[fSelected]));
             Paint;
           End;
         End;

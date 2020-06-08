@@ -472,7 +472,6 @@ Begin
       fSelectedIdx := i;
       ScrollInView;
       OnSel := fOnSelect;
-      If Not Focused Then fOnSelect := nil;
       Select(i);
       fOnSelect := OnSel;
       Paint;

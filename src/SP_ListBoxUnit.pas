@@ -744,7 +744,7 @@ Begin
           Else
             c := fBackgroundClr; // non-sorted column
         If fSelected[i] Then
-          If Not fFocused Then
+          If Not Focused Then
             c := fUnfocusedHighlightClr;
         If j = fHCount -1 Then
           r := Rect(hx -1 + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), Width - 1, py + iFH -1 + (Ord(fBorder) * 2))
@@ -774,7 +774,7 @@ Begin
       End;
 
       If fSelected[i] Then Begin
-        If fFocused Then
+        If Focused Then
           c := SP_UISelectionOutline
         Else
           c := SP_UISelectionUnfocusedOutline;
@@ -795,7 +795,7 @@ Begin
         c := fDisabledFontClr;
       Print(-fHScroll.Pos + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False);
       If fEnabled Then Begin
-        If fFocused Then
+        If Focused Then
           c := SP_UISelectionOutline
         Else
           c := SP_UISelectionUnfocusedOutline;

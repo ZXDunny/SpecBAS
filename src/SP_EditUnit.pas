@@ -25,6 +25,7 @@ SP_Edit = Class(SP_BaseComponent)
     fOnChange: SP_EditEvent;
     fEditable: Boolean;
     fValidText: Boolean;
+    fGhostText: aString;
 
     Procedure Draw; Override;
     Procedure SetText(s: aString);
@@ -39,6 +40,8 @@ SP_Edit = Class(SP_BaseComponent)
     Procedure PerformRedo;
     Procedure StoreUndo;
     Procedure SetValidText(b: Boolean);
+    Procedure SetSelStart(n: Integer);
+    Procedure SetGhostText(s: aString);
 
   Public
 
@@ -55,6 +58,8 @@ SP_Edit = Class(SP_BaseComponent)
     Property Editable: Boolean read fEditable write SetEditable;
     Property RightJustify: Boolean read fRightJustify write SetRightJustify;
     Property ValidText: Boolean read fValidText write SetValidText;
+    Property SelStart: Integer read fSelStart write SetSelStart;
+    Property GhostText: aString read fGhostText write SetGhostText;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -113,10 +118,26 @@ Begin
 
 End;
 
+Procedure SP_Edit.SetGhostText(s: aString);
+Begin
+
+  fGhostText := s;
+  Paint;
+
+End;
+
 Procedure SP_Edit.SetValidText(b: Boolean);
 Begin
 
   fValidText := b;
+  Paint;
+
+End;
+
+Procedure SP_Edit.SetSelStart(n: Integer);
+Begin
+
+  fSelStart := n;
   Paint;
 
 End;
@@ -126,7 +147,7 @@ Begin
 
   fEditable := b;
   fCanFocus := b;
-  SetFocus(fEditable And fFocused);
+  SetFocus(fEditable And Focused);
 
 End;
 
@@ -140,7 +161,7 @@ End;
 
 Procedure SP_Edit.Draw;
 Var
-  tl, dx, ss, sc, t, p, Clr: Integer;
+  tl, dx, ss, sc, t, p, Clr, fClr, bClr: Integer;
   c: aChar;
 Begin
 
@@ -155,28 +176,44 @@ Begin
       Clr := fFontClr
     Else
       Clr := fErrorClr;
+    If (fGhostText <> '') And (Copy(fGhostText, 1, Length(fText)) = fText) Then
+      Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, fGhostText, SP_UITextDisabled, -1, iSX, iSY, False, False)
+    Else
+      fGhostText := '';
   End Else
     Clr := SP_UITextDisabled;
 
   Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, fText, Clr, -1, iSX, iSY, False, False);
-  
+
   If fBorder Then Begin
     DrawRect(0, 0, Width -1, Height -1, fBorderClr);
     DrawRect(1, 1, Width -2, Height -2, fBackgroundClr);
   End;
-  
+
   If fEnabled Then Begin
 
     If fSelStart <> fCursorPos Then Begin
-      If fFocused Then p := SP_UISelection Else p := SP_UIUnfocusedSelection;
+      If Focused Then p := SP_UISelection Else p := SP_UIUnfocusedSelection;
 
       ss := Min(fSelStart, fCursorPos);
       sc := (Max(fSelStart, fCursorPos) - ss) +1;
       Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, Copy(fText, ss, sc), Clr, p, iSX, iSY, False, False);
     End;
 
-    If fFocused Then
+    fClr := fCursFG;
+    bClr := fCursBg;
+    If Focused Then Begin
+      If fGhostText <> '' Then
+        If fCursorPos <= Length(fGhostText) Then Begin
+          c := fGhostText[fCursorPos];
+          Dec(fClr, 8);
+          Dec(bClr, 8);
+        End;
+
       Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, c, fCursFg, fCursBg, iSX, iSY, False, False);
+
+    End;
+
 
   End;
 
@@ -299,13 +336,18 @@ Begin
 
       K_RIGHT:
         Begin
-          If fCursorPos <= Length(fText) Then
+          If fCursorPos <= Length(fText) Then Begin
             If KEYSTATE[K_CONTROL] = 1 Then Begin
               While (fCursorPos < Length(fText)+1) and (fText[fCursorPos] in Seps) Do Inc(fCursorPos);
               While (fCursorPos < Length(fText)+1) and (Not (fText[fCursorPos] in Seps)) Do Inc(fCursorPos);
               If (fCursorPos < Length(fText)) and (fText[fCursorPos] in Seps) Then Inc(fCursorPos);
             End Else Begin
               Inc(fCursorPos);
+            End;
+          End Else
+            If fGhostText <> '' Then Begin
+              fText := fGhostText;
+              fCursorPos := Length(Text) + 1;
             End;
           If KEYSTATE[K_SHIFT] = 0 Then
             fSelStart := fCursorPos;
@@ -625,7 +667,7 @@ Begin
     Dec(Y, 2);
   end;
 
-  b := fFocused;
+  b := Focused;
   fMouseIsDown := True;
   SetFocus(True);
   CursorPos := Min(Max((X Div iFW) +1, 0), Length(fText)+1);
@@ -687,7 +729,7 @@ Begin
     fText := s;
     CursorPos := Length(s) +1;
     fSelStart := fCursorPos;
-    if not fFocused then begin
+    if not Focused then begin
       if fRightJustify then begin
         if iFW * Length(fText) < Width then
           xOff := 0
@@ -729,7 +771,7 @@ Var
   t: Integer;
 Begin
 
-  If fFocused Then Begin
+  If Focused Then Begin
     t := fCursFg;
     fCursFg := fCursBg;
     fCursBg := t;

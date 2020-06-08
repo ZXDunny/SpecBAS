@@ -2523,6 +2523,7 @@ Begin
       SP_DeleteAllStreams(Error);
       SP_DeleteAllBanks(False);
       SP_FileCloseAll;
+      SP_CLS(CPAPER);
       NUMSPRITES := 0;
       DisplaySection.Leave;
     End;

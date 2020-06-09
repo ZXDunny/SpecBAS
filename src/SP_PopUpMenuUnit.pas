@@ -314,7 +314,7 @@ Begin
         e := Rect(2, Extents.Top, Width -3, Extents.Bottom +1);
         FillRect(e, c);
         MouseInSubMenu := Assigned(SubMenu) And SubMenu.Visible And PtInRect(Rect(0, 0, SubMenu.Width, SubMenu.Height), SubMenu.ScreenToClient(mp));
-        If PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp) And Not MouseInSubMenu Then Begin
+        If (Focused or PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp)) And Not MouseInSubMenu Then Begin
           If Focused Then
             c := SP_UISelectionOutline
           Else

@@ -191,7 +191,7 @@ Begin
       If Selected Then Begin
         FillRect(e, c);
         MouseInSubMenu := Assigned(SubMenu) And SubMenu.Visible And PtInRect(Rect(0, 0, SubMenu.Width, SubMenu.Height), SubMenu.ScreenToClient(mp));
-        If PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp) And Not MouseInSubMenu Then
+        If (Focused or PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp)) And Not MouseInSubMenu Then
           DrawRect(e, SP_UISelectionOutline);
       End;
       PRINT(Extents.Left + iFW -2, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False);

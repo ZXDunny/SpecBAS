@@ -72,6 +72,7 @@ Var
   KeyBufferPos: Integer = 0;
   KeyLock: TCriticalSection;
   global_i: integer;
+  KeysDown: aString;
 
 Const
 
@@ -401,13 +402,19 @@ Begin
     Case KeyBuffer[0].Event of
       0: // KeyDown
         Begin
-          SP_KeyDown(KeyBuffer[0].Key, KeyBuffer[0].Flags);
+          If Not LASTKEYCHAR in [0, 16, 17, 18] Then
+            KeysDown := KeysDown + aChar(LASTKEYCHAR);
           LASTKEYCHAR := KeyBuffer[0].Lkc;
+          SP_KeyDown(KeyBuffer[0].Key, KeyBuffer[0].Flags);
         End;
       1: // KeyUp
         Begin
+          If KeysDown <> '' Then Begin
+            LASTKEYCHAR := Ord(KeysDown[Length(KeysDown)]);
+            KeysDown := Copy(KeysDown, 1, Length(KeysDown) -1);
+          End Else
+            LASTKEYCHAR := 0;
           SP_KeyUp(KeyBuffer[0].Key);
-          LASTKEYCHAR := 0;
         End;
     End;
     Dec(KeyBufferPos);

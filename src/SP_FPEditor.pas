@@ -3299,44 +3299,40 @@ Begin
 
     SP_FPWaitForUserEvent(KeyChar, LocalFlashState);
 
-    If LastKey <> 0 Then Begin
+    // Is this key the same as the last one?
 
-      // Is this key the same as the last one?
+    If KeyChar = LASTKEY Then Begin
 
-      If KeyChar = LASTKEY Then Begin
+      // Yes - make it repeat if necessary.
 
-        // Yes - make it repeat if necessary.
+      If Not (LASTKEY in [0, 16, 17, 18]) Then // Not the modifiers
+        If FRAMES - REPCOUNT >= RepeatLen Then Begin
+          RepeatLen := REPPER;
+          REPCOUNT := FRAMES;
+          If FocusedWindow = fwEditor Then
+            SP_FPEditorPerformEdit(LASTKEY)
+          Else
+            If FocusedWindow = fwDirect Then
+              SP_DWPerformEdit(LASTKEY);
+          if QUITMSG then Exit;
+          Changed := True;
+        End;
 
-        If Not (LASTKEY in [16, 17, 18]) Then // Not the modifiers
-          If FRAMES - REPCOUNT >= RepeatLen Then Begin
-            RepeatLen := REPPER;
-            REPCOUNT := FRAMES;
-            If FocusedWindow = fwEditor Then
-              SP_FPEditorPerformEdit(LASTKEY)
-            Else
-              If FocusedWindow = fwDirect Then
-                SP_DWPerformEdit(LASTKEY);
-            if QUITMSG then Exit;
-            Changed := True;
-          End;
+    End Else Begin
 
-      End Else Begin
+      // No - This is a new key
 
-        // No - This is a new key
+      If FocusedWindow = fwEditor Then
+        SP_FPEditorPerformEdit(LASTKEY)
+      Else
+        If FocusedWindow = fwDirect Then
+          SP_DWPerformEdit(LASTKEY);
+      if QUITMSG then Exit;
 
-        If FocusedWindow = fwEditor Then
-          SP_FPEditorPerformEdit(LASTKEY)
-        Else
-          If FocusedWindow = fwDirect Then
-            SP_DWPerformEdit(LASTKEY);
-        if QUITMSG then Exit;
-
-        RepeatLen := REPDEL;
-        REPCOUNT := FRAMES;
-        KeyChar := LASTKEY;
-        Changed := True;
-
-      End;
+      RepeatLen := REPDEL;
+      REPCOUNT := FRAMES;
+      KeyChar := LASTKEY;
+      Changed := True;
 
     End;
 

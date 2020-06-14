@@ -953,7 +953,7 @@ begin
 
   Activate;
 
-  Logging := False;
+  Logging := True;
 
 end;
 
@@ -1033,7 +1033,10 @@ begin
   If aStr = '' Then aStr := #0;
   K_DOWNFLAG := True;
   LASTKEYCHAR := Ord(aStr[1]);
-  If SystemState = SS_EDITOR Then SP_BufferKey(Key, 0, LASTKEYCHAR, 0) Else SP_KeyDown(Key, 0);
+  If SystemState = SS_EDITOR Then
+    SP_BufferKey(Key, 0, LASTKEYCHAR, 0)
+  Else
+    SP_KeyDown(Key, 0);
   Key := 0;
 
 end;
@@ -1043,7 +1046,10 @@ begin
 
   K_UPFLAG := True;
   LASTKEYCHAR := 0;
-  If SystemState = SS_EDITOR Then SP_BufferKey(Key, 1, LASTKEYCHAR, 0) Else SP_KeyUp(Key);
+  If SystemState = SS_EDITOR Then
+    SP_BufferKey(Key, 1, LASTKEYCHAR, 0)
+  Else
+    SP_KeyUp(Key);
 
 end;
 

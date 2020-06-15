@@ -873,6 +873,7 @@ Begin
   If FPFw * Length(Title) > Sp Then
     Title := Copy(Title, 1, Sp Div FPFw);
 
+  If Focused Then T_INK := 0;
   SP_DrawRectangle(0, 0, Win^.Width -1, Win^.Height -1);
   If Focused Then
     SP_TextOut(-1, FPFw Div 2, 1, EdSc + Title, capText, capBack, True)
@@ -1166,7 +1167,6 @@ Begin
 
   SP_CalculateFPCursorPos;
   SP_CursorPosChanged;
-  If FocusMode = fwEditor Then SP_ScrollInView;
   Listing.FPSelLine := Listing.FPCLine;
   Listing.FPSelPos := Listing.FPCPos;
   SP_DisplayFPListing(-1);
@@ -7542,7 +7542,6 @@ Begin
       T_INK := 0;
       T_OVER := 0;
       SP_TextOut(-1, 1 + BSize, BSize + FPCaptionHeight, EdSc + ErrorText, 0, 7, True);
-      SP_DrawRectangle(0, 0, WinW -1, WinH -1);
       SP_SetWindowVisible(ERRORWINDOW, False, Error);
     End Else Begin
       SP_FillRect(0, 0, WinW, WinH, 0);

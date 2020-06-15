@@ -2643,6 +2643,7 @@ End;
 
 Procedure SP_SetPixel(X, Y: aFloat); Inline;
 Var
+  xr, yr: Integer;
   Ink: Byte;
   Ptr: pByte;
 Begin
@@ -2651,8 +2652,9 @@ Begin
     Ink := T_INK
   Else
     Ink := T_PAPER;
-  If (X >= T_CLIPX1) And (X < T_CLIPX2) And (Y >= T_CLIPY1) And (Y < T_CLIPY2) Then Begin
-    Ptr := pByte(NativeUInt(SCREENPOINTER)+(LongWord(Round(Y) * SCREENSTRIDE) + LongWord(Round(X))));
+  xr := Round(X); yr := Round(Y);
+  If (xr >= T_CLIPX1) And (xr < T_CLIPX2) And (yr >= T_CLIPY1) And (yr < T_CLIPY2) Then Begin
+    Ptr := pByte(NativeUInt(SCREENPOINTER)+(LongWord(yr * SCREENSTRIDE) + LongWord(xr)));
     IF T_OVER = 0 Then
       Ptr^ := Ink
     Else

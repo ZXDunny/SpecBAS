@@ -430,7 +430,6 @@ Begin
   DISPLAYWIDTH := Width;
   DISPLAYHEIGHT := Height;
 
-
   {$IFDEF OPENGL}
   GLInitDone := False; // trigger the OpenGL system to recreate itself with the new window/screen size
   {$ENDIF}

@@ -94,8 +94,9 @@ Procedure SP_SetFPS(Value: aFloat);
 Begin
 
   FPS := Value;
+  FRAME_MS := Round((1000/FPS)+0.5);
+  FPS := Round(1000/FRAME_MS);
   AUTOSAVETIME := Round(FPS * 30);
-  FRAME_MS := Trunc(1000/FPS);
   FLASHINTERVAL := Max(2, Trunc(0.32*FPS));
   REPDEL := Max(5, Trunc((20/50)*FPS));
   REPPER := Max(2, Trunc((2/50)*FPS));
@@ -183,7 +184,7 @@ Begin
   BPSIGNAL := False;
   INTSCALING := False;
   ANIMSPEED := 150;
-  DEFAULTFPS := 50;
+  DEFAULTFPS := 60;
   EDITORFPS := 60;
   SP_SetFPS(DEFAULTFPS);
   FLASHSTATE := 0;

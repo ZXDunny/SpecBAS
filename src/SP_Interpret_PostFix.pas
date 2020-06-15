@@ -10173,9 +10173,9 @@ Begin
     SP_ConvertToOrigin_d(dX, dY);
     xPos := Round(dX); yPos := Round(dY);
     If SCREENBPP = 8 Then
-      SP_SetPixel(dX, dY)
+      SP_SetPixel(xPos, yPos)
     Else
-      SP_SetPixel32(dX, dY);
+      SP_SetPixel32(xPos, yPos);
     If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
   End;
 
@@ -20318,7 +20318,7 @@ Begin
       If Idx < 21 Then
         For Idx2 := 1 to 21-Idx Do
           nOutput := Copy(nOutput, 1, Idx-1) + ' ' + Copy(nOutput, Idx, Length(nOutput));
-    Result := Result + PosStr + nOutput + IntToString(Token^.BPIndex) + #13;
+    Result := Result + PosStr + nOutput{ + IntToString(Token^.BPIndex)} + #13;
 
   End;
 
@@ -23770,7 +23770,7 @@ Begin
     Dec(SP_StackPtr);
     SP_ConvertToOrigin_d(dX, dY);
     xPos := Round(dX); yPos := Round(dY);
-    SP_SetPixel32Alpha(dX, dY);
+    SP_SetPixel32Alpha(xPos, yPos);
     If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
   End;
 

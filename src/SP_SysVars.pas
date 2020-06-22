@@ -215,8 +215,8 @@ Var
   BREAKSIGNAL:              Boolean;      // BREAK pressed?
   BPSIGNAL:                 Boolean;      // Breakpoint triggered, or impending Single-step event
   KEYSTATE:   array[0..255] of Byte;      // The state of the keyboard
-  LASTKEY:                  Byte;         // The last key that went down. 0 if key in previous LASTKEY goes up.
-  LASTKEYCHAR:              Byte;         // Decoded key - takes international keymaps into account.
+//  LASTKEY:                  Byte;         // The last key that went down. 0 if key in previous LASTKEY goes up.
+//  LASTKEYCHAR:              Byte;         // Decoded key - takes international keymaps into account.
   LASTKEYFLAG:              Byte;         // For the last key pressed, these are its flags (currently KF_NOCLICK possible)
   REPDEL:                   LongWord;     // The delay in frames before a key repeats when held down
   REPPER:                   LongWord;     // Delay between successive repeats of a key that is held down
@@ -1553,7 +1553,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..278] of TSysVar =
+  SysVars: Array[0..277] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
    (Name: 'EDITORFPS'; svType: svLongWord; Size: 4; Data: @EDITORFPS),
@@ -1622,7 +1622,6 @@ Const
    (Name: 'NUMLOCK'; svType: svInteger; Size: 4; Data: @NUMLOCK),
    (Name: 'INSERT'; svType: svBoolean; Size: 1; Data: @INSERT),
    (Name: 'KEYSTATE'; svType: svArray; Size: 256; Data: @KEYSTATE[0]),
-   (Name: 'LASTKEY'; svType: svByte; Size: 1; Data: @LASTKEYCHAR),
    (Name: 'REPDEL'; svType: svLongWord; Size: 4; Data: @REPDEL),
    (Name: 'REPPER'; svType: svLongWord; Size: 4; Data: @REPPER),
    (Name: 'REPCOUNT'; svType: svLongWord; Size: 4; Data: @REPCOUNT),

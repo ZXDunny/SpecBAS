@@ -394,6 +394,8 @@ Begin
 End;
 }
 Function SP_TestScroll(Height: Integer; var Error: TSP_ErrorCode): Boolean;
+Var
+  Key: pSP_KeyInfo;
 Begin
 
   Inc(SCROLLCNT);
@@ -412,15 +414,17 @@ Begin
     Else
       SP_TextOut32(-1, 2, SCREENHEIGHT - 2 - Height, 'Scroll?', CINK, CPAPER, True);
 
-    LASTKEY := 0;
+    Key := Nil;
     LASTKEYFLAG := 0;
-    While (LASTKEY = 0) And not QUITMSG Do
+    While Not Assigned(Key) And not QUITMSG Do Begin
+      SP_GetNextKey(FRAMES);
       CB_Yield;
+    End;
 
     If QUITMSG Then Exit;
     SP_Restore_Lower;
 
-    If Ord(LASTKEY) in [K_N, K_Space, K_Escape] Then
+    If Key^.KeyCode in [K_N, K_Space, K_Escape] Then
       Result := False
     Else Begin
       Result := True;

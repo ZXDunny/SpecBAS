@@ -38,12 +38,12 @@ Uses
 
 Procedure ProcessNextControlMsg;
 Var
-  c: aChar;
   i: Integer;
-  lk: Byte;
   Error: TSP_ErrorCode;
   Bp: pSP_BreakPointInfo;
   p: NativeUInt;
+  key: SP_KeyInfo;
+  c: aChar; kc: Word;
 Begin
 
   ControlMsgLock.Enter;
@@ -61,20 +61,26 @@ Begin
         Begin
           With ControlMsgList[0] Do Begin
             For i := 1 To Length(Data) Do Begin
-              c := Data[i];
-              If (c >= 'a') And (c <= 'z') Then
-                lk := 0
-              Else
-                lk := Ord(c);
-              SP_BufferKey(Ord(c), 0, lk, KF_NOCLICK);
+              Key.KeyChar := Data[i];
+              If (Key.KeyChar >= 'A') And (Key.KeyChar <= 'Z') Then Begin
+                Key.KeyChar := Lower(Key.KeyChar)[1];
+                Key.KeyCode := 0
+              End Else Begin
+                Key.KeyCode := Ord(Key.KeyChar);
+                Key.KeyChar := #0;
+              End;
+              SP_BufferKey(@Key, 0, KF_NOCLICK);
             End;
             For i := Length(Data) DownTo 1 Do Begin
-              c := Data[i];
-              If (c >= 'a') And (c <= 'z') Then
-                lk := 0
-              Else
-                lk := Ord(c);
-              SP_BufferKey(Ord(c), 1, lk, KF_NOCLICK);
+              Key.KeyChar := Data[i];
+              If (Key.KeyChar >= 'A') And (Key.KeyChar <= 'Z') Then Begin
+                Key.KeyChar := Lower(Key.KeyChar)[1];
+                Key.KeyCode := 0
+              End Else Begin
+                Key.KeyCode := Ord(Key.KeyChar);
+                Key.KeyChar := #0;
+              End;
+              SP_BufferKey(@Key, 1, KF_NOCLICK);
             End;
           End;
         End;

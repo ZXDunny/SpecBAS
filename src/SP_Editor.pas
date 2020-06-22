@@ -32,7 +32,7 @@ Uses Math, SP_SysVars, SysUtils, SP_Util, SP_Graphics, SP_BankManager, SP_Tokeni
 Procedure SP_DrawStripe(Dst: pByte; Width, StripeWidth, StripeHeight: Integer);
 Procedure SP_EditLoop(Var Error: TSP_ErrorCode);
 Function  SP_GetInput(Var Error: TSP_ErrorCode): Boolean;
-Procedure SP_PerformINPUT(Char: Byte);
+Procedure SP_PerformINPUT(Key: SP_KeyInfo);
 Function  SP_INPUTFromFORMAT: aString;
 Function  SP_ShowMenu(Var Options: aString; cX, cY: Integer): Integer;
 
@@ -178,7 +178,7 @@ End;
 Function SP_GetInput(Var Error: TSP_ErrorCode): Boolean;
 Var
   Finished, Changed: Boolean;
-  KeyChar: Byte;
+  KeyInfo: pSP_KeyInfo;
   RepeatLen: LongWord;
   LocalFlashState, Scrolls, Fg, Bg, dCnt: Integer;
   X, Y, PosX, PosY, Top: aFloat;
@@ -203,9 +203,7 @@ Begin
   SYSTEMSTATE := SS_INPUT;
   Finished := False;
   Changed := True;
-  KeyChar := 0;
   RepeatLen := REPDEL;
-  LASTKEY := 0;
   Top := Round(PRPOSY);
 
   While Not Finished Do Begin
@@ -242,64 +240,39 @@ Begin
 
     End;
 
-    LocalFlashState := FLASHSTATE;
-    Repeat
-      If LocalFlashState <> FLASHSTATE Then Begin
-        If FlashState = 1 Then Begin
-          Fg := CURSORFG; Bg := CURSORBG;
-        End Else Begin
-          Fg := CURSORBG; Bg := CURSORFG;
-        End;
-        PosX := PRPOSX; PosY := PRPOSY;
-        If SCREENBPP = 8 Then Begin
-          SP_TEXTOUT(-1, CURSORX, CURSORY, aChar(CURSORCHAR), Fg, Bg, True);
-        End Else Begin
-          SP_TEXTOUT32(-1, CURSORX, CURSORY, aChar(CURSORCHAR), Fg, Bg, True);
-        End;
-        PRPOSX := PosX;
-        PRPOSY := PosY;
-        LocalFlashState := FLASHSTATE;
+    If LocalFlashState <> FLASHSTATE Then Begin
+      If FlashState = 1 Then Begin
+        Fg := CURSORFG; Bg := CURSORBG;
+      End Else Begin
+        Fg := CURSORBG; Bg := CURSORFG;
       End;
-      If QUITMSG Then Exit;
-      SP_WaitForSync;
-      If LASTKEY = 0 Then KeyChar := 0;
-    Until LASTKEY <> 0;
-
-    If LASTKEY in [K_RETURN, K_ESCAPE] Then Begin
-      SYSTEMSTATE := SS_IDLE;
-      If LASTKEY = K_RETURN Then
-        Result := True
-      Else Begin
-        INPUTLINE := '';
-        Result := False;
+      PosX := PRPOSX; PosY := PRPOSY;
+      If SCREENBPP = 8 Then Begin
+        SP_TEXTOUT(-1, CURSORX, CURSORY, aChar(CURSORCHAR), Fg, Bg, True);
+      End Else Begin
+        SP_TEXTOUT32(-1, CURSORX, CURSORY, aChar(CURSORCHAR), Fg, Bg, True);
       End;
-      Break;
+      PRPOSX := PosX;
+      PRPOSY := PosY;
+      LocalFlashState := FLASHSTATE;
     End;
 
-    // Is this key the same as the last one?
-
-    If KeyChar = LASTKEY Then Begin
-
-      // Yes - make it repeat if necessary.
-
-      If FRAMES - REPCOUNT >= RepeatLen Then Begin
-        RepeatLen := REPPER;
-        REPCOUNT := FRAMES;
-        SP_PerformINPUT(LASTKEY);
-        Changed := True;
-      End;
-
-    End Else Begin
-
-      // No - This is a new key
-
-      SP_PerformINPUT(LASTKEY);
-      RepeatLen := REPDEL;
-      REPCOUNT := FRAMES;
-      KeyChar := LASTKEY;
-      Changed := True;
-
-    End;
+    KeyInfo := SP_GetNextKey(FRAMES);
+    Changed := Assigned(KeyInfo);
+    If Not Changed Then
+      SP_WaitForSync
+    Else
+      If KeyInfo.KeyCode in [K_RETURN, K_ESCAPE] Then Begin
+        SYSTEMSTATE := SS_IDLE;
+        If KeyInfo.KeyCode = K_RETURN Then
+          Result := True
+        Else Begin
+          INPUTLINE := '';
+          Result := False;
+        End;
+        Break;
+      End Else
+        SP_PerformInput(KeyInfo^);
 
   End;
 
@@ -320,25 +293,20 @@ Begin
   PRPOSX := X; PRPOSY := Y;
   TempStr := '';
 
-  LASTKEY := 0;
-
   SP_SetFPS(EditorSaveFPS);
 
 End;
 
-Procedure SP_PerformINPUT(Char: Byte);
+Procedure SP_PerformINPUT(Key: SP_KeyInfo);
 Var
-  NewChar: Byte;
   LineIdx, Idx, Cnt, LineNum, Statement, PosM, PosT: Integer;
   Error: TSP_ErrorCode;
   nChar: aChar;
 Begin
 
-  NewChar := SP_DecodeKey(Char, False);
+  If Key.KeyChar = #0 Then Begin
 
-  If NewChar = 0 Then Begin
-
-    Case Char of
+    Case Key.KeyCode of
 
       K_LEFT:
         Begin
@@ -445,22 +413,22 @@ Begin
     IF INFORMAT = '' Then Begin
       If KEYSTATE[K_CONTROL] = 1 Then Begin
         If INSERT Then Begin
-          INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + aChar(Byte(NewChar) + 128) + Copy(INPUTLINE, CURSORPOS, Length(INPUTLINE));
+          INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + aChar(Byte(Key.KeyChar) + 128) + Copy(INPUTLINE, CURSORPOS, Length(INPUTLINE));
           Inc(CursorPos, 2);
         End Else Begin
-          INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + aChar(Byte(NewChar) + 128) + Copy(INPUTLINE, CURSORPOS +1, LENGTH(INPUTLINE));
+          INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + aChar(Byte(Key.KeyChar) + 128) + Copy(INPUTLINE, CURSORPOS +1, LENGTH(INPUTLINE));
           Inc(CURSORPOS, 2);
         End;
       End Else Begin
         If INSERT Then
-          INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + aChar(NewChar) + Copy(INPUTLINE, CURSORPOS, Length(INPUTLINE))
+          INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + Key.KeyChar + Copy(INPUTLINE, CURSORPOS, Length(INPUTLINE))
         Else Begin
-          INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + aChar(NewChar) + Copy(INPUTLINE, CURSORPOS +1, LENGTH(INPUTLINE));
+          INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + Key.KeyChar + Copy(INPUTLINE, CURSORPOS +1, LENGTH(INPUTLINE));
         End;
         Inc(CURSORPOS);
       End;
     End Else If CURSORPOS <= Length(INPUTLINE) Then Begin
-      nChar := aChar(NewChar);
+      nChar := Key.KeyChar;
       If INFORMAT[(CURSORPOS *2) -1] <> '\' Then
         Case INFORMAT[CURSORPOS *2] of
           'A':
@@ -544,6 +512,7 @@ Var
   Err: TSP_ErrorCode;
   Win: pSP_Window_Info;
   Done: Boolean;
+  Key: pSP_KeyInfo;
 Begin
 
   EditorSaveFPS := FPS;
@@ -638,7 +607,6 @@ Begin
 
   Done := False;
   CurOption := 1;
-  LASTKEY := 0;
   Repeat
 
     For Idx := 1 to OptionList.Count -1 Do Begin
@@ -651,48 +619,23 @@ Begin
       End;
     End;
 
+    Key := nil;
     Repeat
       CB_Yield;
-      If LASTKEY = 0 Then KeyChar := 0;
-    Until (LASTKEY <> 0) or QUITMSG;
+      Key := SP_GetNextKey(FRAMES);
+    Until Assigned(Key) or QUITMSG;
     If QUITMSG Then Exit;
 
-    If LASTKEY in [K_RETURN, K_ESCAPE] Then Begin
-      If LASTKEY = K_RETURN Then
+    If Key.KeyCode in [K_RETURN, K_ESCAPE] Then Begin
+      If Key.KeyCode = K_RETURN Then
         Result := integer(BASE) + CurOption -1
       Else Begin
         Result := -1;
       End;
       Done := True;
     End Else
-
-      // Is this key the same as the last one?
-
-      If KeyChar = LASTKEY Then Begin
-
-        // Yes - make it repeat if necessary.
-
-        If FRAMES - REPCOUNT >= LongWord(RepeatLen) Then Begin
-          RepeatLen := REPPER;
-          REPCOUNT := FRAMES;
-          Case LASTKEY of
-            K_UP:
-              If CurOption > 1 Then Dec(CurOption) Else CurOption := Numoptions -1;
-            K_DOWN:
-              If CurOption < NumOptions -1 Then Inc(CurOption) Else CurOption := 1;
-            K_HOME:
-              CurOption := 1;
-            K_END:
-              CurOption := NumOptions -1;
-          End;
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
-        End;
-
-      End Else Begin
-
-        // No - This is a new key
-
-        Case LASTKEY of
+      If Key.KeyChar = #0 Then Begin
+        Case Key.KeyCode of
           K_UP:
             If CurOption > 1 Then Dec(CurOption) Else CurOption := Numoptions -1;
           K_DOWN:
@@ -703,10 +646,6 @@ Begin
             CurOption := NumOptions -1;
         End;
         SP_PlaySystem(CLICKCHAN, CLICKBANK);
-        RepeatLen := REPDEL;
-        REPCOUNT := FRAMES;
-        KeyChar := LASTKEY;
-
       End;
 
   Until Done;

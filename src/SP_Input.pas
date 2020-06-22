@@ -29,10 +29,18 @@ Uses SP_SysVars, SP_Util, SP_Errors, SP_BankManager, SP_BankFiling, SP_Graphics,
 
 Type
 
+  SP_KeyInfo = Packed Record  // Defines a key that is currently down
+    KeyChar: aChar;           // The character that is down (for alpha-num-symbols}
+    KeyCode: Word;            // For modifier keys etc
+    NextFrameTime: LongWord;  // When this reaches zero, it's counted as triggering a repeated key event
+    Repeating: Boolean;       // Has the key started to repeat yet?
+  End;
+  pSP_KeyInfo = ^SP_KeyInfo;
+
   TKeyEvent = Packed Record
     Event: Byte; // 0 = key down, 1 = key up
-    Key: Word;
-    Lkc: Byte;
+    KeyCode: Word;
+    KeyChar: aChar;
     Flags: Byte;
   End;
 
@@ -45,14 +53,16 @@ Type
 
   TCB_GetKeyLockState = Procedure;
 
+  Procedure SP_AddKey(var KeyInfo: SP_KeyInfo);
+  Procedure SP_RemoveKey(KeyCode: Word);
+  Function  GetLastKeyChar: aString;
+  Function  SP_GetNextKey(CurFrames: Integer): pSP_KeyInfo;
+  Procedure SP_ClearAllKeys;
+
   Procedure SP_LoadKeyboardDefinition(Name: aString; Var Error: TSP_ErrorCode);
-  Procedure SP_BufferKey(Key: Word; Event, Lkc, Flags: Byte);
-  Procedure SP_ClearKeyBuffer(ClearStates: Boolean);
+  Procedure SP_BufferKey(Key: pSP_KeyInfo; Event, Flags: Byte);
   Function  SP_KeyEventWaiting: Boolean;
   Procedure SP_UnBufferKey;
-  Function  SP_DecodeKey(Var Char: Byte; RawKey: Boolean): Byte;
-  Procedure SP_KeyDown(Key: Word; Flags: Byte);
-  Procedure SP_KeyUp(Key: Word);
 
   Function  SP_NewZone(Var Error: TSP_ErrorCode): Integer;
   Function  SP_FindZone(Id: Integer; Var Error: TSP_ErrorCode): Integer;
@@ -72,7 +82,8 @@ Var
   KeyBufferPos: Integer = 0;
   KeyLock: TCriticalSection;
   global_i: integer;
-  KeysDown: aString;
+
+  ActiveKeys: Array of SP_KeyInfo;
 
 Const
 
@@ -291,92 +302,127 @@ Begin
 
 End;
 
-Procedure SP_KeyDown(Key: Word; Flags: Byte);
-Begin
-
-  If SystemState in [SS_ERROR] Then
-
-    SP_BufferKey(Key, 0, LASTKEYCHAR, 0)
-
-  Else Begin
-
-    KEYSTATE[Key] := 1;
-
-    If ControlsAreInUse Then Begin
-      DisplaySection.Enter;
-      If ControlKeyEvent(aChar(LASTKEYCHAR), Key, True) Then
-        Key := 0;
-      DisplaySection.Leave;
-    End;
-
-    LASTKEY := Key;
-    LASTKEYFLAG := Flags;
-
-    If Key = K_ESCAPE Then
-      BREAKSignal := True;
-
-  end;
-
-End;
-
-Procedure SP_KeyUp(Key: Word);
+Procedure SP_AddKey(var KeyInfo: SP_KeyInfo);
 Var
-  Idx: Integer;
-Begin
-
-  If SystemState in [SS_ERROR] Then
-
-    SP_BufferKey(Key, 1, LASTKEYCHAR, 0)
-
-  Else Begin
-
-    KEYSTATE[Key] := 0;
-
-    If ControlsAreInUse Then Begin
-      DisplaySection.Enter;
-      If ControlKeyEvent('', Key, False) Then
-        Key := 0;
-      DisplaySection.Leave;
-    End;
-
-    For Idx := 0 To 255 Do
-      If KEYSTATE[Idx] <> 0 Then Begin
-        LASTKEY := Idx;
-        Exit;
-      End;
-
-    LASTKEY := 0;
-
-  end;
-
-End;
-
-Procedure SP_BufferKey(Key: Word; Event, Lkc, Flags: Byte);
+  b: Boolean;
+  i, l: Integer;
 Begin
   KeyLock.Enter;
-  KeyBuffer[KeyBufferPos].Key := Key;
+  b := False;
+  l := Length(ActiveKeys);
+  for i := 0 To l -1 Do
+    If KeyInfo.KeyCode = ActiveKeys[i].KeyCode Then Begin
+      l := i + 1;
+      b := True;
+      Break;
+    End;
+  If Not b Then Begin
+    Inc(l);
+    SetLength(ActiveKeys, l);
+  End;
+  KeyInfo.Repeating := False;
+  CopyMem(@ActiveKeys[l - 1].KeyChar, @KeyInfo.KeyChar, SizeOf(SP_KeyInfo));
+  KeyState[KeyInfo.KeyCode] := 1;
+  KeyLock.Leave;
+End;
+
+Function SP_GetNextKey(CurFrames: Integer): pSP_KeyInfo;
+Var
+  i: Integer;
+  Modifier: Byte;
+Begin
+
+  KeyLock.Enter;
+
+  Result := nil;
+
+  CB_GetKeyLockState;
+
+  If KEYSTATE[K_SHIFT] <> 0 Then
+    Modifier := 1
+  Else
+    Modifier := 0;
+
+  i := Length(ActiveKeys) -1;
+  While i >= 0 Do
+    If Not (ActiveKeys[i].KeyCode in [16, 17, 18]) And (ActiveKeys[i].NextFrameTime <= CurFrames) Then Begin
+      Result := @ActiveKeys[i];
+      If Result^.Repeating Then
+        Result^.NextFrameTime := CurFrames + REPPER
+      Else Begin
+        Result^.Repeating := True;
+        Result^.NextFrameTime := CurFrames + REPDEL;
+      End;
+      Break;
+    End Else
+      Dec(i);
+
+  If Assigned(Result) And KB_IN_USE Then
+    If CharStr[Ord(Result.KeyChar)] <> '' Then Begin
+      Result.KeyChar := CharStr[Ord(Result.KeyChar)][Modifier +1];
+      If CAPSLOCK = 1 Then
+        If Result.KeyChar in ['A'..'Z', 'a'..'z'] Then Begin
+          Modifier := 1 - Modifier;
+          Result.KeyChar := CharStr[Ord(Result.KeyChar)][Modifier +1];
+        End;
+    End;
+
+  KeyLock.Leave;
+
+End;
+
+Function GetLastKeyChar: aString;
+Var
+  l: Integer;
+Begin
+  l := Length(ActiveKeys);
+  If l > 0 Then
+    Result := ActiveKeys[l -1].KeyChar
+  Else
+    Result := '';
+End;
+
+Procedure SP_RemoveKey(KeyCode: Word);
+Var
+  i, j, l: Integer;
+Begin
+  KeyLock.Enter;
+  i := 0;
+  l := Length(ActiveKeys);
+  While i < l Do
+    If ActiveKeys[i].KeyCode = KeyCode Then Begin
+      For j := i To l -2 Do
+        ActiveKeys[j] := ActiveKeys[j +1];
+      Dec(l);
+      SetLength(ActiveKeys, l);
+    End Else
+      Inc(i);
+  KeyState[KeyCode] := 0;
+  K_UPFLAG := True;
+  KeyLock.Leave;
+End;
+
+Procedure SP_ClearAllKeys;
+Var
+  i: Integer;
+Begin
+  KeyLock.Enter;
+  SetLength(ActiveKeys, 0);
+  For i := 0 To High(KEYSTATE) Do
+    KEYSTATE[i] := 0;
+  KeyBufferPos := 0;
+  KeyLock.Leave;
+End;
+
+Procedure SP_BufferKey(Key: pSP_KeyInfo; Event, Flags: Byte);
+Begin
+  KeyLock.Enter;
+  KeyBuffer[KeyBufferPos].KeyChar := Key^.KeyChar;
   KeyBuffer[KeyBufferPos].Event := Event;
-  KeyBuffer[KeyBufferPos].Lkc := Lkc;
+  KeyBuffer[KeyBufferPos].KeyCode := Key^.KeyCode;
   KeyBuffer[KeyBufferPos].Flags := Flags;
   Inc(KeyBufferPos);
   KeyLock.Leave;
-End;
-
-Procedure SP_ClearKeyBuffer(ClearStates: Boolean);
-Var
-  Idx: Integer;
-Begin
-
-  KeyLock.Enter;
-  KeyBufferPos := 0;
-  LASTKEY := 0;
-  LASTKEYCHAR := 0;
-  LASTKEYFLAG := 0;
-  If ClearStates Then
-    For Idx := 0 To High(KEYSTATE) Do
-      KEYSTATE[Idx] := 0;
-  KeyLock.Leave;
-
 End;
 
 Function SP_KeyEventWaiting: Boolean;
@@ -390,215 +436,34 @@ End;
 
 Procedure SP_UnBufferKey;
 Var
+  Key: SP_KeyInfo;
   Idx: Integer;
-  ss: Integer;
 Begin
-
   KeyLock.Enter;
-  ss := SystemState;
-  SystemState := SS_IDLE;
-
   If KeyBufferPos > 0 Then Begin
     Case KeyBuffer[0].Event of
       0: // KeyDown
         Begin
-          If Not LASTKEYCHAR in [0, 16, 17, 18] Then
-            KeysDown := KeysDown + aChar(LASTKEYCHAR);
-          LASTKEYCHAR := KeyBuffer[0].Lkc;
-          SP_KeyDown(KeyBuffer[0].Key, KeyBuffer[0].Flags);
+          Key.KeyChar := KeyBuffer[0].KeyChar;
+          Key.KeyCode := KeyBuffer[0].KeyCode;
+          Key.Repeating := False;
+          Key.NextFrameTime := FRAMES;
+          SP_AddKey(Key);
         End;
       1: // KeyUp
         Begin
-          If KeysDown <> '' Then Begin
-            LASTKEYCHAR := Ord(KeysDown[Length(KeysDown)]);
-            KeysDown := Copy(KeysDown, 1, Length(KeysDown) -1);
-          End Else
-            LASTKEYCHAR := 0;
-          SP_KeyUp(KeyBuffer[0].Key);
+          SP_RemoveKey(KeyBuffer[0].KeyCode);
         End;
     End;
     Dec(KeyBufferPos);
     For Idx := 0 To KeyBufferPos Do Begin
-      KeyBuffer[Idx].Key := KeyBuffer[Idx +1].Key;
+      KeyBuffer[Idx].KeyChar := KeyBuffer[Idx +1].KeyChar;
       KeyBuffer[Idx].Event := KeyBuffer[Idx +1].Event;
-      KeyBuffer[Idx].Lkc := KeyBuffer[Idx +1].Lkc;
+      KeyBuffer[Idx].KeyCode := KeyBuffer[Idx +1].KeyCode;
       KeyBuffer[Idx].Flags := KeyBuffer[Idx +1].Flags;
     End;
   End;
-
-  SystemState := ss;
   KeyLock.Leave;
-
-End;
-
-Function SP_DecodeKey(Var Char: Byte; RawKey: Boolean): Byte;
-Var
-  Modifier: Byte;
-Begin
-
-  Result := 0;
-  CB_GetKeyLockState;
-
-  If KEYSTATE[K_SHIFT] <> 0 Then
-    Modifier := 1
-  Else
-    Modifier := 0;
-
-  If KB_IN_USE Then
-    If (KEYSTATE[K_CONTROL] <> 0) And (CharStr[Char] <> '') Then
-      LASTKEYCHAR := Ord(CharStr[Char][Modifier + 1]);
-
-  If (Not KB_IN_USE) And (NUMLOCK = 1) And (Char in [K_NUMPAD0..K_NUMPAD9, K_DECIMAL]) Then Begin
-    Result := LASTKEYCHAR;
-    Exit;
-  End;
-
-  Case Char of
-
-    K_NUMPAD0:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_NUMPAD0][1]);
-      End Else
-        Char := K_INSERT;
-
-    K_NUMPAD1:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_NUMPAD1][1]);
-      End Else
-        Char := K_END;
-
-    K_NUMPAD2:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_NUMPAD2][1]);
-      End Else
-        Char := K_DOWN;
-
-    K_NUMPAD3:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_NUMPAD3][1]);
-      End Else
-        Char := K_NEXT;
-
-    K_NUMPAD4:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_NUMPAD4][1]);
-      End Else
-        Char := K_LEFT;
-
-    K_NUMPAD5:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_NUMPAD5][1]);
-      End Else
-        Result := 0;
-
-    K_NUMPAD6:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_NUMPAD6][1]);
-      End Else
-        Char := K_RIGHT;
-
-    K_NUMPAD7:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_NUMPAD7][1]);
-      End Else
-        Char := K_HOME;
-
-    K_NUMPAD8:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_NUMPAD8][1]);
-      End Else
-        Char := K_UP;
-
-    K_NUMPAD9:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_NUMPAD9][1]);
-      End Else
-        Char := K_PRIOR;
-
-    K_DECIMAL:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_DECIMAL][1]);
-      End Else
-        Char := K_DELETE;
-
-  Else
-
-    {$IFDEF PANDORA}
-    If CharStr[Char] <> '' Then Begin
-      Result := Ord(CharStr[Char][Modifier +1]);
-      If CAPSLOCK = 1 Then
-        If Result in [Ord('A')..Ord('Z'), Ord('a')..Ord('z')] Then Begin
-          Modifier := 1 - Modifier;
-          Result := Ord(CharStr[Char][Modifier +1]);
-        End;
-    End Else
-      If RawKey Then
-        Result := Char
-      Else
-        Result := 0;
-    {$ELSE}
-    If KB_IN_USE Then Begin
-      If CharStr[Char] <> '' Then Begin
-        Result := Ord(CharStr[Char][Modifier +1]);
-        If CAPSLOCK = 1 Then
-          If Result in [Ord('A')..Ord('Z'), Ord('a')..Ord('z')] Then Begin
-            Modifier := 1 - Modifier;
-            Result := Ord(CharStr[Char][Modifier +1]);
-          End;
-      End Else
-        If RawKey Then
-          Result := Char
-        Else
-          Result := 0;
-    End Else
-      If (LASTKEYCHAR <> 0) And (LastKeyChar >= 32) Then Begin
-        Case LastKeyChar of
-          194, 163: Result := $60;
-          96:  Result := $7F;
-        Else
-          Result := LASTKEYCHAR;
-        End;
-      End Else
-        If RawKey Then
-          Result := Char
-        Else
-          Result := 0;
-    {$ENDIF}
-  End;
-
 End;
 
 // Zone handling

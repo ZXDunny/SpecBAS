@@ -1786,7 +1786,7 @@ Const
   NumPads: Array[0..9] of Integer = (K_INSERT, K_END, K_DOWN, K_NEXT, K_LEFT, 0, K_RIGHT, K_HOME, K_UP, K_PRIOR);
 Begin
 
-  Result := 0;
+  Result := cLastKeyChar;
   CB_GetKeyLockState;
 
   If KEYSTATE[K_SHIFT] <> 0 Then
@@ -1802,40 +1802,29 @@ Begin
     Result := cLastKeyChar
   Else
 
-  Case Char of
+    Case Char of
 
-    K_NUMPAD0 .. K_NUMPAD9:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := cLastKeyChar
-        Else
-          Result := Ord(CharStr[Char][1]);
-      End Else
-        Char := NumPads[Char - K_NUMPAD0];
+      K_NUMPAD0 .. K_NUMPAD9:
+        If NUMLOCK = 1 Then Begin
+          If Not KB_IN_USE Then
+            Result := cLastKeyChar
+          Else
+            Result := Ord(CharStr[Char][1]);
+        End Else
+          Char := NumPads[Char - K_NUMPAD0];
 
-    K_DECIMAL:
-      If NUMLOCK = 1 Then Begin
-        If Not KB_IN_USE Then
-          Result := LASTKEYCHAR
-        Else
-          Result := Ord(CharStr[K_DECIMAL][1]);
-      End Else
-        Char := K_DELETE;
+      K_DECIMAL:
+        If NUMLOCK = 1 Then Begin
+          If Not KB_IN_USE Then
+            Result := Ord(GetLastKeyChar[1])
+          Else
+            Result := Ord(CharStr[K_DECIMAL][1]);
+        End Else
+          Char := K_DELETE;
 
-  Else
+    Else
 
-    {$IFDEF PANDORA}
-    If CharStr[Char] <> '' Then Begin
-      Result := Ord(CharStr[Char][Modifier +1]);
-      If CAPSLOCK = 1 Then
-        If Result in [Ord('A')..Ord('Z'), Ord('a')..Ord('z')] Then Begin
-          Modifier := 1 - Modifier;
-          Result := Ord(CharStr[Char][Modifier +1]);
-        End;
-    End Else
-      Result := 0;
-    {$ELSE}
-    If KB_IN_USE Then Begin
+      {$IFDEF PANDORA}
       If CharStr[Char] <> '' Then Begin
         Result := Ord(CharStr[Char][Modifier +1]);
         If CAPSLOCK = 1 Then
@@ -1845,18 +1834,23 @@ Begin
           End;
       End Else
         Result := 0;
-    End Else
-      If (cLastKeyChar <> 0) And (cLastKeyChar >= 32) Then Begin
-        Case cLastKeyChar of
-          194, 163: Result := $60;
-          96:  Result := $7F;
-        Else
-          Result := cLastKeyChar;
-        End;
+      {$ELSE}
+      If KB_IN_USE Then Begin
+        If CharStr[Char] <> '' Then Begin
+          Result := Ord(CharStr[Char][Modifier +1]);
+          If CAPSLOCK = 1 Then
+            If Result in [Ord('A')..Ord('Z'), Ord('a')..Ord('z')] Then Begin
+              Modifier := 1 - Modifier;
+              Result := Ord(CharStr[Char][Modifier +1]);
+            End;
+        End Else
+          Result := 0;
       End Else
-        Result := 0;
-    {$ENDIF}
-  End;
+        If (cLastKeyChar <> 0) And (cLastKeyChar >= 32) Then Begin
+        End Else
+          Result := 0;
+      {$ENDIF}
+    End;
 
   {$IFDEF DARWIN}
   If ((Result = 97) And (cLastKey = 40)) Or    // cmd+up

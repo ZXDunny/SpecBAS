@@ -9,3 +9,4 @@ sampled.sampling
 *.ini
 *.map
 SpecBAS.drc
+src/SpecBAS_project.tvsconfig

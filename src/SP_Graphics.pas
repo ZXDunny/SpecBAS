@@ -566,6 +566,8 @@ End;
 Procedure SP_CreateSystemUDGs(ID: Integer);
 Var
   BlockIDX, Offset, Idx: Integer;
+Const
+  BlockChars = '12345678!"£$%^&*';
 Begin
 
   // Default font characters
@@ -577,8 +579,9 @@ Begin
 
   BlockIdx := 0;
   Offset := 0;
-  For Idx := Byte(aChar('a')) to Byte(aChar('p')) Do Begin
-    SP_SetSpeccyStyleChar(ID, Idx + 128, @BlockGraphics[BlockIdx + Offset]);
+  For Idx := 0 to 15 Do Begin
+    SP_SetSpeccyStyleChar(ID, 128 + Ord(BlockChars[Idx +1]), @BlockGraphics[BlockIdx + Offset]);
+    SP_SetSpeccyStyleChar(ID, 128 + Ord('a') + Idx, @BlockGraphics[BlockIdx + Offset]);
     Inc(Offset, 8);
   End;
 

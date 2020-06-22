@@ -38,7 +38,6 @@ type
   TMain = class(TForm)
     procedure FormShow(Sender: TObject);
     procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-    procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormDestroy(Sender: TObject);
     procedure FormMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer);
     procedure FormMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
@@ -49,6 +48,8 @@ type
     procedure FormPaint(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure FormKeyUp(Sender: TObject; var Key: Word;
+      Shift: TShiftState);
   private
     { Private declarations }
     Minimised: Boolean;
@@ -1011,6 +1012,13 @@ begin
       Result := '';
   end;
 
+  If Result <> '' Then Begin
+    Case Ord(Result[1]) of
+      194, 163: Result := #$60;
+      96:  Result := #$7F;
+    End;
+  End;
+
 end;
 
 procedure TMain.CMDialogKey(var msg: TCMDialogKey);
@@ -1021,21 +1029,26 @@ end;
 
 procedure TMain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 Var
-  k: Word;
   aStr: aString;
   Err: TSP_ErrorCode;
+  kInfo: SP_KeyInfo;
 begin
 
-  k := Key And $5FF;
-  aStr := aString(GetCharFromVirtualKey(k));
-  Key := k;
-  If aStr = '' Then aStr := #0;
-  K_DOWNFLAG := True;
-  LASTKEYCHAR := Ord(aStr[1]);
-  If SystemState = SS_EDITOR Then
-    SP_BufferKey(Key, 0, LASTKEYCHAR, 0)
-  Else
-    SP_KeyDown(Key, 0);
+  aStr := aString(GetCharFromVirtualKey(Key));
+  If (aStr = '') or (aStr[1] < ' ') Then aStr := #0;
+
+  kInfo.KeyChar := aStr[1];
+  kInfo.KeyCode := Key;
+  kInfo.NextFrameTime := FRAMES;
+
+  If ControlsAreInUse Then Begin
+    DisplaySection.Enter;
+    If Not ControlKeyEvent(kInfo.KeyChar, kInfo.KeyCode, True) Then
+      SP_AddKey(kInfo);
+    DisplaySection.Leave;
+  End Else
+    SP_AddKey(kInfo);
+
   Key := 0;
 
 end;
@@ -1043,12 +1056,9 @@ end;
 procedure TMain.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
 
-  K_UPFLAG := True;
-  LASTKEYCHAR := 0;
-  If SystemState = SS_EDITOR Then
-    SP_BufferKey(Key, 1, LASTKEYCHAR, 0)
-  Else
-    SP_KeyUp(Key);
+  KEYSTATE[Key] := 0;
+  If Not ControlKeyEvent(#0, Key, False) Then
+    SP_RemoveKey(Key);
 
 end;
 

@@ -179,11 +179,11 @@ Procedure SP_CheckEvents;
 Procedure SP_SelectWord;
 Procedure SP_FPClearSelection(Var Sel: SP_SelectionInfo);
 Procedure SP_FPDeleteSelection(Var Sel: SP_SelectionInfo);
-Procedure SP_FPEditorPerformEdit(Key: Byte);
+Procedure SP_FPEditorPerformEdit(Key: pSP_KeyInfo);
 Procedure SP_FPBringToEditor(LineNum, Statement: Integer; Var Error: TSP_ErrorCode; DoEdit: Boolean = True);
 Procedure SP_FindAll(Text: aString; Const Options: SP_SearchOptions; Var Error: TSP_ErrorCode);
 Function  SP_FindText(Text: aString; StartAtL, StartAtP: Integer; const Options: SP_SearchOptions): TPoint;
-Procedure SP_DWPerformEdit(Char: Byte);
+Procedure SP_DWPerformEdit(Key: pSP_KeyInfo);
 Procedure SP_DWStoreLine(Line: aString);
 Procedure SP_EditorDisplayEditLine;
 Procedure SP_CompileProgram;
@@ -3233,9 +3233,7 @@ Begin
 
 End;
 
-Procedure SP_FPWaitForUserEvent(Var keyChar: Byte; Var LocalFlashState: Integer);
-var
-  GotKey: Boolean;
+Procedure SP_FPWaitForUserEvent(Var Key: pSP_KeyInfo; Var LocalFlashState: Integer);
 Begin
 
   Repeat
@@ -3253,34 +3251,34 @@ Begin
     If QUITMSG Then Exit;
     SP_CheckEvents;
     SP_SetGraphicsMode;
-    GotKey := SP_KeyEventWaiting;
-    If Not GotKey Then
-      SP_WaitForSync
-    Else
-      SP_UnBufferKey;
-    If LASTKEY = 0 Then KeyChar := 0;
+
+    If SP_KeyEventWaiting Then SP_UnBufferKey;
+    Key := SP_GetNextKey(FRAMES);
+    If Not Assigned(Key) Then
+      SP_WaitForSync;
+
     If K_UPFLAG Then Begin
       SP_DrawGraphicsID;
       K_UPFLAG := False;
     End;
+
     If MaxDirtyLines >= 0 Then RefreshDirtyLines;
-  Until M_DOWNFLAG or M_UPFLAG or M_MOVEFLAG or M_WHEELUPFLAG or M_WHEELDNFLAG or GotKey or (KEYSTATE[LASTKEY] <> 0);
+  Until M_DOWNFLAG or M_UPFLAG or M_MOVEFLAG or M_WHEELUPFLAG or M_WHEELDNFLAG or Assigned(Key);
 
 End;
 
 Procedure SP_GetFPUserInput;
 Var
   Finished, Changed: Boolean;
-  KeyChar: Byte;
+  KeyInfo: pSP_KeyInfo;
   RepeatLen: LongWord;
   LocalFlashState: Integer;
 Begin
 
+  KeyInfo := nil;
   SYSTEMSTATE := SS_EDITOR;
   Finished := False;
   Changed := True;
-  KeyChar := 0;
-  RepeatLen := REPDEL;
   LocalFlashState := FLASHSTATE;
 
   While Not (Finished or QUITMSG) Do Begin
@@ -3297,44 +3295,16 @@ Begin
     // Wait for a key - alphanumeric, of course. Shift doesn't count.
     // Also handle mouse events
 
-    SP_FPWaitForUserEvent(KeyChar, LocalFlashState);
-
-    // Is this key the same as the last one?
-
-    If KeyChar = LASTKEY Then Begin
-
-      // Yes - make it repeat if necessary.
-
-      If Not (LASTKEY in [0, 16, 17, 18]) Then // Not the modifiers
-        If FRAMES - REPCOUNT >= RepeatLen Then Begin
-          RepeatLen := REPPER;
-          REPCOUNT := FRAMES;
-          If FocusedWindow = fwEditor Then
-            SP_FPEditorPerformEdit(LASTKEY)
-          Else
-            If FocusedWindow = fwDirect Then
-              SP_DWPerformEdit(LASTKEY);
-          if QUITMSG then Exit;
-          Changed := True;
-        End;
-
-    End Else Begin
-
-      // No - This is a new key
-
+    SP_FPWaitForUserEvent(KeyInfo, LocalFlashState);
+    If Assigned(KeyInfo) Then Begin
       If FocusedWindow = fwEditor Then
-        SP_FPEditorPerformEdit(LASTKEY)
+        SP_FPEditorPerformEdit(KeyInfo)
       Else
         If FocusedWindow = fwDirect Then
-          SP_DWPerformEdit(LASTKEY);
-      if QUITMSG then Exit;
-
-      RepeatLen := REPDEL;
-      REPCOUNT := FRAMES;
-      KeyChar := LASTKEY;
-      Changed := True;
-
+          SP_DWPerformEdit(KeyInfo);
     End;
+
+    if QUITMSG then Exit;
 
     If M_DOWNFLAG Then SP_FPEditorHandleMouseDown(MOUSEX, MOUSEY);
     If M_UPFLAG Then SP_FPEditorHandleMouseUp(MOUSEX, MOUSEY);
@@ -4689,10 +4659,9 @@ Begin
   End;
 End;
 
-Procedure SP_FPEditorPerformEdit(Key: Byte);
+Procedure SP_FPEditorPerformEdit(Key: pSP_KeyInfo);
 Var
-  NewChar: Byte;
-  s, prev: aString;
+  s, s2, prev: aString;
   Idx, DesiredPos, OldLine, c, i, n, nl, m, p, fp, GfxMode, Flag, l, cx, cy: Integer;
   OldPt, NewPt: TPoint;
   SB: pSP_ScrollBar;
@@ -4712,218 +4681,173 @@ Begin
   // KEYBOARDSTATE sysvar.
 
   GfxMode := GFXLOCK;
-  If ((KEYSTATE[K_CONTROL] = 1) And (KEYSTATE[K_ALT] = 1)) or (KEYSTATE[K_ALTGR] = 1) Then Begin
-    GfxMode := 1 - GfxMode;
-    If Key >= 32 Then
-      LASTKEYCHAR := Ord(CharStr[Key][KEYSTATE[K_SHIFT] + 1]);
-  End;
-  NewChar := SP_DecodeKey(Key, False);
-  {$IFDEF DARWIN}
-  If ((NewChar = 97) And (Key = 40)) Or    // cmd+up
-     ((NewChar = 109) And (Key = 13)) Or   // cmd+Enter
-     ((NewChar = 98) And (Key = 37)) Or    // cmd+right
-     ((NewChar = 56) And (Key = 8)) Or     // cmd+backspace
-     ((NewChar = 99) And (Key = 39)) And   // cmd+left
-     (KEYSTATE[K_CONTROL] = 1) Then
-     NewChar := 0;
-  If ((NewChar = 77) And (Key = 13)) Or    // Shift+Enter
-     ((NewChar = 40) And (Key = 46)) Or    // Fn+Backspace
-     ((NewChar = 44) And (Key = 33)) Or    // PgUp
-     ((NewChar = 45) And (Key = 34)) Or    // PgDn
-     ((NewChar = 41) And (Key = 36)) Or    // Home
-     ((NewChar = 43) And (Key = 35)) Then  // End
-     NewChar := 0;
-  If (NewChar = 0) And (Key = 81) Then
-    NewChar := 113;
-  If (NewChar = 0) And (Key in [65..90]) Then
-    NewChar := Key;
-  {$ENDIF}
+
   DesiredPos := FPCDes;
   Dec(DesiredPos, Listing.Flags[Listing.FPCLine].Indent);
-
-  {$IFDEF SPECCYKEYS}
-  If (Key = K_1) And (KEYSTATE[K_SHIFT] = 1) Then Begin
-    Key := K_TAB;
-    NewChar := 0;
-  End;
-  {$ENDIF}
 
   Changed := False;
   SP_GetSelectionInfo(Sel);
   SelWasActive := Sel.Active;
 
-  If Not (Key in [K_F3, K_ESCAPE]) Then
+  If Not (Key.KeyCode in [K_F3, K_ESCAPE]) Then
     HideSearchResults;
 
-  If (aChar(NewChar) in ['a'..'z', 'A'..'Z', '0'..'9']) And Not Listing.UndoInProgress Then
+  If (Key.KeyChar in ['a'..'z', 'A'..'Z', '0'..'9']) And Not Listing.UndoInProgress Then
     Listing.CommenceUndo;
 
   cx := Listing.FPCPos;
   cy := Listing.FPCLine;
 
-  If (NewChar = 0) {$IFNDEF FPC} And (LASTKEYCHAR <> 1) {$ENDIF} Then Begin
+  If Key.KeyChar = #0 then Begin
 
-    Case Key of
+    Case Key.KeyCode of
       K_F1..K_F10:
         Begin // F1 to F9 set markers (CTRL+Shift) and jump to markers (CTRL)
-          {$IFNDEF DARWIN}
-          If KEYSTATE[K_CONTROL] = 1 Then Begin
-            If KEYSTATE[K_SHIFT] = 1 Then Begin
-              SP_ToggleEditorMark(Key - K_F1);
-            End Else Begin
-              SP_JumpToMark(Key - K_F1);
-            End;
-            SP_FPClearSelection(Sel);
-          End Else
-          {$ENDIF}
-            Case Key of
-              K_F1:
-                Begin
-                  // Help
+          Case Key.KeyCode of
+            K_F1:
+              Begin
+                // Help
+              End;
+            K_F3:
+              Begin
+                // Repeat find/replace
+                FindNext(True);
+              End;
+            K_F4:
+              Begin
+                // RUN to current line/statement - SHIFT to CONTINUE
+                If SP_CheckProgram Then Begin
+                  SP_ToggleBreakPoint(True);
+                  s := EDITLINE;
+                  If KEYSTATE[K_SHIFT] = 0 Then
+                    EDITLINE := 'RUN'
+                  Else
+                    EDITLINE := 'CONTINUE';
+                  Listing.CompleteUndo;
+                  SP_FPExecuteEditLine(EDITLINE);
+                  if QUITMSG then Exit;
+                  EDITLINE := s;
+                  SP_EditorDisplayEditLine;
+                  SP_SwitchFocus(fwEditor);
+                  SP_ClearAllKeys;
+                End Else Begin
+                  FPCDes := Listing.FPCPos;
+                  FPCDesLine := Listing.FPCLine;
+                  SP_FPClearSelection(Sel);
+                  SP_DisplayFPListing(-1);
+                  SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
+                  CURSORFG := 10;
+                  CURSORBG := 15;
                 End;
-              K_F3:
-                Begin
-                  // Repeat find/replace
-                  FindNext(True);
+              End;
+            K_F5:
+              Begin
+                // Insert breakpoint here
+                SP_ToggleBreakpoint(False);
+              End;
+            K_F7:
+              Begin
+                // Single step
+                If SP_CheckProgram Then
+                  SP_SingleStep
+                Else Begin
+                  FPCDes := Listing.FPCPos;
+                  FPCDesLine := Listing.FPCLine;
+                  SP_FPClearSelection(Sel);
+                  SP_DisplayFPListing(-1);
+                  SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
+                  CURSORFG := 10;
+                  CURSORBG := 15;
                 End;
-              K_F4:
-                Begin
-                  // RUN to current line/statement - SHIFT to CONTINUE
-                  If SP_CheckProgram Then Begin
-                    SP_ToggleBreakPoint(True);
+                Exit;
+              End;
+            K_F8:
+              Begin
+                // Step Over
+                If SP_CheckProgram Then Begin
+                  If SP_StepOver Then Begin
                     s := EDITLINE;
-                    If KEYSTATE[K_SHIFT] = 0 Then
-                      EDITLINE := 'RUN'
-                    Else
-                      EDITLINE := 'CONTINUE';
+                    EDITLINE := 'CONTINUE';
                     Listing.CompleteUndo;
                     SP_FPExecuteEditLine(EDITLINE);
                     if QUITMSG then Exit;
-                    EDITLINE := s;
-                    SP_EditorDisplayEditLine;
-                    SP_SwitchFocus(fwEditor);
-                    SP_ClearKeyBuffer(True);
-                  End Else Begin
-                    FPCDes := Listing.FPCPos;
-                    FPCDesLine := Listing.FPCLine;
-                    SP_FPClearSelection(Sel);
-                    SP_DisplayFPListing(-1);
-                    SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
-                    CURSORFG := 10;
-                    CURSORBG := 15;
-                  End;
-                End;
-              K_F5:
-                Begin
-                  // Insert breakpoint here
-                  SP_ToggleBreakpoint(False);
-                End;
-              K_F7:
-                Begin
-                  // Single step
-                  If SP_CheckProgram Then
-                    SP_SingleStep
-                  Else Begin
-                    FPCDes := Listing.FPCPos;
-                    FPCDesLine := Listing.FPCLine;
-                    SP_FPClearSelection(Sel);
-                    SP_DisplayFPListing(-1);
-                    SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
-                    CURSORFG := 10;
-                    CURSORBG := 15;
-                  End;
-                  Exit;
-                End;
-              K_F8:
-                Begin
-                  // Step Over
-                  If SP_CheckProgram Then Begin
-                    If SP_StepOver Then Begin
-                      s := EDITLINE;
-                      EDITLINE := 'CONTINUE';
-                      Listing.CompleteUndo;
-                      SP_FPExecuteEditLine(EDITLINE);
-                      if QUITMSG then Exit;
+                    If EDITLINE = 'CONTINUE' Then
                       EDITLINE := s;
-                      SCREENLOCK := False;
-                      SP_EditorDisplayEditLine;
-                      SP_SwitchFocus(fwEditor);
-                      SP_ClearKeyBuffer(True);
-                    End;
-                  End Else Begin
-                    FPCDes := Listing.FPCPos;
-                    FPCDesLine := Listing.FPCLine;
-                    SP_FPClearSelection(Sel);
-                    SP_DisplayFPListing(-1);
-                    SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
-                    CURSORFG := 10;
-                    CURSORBG := 15;
-                  End;
-                End;
-              K_F9:
-                Begin
-                  // RUN (Shift = CONTINUE)
-                  If SP_CheckProgram Then Begin
-                    s := EDITLINE;
-                    If KEYSTATE[K_SHIFT] = 0 Then
-                      EDITLINE := 'RUN'
-                    Else
-                      EDITLINE := 'CONTINUE';
-                    Listing.CompleteUndo;
-                    SP_FPExecuteEditLine(EDITLINE);
-                    if QUITMSG then Exit;
-                    EDITLINE := s;
+                    SCREENLOCK := False;
                     SP_EditorDisplayEditLine;
                     SP_SwitchFocus(fwEditor);
-                    SP_ClearKeyBuffer(True);
-                  End Else Begin
-                    FPCDes := Listing.FPCPos;
-                    FPCDesLine := Listing.FPCLine;
-                    SP_FPClearSelection(Sel);
-                    SP_DisplayFPListing(-1);
-                    SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
-                    CURSORFG := 10;
-                    CURSORBG := 15;
+                    SP_ClearAllKeys;
                   End;
-                  Exit;
+                End Else Begin
+                  FPCDes := Listing.FPCPos;
+                  FPCDesLine := Listing.FPCLine;
+                  SP_FPClearSelection(Sel);
+                  SP_DisplayFPListing(-1);
+                  SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
+                  CURSORFG := 10;
+                  CURSORBG := 15;
                 End;
-              K_F10:
-                Begin
-                  // GO TO (Shift = RUN) current line
-                  c := SP_GetLineNumberFromIndex(Listing.FPCLine);
-                  If (c > 0) And SP_CheckProgram Then Begin
-                    s := EDITLINE;
-                    If KEYSTATE[K_SHIFT] = 0 Then
-                      EDITLINE := 'GO TO ' + IntToString(c)
-                    Else
-                      EDITLINE := 'RUN ' + IntToString(c);
-                    Listing.CompleteUndo;
-                    SP_FPExecuteEditLine(EDITLINE);
-                    if QUITMSG then Exit;
+              End;
+            K_F9:
+              Begin
+                // RUN (Shift = CONTINUE)
+                If SP_CheckProgram Then Begin
+                  s := EDITLINE;
+                  If KEYSTATE[K_SHIFT] = 0 Then
+                    EDITLINE := 'RUN'
+                  Else
+                    EDITLINE := 'CONTINUE';
+                  s2 := EDITLINE;
+                  Listing.CompleteUndo;
+                  SP_FPExecuteEditLine(EDITLINE);
+                  if QUITMSG then Exit;
+                  If EDITLINE = s2 Then
                     EDITLINE := s;
-                    SP_EditorDisplayEditLine;
-                    SP_SwitchFocus(fwEditor);
-                  End Else Begin
-                    FPCDes := Listing.FPCPos;
-                    FPCDesLine := Listing.FPCLine;
-                    SP_FPClearSelection(Sel);
-                    SP_DisplayFPListing(-1);
-                    SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
-                    CURSORFG := 10;
-                    CURSORBG := 15;
-                  End;
-                  Exit;
+                  SP_EditorDisplayEditLine;
+                  SP_SwitchFocus(fwEditor);
+                  SP_ClearAllKeys;
+                End Else Begin
+                  FPCDes := Listing.FPCPos;
+                  FPCDesLine := Listing.FPCLine;
+                  SP_FPClearSelection(Sel);
+                  SP_DisplayFPListing(-1);
+                  SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
+                  CURSORFG := 10;
+                  CURSORBG := 15;
                 End;
+                Exit;
+              End;
+            K_F10:
+              Begin
+                // GO TO (Shift = RUN) current line
+                c := SP_GetLineNumberFromIndex(Listing.FPCLine);
+                If (c > 0) And SP_CheckProgram Then Begin
+                  s := EDITLINE;
+                  If KEYSTATE[K_SHIFT] = 0 Then
+                    EDITLINE := 'GO TO ' + IntToString(c)
+                  Else
+                    EDITLINE := 'RUN ' + IntToString(c);
+                  s2 := EDITLINE;
+                  Listing.CompleteUndo;
+                  SP_FPExecuteEditLine(EDITLINE);
+                  if QUITMSG then Exit;
+                  If EDITLINE = s2 Then
+                    EDITLINE := s;
+                  SP_EditorDisplayEditLine;
+                  SP_SwitchFocus(fwEditor);
+                End Else Begin
+                  FPCDes := Listing.FPCPos;
+                  FPCDesLine := Listing.FPCLine;
+                  SP_FPClearSelection(Sel);
+                  SP_DisplayFPListing(-1);
+                  SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
+                  CURSORFG := 10;
+                  CURSORBG := 15;
+                End;
+                Exit;
+              End;
           End;
           PlayClick;
-        End;
-
-      K_ALT, K_ALTGR:
-        Begin
-          If KEYSTATE[K_SHIFT] = 1 Then Begin
-            GFXLOCK := 1-GFXLOCK;
-            PlayClick;
-          End;
         End;
 
       K_RETURN:
@@ -4988,19 +4912,16 @@ Begin
               Begin
                 SP_FPCycleEditorWindows(1);
                 SYSTEMSTATE := ss_IDLE;
-                K_DOWNFLAG := False;
-                LASTKEY := 0;
+                Key := nil;
+                SP_ClearAllKeys;
                 Repeat
+                  Key := SP_GetNextKey(FRAMES);
                   CB_YIELD;
-                  If K_UPFLAG Then Begin
-                    K_UPFLAG := False;
-                    LASTKEY := 0;
-                  End;
-                Until Not (LASTKEY in [0, K_SHIFT]) or K_DOWNFLAG or M_DOWNFLAG;
-                LASTKEY := 0;
+                Until (Assigned(Key) And (Key.KeyCode <> K_SHIFT)) or M_DOWNFLAG;
                 M_DOWNFLAG := False;
                 SYSTEMSTATE := ss_EDITOR;
                 SP_FPCycleEditorWindows(2);
+                SP_ClearAllKeys;
               End;
           End;
         End;
@@ -5492,16 +5413,9 @@ Begin
 
   End Else Begin
 
-    // CTRL+SHIFT (AltGr) - UDG.
-
     PlayClick;
-    If (KEYSTATE[K_CONTROL] = 0) or ((KEYSTATE[K_CONTROL] = 1) And (KEYSTATE[K_ALT] = 1)) Then Begin
-      {$IFDEF DARWIN}
-      If (NewChar in [65..90]) And (((KEYSTATE[K_SHIFT] = 0) And (CAPSLOCK = 0)) or ((KEYSTATE[K_SHIFT] = 1) And (CAPSLOCK = 1))) Then Begin
-        NewChar := NewChar + 32;
-      End;
-      {$ENDIF}
-      If Sel.Active or Not (aChar(NewChar) in ['a'..'z', 'A'..'Z', '0'..'9']) or Not Listing.UndoInProgress Then Listing.CommenceUndo;
+    If KEYSTATE[K_CONTROL] = 0 Then Begin
+      If Sel.Active or Not (Key.KeyChar in ['a'..'z', 'A'..'Z', '0'..'9']) or Not Listing.UndoInProgress Then Listing.CommenceUndo;
       If Sel.Active Then Begin
         SP_FPDeleteSelection(Sel);
         Listing.CompleteUndo;
@@ -5510,10 +5424,10 @@ Begin
       s := Listing[Listing.FPCLine];
       If GfxMode = 1 Then Begin
         If INSERT Then Begin
-          s := Copy(s, 1, Listing.FPCPos -1) + aChar(Byte(NewChar)+128) + Copy(s, Listing.FPCPos, Length(s));
+          s := Copy(s, 1, Listing.FPCPos -1) + aChar(Byte(Key.KeyChar)+128) + Copy(s, Listing.FPCPos, Length(s));
           Listing.FPCPos := Listing.FPCPos +1;
         End Else Begin
-          s := Copy(s, 1, Listing.FPCPos -1) + aChar(Byte(NewChar)+128) + Copy(s, Listing.FPCPos +1, LENGTH(s));
+          s := Copy(s, 1, Listing.FPCPos -1) + aChar(Byte(Key.KeyChar)+128) + Copy(s, Listing.FPCPos +1, LENGTH(s));
           Listing.FPCPos := Listing.FPCPos +1;
         End;
         Changed := True;
@@ -5522,9 +5436,9 @@ Begin
       End Else Begin
         If KEYSTATE[K_CONTROL] = 0 Then Begin
           If INSERT Then
-            s := Copy(s, 1, Listing.FPCPos -1) + aChar(NewChar) + Copy(s, Listing.FPCPos, Length(s))
+            s := Copy(s, 1, Listing.FPCPos -1) + Key.KeyChar + Copy(s, Listing.FPCPos, Length(s))
           Else Begin
-            s := Copy(s, 1, Listing.FPCPos -1) + aChar(NewChar) + Copy(s, Listing.FPCPos +1, LENGTH(s));
+            s := Copy(s, 1, Listing.FPCPos -1) + Key.KeyChar + Copy(s, Listing.FPCPos +1, LENGTH(s));
           End;
           Listing.FPCPos := Listing.FPCPos +1;
           Changed := True;
@@ -5550,33 +5464,11 @@ Begin
     End Else Begin
 
       // CTRL+key combo - cut, copy, paste, save, undo etc
-      Case Lower(aChar(NewChar))[1] of
-          {$IFDEF DARWIN}
-          '1'..'9':
-            Begin
-              If KEYSTATE[K_SHIFT] = 1 Then Begin
-                SP_ToggleEditorMark(Key - K_1);
-              End Else Begin
-                If SP_JumpToMark(Key - K_1) Then Begin
-                  Idx := Listing.FPCLine;
-                  While (Idx >= 0) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Dec(Idx);
-                  PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
-                  If PROGLINE <= 0 Then Begin
-                    While (Idx < Listing.Count) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Inc(Idx);
-                    PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
-                  End;
-                  SP_CalculateFPCursorPos;
-                End;
-              End;
-              SP_FPClearSelection(Sel);
-            End;
-        'q':
-            Begin
-              // Quit
-              TerminateInterpreter := True;
-              CB_Quit;
-            End;
-            {$ENDIF}
+      Case Lower(Key.KeyChar)[1] of
+        '9':
+          Begin
+            GFXLOCK := 1-GFXLOCK;
+          End;
         'z':
           Begin
             // Undo
@@ -6675,14 +6567,13 @@ Begin
   End;
 End;
 
-Procedure SP_DWPerformEdit(Char: Byte);
+Procedure SP_DWPerformEdit(Key: pSP_KeyInfo);
 Var
-  NewChar: Byte;
   LineIdx, Idx, Cnt, LineNum, Statement, SelS, SelE, GfxMode, c: Integer;
   Sel: SP_SelectionInfo;
   Error: TSP_ErrorCode;
   SB: pSP_ScrollBar;
-  s: aString;
+  s, s2: aString;
 
   Procedure PlayClick;
   Begin
@@ -6704,61 +6595,25 @@ Begin
   End;
 
   GfxMode := GFXLOCK;
-  If ((KEYSTATE[K_CONTROL] = 1) And (KEYSTATE[K_ALT] = 1)) or (KEYSTATE[K_ALTGR] = 1) Then Begin
-    GfxMode := 1 - GfxMode;
-    If Char >= 32 Then
-      If CharStr[Char] <> '' Then
-        LASTKEYCHAR := Ord(CharStr[Char][KEYSTATE[K_SHIFT] + 1]);
-  End;
 
-  K_DOWNFLAG := False;
-  NewChar := SP_DecodeKey(Char, False);
-  {$IFDEF DARWIN}
-  If ((NewChar = 97) And (Char = 40)) Or    // cmd+up
-     ((NewChar = 109) And (Char = 13)) Or   // cmd+Enter
-     ((NewChar = 98) And (Char = 37)) Or    // cmd+right
-     ((NewChar = 56) And (Char = 8)) Or     // cmd+backspace
-     ((NewChar = 99) And (Char = 39)) And   // cmd+left
-     (KEYSTATE[K_CONTROL] = 1) Then
-     NewChar := 0;
-  If ((NewChar = 77) And (Char = 13)) Or    // Shift+Enter
-     ((NewChar = 40) And (Char = 46)) Or    // Fn+Backspace
-     ((NewChar = 44) And (Char = 33)) Or    // PgUp
-     ((NewChar = 45) And (Char = 34)) Or    // PgDn
-     ((NewChar = 41) And (Char = 36)) Or    // Home
-     ((NewChar = 43) And (Char = 35)) Then  // End
-     NewChar := 0;
-  If (NewChar = 0) And (Char = 81) Then
-    NewChar := 113;
-  If (NewChar = 0) And (Char in [65..90]) Then
-    NewChar := Char;
-  {$ENDIF}
-
-  {$IFDEF SPECCYKEYS}
-  If (Char = K_1) And (KEYSTATE[K_SHIFT] = 1) Then Begin
-    Char := K_TAB;
-    NewChar := 0;
-  End;
-  {$ENDIF}
-
-  If (aChar(NewChar) in ['a'..'z', 'A'..'Z', '0'..'9']) And Not DWUndoInProgress Then
+  If (Key^.KeyChar in ['a'..'z', 'A'..'Z', '0'..'9']) And Not DWUndoInProgress Then
     DWCommenceUndo;
 
-  If (NewChar = 0) {$IFNDEF FPC} And (LASTKEYCHAR <> 1) {$ENDIF} Then Begin
+  If Key^.KeyChar = #0 Then Begin
 
     DWCompleteUndo;
     DWCommenceUndo;
 
-    Case Char of
+    Case Key^.KeyCode of
 
       K_F1..K_F10:
         Begin // F1 to F9 set markers (CTRL+Shift) and jump to markers (CTRL)
           {$IFNDEF DARWIN}
           If KEYSTATE[K_CONTROL] = 1 Then Begin
             If KEYSTATE[K_SHIFT] = 1 Then Begin
-              SP_ToggleEditorMark(Char - K_F1);
+              SP_ToggleEditorMark(Key^.KeyCode - K_F1);
             End Else Begin
-              If SP_JumpToMark(Char - K_F1) Then Begin
+              If SP_JumpToMark(Key^.KeyCode - K_F1) Then Begin
                 Idx := Listing.FPCLine;
                 While (Idx >= 0) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Dec(Idx);
                 PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
@@ -6775,7 +6630,7 @@ Begin
             SP_DisplayFPListing(-1);
           End Else
           {$ENDIF}
-            Case Char of
+            Case Key^.KeyCode of
               K_F1:
                 Begin
                   // Help
@@ -6796,9 +6651,11 @@ Begin
                       EDITLINE := 'RUN'
                     Else
                       EDITLINE := 'CONTINUE';
+                    s2 := EDITLINE;
                     SP_FPExecuteEditLine(EDITLINE);
                     if QUITMSG then Exit;
-                    EDITLINE := s;
+                    If EDITLINE = s2 Then
+                      EDITLINE := s;
                     SP_EditorDisplayEditLine;
                     SP_SwitchFocus(fwDirect);
                   End Else
@@ -6828,11 +6685,12 @@ Begin
                       EDITLINE := 'CONTINUE';
                       SP_FPExecuteEditLine(EDITLINE);
                       if QUITMSG then Exit;
-                      EDITLINE := s;
+                      If EDITLINE = 'CONTINUE' Then
+                        EDITLINE := s;
                       SCREENLOCK := False;
                       SP_EditorDisplayEditLine;
                       SP_SwitchFocus(fwDirect);
-                      SP_ClearKeyBuffer(True);
+                      SP_ClearAllKeys;
                     End Else
                       SP_ShowError(SP_ERR_STATEMENT_LOST, Listing.FPCLine, Listing.FPCPos);
                   Exit;
@@ -6847,9 +6705,11 @@ Begin
                       EDITLINE := 'RUN'
                     Else
                       EDITLINE := 'CONTINUE';
+                    s2 := EDITLINE;
                     SP_FPExecuteEditLine(EDITLINE);
                     if QUITMSG then Exit;
-                    EDITLINE := s;
+                    If EDITLINE = s2 Then
+                      EDITLINE := s;
                     SP_EditorDisplayEditLine;
                     SP_SwitchFocus(fwDirect);
                   End Else
@@ -6867,9 +6727,11 @@ Begin
                         EDITLINE := 'RUN ' + IntToString(PROGLINE)
                       Else
                         EDITLINE := 'GO TO ' + IntToString(PROGLINE);
+                      s2 := EDITLINE;
                       SP_FPExecuteEditLine(EDITLINE);
                       if QUITMSG then Exit;
-                      EDITLINE := s;
+                      If EDITLINE = s2 Then
+                        EDITLINE := s;
                       CURSORPOS := c;
                       SP_EditorDisplayEditLine;
                       SP_SwitchFocus(fwDirect);
@@ -6880,7 +6742,6 @@ Begin
           End;
           PlayClick;
         End;
-
 
       K_RETURN:
         Begin
@@ -6905,18 +6766,16 @@ Begin
             Else
               Begin
                 SP_FPCycleEditorWindows(1);
-                SYSTEMSTATE := ss_IDLE;
-                LASTKEY := 0;
+                Key := nil;
+                SP_ClearAllKeys;
                 Repeat
+                  Key := SP_GetNextKey(FRAMES);
                   CB_YIELD;
-                  If K_UPFLAG Then Begin
-                    LASTKEY := 0;
-                    K_UPFLAG := False;
-                  End;
-                Until Not (LASTKEY in [0, K_SHIFT]) or K_DOWNFLAG or M_DOWNFLAG;
-                LASTKEY := 0;
+                Until (Assigned(Key) And (Key.KeyCode <> K_SHIFT)) or M_DOWNFLAG;
+                M_DOWNFLAG := False;
                 SYSTEMSTATE := ss_EDITOR;
                 SP_FPCycleEditorWindows(2);
+                SP_ClearAllKeys;
               End;
           End;
         End;
@@ -7220,8 +7079,8 @@ Begin
       NewChar := NewChar + 32;
     End;
     {$ENDIF}
-    If (KEYSTATE[K_CONTROL] = 0) Or (GfxMode = 1) Then Begin
-      If (DWSelP <> CURSORPOS) or Not (aChar(NewChar) in ['a'..'z', 'A'..'Z', '0'..'9']) or Not DWUndoInProgress Then DWCommenceUndo;
+    If KEYSTATE[K_CONTROL] = 0 Then Begin
+      If (DWSelP <> CURSORPOS) or Not (Key^.KeyChar in ['a'..'z', 'A'..'Z', '0'..'9']) or Not DWUndoInProgress Then DWCommenceUndo;
       If DWSelP <> CURSORPOS Then Begin
         SP_FPDeleteSelection(Sel);
         DWCompleteUndo;
@@ -7230,46 +7089,23 @@ Begin
       DWStoreEditorState;
       If INSERT Then
         If GfxMode = 1 Then
-          EDITLINE := Copy(EDITLINE, 1, CURSORPOS -1) + aChar(Byte(NewChar)+128) + Copy(EDITLINE, CURSORPOS, Length(EDITLINE))
+          EDITLINE := Copy(EDITLINE, 1, CURSORPOS -1) + aChar(Ord(Key^.KeyChar)+128) + Copy(EDITLINE, CURSORPOS, Length(EDITLINE))
         Else
-          EDITLINE := Copy(EDITLINE, 1, CURSORPOS -1) + aChar(NewChar) + Copy(EDITLINE, CURSORPOS, Length(EDITLINE))
+          EDITLINE := Copy(EDITLINE, 1, CURSORPOS -1) + Key^.KeyChar + Copy(EDITLINE, CURSORPOS, Length(EDITLINE))
       Else Begin
         If GfxMode = 1 Then
-          EDITLINE := Copy(EDITLINE, 1, CURSORPOS -1) + aChar(Byte(NewChar)+128) + Copy(EDITLINE, CURSORPOS +1, LENGTH(EDITLINE))
+          EDITLINE := Copy(EDITLINE, 1, CURSORPOS -1) + aChar(Ord(Key^.KeyChar)+128) + Copy(EDITLINE, CURSORPOS +1, LENGTH(EDITLINE))
         Else
-          EDITLINE := Copy(EDITLINE, 1, CURSORPOS -1) + aChar(NewChar) + Copy(EDITLINE, CURSORPOS +1, LENGTH(EDITLINE));
+          EDITLINE := Copy(EDITLINE, 1, CURSORPOS -1) + Key^.KeyChar + Copy(EDITLINE, CURSORPOS +1, LENGTH(EDITLINE));
       End;
       Inc(CURSORPOS);
       DWSelP := CURSORPOS;
     End Else Begin
-      Case Lower(aChar(NewChar))[1] of
-        {$IFDEF DARWIN}
-        '1'..'9':
+      Case Lower(Key^.KeyChar)[1] of
+        '9':
           Begin
-            Key := StrToInt(NewChar[1]);
-            If KEYSTATE[K_SHIFT] = 1 Then Begin
-              SP_ToggleEditorMark(Key - 1);
-            End Else Begin
-              If SP_JumpToMark(Key - 1) Then Begin
-                Idx := Listing.FPCLine;
-                While (Idx >= 0) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Dec(Idx);
-                PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
-                If PROGLINE <= 0 Then Begin
-                  While (Idx < Listing.Count) And (SP_GetLineNumberFromText(Listing[Idx]) <= 0) Do Inc(Idx);
-                  PROGLINE := SP_GetLineNumberFromText(Listing[Idx]);
-                End;
-                SP_CalculateFPCursorPos;
-              End;
-            End;
-            SP_FPClearSelection(Sel);
+            GFXLOCK := 1-GFXLOCK;
           End;
-        'q':
-            Begin
-              // Quit
-              TerminateInterpreter := True;
-              CB_Quit;
-            End;
-        {$ENDIF}
         'z':
           Begin
             // Undo
@@ -7397,8 +7233,8 @@ Var
   ERRORWINDOW, WinW, WinH, WinX, WinY, MaxW, Lines, Cnt, Idx, MaxLen, bInk, bOver,
   Font, Window, ErrorDRPOSX, ErrorDRPOSY, ErrorPRPOSX, ErrorPRPOSY, ofs, x, sz, ErrDy, MoveFrames: Integer;
   CurrentTicks, TargetTicks, t, t3: LongWord;
-  IsNew: Boolean;
-  Key: Word;
+  IsNew, WasTab: Boolean;
+  Key: pSP_KeyInfo;
   fp: TPoint;
 Const
   stClrRed = #10;
@@ -7664,16 +7500,15 @@ Begin
 
     // Wait for any key - also clear the ESCAPE key's status as it might be left set down.
 
-    SP_ClearKeyBuffer(True);
+    SP_ClearAllKeys;
     MOUSEBTN := 0;
 
+    WasTab := False;
     Repeat
-      Key := LASTKEY;
       SP_WaitForSync;
-      // If a key UP event happens, ignore it - it's likely left over from before the
-      // error message was displayed, and we're only interested in keydown.
-      If SP_KeyEventWaiting And (KeyBuffer[0].Event = 1) Then SP_UnBufferKey;
-    Until (Key <> 0) or (MOUSEBTN <> 0) Or QUITMSG or SP_KeyEventWaiting;
+      If KEYSTATE[K_TAB] = 1 Then
+        WasTab := True;
+    Until (Length(ActiveKeys) > 0) or (MOUSEBTN <> 0) Or QUITMSG;
     SP_PlaySystem(CLICKCHAN, CLICKBANK);
     M_DOWNFLAG := False;
 
@@ -7745,28 +7580,16 @@ Begin
     End;
 
   If Error.Code <> SP_ERR_BREAKPOINT Then
-    If KeyBuffer[0].Key = K_TAB Then Begin
+    If WasTab Then Begin
       // TAB is special - bring the error line to the command window for editing
       If Error.Line > 0 Then
         If Error.Code > 0 Then Begin
-          SP_UnBufferKey;
-          LASTKEY := 0;
           SP_FPBringToEditor(Error.Line, Error.Statement, Error);
           SP_ScrollInView;
           DWSelP := CURSORPOS;
         End;
-    End Else
-      If KeyBuffer[0].Key = K_RETURN Then Begin
-        // Discard any ENTER key events, as they will just cause the
-        // editor to try and re-enter the line again
-        SP_UnBufferKey;
-        LASTKEY := 0;
-      End;
-
-  If IsNew or (KeyBuffer[0].Key in [K_F7, K_F8, K_F9]) Then Begin
-    SP_ClearKeyBuffer(True);
-    LASTKEY := 0;
-  End;
+    End;
+  SP_ClearAllKeys;
 
   If IsNew And (ParamCount = 0) Then
     SP_CLS(CPAPER);
@@ -7960,7 +7783,7 @@ Var
   pInfo: pSP_iInfo;
   Info: TSP_iInfo;
   Error: TSP_ErrorCode;
-  KeyChar: Byte;
+  Key: pSP_KeyInfo;
 Label
   ExitProc;
 Begin
@@ -7968,8 +7791,7 @@ Begin
   SP_HideFindResults(False);
   If StripLeadingSpaces(Line) <> '' Then Begin
 
-    SP_ClearKeyBuffer(True);
-
+    SP_ClearAllKeys;
     TokensStr := SP_TokeniseLine(Line, False, True) + SP_TERMINAL_SEQUENCE;
     SP_Convert_ToPostFix(TokensStr, Error.Position, Error);
     DWStoreEditorState;
@@ -8028,10 +7850,8 @@ Begin
         // Run it!
         SP_Interpreter(Tokens, Error.Position, Error, PreParseErrorCode);
         // And back to the editor.
-        If STEPMODE <> 0 Then Begin
-          SP_ClearKeyBuffer(True);
-          LASTKEY := 0;
-        End;
+        If STEPMODE <> 0 Then
+          SP_ClearAllKeys;
         SP_PrepareBreakpoints(False);
         While (Round((FPWindowWidth - FPFw) - (FPGutterWidth * (EDFONTSCALEX * Fw))) Div (Round(EDFONTSCALEX * Fw))) -2 < FPGutterWidth Do Begin
           EDFONTSCALEX := EDFONTSCALEX -1;
@@ -8055,7 +7875,7 @@ Begin
             CURSORFG := 10;
             CURSORBG := 15;
           End;
-        SP_ClearKeyBuffer(True);
+        SP_ClearAllKeys;
       End;
     End Else Begin
       // Ok, not a proper line - is it an expression?
@@ -8148,11 +7968,10 @@ Begin
               SP_DisplayDWCursor;
               SP_WaitForSync;
             End;
-            KeyChar := 0;
             M_MOVEFLAG := False;
             Repeat
-              SP_FPWaitForUserEvent(KeyChar, LocalFlashState);
-            Until M_DOWNFLAG or (LASTKEY <> 0);
+              SP_FPWaitForUserEvent(Key, LocalFlashState);
+            Until M_DOWNFLAG or Assigned(Key);
             EDITLINE := '';
             SP_SetCursorColours;
             CURSORPOS := 1;
@@ -9943,10 +9762,9 @@ Begin
     Error.ReturnType := 0;
     Error.Code := SP_ERR_OK;
     SP_SetDrawingWindow(FPEditorDefaultWindow);
-    LASTKEY := 0;
-    SP_ClearKeyBuffer(True);
+    SP_ClearAllKeys;
     SP_Interpreter(Tokens, Position, Info.Error^, 0, True);
-    SP_ClearKeyBuffer(True);
+    SP_ClearAllKeys;
     FPEditorDefaultWindow := SCREENBANK;
     FPEditorDRPOSX := DRPOSX;
     FPEditorDRPOSY := DRPOSY;
@@ -9956,7 +9774,6 @@ Begin
     FPEditorSaveFPS := FPS;
     FPEditorFRAME_MS := FRAME_MS;
     FPEditorMouseStatus := MOUSEVISIBLE;
-    LASTKEY := 0;
     If STEPMODE > 0 Then
       If FocusedWindow = fwEditor then
         SP_SetDrawingWindow(FPWindowID)
@@ -10012,8 +9829,7 @@ Begin
     Result := True;
   End Else
     Result := False;
-  SP_ClearKeyBuffer(True);
-  LASTKEY := 0;
+  SP_ClearAllKeys;
   SP_GetDebugStatus(dbgVariables or dbgWatches);
 
 End;

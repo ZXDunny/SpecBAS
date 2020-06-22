@@ -104,14 +104,13 @@ Var
   Locked, Mouse: Boolean;
 Begin
 
+  SP_ClearAllKeys;
   Mouse := MOUSEVISIBLE;
   Locked := SCREENLOCK;
   SCREENLOCK := False;
   MOUSEVISIBLE := True;
   While Not ToolWindowDone Do Begin
     SP_WaitForSync;
-    If SP_KeyEventWaiting Then
-      SP_UnBufferKey;
     DoTimerEvents;
   End;
   SCREENLOCK := Locked;

@@ -280,11 +280,6 @@ Begin
 
   oText := fText;
   fGfxMode := fGfxLock;
-  If ((KEYSTATE[K_CONTROL] = 1) And (KEYSTATE[K_ALT] = 1)) or (KEYSTATE[K_ALTGR] = 1) Then Begin
-    fGfxMode := 1 - fGfxMode;
-    If cLastKey >= 32 Then
-      cLastKeyChar := Ord(CharStr[cLastKey][KEYSTATE[K_SHIFT] + 1]);
-  End;
   Handled := False;
 
   NewChar := DecodeKey(cLastKey);
@@ -431,12 +426,7 @@ Begin
     End;
 
   End Else Begin
-    {$IFDEF DARWIN}
-    If (NewChar in [65..90]) And (((KEYSTATE[K_SHIFT] = 0) And (CAPSLOCK = 0)) or ((KEYSTATE[K_SHIFT] = 1) And (CAPSLOCK = 1))) Then Begin
-      NewChar := NewChar + 32;
-    End;
-    {$ENDIF}
-    If (KEYSTATE[K_CONTROL] = 0) Or (fGfxMode = 1) Then Begin
+    If KEYSTATE[K_CONTROL] = 0 Then Begin
       If fSelStart <> fCursorPos Then
         DeleteSelection
       Else

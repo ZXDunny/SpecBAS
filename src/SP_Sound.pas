@@ -1425,8 +1425,8 @@ Begin
 
     // Wait for the sample to finish. Pressing ESC will BREAK, other keys are ignored.
 
-    While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (LASTKEY <> K_Escape) Do CB_YIELD;
-    If LASTKEY = K_Escape Then BREAKSIGNAL := True;
+    While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (KEYSTATE[K_Escape] = 0) Do CB_YIELD;
+    If KEYSTATE[K_Escape] = 1 Then BREAKSIGNAL := True;
 
     BASS_SampleFree(Sample);
 

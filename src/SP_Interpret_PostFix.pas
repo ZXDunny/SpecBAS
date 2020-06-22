@@ -3569,7 +3569,7 @@ Begin
       BPSIGNAL := True;
 
     If Error^.Code = SP_ERR_OK Then Begin
-      If (LASTKEY = K_Escape) or BREAKSIGNAL or BPSIGNAL Then Begin
+      If (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL or BPSIGNAL Then Begin
         If (Token^.BPIndex >= 0) or (STEPMODE = SM_Single) or BPSIGNAL Then Begin
           If Error.ReturnType >= SP_JUMP Then Begin
             If NXTLINE = -1 Then Begin
@@ -3588,7 +3588,6 @@ Begin
             CONTLINE := Error^.Line;
           End;
           Error^.Code := SP_ERR_BREAKPOINT;
-          LASTKEY := 0;
           NXTLINE := -1;
           BREAKSIGNAL := False;
           BPSIGNAL := False;
@@ -3598,7 +3597,6 @@ Begin
           CONTLINE := Error^.Line;
           Error^.Code := SP_ERR_BREAK;
         End;
-        LASTKEY := 0;
         NXTLINE := -1;
         BREAKSIGNAL := False;
         BPSIGNAL := False;
@@ -3659,7 +3657,6 @@ End;
 Procedure ClearFlags;
 Begin
 
-  LASTKEY := 0;
   M_DOWNFLAG := False;
   M_MOVEFLAG := False;
   M_WHEELUPFLAG := False;
@@ -6251,9 +6248,15 @@ Begin
 End;
 
 Procedure SP_Interpret_FN_LASTK(Var Info: pSP_iInfo);
+var
+  l: Integer;
 Begin
   Inc(SP_StackPtr);
-  SP_StackPtr^.Val := LASTKEY;
+  l := Length(ActiveKeys);
+  If l > 0 Then
+    SP_StackPtr^.Val := ActiveKeys[l-1].KeyCode
+  Else
+    SP_StackPtr^.Val := 0;
   SP_StackPtr^.OpType := SP_VALUE;
 End;
 
@@ -6395,15 +6398,7 @@ Begin
     CB_YIELD;
   // Now get the keyboard state
   With SP_StackPtr^ Do Begin
-    If LASTKEY > 0 Then Begin
-      Str := Lower(aChar(SP_DecodeKey(LASTKEY, False)));
-      Shifted := KEYSTATE[K_SHIFT] <> 0;
-      If CAPSLOCK = 1 Then Shifted := Not Shifted;
-      If Shifted Then
-        If Str[1] in ['a'..'z'] Then
-          Str[1] := aChar(Ord(Str[1]) - 32);
-    End Else
-      Str := '';
+    Str := GetLastKeyChar;
     OpType := SP_STRING;
   End;
 End;
@@ -9347,7 +9342,7 @@ Begin
 
 RunIt :
 
-  While LASTKEY <> 0 Do
+  While Length(ActiveKeys) <> 0 Do
     CB_YIELD;
 
   SP_CLS(CPAPER);
@@ -10368,22 +10363,22 @@ Begin
   Delay := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  If Delay < 0 Then
-    Exit
-  Else
-    If Delay = 0 Then Begin
-      While (LASTKEY = 0) And Not QUITMSG Do
-        CB_Yield;
-    End Else Begin
+  If Delay = 0 Then Begin
+    While (Length(ActiveKeys) = 0) And Not QUITMSG Do
+      CB_Yield;
+  End Else
+    If Delay > 0 Then Begin
       CurrentTicks := CB_GetTicks;
       TargetTicks := CurrentTicks + Round(Delay * FRAME_MS);
       While CB_GetTicks < longWord(TargetTicks) Do Begin
         CB_Yield;
-        If LASTKEY <> 0 Then
+        If Length(ActiveKeys) <> 0 Then
           If (CB_GetTicks >= longWord(CurrentTicks + FRAME_MS)) or QUITMSG Then
-            Exit;
+            Break;
       End;
     End;
+
+  If KEYSTATE[K_ESCAPE] = 1 Then BreakSignal := True;
 
 End;
 
@@ -14391,7 +14386,7 @@ Begin
     SP_WaitForSync;
     Repeat
       CB_YIELD;
-    Until (CB_GetTicks >= TargetTicks) or (LASTKEY = K_ESCAPE) or BREAKSIGNAL or QUITMSG;
+    Until (CB_GetTicks >= TargetTicks) or (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL or QUITMSG;
     SCREENLOCK := OldScreenLock;
   End Else
     If Delay = 0 Then Begin // WAIT SCREEN - forces a display update
@@ -14405,10 +14400,10 @@ Begin
       TargetTicks := CurrentTicks + LongWord(Delay);
       Repeat
         CB_YIELD;
-      Until (CB_GetTicks >= TargetTicks) or (LASTKEY = K_ESCAPE) or BREAKSIGNAL or QUITMSG;
+      Until (CB_GetTicks >= TargetTicks) or (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL or QUITMSG;
     End;
 
-  If (LASTKEY = K_ESCAPE) or BREAKSIGNAL Then Info^.Error^.ReturnType := SP_JUMP;
+  If (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL Then Info^.Error^.ReturnType := SP_JUMP;
 
 End;
 
@@ -14417,7 +14412,7 @@ Begin
 
   // Waits for a key. Returns as soon as a key is pressed.
 
-  While (LASTKEY = 0) And Not QUITMSG Do
+  While (Length(ActiveKeys) = 0) And Not QUITMSG Do
     CB_Yield;
 
 End;
@@ -14428,8 +14423,8 @@ Begin
   // Waits for a key *press* - if a key is down then wait for it to go up;
   // then wait for any key to go down.
 
-  While (LASTKEY <> 0) And Not (BREAKSIGNAL or QUITMSG) Do CB_Yield;
-  While (LASTKEY = 0) And Not (BREAKSIGNAL or QUITMSG) Do CB_Yield;
+  While (Length(ActiveKeys) <> 0) And Not (BREAKSIGNAL or QUITMSG) Do CB_Yield;
+  While (Length(ActiveKeys) = 0) And Not (BREAKSIGNAL or QUITMSG) Do CB_Yield;
 
 End;
 

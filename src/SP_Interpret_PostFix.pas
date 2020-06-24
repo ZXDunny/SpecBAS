@@ -6399,6 +6399,7 @@ Begin
   // Now get the keyboard state
   With SP_StackPtr^ Do Begin
     Str := GetLastKeyChar;
+    If KEYSTATE[K_ESCAPE] = 1 Then BreakSignal := True;
     OpType := SP_STRING;
   End;
 End;
@@ -10364,7 +10365,7 @@ Begin
   Dec(SP_StackPtr);
 
   If Delay = 0 Then Begin
-    While (Length(ActiveKeys) = 0) And Not QUITMSG Do
+    While Not (SP_AreAnyKeysDown or QUITMSG) Do
       CB_Yield;
   End Else
     If Delay > 0 Then Begin

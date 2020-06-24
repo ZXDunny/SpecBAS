@@ -56,6 +56,7 @@ Type
   Procedure SP_AddKey(var KeyInfo: SP_KeyInfo);
   Procedure SP_RemoveKey(KeyCode: Word);
   Function  GetLastKeyChar: aString;
+  Function  SP_AreAnyKeysDown: Boolean;
   Function  SP_GetNextKey(CurFrames: Integer): pSP_KeyInfo;
   Procedure SP_ClearAllKeys;
 
@@ -371,15 +372,39 @@ Begin
 
 End;
 
+Function SP_AreAnyKeysDown: Boolean;
+Var
+  i: Integer;
+Begin
+  KeyLock.Enter;
+  Result := False;
+  i := Length(ActiveKeys) -1;
+  While i >= 0 Do
+    If (ActiveKeys[i].KeyCode in [16, 17, 18]) or (ActiveKeys[i].NextFrameTime <= FRAMES) Then Begin
+      If ActiveKeys[i].Repeating Then
+        ActiveKeys[i].NextFrameTime := FRAMES + REPPER
+      Else Begin
+        ActiveKeys[i].Repeating := True;
+        ActiveKeys[i].NextFrameTime := FRAMES + REPDEL;
+      End;
+      Result := True;
+      Break;
+    End Else
+      Dec(i);
+  KeyLock.Leave;
+End;
+
 Function GetLastKeyChar: aString;
 Var
   l: Integer;
 Begin
+  KeyLock.Enter;
   l := Length(ActiveKeys);
   If l > 0 Then
     Result := ActiveKeys[l -1].KeyChar
   Else
     Result := '';
+  KeyLock.Leave;
 End;
 
 Procedure SP_RemoveKey(KeyCode: Word);

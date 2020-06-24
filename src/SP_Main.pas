@@ -417,7 +417,7 @@ Begin
     Key := Nil;
     LASTKEYFLAG := 0;
     While Not Assigned(Key) And not QUITMSG Do Begin
-      SP_GetNextKey(FRAMES);
+      key := SP_GetNextKey(FRAMES);
       CB_Yield;
     End;
 

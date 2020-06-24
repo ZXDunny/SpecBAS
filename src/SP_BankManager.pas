@@ -925,7 +925,7 @@ Begin
 
   If Result >= 0 Then Begin
     Bank := SP_BankList[Result];
-    If Character > 511 Then
+    If Character > 255 Then
       Result := SP_ERR_CHAR_OUT_OF_RANGE
     Else Begin
       If SP_BankList[Result]^.DataType = SP_FONT_BANK Then Begin

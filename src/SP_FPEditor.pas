@@ -4579,14 +4579,16 @@ Procedure AddDirtyLine(Line: Integer);
 Var
   i: Integer;
 Begin
+  CompilerLock.Enter;
   If Line = -1 Then
     Line := 0;
   if MaxDirtyLines >= 0 Then Begin
     i := 0;
     While i <= MaxDirtyLines Do Begin
-      If DirtyLines[i] = Line Then
+      If DirtyLines[i] = Line Then Begin
+        CompilerLock.Leave;
         Exit
-      Else
+      End Else
         Inc(i);
     End;
   End;
@@ -4594,44 +4596,54 @@ Begin
   If MaxDirtyLines >= Length(DirtyLines) Then
     SetLength(DirtyLines, Length(DirtyLines) + 10);
   DirtyLines[MaxDirtyLines] := Line;
+  CompilerLock.Leave;
 End;
 
 Procedure AddVisibleDirty;
 Var
   n, m, Idx: Integer;
 Begin
+  CompilerLock.Enter;
   n := Trunc(FPScrollBars[SP_FindScrollBar(FPVertSc)].Position / FPFh);
   m := n + FPPageHeight Div FPFh;
   For Idx := n To m Do
     AddDirtyLine(Idx);
+  CompilerLock.Leave;
 End;
 
 Procedure RemoveDirtyLine(Line: Integer);
 Var
   i, j: Integer;
 Begin
+  CompilerLock.Enter;
   For i := 0 To MaxDirtyLines Do
     If DirtyLines[i] = Line Then Begin
       For j := i To MaxDirtyLines -1 Do
         DirtyLines[j] := DirtyLines[j +1];
       Dec(maxDirtyLines);
     End;
+  CompilerLock.Leave;
 End;
 
 Procedure ClearDirtyLines;
 Begin
+  CompilerLock.Enter;
   MaxDirtyLines := -1;
   SetLength(DirtyLines, 0);
+  CompilerLock.Leave;
 End;
 
 Procedure RefreshDirtyLines;
 Var
   i: Integer;
 Begin
-  While MaxDirtyLines >= 0 Do Begin
-    i := DirtyLines[0];
-    SP_DisplayFPListing(i);
-  End;
+  CompilerLock.Enter;
+  If Length(DirtyLines) > 0 Then
+    While MaxDirtyLines >= 0 Do Begin
+      i := DirtyLines[0];
+      SP_DisplayFPListing(i);
+    End;
+  CompilerLock.Leave;
 End;
 
 Procedure SP_ToggleEditorMark(i: Integer);

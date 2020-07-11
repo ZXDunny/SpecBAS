@@ -230,6 +230,9 @@ Procedure StartFileOp(Operation: Integer; Filename: aString);
 Procedure FindNext(jumpNext: Boolean);
 Procedure PerformReplace(Var Idx: Integer);
 Procedure HideSearchResults;
+
+Function  DWUndoInProgress: Boolean;
+Procedure ResetDWUndoPtr;
 Procedure DWNewUndoEntry;
 Procedure DWStoreEditorState;
 Procedure DWCommenceUndo;
@@ -240,6 +243,7 @@ Procedure DWStoreRedoEditorState;
 Procedure DWCommenceRedo;
 Procedure DWCompleteRedo;
 Procedure DWPerformRedo;
+
 Function  SP_CheckProgram: Boolean;
 Procedure SP_ShowError(Code, Line, Pos: Integer);
 Procedure SP_FPSetDisplayColours;
@@ -297,6 +301,7 @@ Var
   HistoryPos: Integer;
   FPWIndowMode: Integer;
   FPEditorOutSet: Boolean;
+  UndoLock: TCriticalSection;
   // Tools
   ToolWindowDone: Boolean;
   ToolStrResult: aString;
@@ -309,7 +314,7 @@ Var
   DWUndoGroup, DwRedoGroup: Integer;
   DWUndoBufferPtr, DWRedoBufferPtr: Integer;
   DWUndoBufferSize, DWRedoBufferSize: Integer;
-  DWUndoInProgress, DWRedoInProgress: Boolean;
+  DWUndoIsInProgress, DWRedoInProgress: Boolean;
   DWUndoList, DWRedoList: TAnsiStringlist;
 
   // Search system
@@ -583,6 +588,7 @@ End;
 Procedure SP_InitFPEditor;
 Begin
 
+  UndoLock := TCriticalSection.Create;
   CompilerLock := TCriticalSection.Create;
   Listing := TStringList.Create;
   SyntaxListing := TStringList.Create;
@@ -662,12 +668,15 @@ Begin
   SetAllToCompile;
   CompilerThread := TCompilerThread.Create(False);
 
+  UndoLock.Enter;
   DWUndoBufferPtr := -1;
   DWRedoBufferPtr := -1;
   DWUndoBufferSize := 1000;
   DWRedoBufferSize := 1000;
   DWCommenceUndo;
   DWCompleteUndo;
+  UndoLock.Leave;
+
   Listing.CommenceUndo;
   Listing.CompleteUndo;
 
@@ -675,6 +684,7 @@ Begin
 
   SP_GetFPUserInput;
 
+  UndoLock.Free;
   CompilerLock.Free;
   Listing.Free;
   SyntaxListing.Free;
@@ -3223,7 +3233,6 @@ Var
 Begin
 
   Mode := GFXLOCK;
-  If (KEYSTATE[K_CONTROL] + KEYSTATE[K_ALT] = 2) or (KEYSTATE[K_ALTGR] = 1) Then Mode := 1-Mode;
   If Not EDITERROR Then
     If Mode = 1 Then Begin
       CURSORFG := 0;
@@ -3291,9 +3300,6 @@ Begin
       CURSORPOS := Max(1, EDITERRORPOS);
       DWSelP := CURSORPOS;
     End;
-
-    // Wait for a key - alphanumeric, of course. Shift doesn't count.
-    // Also handle mouse events
 
     SP_FPWaitForUserEvent(KeyInfo, LocalFlashState);
     If Assigned(KeyInfo) Then Begin
@@ -7071,7 +7077,7 @@ Begin
           // Switch? Clear the edit line? I dunno yet.
           If EDITLINE <> '' Then Begin
             DWStoreEditorState;
-            EDITLINE := ''
+            EDITLINE := '';
           End Else
             SP_SwitchFocus(fwEditor);
           PlayClick;
@@ -7964,6 +7970,7 @@ Begin
                 Expr := Copy(Expr, 1, 256);
             End;
             EDITLINE := '';
+            ResetDWUndoPtr;
             CURSORFG := 0;
             CURSORBG := 4;
             CURSORCHAR := 32;
@@ -8198,7 +8205,7 @@ Begin
 
   End;
 
-  DWStoreEditorState;
+  ResetDWUndoPtr;
   EDITLINE := '';
   Listing.FPCPos := 1;
   Listing.FPSelLine := Listing.FPCLine;
@@ -9328,12 +9335,23 @@ Begin
 
 End;
 
+Procedure ResetDWUndoPtr;
+Begin
+
+  UndoLock.Enter;
+  DWUndoBufferPtr := -1;
+  UndoLock.Leave;
+
+End;
+
 Procedure DWNewUndoEntry;
 Begin
 
+  UndoLock.Enter;
   Inc(DWUndoBufferPtr);
   If DWUndoBufferPtr >= DWUndoList.Count Then
     DWUndoList.SetCapacity(DWUndoList.Count + DWUndoBufferSize);
+  UndoLock.Leave;
 
 End;
 
@@ -9342,27 +9360,45 @@ Var
   s: aString;
 Begin
 
-  If not DWUndoInProgress Then Exit;
+  UndoLock.Enter;
+  If not DWUndoInProgress Then Begin
+    UndoLock.Leave;
+    Exit;
+  End;
 
   DWNewUndoEntry;
   DWUndoList[DWUndoBufferPtr] := LongWordToString(DWUndoGroup) + LongWordToString(CURSORPOS) + LongWordToString(DWSelP) + EDITLINE;
+  UndoLock.Leave;
+
+End;
+
+Function DWUndoInProgress: Boolean;
+Begin
+
+  UndoLock.Enter;
+  Result := DWUndoIsInProgress;
+  UndoLock.Leave;
 
 End;
 
 Procedure DWCommenceUndo;
 Begin
 
+  UndoLock.Enter;
   If DWUndoInProgress Then DWCompleteUndo;
 
   Inc(DWUndoGroup);
-  DWUndoInProgress := True;
+  DWUndoIsInProgress := True;
+  UndoLock.Leave;
 
 End;
 
 Procedure DWCompleteUndo;
 Begin
 
-  DWUndoInProgress := False;
+  UndoLock.Enter;
+  DWUndoIsInProgress := False;
+  UndoLock.Leave;
 
 End;
 
@@ -9372,6 +9408,7 @@ Var
   Ptr: pByte;
 Begin
 
+  UndoLock.Enter;
   If DWUndoBufferPtr >= 0 Then Begin
 
     j := DWUndoBufferPtr;
@@ -9393,15 +9430,18 @@ Begin
     DWCompleteRedo;
 
   End;
+  UndoLock.Leave;
 
 End;
 
 Procedure DWNewRedoEntry;
 Begin
 
+  UndoLock.Enter;
   Inc(DWRedoBufferPtr);
   If DWRedoBufferPtr >= DWRedoList.Count Then
     DWRedoList.SetCapacity(DWRedoList.Count + DWRedoBufferSize);
+  UndoLock.Leave;
 
 End;
 
@@ -9410,27 +9450,33 @@ Var
   s: aString;
 Begin
 
+  UndoLock.Enter;
   If not DWRedoInProgress Then Exit;
 
   DWNewRedoEntry;
   DWRedoList[DWRedoBufferPtr] := LongWordToString(DWRedoGroup) + LongWordToString(CURSORPOS) + LongWordToString(DWSelP) + EDITLINE;
+  UndoLock.Leave;
 
 End;
 
 Procedure DWCommenceRedo;
 Begin
 
+  UndoLock.Enter;
   If DWRedoInProgress Then DWCompleteRedo;
 
   Inc(DWRedoGroup);
   DWRedoInProgress := True;
+  UndoLock.Leave;
 
 End;
 
 Procedure DWCompleteRedo;
 Begin
 
+  UndoLock.Enter;
   DWRedoInProgress := False;
+  UndoLock.Leave;
 
 End;
 
@@ -9440,6 +9486,7 @@ Var
   Ptr: pByte;
 Begin
 
+  UndoLock.Enter;
   If DWRedoBufferPtr >= 0 Then Begin
 
     j := DWRedoBufferPtr;
@@ -9461,6 +9508,7 @@ Begin
     DWCompleteUndo;
 
   End;
+  UndoLock.Leave;
 
 End;
 

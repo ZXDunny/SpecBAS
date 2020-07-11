@@ -2,7 +2,7 @@ unit SP_AnsiStringlist;
 
 interface
 
-Uses Types, Classes;
+Uses Types, Classes, SyncObjs;
 
 Type
 
@@ -30,6 +30,7 @@ Type
 
   TAnsiStringlist = Class
   Private
+    fUndoLock: TCriticalSection;
     fStrings: Array of AnsiString;
     fFlags: Array of TLineFlags;
     fObjects: Array of TObject;
@@ -61,6 +62,7 @@ Type
     Procedure Sort;
     Function  GetFlags(Index: Integer): pLineFlags;
     Procedure SetFlags(Index: Integer; FlagItem: pLineFlags);
+    Procedure ResetUndoBufferPtrs;
     Function  GetCanUndo: Boolean;
     Procedure NewUndoEntry;
     Procedure CommenceUndo;
@@ -114,6 +116,7 @@ Uses SP_Util, SP_FileIO, SP_Errors;
 
 Constructor TAnsiStringlist.Create;
 Begin
+  fUndoLock := TCriticalSection.Create;
   fBufferSize := 1000;
   fRedoBufferSize := 1000;
   fCount := 0;
@@ -124,6 +127,7 @@ Destructor TAnsiStringlist.Destroy;
 Begin
   OnChange := nil;
   Clear;
+  fUndoLock.Free;
   Inherited;
 End;
 
@@ -150,9 +154,7 @@ Begin
       OnChange(i, 1);
   Resize(0);
   SetLength(fUndoList, 0);
-  fUndoInProgress := False;
-  fBufferPtr := -1;
-  fRedoBufferPtr := -1;
+  ResetUndoBufferPtrs;
   fCount := 0;
 End;
 
@@ -360,10 +362,13 @@ End;
 Procedure TAnsiStringlist.SetFlags(Index: Integer; FlagItem: pLineFlags);
 Begin
 
+  fUndoLock.Enter;
   If (fBufferPtr >= 0) and (fUndoList[fBufferPtr].opType = opFlags) and (fUndoList[fBufferPtr].LineIndex = Index) Then
     Dec(fBufferPtr);
   AddUndoItem(opFlags, Index);
   fFlags[Index] := FlagItem^;
+  fUndoLock.Leave;
+
 End;
 
 Procedure TAnsiStringlist.SetFPCPos(i: Integer);
@@ -372,36 +377,55 @@ begin
   fFPCPos := i;
 end;
 
+Procedure TAnsiStringList.ResetUndoBufferPtrs;
+Begin
+
+  fUndoLock.Enter;
+  fUndoInProgress := False;
+  fBufferPtr := -1;
+  fRedoBufferPtr := -1;
+  fUndoLock.Leave;
+
+End;
+
 Function TAnsiStringlist.GetCanUndo: Boolean;
 Begin
 
+  fUndoLock.Enter;
   Result := fBufferPtr >= 0;
+  fUndoLock.Leave;
 
 End;
 
 Procedure TAnsiStringlist.CommenceUndo;
 Begin
 
+  fUndoLock.Enter;
   If fUndoInProgress Then CompleteUndo;
 
   Inc(fCurGroupIndex);
   fUndoInProgress := True;
+  fUndoLock.Leave;
 
 End;
 
 Procedure TAnsiStringlist.CompleteUndo;
 Begin
 
+  fUndoLock.Enter;
   fUndoInProgress := False;
+  fUndoLock.Leave;
 
 End;
 
 Procedure TAnsiStringlist.NewUndoEntry;
 Begin
 
+  fUndoLock.Enter;
   Inc(fBufferPtr);
   If fBufferPtr >= Length(fUndoList) Then
     SetLength(fUndoList, Length(fUndoList) + fBufferSize);
+  fUndoLock.Leave;
 
 End;
 
@@ -411,7 +435,12 @@ Var
   s, t: AnsiString;
 Begin
 
-  If not fUndoInProgress Then Exit;
+  fUndoLock.Enter;
+
+  If not fUndoInProgress Then Begin
+    fUndoLock.Leave;
+    Exit;
+  End;
 
   NewUndoEntry;
 
@@ -480,6 +509,8 @@ Begin
 
   End;
 
+  fUndoLock.Leave;
+
 End;
 
 Function TAnsiStringlist.PerformUndo: AnsiString;
@@ -506,6 +537,8 @@ Var
 
 Begin
 
+  fUndoLock.Enter;
+
   Result := '';
   CanUndo := False;
 
@@ -524,6 +557,7 @@ Begin
 
     If Not CanUndo Then Begin
       fBufferPtr := j;
+      fUndoLock.Leave;
       Exit;
     End;
 
@@ -631,31 +665,39 @@ Begin
 
   End;
 
+  fUndoLock.Leave;
+
 End;
 
 Function TAnsiStringlist.GetCanRedo: Boolean;
 Begin
 
+  fUndoLock.Enter;
   Result := fRedoBufferPtr >= 0;
+  fUndoLock.Leave;
 
 End;
 
 Procedure TAnsiStringlist.NewRedoEntry;
 Begin
 
+  fUndoLock.Enter;
   Inc(fRedoBufferPtr);
   If fRedoBufferPtr >= Length(fRedoList) Then
     SetLength(fRedoList, Length(fRedoList) + fRedoBufferSize);
+  fUndoLock.Leave;
 
 End;
 
 Procedure TAnsiStringlist.CommenceRedo;
 Begin
 
+  fUndoLock.Enter;
   If fRedoInProgress Then CompleteRedo;
 
   Inc(fCurRedoGroupIndex);
   fRedoInProgress := True;
+  fUndoLock.Leave;
 
 End;
 
@@ -665,7 +707,12 @@ Var
   s, t: AnsiString;
 Begin
 
-  If not fRedoInProgress Then Exit;
+  fUndoLock.Enter;
+
+  If not fRedoInProgress Then Begin
+    fUndoLock.Leave;
+    Exit;
+  End;
 
   NewRedoEntry;
 
@@ -735,12 +782,16 @@ Begin
 
   End;
 
+  fUndoLock.Leave;
+
 End;
 
 Procedure TAnsiStringlist.CompleteRedo;
 Begin
 
+  fUndoLock.Enter;
   fRedoInProgress := False;
+  fUndoLock.Leave;
 
 End;
 
@@ -768,6 +819,7 @@ Var
 
 Begin
 
+  fUndoLock.Enter;
   Result := '';
   CanRedo := False;
 
@@ -786,6 +838,7 @@ Begin
 
     If Not CanRedo Then Begin
       fRedoBufferPtr := j;
+      fUndoLock.Leave;
       Exit;
     End;
 
@@ -892,6 +945,8 @@ Begin
       OnChange(-1, 0);
 
   End;
+
+  fUndoLock.Leave;
 
 End;
 

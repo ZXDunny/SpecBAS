@@ -2020,8 +2020,8 @@ Begin
       Ink := -1; Paper := -1; Italic := -1; Bold := -1;
       i := 1;
       s := '';
-      s2 := Lower(AddedStartChars);
-      s3 := Lower(SynLine);
+      s2 := LowerNoFormatting(AddedStartChars);
+      s3 := LowerNoFormatting(SynLine);
       Done := False;
       While Not Done Do Begin
         If s3[i] < ' ' Then Begin
@@ -9599,10 +9599,10 @@ Begin
   hexClr      := #16#1#0#0#0#26#0#0#0#0#27#0#0#0#0;    // Hex value
   binClr      := #16#1#0#0#0#26#0#0#0#0#27#0#0#0#0;    // Binary number
   baseClr     := #16#1#0#0#0#26#0#0#0#0#27#0#0#0#0;    // Arbitrary base number
-  strClr      := #16#32#0#0#0#26#0#0#0#0#27#0#0#0#0;   // String literal
-  nvClr       := #16#2#0#0#0#26#0#0#0#0#27#0#0#0#0;    // Numeric variable
-  svClr       := #16#3#0#0#0#26#0#0#0#0#27#0#0#0#0;    // String variable
-  remClr      := #16#32#0#0#0#26#1#0#0#0#27#0#0#0#0;   // remark or comment
+  strClr      := #16#26#0#0#0#26#0#0#0#0#27#0#0#0#0;   // String literal
+  nvClr       := #16#84#0#0#0#26#0#0#0#0#27#0#0#0#0;   // Numeric variable
+  svClr       := #16#86#0#0#0#26#0#0#0#0#27#0#0#0#0;   // String variable
+  remClr      := #16#26#0#0#0#26#1#0#0#0#27#0#0#0#0;   // remark or comment
   constClr    := #16#3#0#0#0#26#0#0#0#0#27#0#0#0#0;    // Constant
   symClr      := #16#0#0#0#0#26#0#0#0#0#27#0#0#0#0;    // Symbol (: , ; ' etc)
   LinClr      := #16#0#0#0#0#26#0#0#0#0#27#0#0#0#0;    // Line number

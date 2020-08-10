@@ -48,8 +48,7 @@ type
     procedure FormPaint(Sender: TObject);
     procedure FormResize(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure FormKeyUp(Sender: TObject; var Key: Word;
-      Shift: TShiftState);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
     { Private declarations }
     Minimised: Boolean;
@@ -441,8 +440,13 @@ Begin
     l := 0;
     t := 0;
   End Else Begin
-    l := WINLEFT; //(Screen.Width - sWidth) Div 2;
-    t := WINTOP; //(Screen.Height - sHeight) Div 2;
+    If INSTARTUP Then Begin
+      l := (Screen.Width - w) Div 2;
+      t := (Screen.Height - h) Div 2;
+    End Else Begin
+      l := WINLEFT; //(Screen.Width - sWidth) Div 2;
+      t := WINTOP; //(Screen.Height - sHeight) Div 2;
+    End;
   End;
 
   SendMessage(Main.Handle, WM_RESIZEMAIN, l + (t shl 16), w + (h Shl 16));
@@ -823,6 +827,7 @@ Var
   p: TPoint;
 begin
 
+  INSTARTUP := True;
   DisplaySection.Enter;
 
   OrgWidth := Screen.Width;
@@ -939,11 +944,13 @@ begin
 
   SetProcessAffinityMask(GetCurrentProcess, $F);
 
-  BASThread := TSpecBAS_Thread.Create(False);
+  BASThread := TSpecBAS_Thread.Create(True);
   Application.OnMessage := OnAppMessage;
   SetThreadAffinityMask(GetCurrentThread(), 1);
   SetThreadAffinityMask(BASThread.ThreadID, 2);
   SetThreadAffinityMask(RefreshTimer.ThreadID, 4);
+
+  BASThread.Resume;
 
   DisplaySection.Leave;
 

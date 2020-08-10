@@ -147,8 +147,6 @@ Var
   Error: TSP_ErrorCode;
 Begin
 
-  INSTARTUP := True;
-
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
 
   HARDWARE := 'PC Windows/x86';

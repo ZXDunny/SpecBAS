@@ -66,6 +66,7 @@ Procedure MoveMem(Dst, Src: Pointer; Len: LongInt); inline;
 Function  GetFilename(Name: aString): aString; inline;
 Function  Upper(const Text: aString): aString; inline;
 Function  Lower(const Text: aString): aString; inline;
+Function  LowerNoFormatting(const Text: aString): aString; inline;
 Function  LowerNoSpaces(const Text: aString): aString; inline;
 Function  StringToLong(Str: aString): LongWord; inline;
 Function  IntToString(Value: Integer): aString; inline;
@@ -734,6 +735,83 @@ Begin
     Result := '';
 
 End;
+
+Function LowerNoFormatting(const Text: aString): aString; inline;
+Var
+  b: Byte;
+  Tl: Integer;
+  sPtr, dPtr: pByte;
+Begin
+
+  // Returns a copy of the supplied aString in lowercase, and ignores 5-byte formatting commands.
+
+  Tl := Length(Text);
+  If Tl > 0 Then Begin
+
+    SetLength(Result, Tl);
+
+    sPtr := pByte(pNativeUInt(@Text)^);
+    dPtr := pByte(pNativeUInt(@Result)^);
+
+    While Tl > 0 Do Begin
+      Dec(Tl);
+      If sPtr^ in [16..27] Then Begin
+        b := sPtr^;
+        dPtr^ := sPtr^;
+        Inc(sPtr);
+        Inc(dPtr);
+        Case b of
+          16..20, 26, 27:
+            Begin
+              pLongWord(dPtr)^ := pLongWord(sPtr)^;
+              Inc(dPtr, SizeOf(LongWord));
+              Inc(sPtr, SizeOf(LongWord));
+              Dec(TL, SizeOf(LongWord));
+            End;
+          21..22:
+            Begin
+              pInteger(dPtr)^ := pInteger(sPtr)^;
+              Inc(dPtr, SizeOf(Integer));
+              Inc(sPtr, SizeOf(Integer));
+              pInteger(dPtr)^ := pInteger(sPtr)^;
+              Inc(dPtr, SizeOf(Integer));
+              Inc(sPtr, SizeOf(Integer));
+              Dec(TL, SizeOf(Integer) * 2);
+            End;
+          23..24:
+            Begin
+              pInteger(dPtr)^ := pInteger(sPtr)^;
+              Inc(dPtr, SizeOf(Integer));
+              Inc(sPtr, SizeOf(Integer));
+              Dec(TL, SizeOf(Integer));
+            End;
+          25:
+            Begin
+              paFloat(dPtr)^ := paFloat(sPtr)^;
+              Inc(dPtr, SizeOf(aFloat));
+              Inc(sPtr, SizeOf(aFloat));
+              paFloat(dPtr)^ := paFloat(sPtr)^;
+              Inc(dPtr, SizeOf(aFloat));
+              Inc(sPtr, SizeOf(aFloat));
+              Dec(TL, SizeOf(aFloat) * 2);
+            End;
+        End;
+      End Else Begin
+        If paChar(sPtr)^ in ['A'..'Z'] Then
+          dPtr^ := sPtr^ + 32
+        Else
+          dPtr^ := sPtr^;
+        Inc(sPtr);
+        Inc(dPtr);
+      End;
+    End;
+
+  End Else
+
+    Result := '';
+
+End;
+
 
 Function LowerNoSpaces(const Text: aString): aString; inline;
 Var

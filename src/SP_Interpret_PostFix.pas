@@ -6347,6 +6347,8 @@ Begin
   Inc(SP_StackPtr);
   With SP_StackPtr^ Do Begin
     Val := SP_ConvertToScreenY(MOUSEY - SCREENY);
+    If WINFLIPPED Then
+      Val := (SCREENHEIGHT - 1) - Val;
     OpType := SP_VALUE;
   End;
 End;
@@ -6365,6 +6367,8 @@ Begin
   Inc(SP_StackPtr);
   With SP_StackPtr^ Do Begin
     Val := M_DELTAY;
+    If WINFLIPPED Then
+      Val := -Val;
     OpType := SP_VALUE;
   End;
 End;
@@ -6446,6 +6450,9 @@ Begin
   dX := SP_StackPtr^.Val;
   SP_ConvertToOrigin_d(dX, dY);
   XCoord := Round(dX); YCoord := Round(dY);
+  If WINFLIPPED Then
+    YCoord := (SCREENHEIGHT - 1) - YCoord;
+
   If (XCoord >= 0) and (XCoord < SCREENWIDTH) And (YCoord >= 0) And (YCoord < SCREENHEIGHT) Then Begin
     If SCREENBPP = 8 Then
       SP_StackPtr^.Val := pByte(NativeInt(SCREENPOINTER) + ((YCoord * SCREENSTRIDE) + XCoord))^
@@ -7934,7 +7941,7 @@ End;
 
 Procedure SP_Interpret_PR_CLIP(Var Info: pSP_iInfo);
 Var
-  x1, y1, x2, y2: aFloat;
+  x1, y1, x2, y2, a: aFloat;
 Begin
 
   // CLIP x1,y1 TO x2,y2
@@ -7950,6 +7957,14 @@ Begin
 
   SP_ConvertToOrigin_d(x1, y1);
   SP_ConvertToOrigin_d(x2, y2);
+
+  If WINFLIPPED Then Begin
+    y1 := (SCREENHEIGHT -1) - y1;
+    y2 := (SCREENHEIGHT -1) - y2;
+    If y1 > y2 Then Begin
+      a := y1; y1 := y2; y2 := a;
+    End;
+  End;
 
   T_CLIPX1 := Round(x1);
   T_CLIPX2 := Round(x2);
@@ -10113,6 +10128,7 @@ Begin
                     dY := NumArrays[Idx].Values[vIdx + 1]^.Value;
                     Inc(vIdx, iSize);
                     SP_ConvertToOrigin_d(dX, dY);
+                    If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
                     If SCREENBPP = 8 Then
                       SP_SetPixel(dX, dY)
                     Else
@@ -10128,6 +10144,7 @@ Begin
                     T_INK := Round(NumArrays[Idx].Values[vIdx + 2]^.Value);
                     Inc(vIdx, iSize);
                     SP_ConvertToOrigin_d(dX, dY);
+                    If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
                     If SCREENBPP = 8 Then
                       SP_SetPixel(dX, dY)
                     Else
@@ -10144,6 +10161,7 @@ Begin
                     Radius := Round(NumArrays[Idx].Values[vIdx + 3]^.Value);
                     Inc(vIdx, iSize);
                     SP_ConvertToOrigin_d(dX, dY);
+                    If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
                     If SCREENBPP = 8 Then
                       SP_DrawSolidEllipse(Round(dX), Round(dY), Radius, Radius)
                     Else
@@ -10167,6 +10185,7 @@ Begin
     dX := SP_StackPtr^.Val;
     Dec(SP_StackPtr);
     SP_ConvertToOrigin_d(dX, dY);
+    If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
     xPos := Round(dX); yPos := Round(dY);
     If SCREENBPP = 8 Then
       SP_SetPixel(xPos, yPos)
@@ -10396,6 +10415,7 @@ Begin
 
   If NumParams = 3 Then Begin
     Angle := SP_StackPtr^.Val;
+    If WINFLIPPED Then Angle := -Angle;
     Dec(SP_StackPtr);
   End;
 
@@ -10407,6 +10427,8 @@ Begin
   Dec(SP_StackPtr);
   XPos := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+
+  If WINFLIPPED Then YPos := -Ypos;
 
   If SCREENBPP = 8 Then Begin
     If NumParams = 2 Then
@@ -10436,6 +10458,7 @@ Begin
 
   If NumParams = 3 Then Begin
     Angle := SP_StackPtr^.Val;
+    If WINFLIPPED Then Angle := -Angle;
     Dec(SP_StackPtr);
   End;
 
@@ -10447,6 +10470,8 @@ Begin
   Dec(SP_StackPtr);
   XPos := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+
+  If WINFLIPPED Then YPos := (SCREENHEIGHT - 1) - YPos;
 
   If SCREENBPP = 8 Then Begin
     If NumParams = 2 Then
@@ -10475,6 +10500,7 @@ Begin
 
   If NumParams = 3 Then Begin
     Angle := SP_StackPtr^.Val;
+    If WINFLIPPED Then Angle := -Angle;
     Dec(SP_StackPtr);
   End;
 
@@ -10495,6 +10521,11 @@ Begin
   Dec(SP_StackPtr);
   dXPos := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+
+  If WINFLIPPED Then Begin
+    YPos := (SCREENHEIGHT - 1) - YPos;
+    dYPos := (SCREENHEIGHT - 1) - dYPos;
+  End;
 
   DRPOSX := XPos;
   DRPOSY := YPos;
@@ -10538,6 +10569,7 @@ Begin
               dY := NumArrays[Idx].Values[vIdx + 1]^.Value;
               Inc(vIdx, iSize);
               SP_ConvertToOrigin_d(dX, dY);
+              If WINFLIPPED Then dY := -dy;
               If SCREENBPP = 8 Then
                 SP_DrawLine(dX, dY)
               Else
@@ -10554,6 +10586,10 @@ Begin
                 dZ := NumArrays[Idx].Values[vIdx + 2]^.Value;
                 Inc(vIdx, iSize);
                 SP_ConvertToOrigin_d(dX, dY);
+                If WINFLIPPED Then Begin
+                  dY := -dY;
+                  dZ := -dZ;
+                End;
                 If SCREENBPP = 8 Then
                   SP_DrawSpeccyCurve(dX, dY, dZ)
                 Else
@@ -10596,6 +10632,7 @@ Begin
               dY := NumArrays[Idx].Values[vIdx + 1]^.Value;
               Inc(vIdx, iSize);
               SP_ConvertToOrigin_d(dX, dY);
+              If WINFLIPPED Then dY := -dy;
               If SCREENBPP = 8 Then
                 SP_DrawLine(dX - DRPOSX, dY - DRPOSY)
               Else
@@ -10612,6 +10649,10 @@ Begin
                 dZ := NumArrays[Idx].Values[vIdx + 2]^.Value;
                 Inc(vIdx, iSize);
                 SP_ConvertToOrigin_d(dX, dY);
+                If WINFLIPPED Then Begin
+                  dY := -dY;
+                  dZ := -dZ;
+                End;
                 If SCREENBPP = 8 Then
                   SP_DrawSpeccyCurve(dX - DRPOSX, dY - DRPOSY, dZ)
                 Else
@@ -10654,6 +10695,7 @@ Begin
               dY := NumArrays[Idx].Values[vIdx + 1]^.Value;
               Inc(vIdx, iSize);
               SP_ConvertToOrigin_d(dX, dY);
+              If WINFLIPPED Then dY := -dy;
               SP_DrawLine32Alpha(dX, dY);
             End;
             If SCREENVISIBLE Then SP_SetDirtyRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
@@ -10667,6 +10709,10 @@ Begin
                 dZ := NumArrays[Idx].Values[vIdx + 2]^.Value;
                 Inc(vIdx, iSize);
                 SP_ConvertToOrigin_d(dX, dY);
+                If WINFLIPPED Then Begin
+                  dY := -dY;
+                  dZ := -dZ;
+                End;
                 SP_DrawSpeccyCurve32Alpha(dX, dY, dZ);
               End;
               If SCREENVISIBLE Then SP_SetDirtyRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
@@ -10706,6 +10752,7 @@ Begin
               dY := NumArrays[Idx].Values[vIdx + 1]^.Value;
               Inc(vIdx, iSize);
               SP_ConvertToOrigin_d(dX, dY);
+              If WINFLIPPED Then dY := -dY;
               SP_DrawLine32Alpha(dX - DRPOSX, dY - DRPOSY)
             End;
             If SCREENVISIBLE Then SP_SetDirtyRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
@@ -10719,6 +10766,10 @@ Begin
                 dZ := NumArrays[Idx].Values[vIdx + 2]^.Value;
                 Inc(vIdx, iSize);
                 SP_ConvertToOrigin_d(dX, dY);
+                If WINFLIPPED Then Begin
+                  dY := -dY;
+                  dZ := -dZ;
+                End;
                 SP_DrawSpeccyCurve32Alpha(dX - DRPOSX, dY - DRPOSY, dZ)
               End;
               If SCREENVISIBLE Then SP_SetDirtyRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
@@ -10759,6 +10810,8 @@ Begin
   Dec(SP_StackPtr);
 
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
+
   SP_DrawEllipse(Round(dX), Round(dY), Radius1, Radius2);
 
   SP_NeedDisplayUpdate := True;
@@ -10815,6 +10868,7 @@ Begin
   dX := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
 
   If Not BankFill Then Begin
     Valid := False;
@@ -10879,6 +10933,7 @@ Begin
   dX := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
 
   SP_DrawEllipse(Round(dX), Round(dY), RadiusX, RadiusY);
 
@@ -10937,6 +10992,7 @@ Begin
   dX := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
 
   If Not BankFill Then Begin
     Valid := False;
@@ -10995,6 +11051,10 @@ Begin
 
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   If SCREENBPP = 8 Then
     SP_DrawCurve(DRPOSX, DRPOSY, X1, Y1, X2, Y2, N)
@@ -11029,6 +11089,11 @@ Begin
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
   SP_ConvertToOrigin_d(X3, Y3);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+    Y3 := (SCREENHEIGHT - 1) - Y3;
+  End;
 
   DRPOSX := X1;
   DRPOSY := Y1;
@@ -13631,6 +13696,7 @@ Begin
   dY := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
 
   If T_INVERSE = 0 Then
     Ink := T_INK
@@ -13662,6 +13728,7 @@ Begin
   dY := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
 
   If SP_StackPtr^.OpType = SP_VALUE Then Begin
     TextureStr := '';
@@ -13722,6 +13789,10 @@ Begin
 
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   SP_DrawRectangle(Round(X1), Round(Y1), Round(X2), Round(Y2));
 
@@ -13747,6 +13818,10 @@ Begin
   X2 := X1 + W -1;
   Y2 := Y1 + H -1;
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   SP_DrawRectangle(Round(X1), Round(Y1), Round(X2), Round(Y2));
 
@@ -13796,6 +13871,10 @@ Begin
 
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   If Not BankFill Then Begin
     Valid := False;
@@ -13866,6 +13945,10 @@ Begin
   X2 := X1 + W -1;
   Y2 := Y1 + H -1;
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   If Not BankFill Then Begin
     Valid := False;
@@ -13920,6 +14003,7 @@ Begin
                 T_INK := Round(NumArrays[Idx].Values[2]^.Value);
               End;
               SP_ConvertToOrigin_d(dX, dY);
+              If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
               DRPOSX := dX;
               DRPOSY := dY;
               vIdx := iSize;
@@ -13927,6 +14011,7 @@ Begin
                 pX := NumArrays[Idx].Values[vIdx]^.Value;
                 pY := NumArrays[Idx].Values[vIdx + 1]^.Value;
                 SP_ConvertToOrigin_d(pX, pY);
+                If WINFLIPPED Then pY := (SCREENHEIGHT - 1) - pY;
                 SP_DrawLine(pX - DRPOSX, pY - DRPOSY);
                 If iSize > 2 Then
                   T_INK := Round(NumArrays[Idx].Values[vIdx + 2]^.Value);
@@ -13960,6 +14045,7 @@ Begin
       pX := SP_StackPtr^.Val;
       Dec(SP_StackPtr);
       SP_ConvertToOrigin_d(pX, pY);
+      If WINFLIPPED Then pY := (SCREENHEIGHT - 1) - pY;
       Points[NumPoints].X := pX;
       Points[NumPoints].Y := pY;
       Dec(NumPoints);
@@ -14035,6 +14121,7 @@ Begin
               pX := NumArrays[Idx].Values[vIdx]^.Value;
               pY := NumArrays[Idx].Values[vIdx + 1]^.Value;
               SP_ConvertToOrigin_d(pX, pY);
+              If WINFLIPPED Then pY := (SCREENHEIGHT - 1) - pY;
               Inc(vIdx, iSize);
               Points[pIdx].X := pX;
               Points[pIdx].Y := pY;
@@ -14063,6 +14150,7 @@ Begin
       pX := SP_StackPtr^.Val;
       Dec(SP_StackPtr);
       SP_ConvertToOrigin_d(pX, pY);
+      If WINFLIPPED Then pY := (SCREENHEIGHT - 1) - pY;
       Points[Idx].X := pX;
       Points[Idx].Y := pY;
       Dec(Idx);
@@ -14855,6 +14943,8 @@ Begin
   dX := SP_ConvertToScreenX(DRPOSX) + (Dist * Cos(Hdg));
   dY := SP_ConvertToScreenY(DRPOSY) + (Dist * Sin(Hdg));
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
+
   DRPOSX := dX;
   DRPOSY := dY;
 
@@ -14870,6 +14960,7 @@ Begin
   XPos := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(XPos, YPos);
+  If WINFLIPPED Then YPos := -YPos;
 
   DRPOSX := DRPOSX + XPos;
   DRPOSY := DRPOSY + YPos;
@@ -14888,6 +14979,8 @@ Begin
   dX := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
+
   DRPOSX := dX;
   DRPOSY := dY;
 
@@ -14914,6 +15007,7 @@ Begin
   odX := DRPOSX + dX;
   odY := DRPOSY + dY;
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := -dY;
   SP_DrawLine(dX, dY);
   DRPOSX := odX;
   DRPOSY := odY;
@@ -20596,6 +20690,7 @@ Begin
               dY := NumArrays[Idx].Values[vIdx + 1]^.Value;
               Inc(vIdx, iSize);
               SP_ConvertToOrigin_d(dX, dY);
+              If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
               If SCREENBPP = 8 Then
                 SP_SetPixel(dX, dY)
               Else
@@ -20611,6 +20706,7 @@ Begin
                 T_INK := Round(NumArrays[Idx].Values[vIdx + 2]^.Value);
                 Inc(vIdx, iSize);
                 SP_ConvertToOrigin_d(dX, dY);
+                If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
                 If SCREENBPP = 8 Then
                   SP_SetPixel(dX, dY)
                 Else
@@ -21243,7 +21339,8 @@ End;
 Procedure SP_Interpret_WIN_ORIGIN(Var Info: pSP_iInfo);
 Var
   WinID: Integer;
-  x1,y1,x2,y2: aFloat;
+  Flip: Boolean;
+  x1, y1, x2, y2: aFloat;
 Begin
 
   WinID := Round(SP_StackPtr^.Val);
@@ -21257,14 +21354,17 @@ Begin
   Dec(SP_StackPtr);
   y2 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+  Flip := SP_StackPtr^.Val <> 0;
+  Dec(SP_StackPtr);
 
-  SP_SetWindowOrigin(WinID, x1, y1, x2, y2, Info^.Error^);
+  SP_SetWindowOrigin(WinID, x1, y1, x2, y2, Flip, Info^.Error^);
 
 End;
 
 Procedure SP_Interpret_WIN_ORG_NO_EXT(Var Info: pSP_iInfo);
 Var
   WinID: Integer;
+  Flip: Boolean;
   x1, y1: aFloat;
 Begin
 
@@ -21275,8 +21375,10 @@ Begin
   Dec(SP_StackPtr);
   y1 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+  Flip := SP_StackPtr^.Val <> 0;
+  Dec(SP_StackPtr);
 
-  SP_SetWindowOriginNoExt(WinID, x1, y1, Info^.Error^);
+  SP_SetWindowOriginNoExt(WinID, x1, y1, Flip, Info^.Error^);
 
 End;
 
@@ -21366,6 +21468,7 @@ End;
 
 Procedure SP_Interpret_ORIGIN(Var Info: pSP_iInfo);
 Var
+  Flip: Boolean;
   x1,y1,x2,y2: aFloat;
 Begin
 
@@ -21377,9 +21480,11 @@ Begin
   Dec(SP_StackPtr);
   y2 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+  Flip := SP_StackPtr^.Val <> 0;
+  Dec(SP_StackPtr);
 
   If SCREENBANK >= 0 Then
-    SP_SetWindowOrigin(SCREENBANK, x1, y1, x2, y2, Info^.Error^)
+    SP_SetWindowOrigin(SCREENBANK, x1, y1, x2, y2, Flip, Info^.Error^)
   Else
     SP_SetGraphicOrigin(-SCREENBANK, x1, y1, x2, y2, Info^.Error^);
 
@@ -21397,6 +21502,7 @@ End;
 
 Procedure SP_Interpret_ORG_NO_EXT(Var Info: pSP_iInfo);
 Var
+  Flip: Boolean;
   x1, y1: aFloat;
 Begin
 
@@ -21404,9 +21510,11 @@ Begin
   Dec(SP_StackPtr);
   y1 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+  Flip := SP_StackPtr^.Val <> 0;
+  Dec(SP_StackPtr);
 
   If SCREENBANK >= 0 Then
-    SP_SetWindowOriginNoExt(SCREENBANK, x1, y1, Info^.Error^)
+    SP_SetWindowOriginNoExt(SCREENBANK, x1, y1, Flip, Info^.Error^)
   Else
     SP_SetGraphicOriginNoExt(-SCREENBANK, x1, y1, Info^.Error^);
 
@@ -23063,6 +23171,7 @@ Begin
 
   If NumParams = 3 Then Begin
     Angle := SP_StackPtr^.Val;
+    If WINFLIPPED Then Angle := -Angle;
     Dec(SP_StackPtr);
   End;
 
@@ -23074,6 +23183,7 @@ Begin
   Dec(SP_StackPtr);
   XPos := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+  If WINFLIPPED Then YPos := (SCREENHEIGHT - 1) - YPos;
 
   If NumParams = 2 Then
     SP_DrawLine32Alpha(XPos - DRPOSX, YPos - DRPOSY)
@@ -23096,6 +23206,7 @@ Begin
 
   If NumParams = 3 Then Begin
     Angle := SP_StackPtr^.Val;
+    If WINFLIPPED Then Angle := -Angle;
     Dec(SP_StackPtr);
   End;
 
@@ -23116,6 +23227,10 @@ Begin
   Dec(SP_StackPtr);
   dXPos := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+  If WINFLIPPED Then Begin
+    YPos := (SCREENHEIGHT - 1) - YPos;
+    dYPos := (SCREENHEIGHT - 1) - dYPos;
+  End;
 
   DRPOSX := XPos;
   DRPOSY := YPos;
@@ -23148,6 +23263,7 @@ Begin
   dX := Dist * Cos(Hdg);
   dY := Dist * Sin(Hdg);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := -dY;
   SP_DrawLine32Alpha(dX, dY);
   SP_NeedDisplayUpdate := True;
   WINORIGIN := tBool;
@@ -23204,6 +23320,7 @@ Begin
   dX := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
 
   If Not BankFill Then Begin
     Valid := False;
@@ -23281,6 +23398,7 @@ Begin
   dX := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
 
   If Not BankFill Then Begin
     Valid := False;
@@ -23354,6 +23472,10 @@ Begin
 
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   If Not BankFill Then Begin
     Valid := False;
@@ -23398,6 +23520,10 @@ Begin
   X2 := X1 + W -1;
   Y2 := Y1 + H -1;
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   SP_DrawRectangle32Alpha(Round(X1), Round(Y1), Round(X2), Round(Y2));
 
@@ -23449,6 +23575,10 @@ Begin
   X2 := X1 + W -1;
   Y2 := Y1 + H -1;
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   If Not BankFill Then Begin
     Valid := False;
@@ -23500,6 +23630,7 @@ Begin
               dX := NumArrays[Idx].Values[0]^.Value;
               dY := NumArrays[Idx].Values[1]^.Value;
               SP_ConvertToOrigin_d(dX, dY);
+              If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
               DRPOSX := dX;
               DRPOSY := dY;
               vIdx := iSize;
@@ -23507,6 +23638,7 @@ Begin
                 pX := NumArrays[Idx].Values[vIdx]^.Value;
                 pY := NumArrays[Idx].Values[vIdx + 1]^.Value;
                 SP_ConvertToOrigin_d(pX, pY);
+                If WINFLIPPED Then pY := (SCREENHEIGHT - 1) - pY;
                 Inc(vIdx, iSize);
                 SP_DrawLine32Alpha(pX - DRPOSX, pY - DRPOSY);
               End;
@@ -23538,6 +23670,7 @@ Begin
       pX := SP_StackPtr^.Val;
       Dec(SP_StackPtr);
       SP_ConvertToOrigin_d(pX, pY);
+      If WINFLIPPED Then pY := (SCREENHEIGHT - 1) - pY;
       Points[NumPoints].X := pX;
       Points[NumPoints].Y := pY;
       Dec(NumPoints);
@@ -23613,6 +23746,7 @@ Begin
               pX := NumArrays[Idx].Values[vIdx]^.Value;
               pY := NumArrays[Idx].Values[vIdx + 1]^.Value;
               SP_ConvertToOrigin_d(pX, pY);
+              If WINFLIPPED Then pY := (SCREENHEIGHT - 1) - pY;
               Inc(vIdx, iSize);
               Points[pIdx].X := pX;
               Points[pIdx].Y := pY;
@@ -23641,6 +23775,7 @@ Begin
       pX := SP_StackPtr^.Val;
       Dec(SP_StackPtr);
       SP_ConvertToOrigin_d(pX, pY);
+      If WINFLIPPED Then pY := (SCREENHEIGHT - 1) - pY;
       Points[Idx].X := pX;
       Points[Idx].Y := PY;
       Dec(Idx);
@@ -23702,6 +23837,7 @@ Begin
   Dec(SP_StackPtr);
 
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
   SP_DrawEllipse32Alpha(Round(dX), Round(dY), Radius1, Radius2);
 
   SP_NeedDisplayUpdate := True;
@@ -23732,6 +23868,7 @@ Begin
                 dY := NumArrays[Idx].Values[vIdx + 1]^.Value;
                 Inc(vIdx, iSize);
                 SP_ConvertToOrigin_d(dX, dY);
+                If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
                 SP_SetPixel32Alpha(dX, dY)
               End;
               If SCREENVISIBLE Then SP_SetDirtyRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
@@ -23745,6 +23882,7 @@ Begin
                   T_INK := Round(NumArrays[Idx].Values[vIdx + 2]^.Value);
                   Inc(vIdx, iSize);
                   SP_ConvertToOrigin_d(dX, dY);
+                  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
                   SP_SetPixel32Alpha(dX, dY)
                 End;
                 If SCREENVISIBLE Then SP_SetDirtyRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
@@ -23765,6 +23903,7 @@ Begin
     dX := SP_StackPtr^.Val;
     Dec(SP_StackPtr);
     SP_ConvertToOrigin_d(dX, dY);
+    If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
     xPos := Round(dX); yPos := Round(dY);
     SP_SetPixel32Alpha(xPos, yPos);
     If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
@@ -23788,6 +23927,7 @@ Begin
 
   If NumParams = 3 Then Begin
     Angle := SP_StackPtr^.Val;
+    If WINFLIPPED Then Angle := -Angle;
     Dec(SP_StackPtr);
   End;
 
@@ -23799,6 +23939,7 @@ Begin
   Dec(SP_StackPtr);
   XPos := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+  If WINFLIPPED Then YPos := (SCREENHEIGHT - 1) - YPos;
 
   If NumParams = 2 Then
     SP_DrawLine32Alpha(XPos, YPos)
@@ -23834,6 +23975,7 @@ Begin
   dX := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
 
   SP_DrawEllipse32Alpha(Round(dX), Round(dY), RadiusX, RadiusY);
 
@@ -23860,6 +24002,10 @@ Begin
 
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   SP_DrawCurve32Alpha(DRPOSX, DRPOSY, X1, Y1, X2, Y2, N);
   SP_NeedDisplayUpdate := True;
@@ -23889,6 +24035,10 @@ Begin
 
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   SP_DrawCurve32Alpha(X1, Y1, X2, Y2, X3, Y3, N);
   SP_NeedDisplayUpdate := True;
@@ -23906,6 +24056,7 @@ Begin
   dY := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   SP_ConvertToOrigin_d(dX, dY);
+  If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
 
   If T_INVERSE = 0 Then
     Ink := T_INK
@@ -23935,6 +24086,10 @@ Begin
 
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
 
   SP_DrawRectangle32Alpha(Round(X1), Round(Y1), Round(X2), Round(Y2));
 
@@ -23964,6 +24119,7 @@ Begin
               dY := NumArrays[Idx].Values[vIdx + 1]^.Value;
               Inc(vIdx, iSize);
               SP_ConvertToOrigin_d(dX, dY);
+              If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
               SP_SetPixel32Alpha(dX, dY);
             End;
             Exit;
@@ -23976,6 +24132,7 @@ Begin
                 T_INK := Round(NumArrays[Idx].Values[vIdx + 2]^.Value);
                 Inc(vIdx, iSize);
                 SP_ConvertToOrigin_d(dX, dY);
+                If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
                 SP_SetPixel32Alpha(dX, dY);
               End;
               Exit;

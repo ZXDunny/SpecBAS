@@ -62,8 +62,8 @@ Procedure SP_ChangeRes(Width, Height, sWidth, sHeight: Integer; FullScreen: Bool
 Procedure SP_ResizeWindow(WindowID, W, H, Depth: Integer; FullScreen: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_MoveWindow(WindowID, X, Y: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_DeleteWindow(WindowID: Integer; Var Error: TSP_ErrorCode);
-Procedure SP_SetWindowOrigin(WindowID: Integer; X, Y, W, H: aFloat; Var Error: TSP_ErrorCode);
-Procedure SP_SetWindowOriginNoExt(WindowID: Integer; X, Y: aFloat; Var Error: TSP_ErrorCode);
+Procedure SP_SetWindowOrigin(WindowID: Integer; X, Y, W, H: aFloat; Flip: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_SetWindowOriginNoExt(WindowID: Integer; X, Y: aFloat; Flip: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_SetWindowOriginOff(WinID: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_GetWindowDetails(WindowID: Integer; Var Window: pSP_Window_Info; Var Error: TSP_ErrorCode);// Inline;
 Function  SP_GetWindowLeft(WindowID: Integer; Var Error: TSP_ErrorCode): Integer;
@@ -813,6 +813,7 @@ Begin
       SORGH := Window^.orgh;
       WINSCALE := Window^.winscale;
       WINORIGIN := Window^.winorigin;
+      WINFLIPPED := Window^.Flip;
       WINSCALEX := Window^.winscalex;
       WINSCALEY := Window^.winscaley;
       CCLIPX1 := Window^.clipx1;
@@ -863,6 +864,7 @@ Begin
         SORGH := Window^.orgh;
         WINSCALE := Window^.winscale;
         WINORIGIN := Window^.winorigin;
+        WINFLIPPED := Window^.Flip;
         WINSCALEX := Window^.winscalex;
         WINSCALEY := Window^.winscaley;
         CCLIPX1 := Gfx^.clipx1;
@@ -1258,7 +1260,7 @@ Begin
 
 End;
 
-Procedure SP_SetWindowOrigin(WindowID: Integer; X, Y, W, H: aFloat; Var Error: TSP_ErrorCode);
+Procedure SP_SetWindowOrigin(WindowID: Integer; X, Y, W, H: aFloat; Flip: Boolean; Var Error: TSP_ErrorCode);
 Var
   Win: pSP_Window_Info;
   i: integer;
@@ -1277,6 +1279,7 @@ Begin
     Win^.orgy := Y;
     Win^.orgw := W;
     Win^.orgh := H;
+    Win^.Flip := Flip;
 
     Win^.winscale := (W - X <> Win^.Width) or (H - Y <> Win^.Height);
     Win^.winorigin := (X <> 0) or (Y <> 0);
@@ -1296,6 +1299,7 @@ Begin
       WINORIGIN := Win^.winorigin;
       WINSCALEX := Win^.winscalex;
       WINSCALEY := Win^.winscaley;
+      WINFLIPPED := Win^.Flip;
       T_CLIPX1 := Win^.clipx1;
       T_CLIPY1 := Win^.clipy1;
       T_CLIPX2 := Win^.clipx2;
@@ -1313,7 +1317,7 @@ Begin
 
 End;
 
-Procedure SP_SetWindowOriginNoExt(WindowID: Integer; X, Y: aFloat; Var Error: TSP_ErrorCode);
+Procedure SP_SetWindowOriginNoExt(WindowID: Integer; X, Y: aFloat; Flip: Boolean; Var Error: TSP_ErrorCode);
 Var
   Win: pSP_Window_Info;
   W, H: aFloat;
@@ -1330,6 +1334,7 @@ Begin
     Win^.orgy := Y;
     Win^.orgw := W;
     Win^.orgh := H;
+    Win^.Flip := Flip;
 
     Win^.winscale := (W - X <> Win^.Width) or (H - Y <> Win^.Height);
     Win^.winorigin := (X <> 0) or (Y <> 0);
@@ -1349,6 +1354,7 @@ Begin
       WINORIGIN := Win^.winorigin;
       WINSCALEX := Win^.winscalex;
       WINSCALEY := Win^.winscaley;
+      WINFLIPPED := Win^.Flip;
       T_CLIPX1 := Win^.clipx1;
       T_CLIPY1 := Win^.clipy1;
       T_CLIPX2 := Win^.clipx2;
@@ -1380,9 +1386,11 @@ Begin
     Win^.clipy1 := 0;
     Win^.clipx2 := Win^.Width;
     Win^.clipy2 := Win^.Height;
+    Win^.Flip := False;
     If WinID = SCREENBANK Then Begin
       WINSCALE := False;
       WINORIGIN := False;
+      WINFLIPPED := False;
       T_CLIPX1 := Win^.clipx1;
       T_CLIPY1 := Win^.clipy1;
       T_CLIPX2 := Win^.clipx2;

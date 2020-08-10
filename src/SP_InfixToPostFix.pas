@@ -9248,7 +9248,7 @@ End;
 
 Function  SP_Convert_WINDOW(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
-  Expr, VarResult, RotateExpr, ScaleExpr: aString;
+  Expr, FlipExpr, VarResult, RotateExpr, ScaleExpr: aString;
   KeyWordPos: LongWord;
   GotRotate, GotScale, IsGraphic: Boolean;
 Begin
@@ -9268,7 +9268,7 @@ Begin
   //         SCROLL n,x,y|
   //         ROLL n,x,y|
   //         COPY [GRAPHIC]numexpr,x1,y1,x2,y2 TO numexpr,x3,y3]
-  //         ORIGIN numexpr,x1,y1[ TO x2,y2]|OFF
+  //         ORIGIN numexpr,x1,y1[ TO x2,y2][FLIP]|OFF
   //         CLIP id,x1,y1 TO x2,y2|OFF
   //         TRANSPARENT id{,t|OFF}
   //         ALPHA id ON|OFF
@@ -9783,7 +9783,12 @@ Begin
           // no x2,y2 specified - specify ?? for them instead.
           KeyWordID := SP_KW_WIN_ORG_NO_EXT;
         End;
-        Result := Expr;
+        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_FLIP) Then Begin
+          Inc(Position, SizeOf(LongWord) +1);
+          FlipExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(1);
+        End Else
+          FlipExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(0);
+        Result := FlipExpr + Expr;
         Exit;
       End Else
         Error.Code := SP_ERR_MISSING_COMMA;
@@ -16130,10 +16135,10 @@ End;
 
 Function  SP_Convert_ORIGIN(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
-  Expr: aString;
+  Expr, FlipExpr: aString;
 Begin
 
-  // ORIGIN x1,y1 TO x2,y2
+  // ORIGIN x1,y1[ TO x2,y2][FLIP]
 
   Expr := '';
   Result := '';
@@ -16178,7 +16183,12 @@ Begin
         // no x2,y2 specified - specify ?? for them instead.
         KeyWordID := SP_KW_ORG_NO_EXT;
       End;
-      Result := Expr;
+      If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_FLIP) Then Begin
+        Inc(Position, SizeOf(LongWord) +1);
+        FlipExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(1);
+      End Else
+        FlipExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(0);
+      Result := FlipExpr + Expr;
       Exit;
     End Else
       Error.Code := SP_ERR_MISSING_COMMA;

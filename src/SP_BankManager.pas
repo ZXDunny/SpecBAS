@@ -1099,6 +1099,7 @@ Begin
   Window^.scaley := CSCALEY;
   Window^.winscale := False;
   Window^.winorigin := False;
+  Window^.Flip := False;
   Window^.SpriteCount := 0;
   Window^.bpp := Bpp;
   Window^.AlphaEnabled := Alpha = 1;

@@ -61,7 +61,8 @@ Var
   SORGH, WINSCALEX,
   WINSCALEY:                aFloat;       // The current window's origin and extent metrics
   BORDERSIZE:               Integer;      // The size of the screen border.
-  WINSCALE, WINORIGIN:      Boolean;      // Are the origin or scaling of a window active?
+  WINSCALE, WINORIGIN,
+  WINFLIPPED:               Boolean;      // Are the origin or scaling of a window active?
   NUMSPRITES:               Integer;      // Global number of sprites defined.
   PROGNAME:                 aString;      // Name of current program
   FILENAMED:                Boolean;      // The current program has a filename (ie, it's been saved).

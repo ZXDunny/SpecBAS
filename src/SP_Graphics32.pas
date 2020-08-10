@@ -2811,6 +2811,7 @@ Begin
                 Y := pInteger(@Text[Idx+1])^;
                 Inc(Idx, SizeOf(Integer));
                 SP_ConvertToOrigin_i(X, Y);
+                If WINFLIPPED Then Y := (SCREENHEIGHT - 1) - Y;
               End;
            22:
               Begin // AT control
@@ -3116,6 +3117,7 @@ Begin
               Y := pInteger(@Text[Idx+1])^;
               Inc(Idx, SizeOf(Integer));
               SP_ConvertToOrigin_i(X, Y);
+              If WINFLIPPED Then Y := (SCREENHEIGHT - 1) - Y;
             End;
          22:
             Begin // AT control
@@ -3467,6 +3469,7 @@ Begin
                 Y := pInteger(@Text[Idx+1])^;
                 Inc(Idx, SizeOf(Integer));
                 SP_ConvertToOrigin_i(X, Y);
+                If WINFLIPPED Then Y := (SCREENHEIGHT - 1) - Y;
               End;
            22:
               Begin // AT control
@@ -3770,6 +3773,7 @@ Begin
               Y := pInteger(@Text[Idx+1])^;
               Inc(Idx, SizeOf(Integer));
               SP_ConvertToOrigin_i(X, Y);
+              If WINFLIPPED Then Y := (SCREENHEIGHT - 1) - Y;
             End;
          22:
             Begin // AT control

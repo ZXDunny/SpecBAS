@@ -65,7 +65,7 @@ Type
     ID, Width, Height, Stride, Inverse, Over, Italic, Bold,
     Left, Top, FontBankID, SpriteCount, scrollcnt, bpp, Menu, CaptionHeight: Integer;
     heading, orgx, orgy, orgw, orgh, winscalex, winscaley, scalex, scaley: aFloat;
-    clipx1, clipy1, clipx2, clipy2: Integer; winscale, winorigin: Boolean;
+    clipx1, clipy1, clipx2, clipy2: Integer; winscale, winorigin, flip: Boolean;
     Visible, AlphaEnabled, FontTrans, System: Boolean;
     pr_posx, pr_posy, dr_posx, dr_posy: aFloat;
     Component: SP_BaseComponent;
@@ -633,6 +633,7 @@ Begin
                 Window^.ClipY2 := INIReadInt(INI, 'Info', 'ClipY2', 0);
                 Window^.WinScale := INIReadBool(INI, 'Info', 'WinScale', False);
                 Window^.WinOrigin := INIReadBool(INI, 'Info', 'WinOrigin', False);
+                Window^.Flip := INIReadBool(INI, 'Info', 'Flip', False);
                 Window^.Visible := INIReadBool(INI, 'Info', 'Visible', True);
                 Window^.AlphaEnabled := INIReadBool(INI, 'Info', 'AlphaEnabled', False);
                 Window^.FontTrans := INIReadBool(INI, 'Info', 'FontTrans', False);
@@ -992,6 +993,7 @@ Begin
             INIWriteInt(INI, 'Info', 'ClipY2', Window^.clipy2);
             INIWriteBool(INI, 'Info', 'WinScale', Window^.winscale);
             INIWriteBool(INI, 'Info', 'WinOrigin', Window^.winorigin);
+            INIWriteBool(INI, 'Info', 'Flip', Window^.Flip);
             INIWriteBool(INI, 'Info', 'Visible', Window^.visible);
             INIWriteBool(INI, 'Info', 'AlphaEnabled', Window^.alphaenabled);
             INIWriteBool(INI, 'Info', 'FontTrans', Window^.fonttrans);

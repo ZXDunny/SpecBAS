@@ -468,7 +468,7 @@ Var
   NXTLINE:                  Integer;      // The next line to be executed. If 0, then stop.
   NXTSTATEMENT:             Integer;      // The statement to be executed. Used by the RETURN and NEXT commands.
   NXTST:                    Integer;      // Used by CALL, the next statement number, as opposed to the above index
-  MATHMODE:                 Integer;      // 0 - Radians, 1 - Degrees
+  MATHMODE:                 Integer;      // 0 - Radians, 1 - Degrees, 2 - Turns, 3 - Gradians
   BASE:                     LongWord;     // The base of arrays. Default to 1.
   UPDATENOW:                Boolean;      // Set to TRUE for an immediate screen update.
   INTSCALING:               Boolean;      // Use integer pre-scaling for high res displays?

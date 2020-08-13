@@ -2408,8 +2408,7 @@ Var
   NumArcs: Integer;
 Begin
 
-  If MathMode = 1 Then Angle := DegToRad(Angle);
-
+  SP_AngleToRad(Angle);
   Z := Abs((Abs(X)+Abs(Y))/Sin(Angle/2));
   If (Round(Sin(Angle/2)*10000000) = 0) or (Z < 1) Then
     SP_DrawLine32(Round(X), Round(Y))
@@ -2450,8 +2449,7 @@ Var
   NumArcs: Integer;
 Begin
 
-  If MathMode = 1 Then Angle := DegToRad(Angle);
-
+  SP_AngleToRad(Angle);
   Z := Abs((Abs(X)+Abs(Y))/Sin(Angle/2));
   If (Round(Sin(Angle/2)*10000000) = 0) or (Z < 1) Then
     SP_DrawLine(Round(X), Round(Y))

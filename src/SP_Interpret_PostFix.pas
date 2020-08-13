@@ -556,6 +556,8 @@ Procedure SP_Interpret_POLYFILL(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SCRCOPY(Var Info: pSP_iInfo);
 Procedure SP_Interpret_DEGREES(Var Info: pSP_iInfo);
 Procedure SP_Interpret_RADIANS(Var Info: pSP_iInfo);
+Procedure SP_Interpret_TURNS(Var Info: pSP_iInfo);
+Procedure SP_Interpret_GRADIANS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_RECOVER(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FONT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FONT_NEW(Var Info: pSP_iInfo);
@@ -5490,12 +5492,15 @@ Procedure SP_Interpret_FN_POLAR(Var Info: pSP_iInfo);
 Begin
 
   Dec(SP_StackPtr);
-  If MathMode = 0 Then Begin
-    SP_StackPtr^.Val := ArcTan2(pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val, SP_StackPtr^.Val);
-    If SP_StackPtr^.Val < 0 Then SP_StackPtr^.Val := SP_StackPtr^.Val + (2*Pi);
-  End Else Begin
-    SP_StackPtr^.Val := RadToDeg(ArcTan2(pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val, SP_StackPtr^.Val));
-    If SP_StackPtr^.Val < 0 Then SP_StackPtr^.Val := SP_StackPtr^.Val + 360;
+  With SP_StackPtr^ Do Begin
+    Val := ArcTan2(pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val, Val);
+    SP_RadToAngle(Val);
+    Case MathMode of
+      0: If Val < 0 Then Val := Val + (2 * Pi);
+      1: If Val < 0 Then Val := Val + 360;
+      2: If Val < 0 Then Val := Val + 1;
+      3: If Val < 0 Then Val := Val + 400;
+    End;
   End;
 
 End;
@@ -6139,10 +6144,8 @@ Var
 Begin
   Val1 := SP_FindSpriteID(Round(SP_StackPtr^.Val), Info^.Error^);
   If Info^.Error^.Code = SP_ERR_OK Then Begin
-    If MathMode = 0 Then
-      SP_StackPtr^.Val := DegToRad(pSP_Sprite_Info(@SP_BankList[Val1].Info[0])^.Angle)
-    Else
-      SP_StackPtr^.Val := pSP_Sprite_Info(@SP_BankList[Val1].Info[0])^.Angle;
+    SP_StackPtr^.Val := pSP_Sprite_Info(@SP_BankList[Val1].Info[0])^.Angle;
+    SP_RadToAngle(SP_StackPtr^.Val);
   End Else Begin
     Dec(SP_StackPtr);
   End;
@@ -6654,26 +6657,20 @@ End;
 
 Procedure SP_Interpret_FN_SIN(Var Info: pSP_iInfo);
 Begin
-  If MATHMODE = 0 Then
-    SP_StackPtr^.Val := Sin(SP_StackPtr^.Val)
-  Else
-    SP_StackPtr^.Val := Sin(DegToRad(SP_StackPtr^.Val));
+  SP_AngleToRad(SP_StackPtr^.Val);
+  SP_StackPtr^.Val := Sin(SP_StackPtr^.Val);
 End;
 
 Procedure SP_Interpret_FN_COS(Var Info: pSP_iInfo);
 Begin
-  If MATHMODE = 0 Then
-    SP_StackPtr^.Val := Cos(SP_StackPtr^.Val)
-  Else
-    SP_StackPtr^.Val := Cos(DegToRad(SP_StackPtr^.Val));
+  SP_AngleToRad(SP_StackPtr^.Val);
+  SP_StackPtr^.Val := Cos(SP_StackPtr^.Val);
 End;
 
 Procedure SP_Interpret_FN_TAN(Var Info: pSP_iInfo);
 Begin
-  If MATHMODE = 0 Then
-    SP_StackPtr^.Val := Tan(SP_StackPtr^.Val)
-  Else
-    SP_StackPtr^.Val := Tan(DegToRad(SP_StackPtr^.Val));
+  SP_AngleToRad(SP_StackPtr^.Val);
+  SP_StackPtr^.Val := Tan(SP_StackPtr^.Val);
 End;
 
 Procedure SP_Interpret_FN_ASN(Var Info: pSP_iInfo);
@@ -6682,10 +6679,8 @@ Var
 Begin
   Val := SP_StackPtr^.Val;
   If (Val >= -1) And (Val <= 1) Then Begin
-    If MATHMODE = 0 Then
-      SP_StackPtr^.Val := ArcSin(Val)
-    Else
-      SP_StackPtr^.Val := RadToDeg(ArcSin(Val));
+    SP_AngleToRad(Val);
+    SP_StackPtr^.Val := ArcSin(Val);
   End Else Begin
     Info^.Error^.Code := SP_ERR_INVALID_ARGUMENT;
   End;
@@ -6697,10 +6692,8 @@ Var
 Begin
   Val := SP_StackPtr^.Val;
   If (Val >= -1) And (Val <= 1) Then Begin
-    If MATHMODE = 0 Then
-      SP_StackPtr^.Val := ArcCos(Val)
-    Else
-      SP_StackPtr^.Val := RadToDeg(ArcCos(Val));
+    SP_AngleToRad(Val);
+    SP_StackPtr^.Val := ArcCos(Val);
   End Else Begin
     Info^.Error^.Code := SP_ERR_INVALID_ARGUMENT;
   End;
@@ -6711,51 +6704,39 @@ Var
   Val: aFloat;
 Begin
   Val := SP_StackPtr^.Val;
-  If MATHMODE = 0 Then
-    SP_StackPtr^.Val := ArcTan(Val)
-  Else
-    SP_StackPtr^.Val := RadToDeg(ArcTan(Val));
+  SP_AngleToRad(Val);
+  SP_StackPtr^.Val := ArcTan(Val)
 End;
 
 Procedure SP_Interpret_FN_SINH(Var Info: pSP_iInfo);
 Begin
-  If MATHMODE = 0 Then
-    SP_StackPtr^.Val := Sinh(SP_StackPtr^.Val)
-  Else
-    SP_StackPtr^.Val := Sinh(DegToRad(SP_StackPtr^.Val));
+  SP_AngleToRad(SP_StackPtr^.Val);
+  SP_StackPtr^.Val := Sinh(SP_StackPtr^.Val)
 End;
 
 Procedure SP_Interpret_FN_COSH(Var Info: pSP_iInfo);
 Begin
-  If MATHMODE = 0 Then
-    SP_StackPtr^.Val := Cosh(SP_StackPtr^.Val)
-  Else
-    SP_StackPtr^.Val := Cosh(DegToRad(SP_StackPtr^.Val));
+  SP_AngleToRad(SP_StackPtr^.Val);
+  SP_StackPtr^.Val := Cosh(SP_StackPtr^.Val)
 End;
 
 Procedure SP_Interpret_FN_TANH(Var Info: pSP_iInfo);
 Begin
-  If MATHMODE = 0 Then
-    SP_StackPtr^.Val := Tanh(SP_StackPtr^.Val)
-  Else
-    SP_StackPtr^.Val := Tanh(DegToRad(SP_StackPtr^.Val));
+  SP_AngleToRad(SP_StackPtr^.Val);
+  SP_StackPtr^.Val := Tanh(SP_StackPtr^.Val)
 End;
 
 Procedure SP_Interpret_FN_ASNH(Var Info: pSP_iInfo);
 Begin
-  If MATHMODE = 0 Then
-    SP_StackPtr^.Val := ArcSinh(SP_StackPtr^.Val)
-  Else
-    SP_StackPtr^.Val := ArcSinh(DegToRad(SP_StackPtr^.Val));
+  SP_AngleToRad(SP_StackPtr^.Val);
+  SP_StackPtr^.Val := ArcSinh(SP_StackPtr^.Val)
 End;
 
 Procedure SP_Interpret_FN_ACSH(Var Info: pSP_iInfo);
 Begin
   If SP_StackPtr^.Val >= 1 Then Begin
-    If MATHMODE = 0 Then
-      SP_StackPtr^.Val := ArcCosh(SP_StackPtr^.Val)
-    Else
-      SP_StackPtr^.Val := ArcCosh(DegToRad(SP_StackPtr^.Val));
+    SP_AngleToRad(SP_StackPtr^.Val);
+    SP_StackPtr^.Val := ArcCosh(SP_StackPtr^.Val)
   End Else
     Info^.Error.Code := SP_ERR_INVALID_ARGUMENT;
 End;
@@ -6763,10 +6744,8 @@ End;
 Procedure SP_Interpret_FN_ATNH(Var Info: pSP_iInfo);
 Begin
   If SP_StackPtr^.Val >= -1 Then Begin
-    If MATHMODE = 0 Then
-      SP_StackPtr^.Val := ArcTanh(SP_StackPtr^.Val)
-    Else
-      SP_StackPtr^.Val := ArcTanh(DegToRad(SP_StackPtr^.Val));
+    SP_AngleToRad(SP_StackPtr^.Val);
+    SP_StackPtr^.Val := ArcTanh(SP_StackPtr^.Val)
   End Else
     Info^.Error.Code := SP_ERR_INVALID_ARGUMENT;
 End;
@@ -10223,7 +10202,7 @@ Begin
               Dec(SP_StackPtr);
               GravMag := SP_StackPtr^.Val;
               Dec(SP_StackPtr);
-              If MathMode = 1 Then GravHeading := DegToRad(GravHeading);
+              SP_AngleToRad(GravHeading);
               gx := GravMag * Cos(GravHeading);
               gy := GravMag * Sin(GravHeading);
               nPart := NumArrays[Idx].Indices[0];
@@ -10287,7 +10266,7 @@ Begin
                 Refrict := 1
               Else
                 Refrict := Friction;
-              If MathMode = 1 Then GravHeading := DegToRad(GravHeading);
+              SP_AngleToRad(GravHeading);
               gx := GravMag * Cos(GravHeading);
               gy := GravMag * Sin(GravHeading);
               nPart := NumArrays[Idx].Indices[0];
@@ -13010,7 +12989,7 @@ Begin
         cY1 := Window^.clipy1;
         cX2 := Window^.clipx2;
         cY2 := Window^.clipy2;
-        If MathMode = 1 Then Rotate := DegToRad(Rotate);
+        SP_AngleToRad(Rotate);
         If SP_StackPtr^.OpType = SP_VALUE Then Begin
           BankID := SP_FindBankID(Round(SP_StackPtr^.Val));
           If BankID > -1 Then Begin
@@ -14270,23 +14249,31 @@ Begin
 
 End;
 
-Procedure SP_Interpret_DEGREES(Var Info: pSP_iInfo);
+Procedure SP_Interpret_RADIANS(Var Info: pSP_iInfo);
 Begin
 
-  If MATHMODE <> 1 Then
-    DRHEADING := DRHEADING * (180 / Pi);
+  MATHMODE := 0;
+
+End;
+
+Procedure SP_Interpret_DEGREES(Var Info: pSP_iInfo);
+Begin
 
   MATHMODE := 1;
 
 End;
 
-Procedure SP_Interpret_RADIANS(Var Info: pSP_iInfo);
+Procedure SP_Interpret_TURNS(Var Info: pSP_iInfo);
 Begin
 
-  If MATHMODE <> 0 Then
-    DRHEADING := DRHEADING / (180 / Pi);
+  MATHMODE := 2;
 
-  MATHMODE := 0;
+End;
+
+Procedure SP_Interpret_GRADIANS(Var Info: pSP_iInfo);
+Begin
+
+  MATHMODE := 3;
 
 End;
 
@@ -14922,8 +14909,7 @@ Begin
   ToX := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
   DRHEADING := ArcTan2(ToY - DRPOSY, ToX - DRPOSX);
-  If MATHMODE = 1 Then
-    DRHEADING := RadToDeg(DRHEADING);
+  SP_RadToAngle(DRHEADING);
 
 End;
 
@@ -14935,10 +14921,8 @@ Begin
   Dist := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
-  If MATHMODE = 1 Then
-    Hdg := DegToRad(DRHEADING)
-  Else
-    Hdg := DRHEADING;
+  Hdg := DRHEADING;
+  SP_AngleToRad(Hdg);
 
   dX := SP_ConvertToScreenX(DRPOSX) + (Dist * Cos(Hdg));
   dY := SP_ConvertToScreenY(DRPOSY) + (Dist * Sin(Hdg));
@@ -14995,10 +14979,8 @@ Begin
   Dist := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
-  If MATHMODE = 1 Then
-    Hdg := DegToRad(DRHEADING)
-  Else
-    Hdg := DRHEADING;
+  Hdg := DRHEADING;
+  SP_AngleToRad(Hdg);
 
   tBool := WINORIGIN;
   WINORIGIN := False;
@@ -16847,7 +16829,7 @@ Begin
   Delta := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
-  If MathMode = 0 Then Delta := RadToDeg(Delta);
+  SP_AngleToRad(Delta);
 
   Idx := SP_FindSpriteID(SprIndex, Info^.Error^);
   If Info^.Error^.Code = SP_ERR_OK Then Begin
@@ -16871,8 +16853,7 @@ Begin
 
   Angle := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-
-  If MathMode = 0 Then Angle := RadToDeg(Angle);
+  SP_AngleToRad(Angle);
 
   Idx := SP_FindSpriteID(SprIndex, Info^.Error^);
   If Info^.Error^.Code = SP_ERR_OK Then Begin
@@ -16896,8 +16877,7 @@ Begin
 
   Angle := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-
-  If MathMode = 0 Then Angle := RadToDeg(Angle);
+  SP_AngleToRad(Angle);
 
   Step := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
@@ -16929,10 +16909,7 @@ Begin
 
   Angle := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-
-  If MathMode = 0 Then Angle := RadToDeg(Angle);
-  While Angle > 360 Do Angle := Angle - 360;
-  While Angle < 0 Do Angle := Angle + 360;
+  SP_AngleToRad(Angle);
 
   Step := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
@@ -17428,7 +17405,7 @@ Begin
   Dec(SP_StackPtr);
   Rot := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-  If MathMode = 1 Then Rot := DegToRad(Rot);
+  SP_AngleToRad(Rot);
 
   Idx := SP_FindBankID(Id);
   If Idx > -1 Then Begin
@@ -19140,7 +19117,7 @@ Begin
   Dec(SP_StackPtr);
 
   Rotate := SP_StackPtr^.Val;
-  If MathMode = 1 Then Rotate := DegToRad(Rotate);
+  SP_AngleToRad(Rotate);
   Dec(SP_StackPtr);
 
   Scale  := SP_StackPtr^.Val;
@@ -20732,8 +20709,6 @@ Var
   dX, dY, dZ, xCos, yCos, zCos, xSin, ySin, zSin, pX, pY, pZ, y1, z1, x2, z2, x3, y3: aFloat;
   VarName: aString;
   KeyWordID: LongWord;
-Const
-  drad: aFloat = PI/180;
 Begin
 
   // TRANSFORM3D - pick up src and optional destination, then commands - ID,x,y,z
@@ -20824,11 +20799,9 @@ Begin
     Case KeyWordID of
       SP_KW_ROTATE:
         Begin
-          If MathMode = 1 Then Begin
-            dX := dX * drad;
-            dY := dY * drad;
-            dZ := dZ * drad;
-          End;
+          SP_AngleToRad(dX);
+          SP_AngleToRad(dY);
+          SP_AngleToRad(dZ);
           xCos := Cos(dX);
           yCos := Cos(dY);
           zCos := Cos(dZ);
@@ -20889,8 +20862,6 @@ Var
   dX, dY, xCos, xSin, pX, pY, x1, y1: aFloat;
   VarName: aString;
   KeyWordID: LongWord;
-Const
-  drad: aFloat = PI/180;
 Begin
 
   // TRANSFORM2D - pick up src and optional destination, then commands - ID,param(s)
@@ -20974,9 +20945,9 @@ Begin
     Case KeyWordID of
       SP_KW_ROTATE:
         Begin
-          dx := SP_StackPtr^.Val;
+          dX := SP_StackPtr^.Val;
+          SP_AngleToRad(dX);
           Dec(SP_StackPtr);
-          If MathMode = 1 Then dX := dX * drad;
           xCos := Cos(dX);
           xSin := Sin(dX);
           vIdx := 0;
@@ -21071,18 +21042,14 @@ Begin
 
   If Params And 1 = 1 Then Begin // Rotation
     rX := SP_StackPtr^.Val;
+    SP_AngleToRad(rX);
     Dec(SP_StackPtr);
     rY := SP_StackPtr^.Val;
+    SP_AngleToRad(rY);
     Dec(SP_StackPtr);
     rZ := SP_StackPtr^.Val;
+    SP_AngleToRad(rZ);
     Dec(SP_StackPtr);
-
-    If MathMode = 1 Then Begin
-      rX := rX * drad;
-      rY := rY * drad;
-      rZ := rZ * drad;
-    End;
-
   End Else Begin
     rX := 0;
     rY := 0;
@@ -23253,10 +23220,8 @@ Begin
   Dist := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
-  If MATHMODE = 1 Then
-    Hdg := DegToRad(DRHEADING)
-  Else
-    Hdg := DRHEADING;
+  Hdg := DRHEADING;
+  SP_AngleToRad(Hdg);
 
   tBool := WINORIGIN;
   WINORIGIN := False;
@@ -25067,6 +25032,8 @@ Initialization
   InterpretProcs[SP_KW_SCRCOPY] := @SP_Interpret_SCRCOPY;
   InterpretProcs[SP_KW_DEGREES] := @SP_Interpret_DEGREES;
   InterpretProcs[SP_KW_RADIANS] := @SP_Interpret_RADIANS;
+  InterpretProcs[SP_KW_TURNS] := @SP_Interpret_TURNS;
+  InterpretProcs[SP_KW_GRADIANS] := @SP_Interpret_GRADIANS;
   InterpretProcs[SP_KW_RECOVER] := @SP_Interpret_RECOVER;
   InterpretProcs[SP_KW_FONT] := @SP_Interpret_FONT;
   InterpretProcs[SP_KW_FONT_NEW] := @SP_Interpret_FONT_NEW;

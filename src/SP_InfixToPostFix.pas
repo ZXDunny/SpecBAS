@@ -125,6 +125,8 @@ Function  SP_Convert_RECTANGLE(Var KeyWordID: LongWord; Var Tokens: aString; Var
 Function  SP_Convert_POLYGON(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_DEGREES(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_RADIANS(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_TURNS(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_GRADIANS(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_RECOVER(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_FONT(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_BANK(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -592,6 +594,8 @@ Begin
     SP_KW_POLYGON: Result := Result + SP_Convert_POLYGON(KeyWordID, Tokens, Position, Error);
     SP_KW_DEGREES: Result := Result + SP_Convert_DEGREES(Tokens, Position, Error);
     SP_KW_RADIANS: Result := Result + SP_Convert_RADIANS(Tokens, Position, Error);
+    SP_KW_TURNS: Result := Result + SP_Convert_TURNS(Tokens, Position, Error);
+    SP_KW_GRADIANS: Result := Result + SP_Convert_GRADIANS(Tokens, Position, Error);
     SP_KW_RECOVER: Result := Result + SP_Convert_RECOVER(Tokens, Position, Error);
     SP_KW_FONT: Result := Result + SP_Convert_FONT(KeyWordID, Tokens, Position, Error);
     SP_KW_BANK: Result := Result + SP_Convert_BANK(KeyWordID, Tokens, Position, Error);
@@ -10688,6 +10692,24 @@ Function SP_Convert_RADIANS(Var Tokens: aString; Var Position: Integer; Var Erro
 Begin
 
   // RADIANS (no params)
+
+  Result := '';
+
+End;
+
+Function SP_Convert_TURNS(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Begin
+
+  // TURNS (no params)
+
+  Result := '';
+
+End;
+
+Function SP_Convert_GRADIANS(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Begin
+
+  // GRADIANS (no params)
 
   Result := '';
 

@@ -46,6 +46,8 @@ Type
     x, y, w, h: Word;
   End;
 
+Procedure SP_RadToAngle(var Angle: aFloat); inline;
+Procedure SP_AngleToRad(var Angle: aFloat); inline;
 Procedure SP_InitialGfxSetup(W, H: Integer; IsNEW: Boolean);
 Procedure SP_CreateSystemUDGs(ID: Integer);
 Procedure SP_WaitForSync;
@@ -2609,6 +2611,43 @@ Begin
 
 End;
 
+Procedure SP_RadToAngle(var Angle: aFloat);
+Begin
+
+  If MathMode = 0 Then
+
+    Exit
+
+  Else
+
+    Case MathMode of
+
+      1: Angle := RadToDeg(Angle);    // Radians to degrees
+      2: Angle := Angle / (PI * 2);   // Radians to turns
+      3: Angle := Angle / (PI / 200); // Radians to Gradians
+
+    End;
+
+End;
+
+Procedure SP_AngleToRad(var Angle: aFloat);
+Begin
+
+  If MathMode = 0 Then
+
+    Exit
+
+  Else
+
+    Case MathMode of
+
+      1: Angle := DegToRad(Angle);    // Degrees to radians
+      2: Angle := Angle * PI * 2;     // Turns to radians
+      3: Angle := Angle * (PI / 200); // Gradians to radians
+
+    End;
+
+End;
 
 Procedure SP_DrawSpeccyCurve(X, Y, Angle: aFloat);
 Var
@@ -2616,8 +2655,7 @@ Var
   NumArcs: Integer;
 Begin
 
-  If MathMode = 1 Then Angle := DegToRad(Angle);
-
+  SP_AngleToRad(Angle);
   Z := Abs((Abs(X)+Abs(Y))/Sin(Angle/2));
   If (Round(Sin(Angle/2)*10000000) = 0) or (Z < 1) Then
     SP_DrawLine(X, Y)

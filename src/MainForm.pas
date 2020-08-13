@@ -239,7 +239,7 @@ Begin
     SP_RestoreMouseRegion;
     If (Not SCREENLOCK) or UPDATENOW Then Begin
       If SCMAXX >= SCMINX Then Begin
-        While SetDR Do Sleep(0); SetDR := True;
+        While SetDR Do Sleep(1); SetDR := True;
         X1 := SCMINX; Y1 := SCMINY; X2 := SCMAXX +1; Y2 := SCMAXY +1;
         {$IFDEF OPENGL}
         // IMPORTANT: Ensure that the region to display doesn't step outside the boundaries of the texture
@@ -1329,7 +1329,10 @@ End;
 Procedure YieldProc; inline;
 Begin
 
-  TThread.Sleep(1);
+  If SystemState in [SS_INTERPRET, SS_DIRECT] Then
+    TThread.Sleep(0)
+  Else
+    TThread.Sleep(1);
   LASTINKEYFRAME := FRAMES;
 
 End;

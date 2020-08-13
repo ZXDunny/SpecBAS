@@ -77,7 +77,7 @@ Const
   // List of keywords that are used in statements.
   // MUST Be in this order - add new commands to the end of the list.
 
-  SP_KEYWORDS_EXTRA: Array[0..238] of aString =
+  SP_KEYWORDS_EXTRA: Array[0..240] of aString =
     ('SPECTRUM ', 'PLAY ', 'AT ', 'TAB ', 'LINE ', ' THEN ', ' TO ', ' STEP ',
      'DEF ', 'CAT ', ' FORMAT ', 'MOVE ', 'ERASE ', 'OPEN ', 'CLOSE ', 'MERGE ', 'BEEP ',
      'CIRCLE ', 'INK ', 'PAPER ', 'INVERSE ', 'OUT ', 'STOP ', 'READ ', ' DATA ',
@@ -106,7 +106,7 @@ Const
      'COLLIDE ', 'WRAP ', 'ZONE ', 'USING ', 'SPLIT ', ' BPP ', ' ALPHA ', ' DEPTH ', 'UNDIM ',
      'BOLD ', 'ITALIC ', 'FILTER ', 'INSERT ', 'MENUITEM ', 'MEMWRT ', 'MEMWRTD ', 'MEMWRTQ ',
      'MEMWRT$ ', 'REPEAT', 'PARTICLE ', 'FRICTION ', 'GRAVITY ', 'FORCE ', 'INSTALL', 'MEMWRTF ',
-     'PRESS');
+     'PRESS', 'TURNS', 'GRADIANS');
 
   // Constants used to quickly identify keywords when in token form. Each keyword listed
   // above has a corresponding constant, which must be SP_KEYWORD_BASE + (Index of Keyword above).
@@ -352,6 +352,8 @@ Const
   SP_KW_INSTALL             = 1236;
   SP_KW_MEMWRITEF           = 1237;
   SP_KW_PRESS               = 1238;
+  SP_KW_TURNS               = 1239;
+  SP_KW_GRADIANS            = 1240;
 
   // These are meta-commands; they do not appear in listings, and are used during
   // execution only, having been inserted by the pre-processor.

@@ -158,8 +158,6 @@ Begin
     AddItem('Breakpoints');
     AddItem('Labels');
     AddItem('Procedures/Functions');
-    AddItem('Disassembly');
-    AddItem('Program Map');
     CanFocus := False;
     FPDebugPanel.SetBounds(Left, Top + Height + BSize, Width, FPPaperHeight - (Height + BSize));
     FPDebugPanel.BackgroundClr := debugPanel;
@@ -642,6 +640,8 @@ var
   i, j, p, l: Integer;
   Error: TSP_ErrorCode;
 Begin
+
+  PanelSelect(Sender, Index);
 
   If Index < 0 Then Exit;
   Index := Integer(FPDebugPanel.Objects[Index]);

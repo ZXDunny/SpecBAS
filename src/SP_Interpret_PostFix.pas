@@ -139,6 +139,7 @@ Procedure SP_SetHandler(Var Token: pToken; Var StrPtr: pByte);
 Procedure SP_AddHandlers(Var Tokens: aString);
 Procedure SP_AddWatch(Index: Integer; Expr: aString);
 Procedure SP_DeleteWatch(Index: Integer);
+Function  SP_BreakPointExists(Line, Statement: Integer): Boolean;
 Procedure SP_AddSourceBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integer; Condition: aString);
 Procedure SP_AddConditionalBreakpoint(BpIndex, Passes: Integer; Condition: aString; IsData: Boolean);
 Procedure SP_MakeListVarOutput(Var List: TAnsiStringlist);
@@ -583,6 +584,8 @@ Procedure SP_Interpret_SETDIR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PAL_LOAD(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PAL_SAVE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PAL_DEFAULT(Var Info: pSP_iInfo);
+Procedure SP_Interpret_PAL_EGA(Var Info: pSP_iInfo);
+Procedure SP_Interpret_PAL_CGA(Var Info: pSP_iInfo);
 Procedure SP_Interpret_EXECUTE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ROTATE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ROTATETO(Var Info: pSP_iInfo);
@@ -1051,6 +1054,19 @@ Begin
     SP_WatchList[i] := SP_WatchList[i +1];
   SetLength(SP_WatchList, l -1);
 
+End;
+
+Function  SP_BreakPointExists(Line, Statement: Integer): Boolean;
+Var
+  l, i: Integer;
+Begin
+  Result := False;
+  l := Length(SP_SourceBreakPointList);
+  For i := 0 To l -1 Do
+    If (SP_SourceBreakPointList[i].Line = Line) And (SP_SourceBreakPointList[i].Statement = Statement) Then Begin
+      Result := True;
+      Break;
+    End;
 End;
 
 Procedure SP_AddSourceBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integer; Condition: aString);
@@ -12132,7 +12148,7 @@ End;
 Procedure SP_Interpret_READ(Var Info: pSP_iInfo);
 Begin
 
-  If (SP_DATA_Line.Line = -1) or (SP_DATA_Tokens^ = '') Then Begin
+  If (SP_DATA_Line.Line = -1) or (Length(SP_DATA_Tokens^) = 0) Then Begin
 
     Info^.Error^.Code := SP_ERR_OUT_OF_DATA;
     Exit;
@@ -14715,6 +14731,30 @@ Begin
     Palette[Idx].B := (Idx - 224)*8;
     Inc(Idx);
   End;
+  SP_SetPalette(0, Palette);
+
+End;
+
+Procedure SP_Interpret_PAL_EGA(Var Info: pSP_iInfo);
+Var
+  Idx: Integer;
+  Palette: Array[0..255] of TP_Colour;
+Begin
+
+  For Idx := 0 To 63 Do
+    Palette[Idx] := EGAPalette[Idx];
+  SP_SetPalette(0, Palette);
+
+End;
+
+Procedure SP_Interpret_PAL_CGA(Var Info: pSP_iInfo);
+Var
+  Idx: Integer;
+  Palette: Array[0..255] of TP_Colour;
+Begin
+
+  For Idx := 0 To 15 Do
+    Palette[Idx] := CGAPalette[Idx];
   SP_SetPalette(0, Palette);
 
 End;
@@ -25056,6 +25096,8 @@ Initialization
   InterpretProcs[SP_KW_PAL_LOAD] := @SP_Interpret_PAL_LOAD;
   InterpretProcs[SP_KW_PAL_SAVE] := @SP_Interpret_PAL_SAVE;
   InterpretProcs[SP_KW_PAL_DEFAULT] := @SP_Interpret_PAL_DEFAULT;
+  InterpretProcs[SP_KW_PAL_EGA] := @SP_Interpret_PAL_EGA;
+  InterpretProcs[SP_KW_PAL_CGA] := @SP_Interpret_PAL_CGA;
   InterpretProcs[SP_KW_EXECUTE] := @SP_Interpret_EXECUTE;
   InterpretProcs[SP_KW_ROTATE] := @SP_Interpret_ROTATE;
   InterpretProcs[SP_KW_ROTATETO] := @SP_Interpret_ROTATETO;

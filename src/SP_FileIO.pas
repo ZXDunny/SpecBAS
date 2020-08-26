@@ -1408,6 +1408,7 @@ Finish:
       End;
       If SP_Program_Count > 0 Then
         SP_SysVars.PROGLINE := SP_GetFPLineNumber(0);
+      SP_RESTORE;
     End;
 
   End Else Begin

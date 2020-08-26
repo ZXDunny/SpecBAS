@@ -85,6 +85,9 @@ Const
   tkNumeric       = 3;
   tkText          = 4;
 
+  Bw              = 8;
+  Bh              = 8;
+
 Var
 
   DefaultWindow: Integer;
@@ -308,20 +311,21 @@ Begin
 
   w := 35 * FW; h := DISPLAYHEIGHT - (DISPLAYHEIGHT Div 8);
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
+  Dec(w, 2); // Account for the 1 pixel black border
   SP_GetWindowDetails(FDWindowID, Win, Error);
   SP_SetDrawingWindow(FDWindowID);
 
   // Add controls - parent button, path, file list, filename, ok, cancel
 
   pBtn := SP_Button.Create(Win^.Component);
-  pBtn.SetBounds(7, FPFh + 8, Fw + 4, Fh + 4);
+  pBtn.SetBounds(Bw + 1, FPCaptionHeight + Bh, Fw + 4, Fh + 4);
   pBtn.OverrideScaling := True;
   pBtn.Caption := #251;
   pBtn.CentreCaption;
   pBtn.Enabled := True;
 
   PathEdt := SP_Edit.Create(Win^.Component);
-  PathEdt.SetBounds(pBtn.Left + pBtn.Width + 6, pBtn.Top, w - pBtn.Width - 20, Fh);
+  PathEdt.SetBounds(pBtn.Left + pBtn.Width + Bw, pBtn.Top, w - pBtn.Width - (Bw * 3), Fh);
   If PackageIsOpen Then
     Str := SP_GetPackageDir
   Else Begin
@@ -336,18 +340,18 @@ Begin
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(w - (cw + 7), h - (FH + 11), cw, FH + 4);
+  caBtn.SetBounds(w - (cw + Bw), h - (FH + 4) - Bh -1, cw, FH + 4);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
   okBtn := SP_Button.Create(Win^.Component);
   okBtn.Caption := 'Okay';
   cw := Fw * (Length(OkBtn.Caption) + 2);
-  okBtn.SetBounds(caBtn.Left - (cw + 6), caBtn.Top, cw, FH + 4);
+  okBtn.SetBounds(caBtn.Left - (cw + Bw), caBtn.Top, cw, FH + 4);
   okBtn.CentreCaption;
 
   FilenameEdt := SP_Edit.Create(Win^.Component);
-  FilenameEdt.SetBounds(pBtn.Left, okBtn.Top - (Fh + 10), w - 14, Fh);
+  FilenameEdt.SetBounds(pBtn.Left, okBtn.Top - (Fh + Bh), pBtn.Width + Bw + PathEdt.Width, Fh);
   If SP_FileExists(Filename) Then
     FilenameEdt.Text := SP_ExtractFileName(Filename)
   Else
@@ -355,7 +359,7 @@ Begin
   okBtn.Enabled := SP_FileExists(Filename) or (ToolMode = 2);
 
   FilesList := SP_FileListBox.Create(Win^.Component);
-  FilesList.SetBounds(FilenameEdt.Left + 2, pBtn.Top + pBtn.Height + 8, FilenameEdt.Width -4, FilenameEdt.Top - PathEdt.Top - FileNameEdt.Height - 16);
+  FilesList.SetBounds(FilenameEdt.Left, pBtn.Top + pBtn.Height + Bh, FilenameEdt.Width, FilenameEdt.Top - PathEdt.Top - FileNameEdt.Height - (Bh * 2));
   FilesList.Directory := PathEdt.Text;
   FilesList.Transparent := False;
   FilesList.Find(SP_ExtractFilename(Filename));
@@ -404,7 +408,7 @@ End;
 
 Function SP_FindReplace.Open(Mode: Boolean): Integer;
 Var
-  Font, FW, FH, w, h, Idx, tp, bw, bh, cw, OldFocus: Integer;
+  Font, FW, FH, w, h, Idx, tp, cw, OldFocus: Integer;
   Caption: aString;
   Win: pSP_Window_Info;
   Error: TSP_ErrorCode;
@@ -427,9 +431,9 @@ Begin
   FindMode := Mode;
   If FindMode Then Caption := 'Find...' else Caption := 'Replace...';
 
-  bw := BSize Div 2; bh := BSize Div 2;
   w := 35 * FW; h := FPFh + 21 + (10 * FH) + (Ord(Not FindMode) * (bh + FH)) + (5 * bh);
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
+  Dec(w, 1); // Account for the one-pixel border around the window when placing items
   SP_GetWindowDetails(FDWindowID, Win, Error);
   SP_SetDrawingWindow(FDWindowID);
 
@@ -440,23 +444,24 @@ Begin
 
   If FindMode Then Begin
     searchLbl.Caption := 'Find:';
-    searchLbl.SetBounds(7 + BSize, FPFh + 10, FW * Length(searchLbl.Caption), FH);
+    searchLbl.SetBounds(Bw +1, FPCaptionHeight + 2 + Bh, FW * Length(searchLbl.Caption), FH);
     searchLbl.TextJustify := 1;
     searchEdt.AddStrings(SearchHistory);
     searchEdt.BackgroundClr := SP_UIBackground;
-    searchEdt.SetBounds(searchLbl.Left + searchLbl.Width + bw, searchLbl.Top -2, w - (searchLbl.Left + searchLbl.Width + bw) - bw - BSize, searchLbl.Height);
+    searchEdt.SetBounds(searchLbl.Left + searchLbl.Width + bw, searchLbl.Top -2, w - (searchLbl.Left + searchLbl.Width + (bw * 2)) +1, searchLbl.Height);
     searchEdt.Editable := True;
     tp := searchEdt.Top + searchEdt.Height + bh;
   End Else Begin
     searchLbl.Caption := 'Replace:';
-    searchLbl.SetBounds(7 + BSize, FPFh + 10, FW * Length(searchLbl.Caption), FH);
+    searchLbl.SetBounds(Bw +1, FPCaptionHeight + 2 + Bh, FW * Length(searchLbl.Caption), FH);
     searchLbl.TextJustify := 1;
     replaceLbl := SP_Label.Create(Win^.Component);
     replaceLbl.Caption := 'With:';
     replaceLbl.SetBounds(7 + BSize, searchLbl.Top + searchLbl.Height + bh, FW * Length(searchLbl.Caption), FH);
     replaceLbl.TextJustify := 1;
     searchEdt.AddStrings(SearchHistory);
-    searchEdt.SetBounds(searchLbl.Left + searchLbl.Width + bw, searchLbl.Top -2, w - (searchLbl.Left + searchLbl.Width + bw) - bw - BSize, searchLbl.Height);
+    searchEdt.BackgroundClr := SP_UIBackground;
+    searchEdt.SetBounds(searchLbl.Left + searchLbl.Width + bw, searchLbl.Top -2, w - (searchLbl.Left + searchLbl.Width + (bw * 2)), searchLbl.Height);
     searchEdt.Editable := True;
     replaceEdt := SP_ComboBox.Create(Win^.Component);
     replaceEdt.AddStrings(ReplaceHistory);
@@ -472,13 +477,13 @@ Begin
   searchEdt.OnAbort := Abort;
 
   dirGroup := SP_RadioGroup.Create(Win^.Component);
-  dirGroup.SetBounds(bw + BSize, tp, (29 * bw) - BSize, FH * 5);
+  dirGroup.SetBounds(searchLbl.Left, tp, (14 * FW) - Bw, FH * 5);
   dirGroup.AddItem('Forward');
   dirGroup.AddItem('Backward');
   dirGroup.Caption := 'Direction';
 
   originGroup := SP_RadioGroup.Create(Win^.Component);
-  originGroup.SetBounds(dirGroup.Left + dirGroup.Width + bw, tp, (bw * 38) - BSize, FH * 5);
+  originGroup.SetBounds(dirGroup.Left + dirGroup.Width + bw, tp, (searchEdt.Left + searchEdt.Width) - (dirGroup.Width + dirGroup.Left + bW), FH * 5);
   originGroup.AddItem('Start of BASIC');
   originGroup.AddItem('Cursor pos');
   originGroup.Caption := 'Origin';
@@ -494,9 +499,9 @@ Begin
   expChk.Caption := 'Expression';
 
   caseChk.SetBounds(bw + BSize, dirGroup.Top + dirGroup.Height + bh, dirGroup.Width, FH + bh);
-  wholeChk.SetBounds(bw + BSize, caseChk.Top + caseChk.Height + bh, dirGroup.Width, FH + bh);
+  wholeChk.SetBounds(bw + BSize, caseChk.Top + caseChk.Height + 2, dirGroup.Width, FH + bh);
   inselChk.SetBounds(originGroup.Left, CaseChk.Top, originGroup.Width, FH + bh);
-  expChk.SetBounds(inselChk.Left, inSelChk.Top + inSelChk.Height + bh, inselChk.Width, FH + bh);
+  expChk.SetBounds(inselChk.Left, inSelChk.Top + inSelChk.Height + 2, inselChk.Width, FH + bh);
 
   // Fill options from search options record
 
@@ -516,10 +521,11 @@ Begin
   expChk.Checked := soExpression in FPSearchOptions;
   expChk.OnCheck := expChkChange;
 
+
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(w - (cw + BSize + Bh), h - (FH + 11 + Bh), cw, FH + 4);
+  caBtn.SetBounds(w - (cw + Bw), h - (FH + 4) - Bh -1, cw, FH + 4);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
@@ -705,7 +711,8 @@ Begin
     FW := FONTWIDTH;
   End;
 
-  w := (45 * FW) + (BSize * 2); h := (BSize * 3) + (FH + 2) + (FH + 4) + (FH + 4);
+  w := (45 * FW) + (Bh * 2);
+  h := ((FH + 4) * 2) + FPCaptionHeight + (Bh * 3);
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
   SP_GetWindowDetails(FDWindowID, Win, Error);
   SP_SetDrawingWindow(FDWindowID);
@@ -714,7 +721,7 @@ Begin
 
   LineEdt := SP_Edit.Create(Win^.Component);
   lineEdt.BackgroundClr := SP_UIBackground;
-  lineEdt.SetBounds(BSize, FPFh + 10, w - (BSize * 2), 0);
+  lineEdt.SetBounds(Bw +1, FPFh + 10, w - 1 - (Bh * 2), 0);
   lineEdt.Editable := True;
   lineEdt.OnAccept := Accept;
   lineEdt.OnAbort := Abort;
@@ -724,16 +731,15 @@ Begin
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(w - (cw + BSize), h - (FH + 11 + BSize), cw, FH + 11);
+  caBtn.SetBounds(w - (cw + Bw), h - (FH + 4) - Bh -1, cw, FH + 4);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
   okBtn := SP_Button.Create(Win^.Component);
   okBtn.Caption := 'Okay';
   cw := Fw * (Length(OkBtn.Caption) + 2);
-  okBtn.SetBounds(caBtn.Left - (cw + 6), caBtn.Top, cw, FH + 11);
+  okBtn.SetBounds(caBtn.Left - (cw + Bw), caBtn.Top, cw, FH + 4);
   okBtn.CentreCaption;
-  okBtn.Enabled := False;
 
   okBtn.OnClick := okBtnClick;
   caBtn.OnClick := caBtnClick;
@@ -895,8 +901,8 @@ begin
     FW := FONTWIDTH;
   End;
 
-  w := (45 * FW) + (BSize * 2) -2;
-  h := (BSize * 3) + (FH + 2) + ((FH + 4) * 4);
+  w := (45 * FW) + (Bh * 2) -2;
+  h := FPCaptionHeight + (4 * FH + 4) + (Bh * 6);
   Width := w; Height := h;
   Self.Caption := Caption;
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
@@ -907,11 +913,11 @@ begin
 
   lblType := SP_Label.Create(Win^.Component);
   lblType.Caption := 'Type';
-  lblType.SetBounds(7 + (10 * FW) + BSize, FPFh + 10, FW * Length(lblType.Caption), FH);
+  lblType.SetBounds(7 + (10 * FW) + Bw, FPCaptionHeight + Bh + 2, FW * Length(lblType.Caption), FH);
   lblType.TextJustify := 1;
 
   cmbType := SP_ComboBox.Create(Win^.Component);
-  cmbType.SetBounds(lblType.Left + lblType.Width + BSize, lblType.Top -2, 17 * FW, LblType.Height);
+  cmbType.SetBounds(lblType.Left + lblType.Width + Bh, lblType.Top -2, 17 * FW, LblType.Height);
   cmbType.AddItem('Source');
   cmbType.AddItem('Conditional');
   cmbType.AddItem('Data');
@@ -991,7 +997,8 @@ begin
     Case cmbType.ItemIndex of
       0: // Source breakpoint - remove the old one first!
         Begin
-          SP_AddSourceBreakpoint(False, Line, Statement, 0, '');
+          If SP_BreakPointExists(Line, Statement) Then
+            SP_AddSourceBreakpoint(False, Line, Statement, 0, '');
           SP_AddSourceBreakpoint(False, BpLine, BpSt, BpPasses, BpCondition);
         End;
       1: // Conditional breakpoint
@@ -1028,20 +1035,20 @@ Begin
   edtCondition.Visible := True;
   lblPassCount.Visible := True;
   edtPassCount.Visible := True;
-  y := lblType.Top + lblType.Height + BSize;
+  y := lblType.Top + lblType.Height + Bh;
 
   lblLine.Enabled := cmbType.ItemIndex = 0;
   edtLine.Enabled := lblLine.Enabled;
-  lblLine.SetBounds(7 + BSize, y + 2, Length(LblLine.Caption) * FW, FH);
-  edtLine.SetBounds(lblLine.Left + lblLine.Width + BSize, y, 10 * FW, FH);
-  Inc(y, FH + BSize);
-  Height := 160;
+  lblLine.SetBounds(7 + Bh, y + 2, Length(LblLine.Caption) * FW, FH);
+  edtLine.SetBounds(lblLine.Left + lblLine.Width + Bh, y, 10 * FW, FH);
+  Inc(y, FH + Bh);
+  Height := 108;
 
   edtCondition.SetBounds(edtLine.Left, y, 29 * FW, FH);
-  lblCondition.SetBounds(edtCondition.Left - BSize - (Length(lblCondition.Caption) * FW), y + 2, Length(lblCondition.Caption) * FW, FH);
-  Inc(y, FH + BSize);
+  lblCondition.SetBounds(edtCondition.Left - Bh - (Length(lblCondition.Caption) * FW), y + 2, Length(lblCondition.Caption) * FW, FH);
+  Inc(y, FH + Bh);
   edtPassCount.SetBounds(edtLine.Left, y, 7 * FW, FH);
-  lblPassCount.SetBounds(edtPassCount.Left - BSize - (Length(lblPassCount.Caption) * FW), y + 2, Length(lblPassCount.Caption) * FW, FH);
+  lblPassCount.SetBounds(edtPassCount.Left - Bh - (Length(lblPassCount.Caption) * FW), y + 2, Length(lblPassCount.Caption) * FW, FH);
   edtCondition.OnAccept := Accept;
   edtLine.OnAccept := Accept;
   edtPassCount.OnAccept := Accept;
@@ -1051,7 +1058,7 @@ Begin
   edtPassCount.OnAbort := Abort;
 
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(Width - (cw + BSize), Height - (FH + 4 + BSize), cw, FH + 4);
+  caBtn.SetBounds(Width - (cw + Bh), Height - (FH + 4 + Bh), cw, FH + 4);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 

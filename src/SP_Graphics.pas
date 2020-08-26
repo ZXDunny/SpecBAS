@@ -450,6 +450,98 @@ Const
     (B: $F0; G: $F0; R: $F0; A: $FF),
     (B: $F8; G: $F8; R: $F8; A: $FF));
 
+  EGAPalette: Array[0..63] of TP_Colour =
+   ((B: $00; G: $00; R: $00; A: $FF),
+    (B: $55; G: $00; R: $00; A: $FF),
+    (B: $00; G: $00; R: $55; A: $FF),
+    (B: $55; G: $00; R: $55; A: $FF),
+    (B: $00; G: $55; R: $00; A: $FF),
+    (B: $55; G: $55; R: $00; A: $FF),
+    (B: $00; G: $55; R: $55; A: $FF),
+    (B: $55; G: $55; R: $55; A: $FF),
+
+    (B: $AA; G: $00; R: $00; A: $FF),
+    (B: $FF; G: $00; R: $00; A: $FF),
+    (B: $AA; G: $00; R: $55; A: $FF),
+    (B: $FF; G: $00; R: $55; A: $FF),
+    (B: $AA; G: $55; R: $00; A: $FF),
+    (B: $FF; G: $55; R: $00; A: $FF),
+    (B: $AA; G: $55; R: $55; A: $FF),
+    (B: $FF; G: $55; R: $55; A: $FF),
+
+    (B: $00; G: $00; R: $AA; A: $FF),
+    (B: $55; G: $00; R: $AA; A: $FF),
+    (B: $00; G: $00; R: $FF; A: $FF),
+    (B: $55; G: $00; R: $FF; A: $FF),
+    (B: $00; G: $55; R: $AA; A: $FF),
+    (B: $55; G: $55; R: $AA; A: $FF),
+    (B: $00; G: $55; R: $FF; A: $FF),
+    (B: $55; G: $55; R: $FF; A: $FF),
+
+    (B: $AA; G: $00; R: $AA; A: $FF),
+    (B: $FF; G: $00; R: $AA; A: $FF),
+    (B: $AA; G: $00; R: $FF; A: $FF),
+    (B: $FF; G: $00; R: $FF; A: $FF),
+    (B: $AA; G: $55; R: $AA; A: $FF),
+    (B: $FF; G: $55; R: $AA; A: $FF),
+    (B: $AA; G: $55; R: $FF; A: $FF),
+    (B: $FF; G: $55; R: $FF; A: $FF),
+
+    (B: $00; G: $AA; R: $00; A: $FF),
+    (B: $55; G: $AA; R: $00; A: $FF),
+    (B: $00; G: $AA; R: $55; A: $FF),
+    (B: $55; G: $AA; R: $55; A: $FF),
+    (B: $00; G: $FF; R: $00; A: $FF),
+    (B: $55; G: $FF; R: $00; A: $FF),
+    (B: $00; G: $FF; R: $55; A: $FF),
+    (B: $55; G: $FF; R: $55; A: $FF),
+
+    (B: $AA; G: $AA; R: $00; A: $FF),
+    (B: $FF; G: $AA; R: $00; A: $FF),
+    (B: $AA; G: $AA; R: $55; A: $FF),
+    (B: $FF; G: $AA; R: $55; A: $FF),
+    (B: $AA; G: $FF; R: $00; A: $FF),
+    (B: $FF; G: $FF; R: $00; A: $FF),
+    (B: $AA; G: $FF; R: $55; A: $FF),
+    (B: $FF; G: $FF; R: $55; A: $FF),
+
+    (B: $00; G: $AA; R: $AA; A: $FF),
+    (B: $55; G: $AA; R: $AA; A: $FF),
+    (B: $00; G: $AA; R: $FF; A: $FF),
+    (B: $55; G: $AA; R: $FF; A: $FF),
+    (B: $00; G: $FF; R: $AA; A: $FF),
+    (B: $55; G: $FF; R: $AA; A: $FF),
+    (B: $00; G: $FF; R: $FF; A: $FF),
+    (B: $55; G: $FF; R: $FF; A: $FF),
+
+    (B: $AA; G: $AA; R: $AA; A: $FF),
+    (B: $FF; G: $AA; R: $AA; A: $FF),
+    (B: $AA; G: $AA; R: $FF; A: $FF),
+    (B: $FF; G: $AA; R: $FF; A: $FF),
+    (B: $AA; G: $FF; R: $AA; A: $FF),
+    (B: $FF; G: $FF; R: $AA; A: $FF),
+    (B: $AA; G: $FF; R: $FF; A: $FF),
+    (B: $FF; G: $FF; R: $FF; A: $FF));
+
+  CGAPalette: Array[0..15] of TP_Colour =
+   ((B: $00; G: $00; R: $00; A: $FF),
+    (B: $AA; G: $00; R: $00; A: $FF),
+    (B: $00; G: $AA; R: $00; A: $FF),
+    (B: $AA; G: $AA; R: $00; A: $FF),
+    (B: $00; G: $00; R: $AA; A: $FF),
+    (B: $AA; G: $00; R: $AA; A: $FF),
+    (B: $00; G: $55; R: $AA; A: $FF),
+    (B: $AA; G: $AA; R: $AA; A: $FF),
+
+    (B: $55; G: $55; R: $55; A: $FF),
+    (B: $FF; G: $55; R: $55; A: $FF),
+    (B: $55; G: $FF; R: $55; A: $FF),
+    (B: $FF; G: $FF; R: $55; A: $FF),
+    (B: $55; G: $55; R: $FF; A: $FF),
+    (B: $FF; G: $55; R: $FF; A: $FF),
+    (B: $55; G: $FF; R: $FF; A: $FF),
+    (B: $FF; G: $FF; R: $FF; A: $FF));
+
 implementation
 
 Uses SP_Main, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components;

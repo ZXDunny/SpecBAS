@@ -194,6 +194,7 @@ Procedure SP_FillStrArray(Var Idx: Integer; Value: aString);
 Function  SP_SliceString(const Str: aString; SliceFrom, SliceTo: Integer): aString;
 Procedure SP_SliceAssign(Var Dst: aString; const Src: aString; sFrom, sTo: Integer; Var Error: TSP_ErrorCode); inline;
 
+Procedure SP_RESTORE;
 Procedure SP_PreParse(ClearVars: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_FixStatementList(Var Tokens: aString; Position, Displacement: Integer);
 Procedure SP_TestConsts(Var Tokens: aString; lIdx: Integer; Var Error: TSP_ErrorCode; Preserve: Boolean);
@@ -2103,6 +2104,23 @@ Begin
             (KW = SP_KW_CURVE) or
             (KW = SP_KW_POLYGON) or
             (KW = SP_KW_MULTIPLOT);
+
+End;
+
+Procedure SP_RESTORE;
+Var
+  Info: TSP_iInfo;
+  pInfo: pSP_iInfo;
+  Error: TSP_ErrorCode;
+Begin
+
+  Error.Code := SP_ERR_NO_ERROR;
+  Info.Error := @Error;
+  pInfo := @Info;
+
+  SP_DATA_Line.Line := -1;
+
+  SP_Interpret_RESTORE(pInfo);
 
 End;
 

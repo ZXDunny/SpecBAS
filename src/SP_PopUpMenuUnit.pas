@@ -586,9 +586,9 @@ Begin
       fItems[i].SubMenu.Close;
   Visible := False;
   ForceCapture := False;
-  If Assigned(fParentMenu) Then
+  If Assigned(fParentMenu) Then Begin
     fParentMenu.SetFocus(True)
-  Else
+  End Else
     If Assigned(PrevFocusedControl) Then
       PrevFocusedControl.SetFocus(True);
 

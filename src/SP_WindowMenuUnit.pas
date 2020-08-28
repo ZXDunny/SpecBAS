@@ -43,6 +43,7 @@ SP_WindowMenu = Class(SP_BaseComponent)
     Property  Permanent: Boolean read fPermanent write SetPermanent;
     Property  AutoOpen: Boolean read fAutoOpen write fAutoOpen;
     Property  Count: Integer read GetCount;
+    Property  Activated: Boolean read fActivated write fActivated;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -396,6 +397,7 @@ Begin
     ForceCapture := False;
     CancelSelection;
     fActivated := False;
+    FocusedControl := nil;
     SetFocus(False);
     If cKeyRepeat <> -1 Then
       RemoveTimer(cKeyRepeat);

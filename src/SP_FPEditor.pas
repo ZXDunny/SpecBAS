@@ -3308,6 +3308,7 @@ Begin
       Else
         If FocusedWindow = fwDirect Then
           SP_DWPerformEdit(KeyInfo);
+      KeyInfo := nil;
     End;
 
     if QUITMSG then Exit;

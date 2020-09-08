@@ -7260,6 +7260,7 @@ Const
   stClrYellow = #14;
   stClrGreen = #12;
   stClrCyan = #5;
+  stClrBlue = #9;
 Begin
 
   SP_Interpreter_Ready := True;

@@ -47,7 +47,7 @@ Type
 
   paChar = ^aChar;
   paString = ^aString;
-  aFloat = Double;
+  aFloat = Extended;
   paFloat = ^aFloat;
 
 Function  ReadLinuxFile(Filename: aString): aString;

@@ -11184,7 +11184,6 @@ Begin
       Exit;
     End;
     KeyWordID := SP_KW_STREAM_CLOSE;
-    Result := Expr;
 
   End;
 

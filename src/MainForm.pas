@@ -24,7 +24,7 @@ unit MainForm;
 interface
 
 uses
-  SHFolder, Windows, Messages, SysUtils, Variants, System.Classes, Graphics, Controls, Forms, Math,
+  SHFolder, Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math,
   Dialogs, SP_SysVars, SP_Graphics, SP_Graphics32, SP_BankManager, SP_Util, SP_Main, SP_FileIO,
   ExtCtrls, SP_Input, MMSystem, SP_Errors, SP_Sound, Bass, SP_Tokenise, SP_Menu, PNGImage,
   GIFImg{$IFDEF OPENGL}, dglOpenGL{$ENDIF}, SP_Components, SP_BaseComponentUnit;
@@ -97,7 +97,6 @@ var
   BASThread: TSpecBAS_Thread;
   RefreshTimer: TRefreshThread;
   Quitting: Boolean = False;
-  OldTicks: LongWord = 0;
   InitTime: LongWord;
   ImgResource: Array of Byte;
   ThreadAlive: Boolean = False;
@@ -193,7 +192,7 @@ Begin
         CauseUpdate := False;
       End;
     End Else
-      TThread.Sleep(10);
+      TThread.Sleep(1);
 
     GetCursorPos(p);
     p := Main.ScreenToClient(p);
@@ -847,10 +846,6 @@ begin
   QueryPerformanceFrequency(TimerFreq);
   QueryPerformanceCounter(BaseTime);
 
-  OldTicks := GetTicks;
-
-  TIMERES := 1;
-  While TimeBeginPeriod(TIMERES) <> TIMERR_NOERROR Do Inc(TIMERES);
   InitTime := GetTicks;
 
   {$IFDEF DEBUG}
@@ -970,7 +965,6 @@ Var
 begin
 
   Quitting := True;
-  TimeEndPeriod(TIMERES);
   BASS_Free;
   If ParamCount <> 0 Then Begin
     SP_RmDirUnSafe('/temp', Error);
@@ -1329,10 +1323,7 @@ End;
 Procedure YieldProc; inline;
 Begin
 
-  If SystemState in [SS_INTERPRET, SS_DIRECT] Then
-    TThread.Sleep(0)
-  Else
-    TThread.Sleep(1);
+  TThread.Sleep(1);
   LASTINKEYFRAME := FRAMES;
 
 End;

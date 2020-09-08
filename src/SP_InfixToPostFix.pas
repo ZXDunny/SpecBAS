@@ -8414,39 +8414,40 @@ Begin
 
   If Byte(Tokens[Position]) = SP_NUMVAR Then Begin
     VarExpr := SP_Convert_Var_Assign(Tokens, Position, Error);
-    Token := @VarExpr[1];
-    If Token^.Token = SP_NUMVAR_LET Then Token^.Token := SP_NUMVAR;
-    If Error.Code <> SP_ERR_OK Then Exit;
-    If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position+1] = ',') Then Begin
-      Inc(Position, 2);
-      IncExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
-      If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-      If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
-        StartExpr := IncExpr;
-        IncExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(1);
-        Inc(Position, 1 + SizeOf(LongWord));
-        FinishExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+    If Error.Code = SP_ERR_OK Then Begin
+      Token := @VarExpr[1];
+      If Token^.Token = SP_NUMVAR_LET Then Token^.Token := SP_NUMVAR;
+      If Error.Code <> SP_ERR_OK Then Exit;
+      If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position+1] = ',') Then Begin
+        Inc(Position, 2);
+        IncExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
         If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-        Result := VarExpr + FinishExpr + StartExpr + IncExpr;
-        KeyWordID := SP_KW_INCRANGE;
-      End Else
-        If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position+1] = ',') Then Begin
-          Inc(Position, 2);
-          StartExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+          StartExpr := IncExpr;
+          IncExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(1);
+          Inc(Position, 1 + SizeOf(LongWord));
+          FinishExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
           If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
-            Inc(Position, 1 + SizeOf(LongWord));
-            FinishExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
-            If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-            Result := VarExpr + FinishExpr + StartExpr + IncExpr;
-            KeyWordID := SP_KW_INCRANGE;
-          End Else
-            Error.Code := SP_ERR_MISSING_TO;
+          Result := VarExpr + FinishExpr + StartExpr + IncExpr;
+          KeyWordID := SP_KW_INCRANGE;
         End Else
-          Result := VarExpr + IncExpr;
-    End Else
-      Result := VarExpr;
-
+          If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position+1] = ',') Then Begin
+            Inc(Position, 2);
+            StartExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+            If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
+            If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+              Inc(Position, 1 + SizeOf(LongWord));
+              FinishExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+              If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
+              Result := VarExpr + FinishExpr + StartExpr + IncExpr;
+              KeyWordID := SP_KW_INCRANGE;
+            End Else
+              Error.Code := SP_ERR_MISSING_TO;
+          End Else
+            Result := VarExpr + IncExpr;
+      End Else
+        Result := VarExpr;
+    End;
   End Else
     Error.Code := SP_ERR_MISSING_VARIABLE;
 

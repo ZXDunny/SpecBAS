@@ -1639,8 +1639,8 @@ Begin
     Inc(SP_StackPtr);
     With SP_StackPtr^ Do Begin
       OpType := SP_NUMVAR;
-      Ptr := pLongWord(StrPtr);
-      Val := dLongWord(StrPtr);
+      Ptr := @Token^.Cache;
+      Val := Ptr^;
       Str := StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord));
     End;
   End;
@@ -1654,8 +1654,8 @@ Begin
     Inc(SP_StackPtr);
     With SP_StackPtr^ Do Begin
       OpType := SP_STRVAR;
-      Ptr := pLongWord(StrPtr);
-      Val := dLongWord(StrPtr);
+      Ptr := @Token^.Cache;
+      Val := Ptr^;
       Str := StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord));
       tPos := Token^.TokenPos;
     End;
@@ -3011,11 +3011,11 @@ Begin
   End Else Begin
 
     With Info^, SP_StackPtr^ Do Begin
-      Idx := Ptr^;
+      Idx := Trunc(Val);
       If Idx = 0 Then Begin
-        Idx := SP_IncNumVar(Ptr^, Str, n, Error^, Ptr);
+        Idx := SP_IncNumVar(Idx, Str, n, Error^, Ptr);
       End Else Begin
-        SP_IncNumVarIndex(Ptr^, n);
+        SP_IncNumVarIndex(Idx, n);
         Dec(Idx);
       End;
       SP_StackPtr^.OpType := SP_VALUE;

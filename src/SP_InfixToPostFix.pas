@@ -3243,27 +3243,30 @@ Begin
                           Inc(Position, 1 + SizeOf(LongWord));
                           If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
                             FnResult := SP_Convert_Var_Assign(Tokens, Position, Error) + FnResult;
-                            Tkn := @FnResult[1];
-                            If Tkn^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
-                              Dec(Tkn^.Token, 30)
-                            Else
-                              If Tkn^.Token = SP_STRUCT_MEMBER_ASS Then
-                                Error.Code := SP_ERR_STRUCT_NOT_REF;
-                            If Error.Code <> SP_ERR_OK Then Exit;
-                            Inc(ParamCount);
-                            If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
-                              Inc(Position);
-                              If Tokens[Position] = ')' Then Begin
+                            If Error.Code = SP_ERR_OK Then Begin
+                              Tkn := @FnResult[1];
+                              If Tkn^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
+                                Dec(Tkn^.Token, 30)
+                              Else
+                                If Tkn^.Token = SP_STRUCT_MEMBER_ASS Then
+                                  Error.Code := SP_ERR_STRUCT_NOT_REF;
+                              If Error.Code <> SP_ERR_OK Then Exit;
+                              Inc(ParamCount);
+                              If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
                                 Inc(Position);
-                                FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
-                                Break;
-                              End Else
-                                If Tokens[Position] <> ',' Then Begin
-                                  Error.Code := SP_ERR_SYNTAX_ERROR;
-                                  Exit;
-                                End;
-                              Inc(Position);
-                            End;
+                                If Tokens[Position] = ')' Then Begin
+                                  Inc(Position);
+                                  FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
+                                  Break;
+                                End Else
+                                  If Tokens[Position] <> ',' Then Begin
+                                    Error.Code := SP_ERR_SYNTAX_ERROR;
+                                    Exit;
+                                  End;
+                                Inc(Position);
+                              End;
+                            End Else
+                              Exit;
                           End Else Begin
                             Error.Code := SP_ERR_MISSING_VARIABLE;
                             Exit;
@@ -3281,27 +3284,30 @@ Begin
                         If (VarList <> '') And (VarList[ParamCount +1] = '!') Then Begin
                           If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
                             FnResult := SP_Convert_Var_Assign(Tokens, Position, Error) + FnResult;
-                            Tkn := @FnResult[1];
-                            If Tkn^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
-                              Dec(Tkn^.Token, 30)
-                            Else
-                              If Tkn^.Token = SP_STRUCT_MEMBER_ASS Then
-                                Error.Code := SP_ERR_STRUCT_NOT_REF;
-                            If Error.Code <> SP_ERR_OK Then Exit;
-                            Inc(ParamCount);
-                            If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
-                              Inc(Position);
-                              If Tokens[Position] = ')' Then Begin
+                            If Error.Code = SP_ERR_OK Then Begin
+                              Tkn := @FnResult[1];
+                              If Tkn^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
+                                Dec(Tkn^.Token, 30)
+                              Else
+                                If Tkn^.Token = SP_STRUCT_MEMBER_ASS Then
+                                  Error.Code := SP_ERR_STRUCT_NOT_REF;
+                              If Error.Code <> SP_ERR_OK Then Exit;
+                              Inc(ParamCount);
+                              If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
                                 Inc(Position);
-                                FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
-                                Break;
-                              End Else
-                                If Tokens[Position] <> ',' Then Begin
-                                  Error.Code := SP_ERR_SYNTAX_ERROR;
-                                  Exit;
-                                End;
-                              Inc(Position);
-                            End;
+                                If Tokens[Position] = ')' Then Begin
+                                  Inc(Position);
+                                  FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
+                                  Break;
+                                End Else
+                                  If Tokens[Position] <> ',' Then Begin
+                                    Error.Code := SP_ERR_SYNTAX_ERROR;
+                                    Exit;
+                                  End;
+                                Inc(Position);
+                              End;
+                            End Else
+                              Exit;
                           End Else Begin
                             Error.Code := SP_ERR_MISSING_VARIABLE;
                             Exit;
@@ -5995,9 +6001,12 @@ Begin
                     Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + CreateToken(SP_Symbol, Psn, 1) + '~';
                     Position := Psn;
                     VarExpr := SP_Convert_Var_Assign(Tokens, Position, Error);
-                    Expr := Expr + VarExpr;
-                    Expr := CreateToken(SP_STRING, Psn, Length(Expr)) + Expr;
-                    Expr := CreateToken(SP_STRING, Psn, Length(VarExpr)) + VarExpr + Expr;
+                    If Error.Code = SP_ERR_OK Then Begin
+                      Expr := Expr + VarExpr;
+                      Expr := CreateToken(SP_STRING, Psn, Length(Expr)) + Expr;
+                      Expr := CreateToken(SP_STRING, Psn, Length(VarExpr)) + VarExpr + Expr;
+                    End Else
+                      Exit;
                   End Else Begin
                     Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
                     If Error.Code <> SP_ERR_OK Then
@@ -6942,32 +6951,21 @@ Begin
     KeyWordID := SP_KW_FOR;
 
     VarExpr := SP_Convert_Var_Assign(Tokens, Position, Error);
-    Token := @VarExpr[1];
-    If Token^.Token = SP_NUMVAR_LET Then Token^.Token := SP_NUMVAR;
-    If Error.Code <> SP_ERR_OK Then
-      Exit
-    Else
-      If Byte(VarExpr[Length(VarExpr) - (SizeOf(LongWord)+1) - SizeOf(TToken) +1]) = SP_ARRAY_ASSIGN Then Begin
-        Error.Code := SP_ERR_SYNTAX_ERROR;
-        Exit;
-      End;
-
-    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '=') Then Begin
-
-      Inc(Position, 2);
-      ExprFrom := SP_Convert_Expr(Tokens, Position, Error, -1);
+    If Error.Code = SP_ERR_OK Then Begin
+      Token := @VarExpr[1];
+      If Token^.Token = SP_NUMVAR_LET Then Token^.Token := SP_NUMVAR;
       If Error.Code <> SP_ERR_OK Then
         Exit
       Else
-        If Error.ReturnType <> SP_VALUE Then Begin
-          Error.Code := SP_ERR_MISSING_NUMEXPR;
+        If Byte(VarExpr[Length(VarExpr) - (SizeOf(LongWord)+1) - SizeOf(TToken) +1]) = SP_ARRAY_ASSIGN Then Begin
+          Error.Code := SP_ERR_SYNTAX_ERROR;
           Exit;
         End;
 
-      If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '=') Then Begin
 
-        Inc(Position, SizeOf(LongWord) + 1);
-        ExprTo := SP_Convert_Expr(Tokens, Position, Error, -1);
+        Inc(Position, 2);
+        ExprFrom := SP_Convert_Expr(Tokens, Position, Error, -1);
         If Error.Code <> SP_ERR_OK Then
           Exit
         Else
@@ -6976,9 +6974,10 @@ Begin
             Exit;
           End;
 
-        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_STEP) Then Begin
-          Inc(Position, SizeOf(LongWord) +1);
-          ExprStep := SP_Convert_Expr(Tokens, Position, Error, -1);
+        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+
+          Inc(Position, SizeOf(LongWord) + 1);
+          ExprTo := SP_Convert_Expr(Tokens, Position, Error, -1);
           If Error.Code <> SP_ERR_OK Then
             Exit
           Else
@@ -6986,21 +6985,34 @@ Begin
               Error.Code := SP_ERR_MISSING_NUMEXPR;
               Exit;
             End;
+
+          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_STEP) Then Begin
+            Inc(Position, SizeOf(LongWord) +1);
+            ExprStep := SP_Convert_Expr(Tokens, Position, Error, -1);
+            If Error.Code <> SP_ERR_OK Then
+              Exit
+            Else
+              If Error.ReturnType <> SP_VALUE Then Begin
+                Error.Code := SP_ERR_MISSING_NUMEXPR;
+                Exit;
+              End;
+          End Else
+            ExprStep := '';
+
+          If ExprStep <> '' Then
+            Result := ExprStep + ExprTo + ExprFrom
+          Else
+            Result := ExprTo + ExprFrom;
+
+          Result := VarExpr + Result;
+
         End Else
-          ExprStep := '';
-
-        If ExprStep <> '' Then
-          Result := ExprStep + ExprTo + ExprFrom
-        Else
-          Result := ExprTo + ExprFrom;
-
-        Result := VarExpr + Result;
+          Error.Code := SP_ERR_MISSING_TO;
 
       End Else
-        Error.Code := SP_ERR_MISSING_TO;
-
+        Error.Code := SP_ERR_MISSING_EQU;
     End Else
-      Error.Code := SP_ERR_MISSING_EQU;
+      Exit;
 
   End Else
 
@@ -7168,14 +7180,16 @@ Begin
   If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
 
     Result := SP_Convert_Var_Assign(Tokens, Position, Error);
-    Token := @Result[1];
-    Case Token^.Token of
-      SP_NUMVAR_LET:
-        Token^.Token := SP_NUMVAR;
-      SP_STRVAR_LET:
-        Token^.Token := SP_STRVAR;
-      SP_STRUCT_MEMBER_ASS:
-        Error.Code := SP_ERR_INVALID_EACH_VAR;
+    If Error.Code = SP_ERR_OK Then Begin
+      Token := @Result[1];
+      Case Token^.Token of
+        SP_NUMVAR_LET:
+          Token^.Token := SP_NUMVAR;
+        SP_STRVAR_LET:
+          Token^.Token := SP_STRVAR;
+        SP_STRUCT_MEMBER_ASS:
+          Error.Code := SP_ERR_INVALID_EACH_VAR;
+      End;
     End;
     If Error.Code <> SP_ERR_OK Then
       Exit
@@ -8469,39 +8483,40 @@ Begin
 
   If Byte(Tokens[Position]) = SP_NUMVAR Then Begin
     VarExpr := SP_Convert_Var_Assign(Tokens, Position, Error);
-    Token := @VarExpr[1];
-    If Token^.Token = SP_NUMVAR_LET Then Token^.Token := SP_NUMVAR;
-    If Error.Code <> SP_ERR_OK Then Exit;
-    If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position+1] = ',') Then Begin
-      Inc(Position, 2);
-      DecExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
-      If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-      If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
-        StartExpr := DecExpr;
-        DecExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(1);
-        Inc(Position, 1 + SizeOf(LongWord));
-        FinishExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+    If Error.Code = SP_ERR_OK Then Begin
+      Token := @VarExpr[1];
+      If Token^.Token = SP_NUMVAR_LET Then Token^.Token := SP_NUMVAR;
+      If Error.Code <> SP_ERR_OK Then Exit;
+      If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position+1] = ',') Then Begin
+        Inc(Position, 2);
+        DecExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
         If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-        Result := VarExpr + FinishExpr + StartExpr + DecExpr;
-        KeyWordID := SP_KW_DECRANGE;
-      End Else
-        If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position+1] = ',') Then Begin
-          Inc(Position, 2);
-          StartExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+          StartExpr := DecExpr;
+          DecExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(1);
+          Inc(Position, 1 + SizeOf(LongWord));
+          FinishExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
           If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
-            Inc(Position, 1 + SizeOf(LongWord));
-            FinishExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
-            If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-            Result := VarExpr + FinishExpr + StartExpr + DecExpr;
-            KeyWordID := SP_KW_DECRANGE;
-          End Else
-            Error.Code := SP_ERR_MISSING_TO;
+          Result := VarExpr + FinishExpr + StartExpr + DecExpr;
+          KeyWordID := SP_KW_DECRANGE;
         End Else
-          Result := VarExpr + DecExpr;
-    End Else
-      Result := VarExpr;
-
+          If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position+1] = ',') Then Begin
+            Inc(Position, 2);
+            StartExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+            If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
+            If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+              Inc(Position, 1 + SizeOf(LongWord));
+              FinishExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+              If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
+              Result := VarExpr + FinishExpr + StartExpr + DecExpr;
+              KeyWordID := SP_KW_DECRANGE;
+            End Else
+              Error.Code := SP_ERR_MISSING_TO;
+          End Else
+            Result := VarExpr + DecExpr;
+      End Else
+        Result := VarExpr;
+    End;
   End Else
     Error.Code := SP_ERR_MISSING_VARIABLE;
 
@@ -11896,28 +11911,31 @@ Begin
             If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
 
               Result := SP_Convert_Var_Assign(Tokens, Position, Error) + Result;
-              Token := @Result[1];
-              If Token^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
-                Dec(Token^.Token, 30)
-              Else
-                If Token^.Token = SP_STRUCT_MEMBER_ASS Then
-                  Error.Code := SP_ERR_STRUCT_NOT_REF;
-              If Error.Code <> SP_ERR_OK Then Exit;
-              Inc(NumParams);
+              If Error.Code = SP_ERR_OK Then Begin
+                Token := @Result[1];
+                If Token^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
+                  Dec(Token^.Token, 30)
+                Else
+                  If Token^.Token = SP_STRUCT_MEMBER_ASS Then
+                    Error.Code := SP_ERR_STRUCT_NOT_REF;
+                If Error.Code <> SP_ERR_OK Then Exit;
+                Inc(NumParams);
 
-              If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
-                Inc(Position);
-                If Tokens[Position] = ')' Then Begin
+                If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
                   Inc(Position);
-                  Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(NumParams);
-                  Exit;
-                End Else
-                  If Tokens[Position] <> ',' Then Begin
-                    Error.Code := SP_ERR_SYNTAX_ERROR;
+                  If Tokens[Position] = ')' Then Begin
+                    Inc(Position);
+                    Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(NumParams);
                     Exit;
-                  End;
-                Inc(Position);
-              End;
+                  End Else
+                    If Tokens[Position] <> ',' Then Begin
+                      Error.Code := SP_ERR_SYNTAX_ERROR;
+                      Exit;
+                    End;
+                  Inc(Position);
+                End;
+              End Else
+                Exit;
 
             End Else Begin
               Error.Code := SP_ERR_MISSING_VARIABLE;
@@ -11939,29 +11957,31 @@ Begin
             If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
 
               Result := SP_Convert_Var_Assign(Tokens, Position, Error) + Result;
-              Token := @Result[1];
-              If Token^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
-                Dec(Token^.Token, 30)
-              Else
-                If Token^.Token = SP_STRUCT_MEMBER_ASS Then
-                  Error.Code := SP_ERR_STRUCT_NOT_REF;
-              If Error.Code <> SP_ERR_OK Then Exit;
-              Inc(NumParams);
+              If Error.Code = SP_ERR_OK Then Begin
+                Token := @Result[1];
+                If Token^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
+                  Dec(Token^.Token, 30)
+                Else
+                  If Token^.Token = SP_STRUCT_MEMBER_ASS Then
+                    Error.Code := SP_ERR_STRUCT_NOT_REF;
+                If Error.Code <> SP_ERR_OK Then Exit;
+                Inc(NumParams);
 
-              If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
-                Inc(Position);
-                If Tokens[Position] = ')' Then Begin
+                If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
                   Inc(Position);
-                  Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(NumParams);
-                  Exit;
-                End Else
-                  If Tokens[Position] <> ',' Then Begin
-                    Error.Code := SP_ERR_SYNTAX_ERROR;
+                  If Tokens[Position] = ')' Then Begin
+                    Inc(Position);
+                    Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(NumParams);
                     Exit;
-                  End;
-                Inc(Position);
-              End;
-
+                  End Else
+                    If Tokens[Position] <> ',' Then Begin
+                      Error.Code := SP_ERR_SYNTAX_ERROR;
+                      Exit;
+                    End;
+                  Inc(Position);
+                End;
+              End Else
+                Exit;
             End Else Begin
               Error.Code := SP_ERR_MISSING_VARIABLE;
               Exit;
@@ -13651,8 +13671,11 @@ Begin
                   End;
                   Position := PosSave;
                   VarResult := SP_Convert_Var_Assign(Tokens, Position, Error);
-                  Result := Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_GFX_FLIP_STR) + VarResult;
-                  If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
+                  If Error.Code = SP_ERR_OK Then Begin
+                    Result := Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_GFX_FLIP_STR) + VarResult;
+                    If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
+                  End Else
+                    Exit;
                 End Else Begin
                   Result := SP_Convert_Expr(Tokens, Position, Error, -1); // ID
                   If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
@@ -13676,8 +13699,11 @@ Begin
                     End;
                     Position := PosSave;
                     VarResult := SP_Convert_Var_Assign(Tokens, Position, Error);
-                    Result := Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_GFX_MIRROR_STR) + VarResult;
-                    If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
+                    If Error.Code = SP_ERR_OK Then Begin
+                      Result := Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_GFX_MIRROR_STR) + VarResult;
+                      If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
+                    End Else
+                      Exit;
                   End Else Begin
                     Result := SP_Convert_Expr(Tokens, Position, Error, -1); // ID
                     If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
@@ -16351,9 +16377,12 @@ Begin
       Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + CreateToken(SP_SYMBOL, Psn, 1) + '~';
       Position := Psn;
       VarExpr := SP_Convert_Var_Assign(Tokens, Position, Error);
-      Expr := Expr + VarExpr;
-      Expr := CreateToken(SP_STRING, Psn, Length(Expr)) + Expr;
-      Expr := CreateToken(SP_STRING, Psn, Length(VarExpr)) + VarExpr + Expr;
+      If Error.Code = SP_ERR_OK Then Begin
+        Expr := Expr + VarExpr;
+        Expr := CreateToken(SP_STRING, Psn, Length(Expr)) + Expr;
+        Expr := CreateToken(SP_STRING, Psn, Length(VarExpr)) + VarExpr + Expr;
+      End Else
+        Exit;
     End Else Begin
       Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
       If Error.Code <> SP_ERR_OK Then

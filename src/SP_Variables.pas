@@ -123,6 +123,7 @@ Type
   End;
 
 Function  SP_FindNumVar(const Name: aString): Integer;
+Function  SP_FindNumVarLocalOnly(const Name: aString): Integer;
 Function  SP_FindGlobalNumVar(const Name: aString): Integer; inline;
 Function  SP_FindGlobalStrVar(const Name: aString): Integer; inline;
 Function  SP_FindStrVar(const Name: aString): Integer;
@@ -264,6 +265,26 @@ Begin
       Break;
     Dec(Result);
   End;
+
+End;
+
+Function SP_FindNumVarLocalOnly(const Name: aString): Integer;
+var
+  limit: LongWord;
+Begin
+
+  If SP_ProcStackPtr > -1 Then
+    limit := SP_ProcStack[SP_ProcStackPtr].VarPosN
+  Else
+    limit := 0;
+  Result := NumNV -1;
+  While Result >= limit Do Begin
+    If Name = NumVars[Result]^.Name Then
+      Break;
+    Dec(Result);
+  End;
+  If Result = limit -1 Then
+    Result := -1;
 
 End;
 
@@ -700,7 +721,7 @@ Function SP_UpdateFORVar(Idx: Integer; const Name: aString; Var Value, EndAt, St
 Begin
 
   If Idx = 0 Then Begin
-    Idx := SP_FindNumVar(Name);
+    Idx := SP_FindNumVarLocalOnly(Name);
     If Idx = -1 Then Begin
       Idx := SP_NewNumVar;
       NumVars[Idx]^.Name := Name;
@@ -2383,7 +2404,16 @@ Begin
         If ClearVars then Tkn^.Cache := 0;
         Inc(Idx2, SizeOf(TToken)); // Idx2 now points to content
         Case Tkn^.Token of
-          SP_NUMVAR, SP_NUMVAR_LET, SP_STRVAR, SP_STRVARPTR, SP_STRVAR_LET, SP_STRVAR_EVAL, SP_NUMVAR_EVAL,
+{          SP_NUMVAR:
+            Begin
+              If ClearVars Then Begin
+                pLongWord(@Tokens[Idx2])^ := 0;
+                Inc(Idx2, Tkn^.TokenLen);
+                Changed := True;
+              End Else
+                Inc(Idx2, Tkn^.TokenLen);
+            End;}
+          SP_NUMVAR_LET, SP_STRVAR, SP_STRVARPTR, SP_STRVAR_LET, SP_STRVAR_EVAL, SP_NUMVAR_EVAL,
           SP_POINTER, SP_NUMVAR_LET_VALID, SP_STRVAR_LET_VALID, SP_INCVAR, SP_DECVAR, SP_MULVAR, SP_DIVVAR,
           SP_POWVAR, SP_MODVAR, SP_ANDVAR, SP_ORVAR, SP_XORVAR:
             Begin
@@ -4571,7 +4601,7 @@ Begin
   If Idx = 0 Then Begin
     If Name[Length(Name)] <> '$' Then Begin
       StrVar := False;
-      Idx := SP_FindNumVar(Name);
+      Idx := SP_FindNumVarLocalOnly(Name);
       If Idx = -1 Then Begin
         Idx := SP_NewNumVar;
         NumVars[Idx]^.Name := Name;
@@ -4657,7 +4687,7 @@ Begin
   If Idx = 0 Then Begin
     If Name[Length(Name)] <> '$' Then Begin
       StrVar := False;
-      Idx := SP_FindNumVar(Name);
+      Idx := SP_FindNumVarLocalOnly(Name);
       If Idx = -1 Then Begin
         Idx := SP_NewNumVar;
         NumVars[Idx]^.Name := Name;

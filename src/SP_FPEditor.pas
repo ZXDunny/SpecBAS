@@ -2061,21 +2061,24 @@ Begin
     If AddedEndChars <> '' Then Begin
       CodeLine := Copy(CodeLine, 1, Length(CodeLine) - Length(AddedEndChars));
       i := 1; m := 1; l := Length(Codeline);
-      s := Lower(SynLine);
-      s2 := Lower(CodeLine);
-      While i < Length(SynLine) Do Begin
-        If s[i] < ' ' Then
-          Inc(i, 5)
-        Else
-          If s[i] = s2[m] Then Begin
-            Inc(i);
-            Inc(m);
-            If m > l Then
+      If l > 0 Then Begin
+        s := Lower(SynLine);
+        s2 := Lower(CodeLine);
+        While i < Length(SynLine) Do Begin
+          If s[i] < ' ' Then
+            Inc(i, 5)
+          Else
+            If s[i] = s2[m] Then Begin
+              Inc(i);
+              Inc(m);
+              If m > l Then
+                Break;
+            End Else
               Break;
-          End Else
-            Break;
-      End;
-      SynLine := Copy(SynLine, 1, i -1);
+        End;
+        SynLine := Copy(SynLine, 1, i -1);
+      End Else
+        SynLine := '';
     End;
 
     // Set the original in the listing to the new version with added spaces if necessary.

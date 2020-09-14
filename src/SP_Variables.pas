@@ -2404,16 +2404,16 @@ Begin
         If ClearVars then Tkn^.Cache := 0;
         Inc(Idx2, SizeOf(TToken)); // Idx2 now points to content
         Case Tkn^.Token of
-{          SP_NUMVAR:
+          SP_NUMVAR, SP_STRVAR:
             Begin
               If ClearVars Then Begin
-                pLongWord(@Tokens[Idx2])^ := 0;
+                Tkn^.Cache := 0;
                 Inc(Idx2, Tkn^.TokenLen);
                 Changed := True;
               End Else
                 Inc(Idx2, Tkn^.TokenLen);
-            End;}
-          SP_NUMVAR_LET, SP_STRVAR, SP_STRVARPTR, SP_STRVAR_LET, SP_STRVAR_EVAL, SP_NUMVAR_EVAL,
+            End;
+          SP_NUMVAR_LET, SP_STRVARPTR, SP_STRVAR_LET, SP_STRVAR_EVAL, SP_NUMVAR_EVAL,
           SP_POINTER, SP_NUMVAR_LET_VALID, SP_STRVAR_LET_VALID, SP_INCVAR, SP_DECVAR, SP_MULVAR, SP_DIVVAR,
           SP_POWVAR, SP_MODVAR, SP_ANDVAR, SP_ORVAR, SP_XORVAR:
             Begin
@@ -3290,7 +3290,13 @@ Begin
         If Tkn^.Token = SP_TERMINAL Then Break;
         Inc(Idx2, SizeOf(TToken)); // Idx2 now points to content
         Case Tkn^.Token of
-          SP_NUMVAR, SP_NUMVAR_LET, SP_STRVAR, SP_STRVARPTR, SP_STRVAR_LET, SP_STRVAR_EVAL, SP_NUMVAR_EVAL,
+          SP_NUMVAR, SP_STRVAR:
+            Begin
+              Tkn^.Cache := 0;
+              Inc(Idx2, Tkn^.TokenLen);
+              Changed := True;
+            End;
+          SP_NUMVAR_LET, SP_STRVARPTR, SP_STRVAR_LET, SP_STRVAR_EVAL, SP_NUMVAR_EVAL,
           SP_POINTER, SP_NUMVAR_LET_VALID, SP_STRVAR_LET_VALID, SP_INCVAR, SP_DECVAR, SP_MULVAR, SP_DIVVAR,
           SP_POWVAR, SP_MODVAR, SP_ANDVAR, SP_ORVAR, SP_XORVAR, SP_NUMVARSQ:
             Begin

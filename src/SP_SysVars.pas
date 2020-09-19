@@ -481,6 +481,8 @@ Var
   WINHEIGHT:                Integer;
   MODALWINDOW:              Integer;
   USERMOUSEVISIBLE:         Boolean = True;
+  REALSCREENWIDTH,
+  REALSCREENHEIGHT:         LongWord;
 
   NEWPROGNAME:              aString;      // The default project name
 
@@ -1554,7 +1556,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..277] of TSysVar =
+  SysVars: Array[0..279] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
    (Name: 'EDITORFPS'; svType: svLongWord; Size: 4; Data: @EDITORFPS),
@@ -1836,7 +1838,10 @@ Const
    (Name: 'SCROLLINACTIVE'; svType: svInteger; Size: 4; Data: @scrollInactive),
    (Name: 'SCROLLTHUMB'; svType: svInteger; Size: 4; Data: @scrollThumb),
    (Name: 'LASTINKEYFRAME'; svType: svLongWord; Size: 4; Data: @LASTINKEYFRAME),
-   (Name: 'GAPSIZE'; svType: svLongWord; Size: 4; Data: @BSIZE));
+   (Name: 'GAPSIZE'; svType: svLongWord; Size: 4; Data: @BSIZE),
+   (Name: 'NATWIDTH'; svType: svLongWord; Size: 4; Data: @REALSCREENWIDTH),
+   (Name: 'NATHEIGHT'; svType: svLongWord; Size: 4; Data: @REALSCREENHEIGHT));
+
 
   Function  SP_GetSysVarN(ID: aString; Var Error: TSP_ErrorCode): aFloat;
   Function  SP_GetSysVarS(ID: aString; Var Error: TSP_ErrorCode): aString;

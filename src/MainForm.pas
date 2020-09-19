@@ -91,7 +91,7 @@ type
 
 var
   Main: TMain;
-  RealScreenWidth, RealScreenHeight, ScrWidth, ScrHeight, OrgWidth, OrgHeight: Integer;
+  ScrWidth, ScrHeight, OrgWidth, OrgHeight: Integer;
   GLX, GLY, GLW, GLH, GLMX, GLMY, GLMW, GLMH: Integer;
   iRect: TRect;
   BASThread: TSpecBAS_Thread;
@@ -496,18 +496,18 @@ begin
     SPFULLSCREEN := True;
   End Else Begin
     If SPFULLSCREEN Then Begin
-    R := Rect(0, 0, Width, Height);
-    SetWindowLongPtr(Main.handle, GWL_STYLE, WS_CAPTION or WS_POPUPWINDOW or WS_VISIBLE);
-    AdjustWindowRect(R, WS_CAPTION or WS_POPUPWINDOW, FALSE);
-    with DeviceMode do begin
-      dmSize := SizeOf(TDeviceMode);
-      dmPelsWidth := RealScreenWidth;
-      dmPelsHeight := RealScreenHeight;
-      dmFields := DM_PELSWIDTH or DM_PELSHEIGHT;
-    End;
-    ChangeDisplaySettings(DeviceMode, 0);
-    SPFULLSCREEN := False;
-    Main.BorderStyle := bsSingle;
+      R := Rect(0, 0, Width, Height);
+      SetWindowLongPtr(Main.handle, GWL_STYLE, WS_CAPTION or WS_POPUPWINDOW or WS_VISIBLE);
+      AdjustWindowRect(R, WS_CAPTION or WS_POPUPWINDOW, FALSE);
+      with DeviceMode do begin
+        dmSize := SizeOf(TDeviceMode);
+        dmPelsWidth := REALSCREENWIDTH;
+        dmPelsHeight := REALSCREENHEIGHT;
+        dmFields := DM_PELSWIDTH or DM_PELSHEIGHT;
+      End;
+      ChangeDisplaySettings(DeviceMode, 0);
+      SPFULLSCREEN := False;
+      Main.BorderStyle := bsSingle;
     End;
     Result := True;
   End;
@@ -899,8 +899,8 @@ begin
   ScrHeight := 480;
   SCALEWIDTH := 800;
   SCALEHEIGHT := 480;
-  RealScreenWidth := Screen.Width;
-  RealScreenHeight := Screen.Height;
+  REALSCREENWIDTH := Screen.Width;
+  REALSCREENHEIGHT := Screen.Height;
   MENUBLOCK := False;
 
   Application.OnActivate := OnActivate;

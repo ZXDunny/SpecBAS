@@ -702,26 +702,28 @@ Begin
   Result := 0;
   Case Symbol Of
     '(':
-      Result := 13;
-    SP_CHAR_UNARYM, SP_CHAR_UNARYP, SP_CHAR_NOT, SP_CHAR_BITWISE_NOT, '!':
-      Result := 12;
+      Result := 14;
     '^':
-      Result := 11;
+      Result := 13;
+    SP_CHAR_UNARYM, SP_CHAR_UNARYP, SP_CHAR_BITWISE_NOT, '!':
+      Result := 12;
     '*', '/', SP_CHAR_MOD, SP_CHAR_MUL, SP_CHAR_DIV:
-      Result := 10;
+      Result := 11;
     '+', '-', SP_CHAR_NUM_PLUS, SP_CHAR_STR_PLUS, SP_CHAR_ADD, SP_CHAR_SUB:
-      Result := 9;
+      Result := 10;
     SP_CHAR_SHL, SP_CHAR_SHR:
-      Result := 8;
+      Result := 9;
     '&':
-      Result := 7;
+      Result := 8;
     SP_CHAR_XOR:
-      Result := 6;
+      Result := 7;
     '|':
-      Result := 5;
+      Result := 6;
     '<', '>', SP_CHAR_GTE, SP_CHAR_LTE, SP_CHAR_NUM_GTE, SP_CHAR_STR_GTE, SP_CHAR_NUM_LES, SP_CHAR_STR_LES, SP_CHAR_NUM_GTR, SP_CHAR_STR_GTR:
-      Result := 4;
+      Result := 5;
     '=', SP_CHAR_DNE, SP_CHAR_NUM_EQU, SP_CHAR_STR_EQU, SP_CHAR_NUM_DNE, SP_CHAR_STR_DNE:
+      Result := 4;
+    SP_CHAR_NOT:
       Result := 3;
     SP_CHAR_AND, SP_CHAR_NUM_AND, SP_CHAR_STR_AND, SP_CHAR_EQV, SP_CHAR_IMP:
       Result := 2;
@@ -2165,6 +2167,8 @@ Begin
 
   Inc(SP_OperandPtr);
   With SP_OperandStack[SP_OperandPtr] Do Begin
+    If SP_OperatorStack[SP_OperatorPtr].Content[1]  = SP_CHAR_NOT Then
+      OpType := SP_SPECIAL_SYMBOL;
     If SP_OperatorStack[SP_OperatorPtr].Content[1] in [SP_CHAR_UNARYM, SP_CHAR_UNARYP] Then
       OpType := SP_SPECIAL_SYMBOL
     Else
@@ -4854,20 +4858,21 @@ Begin
                 // operator is higher than the one at the top of the stack. This is subtly different for
                 // left-associative and right-associative operators.
 
-                If ExpectOperand And (Symbol in ['-', '+']) Then Begin
+                If ExpectOperand And (Symbol in [SP_CHAR_NOT, '-', '+']) Then Begin
 
                   // Convert to unary plus/minus
 
                   If Symbol = '-' Then
                     Symbol := SP_CHAR_UNARYM
                   Else
-                    Symbol := SP_CHAR_UNARYP;
+                    If Symbol = '+' Then
+                      Symbol := SP_CHAR_UNARYP;
 
                   OpPriority := SP_GetPriority(Symbol);
 
                 End Else Begin
 
-                  If ExpectOperand And Not (Symbol in [SP_CHAR_NOT, '!']) Then Goto Finish;
+                  If ExpectOperand And Not (Symbol in ['!']) Then Goto Finish;
 
                   // Check - if the start priority is higher, then bail out to the calling proc. This is for
                   // function evaluation.
@@ -5651,7 +5656,7 @@ Begin
             Idx := Pos(SearchString, TypeString);
             If Idx <> 0 Then Begin
 
-              // Number, Unary Minus/Plus. Converts down to a number.
+              // Number, NOT or Unary Minus/Plus. Converts down to a number.
               tStart := Idx -1;
               tLen := pLongWord(@TypePositions[tStart][5])^ + pLongWord(@TypePositions[tStart +1][5])^;
               tStart := pLongWord(@TypePositions[tStart][1])^;

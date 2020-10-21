@@ -2913,7 +2913,10 @@ End;
 Procedure SP_Interpret_SP_CHAR_POWER(Var Info: pSP_iInfo);
 Begin
   Dec(SP_StackPtr);
-  SP_StackPtr^.Val := Power(SP_StackPtr^.Val, pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val);
+  If SP_StackPtr^.Val >= 0 Then
+    SP_StackPtr^.Val := Power(SP_StackPtr^.Val, pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val)
+  Else
+    Info^.Error^.Code := SP_ERR_INVALID_ARGUMENT;
 End;
 
 Procedure SP_Interpret_SP_CHAR_COLON(Var Info: pSP_iInfo);
@@ -3392,6 +3395,7 @@ Begin
 
   Info.Tokens := Tokens;
   Info.Error := @Error;
+  Info.Error^.ReturnType := 0;
   Info.StrStart := pByte(pNativeUInt(Tokens)^);
   Info.StrPtr := Info.StrStart + nPosition - 1;
   Info.SavePos := NativeUInt(Info.StrPtr);

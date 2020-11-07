@@ -966,12 +966,21 @@ Begin
                     Tokens[Idx] := SP_CHAR_STRING_NOT;
               End;
             SP_CHAR_NUM_PLUS, SP_CHAR_INT_PLUS, SP_CHAR_NUM_EQU, SP_CHAR_STR_EQU, SP_CHAR_NUM_LES, SP_CHAR_STR_LES, SP_CHAR_NUM_LTE,
-            SP_CHAR_STR_LTE, SP_CHAR_NUM_DNE, SP_CHAR_STR_DNE, SP_CHAR_NUM_GTE, SP_CHAR_STR_GTE, SP_CHAR_NUM_GTR, SP_CHAR_STR_GTR, SP_CHAR_INCVAR,
-            SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR:
+            SP_CHAR_STR_LTE, SP_CHAR_NUM_DNE, SP_CHAR_STR_DNE, SP_CHAR_NUM_GTE, SP_CHAR_STR_GTE, SP_CHAR_NUM_GTR, SP_CHAR_STR_GTR:
               Begin
                 Dec(StackPtr);
                 If StackPtr >= 0 Then
                   Stack[StackPtr] := SP_VALUE;
+              End;
+            SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR:
+              Begin
+                Dec(StackPtr);
+                If (StackPtr >= 0) And (Stack[StackPtr] = SP_NUMVAR) Then
+                  Stack[StackPtr] := SP_VALUE
+                Else Begin
+                  Error.Code := SP_ERR_SYNTAX_ERROR;
+                  Exit;
+                End;
               End;
             SP_CHAR_STR_PLUS:
               Begin

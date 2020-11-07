@@ -3021,8 +3021,10 @@ Begin
         SP_IncNumVarIndex(Idx, n);
         Dec(Idx);
       End;
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
     End;
 
   End;
@@ -3054,8 +3056,10 @@ Begin
         SP_DecNumVarIndex(Ptr^, n);
         Dec(Idx);
       End;
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
     End;
 
   End;
@@ -3087,8 +3091,10 @@ Begin
         SP_MulNumVarIndex(Ptr^, n);
         Dec(Idx);
       End;
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
     End;
 
   End;
@@ -3124,8 +3130,10 @@ Begin
         SP_DivNumVarIndex(Ptr^, n, Error^);
         Dec(Idx);
       End;
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
     End;
 
   End;
@@ -3157,8 +3165,10 @@ Begin
         SP_PowNumVarIndex(Ptr^, n);
         Dec(Idx);
       End;
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
     End;
 
   End;
@@ -3195,8 +3205,10 @@ Begin
         SP_ModNumVarIndex(Ptr^, n, Error^);
         Dec(Idx);
       End;
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
     End;
 
   End;
@@ -3228,8 +3240,10 @@ Begin
         SP_AndNumVarIndex(Ptr^, n);
         Dec(Idx);
       End;
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
     End;
 
   End;
@@ -3261,8 +3275,10 @@ Begin
         SP_XorNumVarIndex(Ptr^, n);
         Dec(Idx);
       End;
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
     End;
 
   End;
@@ -3294,8 +3310,10 @@ Begin
         SP_OrNumVarIndex(Ptr^, n);
         Dec(Idx);
       End;
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
     End;
 
   End;

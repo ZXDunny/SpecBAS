@@ -487,6 +487,7 @@ Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
       Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
       Exit;
     End;
     If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;
@@ -512,6 +513,7 @@ Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
       Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
       Exit;
     End;
     If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;
@@ -537,6 +539,7 @@ Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
       Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
       Exit;
     End;
     If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;
@@ -562,6 +565,7 @@ Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
       Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
       Exit;
     End;
     If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;
@@ -593,6 +597,7 @@ Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
       Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
       Exit;
     End;
     If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;
@@ -618,6 +623,7 @@ Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
       Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
       Exit;
     End;
     If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;
@@ -649,6 +655,7 @@ Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
       Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
       Exit;
     End;
     If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;
@@ -674,6 +681,7 @@ Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
       Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
       Exit;
     End;
     If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;
@@ -699,6 +707,7 @@ Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
       Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
       Exit;
     End;
     If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;

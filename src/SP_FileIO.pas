@@ -787,7 +787,7 @@ End;
 
 Procedure SP_SaveProgram(Filename: aString; AutoStart: Integer; Var Error: TSP_ErrorCode);
 Var
-  FileID, Idx, cPos, ProgLen: Integer;
+  FileID, Idx, cPos, ProgLen, p: Integer;
   ProgLine, SaveBuffer, Backup: aString;
   LineLen, CheckSum: LongWord;
   System, BackBool: Boolean;
@@ -831,6 +831,11 @@ Begin
 
     If Lower(Filename) <> 's:autosave' Then Begin
       PROGNAME := SP_ExtractFileDir(Filename);
+      Repeat
+        p := Pos('\', PROGNAME);
+        If p > 0 Then
+          PROGNAME := Copy(PROGNAME, 1, P -1) + '/' + Copy(PROGNAME, p +1);
+      Until p = 0;
       If Copy(PROGNAME, Length(PROGNAME), 1) <> '/' Then
         PROGNAME := PROGNAME + '/';
        PROGNAME := PROGNAME + SP_ExtractFileName(Filename);
@@ -2282,9 +2287,17 @@ End;
 
 Procedure SP_AddToRecentFiles(Filename: aString; Saving: Boolean);
 Var
-  i, j, l: Integer;
+  i, j, l, p: Integer;
   Exists: Boolean;
 Begin
+
+  // Convert backslash to slash
+
+  Repeat
+    p := Pos('\', Filename);
+    If p > 0 Then
+      Filename := Copy(Filename, 1, p -1) + '/' + Copy(Filename, p +1);
+  Until p = 0;
 
   if Lower(Copy(Filename, Length(Filename) - 15, 16)) = 'startup-sequence' then Exit;
   If Not Saving And Not SP_FileExists(Filename) then Exit;

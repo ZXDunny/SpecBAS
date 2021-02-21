@@ -1252,6 +1252,7 @@ Begin
       OldMouse := MOUSEVISIBLE;
       MOUSEVISIBLE := False;
       SIZINGMAIN := True;
+      DisplaySection.Leave;
       CB_SetScreenRes(Window^.Width, Window^.Height, SCALEWIDTH, SCALEHEIGHT, FullScreen);
       Repeat
         CB_YIELD;

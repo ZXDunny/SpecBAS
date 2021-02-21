@@ -2692,6 +2692,7 @@ Var
     // If Position falls between the JUMP and the jump's target, increment the JUMP.
     // Also check for other jumps, and if their target is beyond the position, increment them also.
     // *AND* check the labels list for their positions in a similar manner.
+    // NEW! Now also check the list of offsets after am SP_IJMP opcode (indexed jump)
 
     If Length(SP_LabelList) > 0 Then
       For Idx := 0 To Length(SP_LabelList) -1 Do Begin
@@ -2751,6 +2752,22 @@ Var
                 Inc(Idx, Token^.TokenLen);
             End Else
               Inc(Idx, Token^.TokenLen);
+          End;
+        SP_IJMP: // Indexed jump. Basically a count (n) then n longwords indicating a distance into the code.
+                 // Used by ON <a> GOTO <m,n,o,p...>
+          Begin
+            n := pLongWord(@Tokens[Idx])^;
+            Inc(Idx, Token^.TokenLen);
+            While n > 0 Do Begin
+              Jump := pLongWord(@Tokens[Idx])^;
+              If (Idx + Jump >= Position - Displacement) And (Jump > 0) Then
+                If Displacement >= 0 Then
+                  Inc(pLongWord(@Tokens[Idx])^, Displacement)
+                Else
+                  Dec(pLongWord(@Tokens[Idx])^, -Displacement);
+              Inc(Idx, SizeOf(LongWord));
+              Dec(n);
+            End;
           End;
       Else
         Inc(Idx, Token^.TokenLen);

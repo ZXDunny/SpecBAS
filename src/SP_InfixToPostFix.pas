@@ -1648,7 +1648,8 @@ Begin
 
             // Functions that take three numeric parameters and return a numeric
 
-            SP_FN_RGBtoINT, SP_FN_HSVtoINT, SP_FN_RGBtoHSV, SP_FN_HSVtoRGB, SP_FN_RGBn, SP_FN_RGBf, SP_FN_GPOINT, SP_FN_GETTILE, SP_FN_MANDEL, SP_FN_INTERP, SP_FN_NOISE:
+            SP_FN_RGBtoINT, SP_FN_HSVtoINT, SP_FN_RGBtoHSV, SP_FN_HSVtoRGB, SP_FN_RGBn, SP_FN_RGBf, SP_FN_GPOINT, SP_FN_GETTILE, SP_FN_MANDEL, SP_FN_INTERP, SP_FN_NOISE,
+            SP_FN_MID:
               Begin
                 If StackPtr > 1 Then Begin
                   If Stack[StackPtr] <> SP_VALUE Then Begin
@@ -3857,7 +3858,7 @@ Begin
                 End;
               End;
 
-            SP_FN_RGBtoINT, SP_FN_HSVtoINT, SP_FN_PEEKS, SP_FN_GPOINT, SP_FN_GETTILE, SP_FN_MANDEL, SP_FN_INTERP, SP_FN_NOISE:
+            SP_FN_RGBtoINT, SP_FN_HSVtoINT, SP_FN_PEEKS, SP_FN_GPOINT, SP_FN_GETTILE, SP_FN_MANDEL, SP_FN_INTERP, SP_FN_NOISE, SP_FN_MID:
               Begin
                 Inc(Position, SizeOf(LongWord));
                 If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
@@ -10109,12 +10110,18 @@ End;
 
 Function  SP_Convert_ON(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode; Var StList: aString): aString;
 Var
-  Condition, Every, FnResult: aString;
+  Exprs: Array of aString;
+  Condition, Every, FnResult, GotoExpr: aString;
   Condition_Pos, KeyWord, KeyWordPos: LongWord;
-  GotCondition, OffFlag: Boolean;
+  GotCondition, OffFlag, b: Boolean;
+  n, i, j, k, overallLen, JumpOffset: Integer;
+  Token: pToken;
 Begin
 
-  // ON <numexpr [EVERY numexpr] statement[:statement...]]|OFF>
+  // ON <[numexpr|EVERY numexpr] statement[:statement...]]|OFF|numexpr GOTO numexpr,numexpr...>
+  // ON EVERY numexpr statement[:statement...]
+  // ON EVERY OFF
+  // ON numexpr
   // ON <ERROR|MOUSEDOWN|MOUSEUP|MOUSEMOVE|KEYUP|KEYDOWN|WHEELUP|WHEELDOWN|COLLIDE|MENU SHOW|MENU HIDE|MENUITEM> <Statement|OFF>
 
   // When executed, this will set up an (optionally timed) event, or error handler. The condition that follows the ON
@@ -10251,48 +10258,82 @@ Begin
     End;
 
     OffFlag := False;
-    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_EVERY) Then Begin
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GOTO) And GotCondition Then Begin
       Inc(Position, 1 + SizeOf(LongWord));
-      If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_OFF) Then Begin
-        Every := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(-1);
-        Inc(Position, 1 + SizeOf(LongWord));
-        OffFlag := True;
-      End Else Begin
-        Every := SP_Convert_Expr(Tokens, Position, Error, -1);
-        If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
+      Condition := Copy(Condition, Length(Condition) +1);
+      // Followed by at least one numexpr, subsequent exprs separated by commas.
+      // Store as a expression, then SP_IJMP followed by count (n) and n * longwords pointing at the expressions, then the expressions themselves.
+      // Expressions followed by an SP_JUMP opcode with a displacement to the GOTO/GOSUB keyword token.
+      Dec(Position, 2);
+      SetLength(Exprs, 0);
+      n := 0;
+      Repeat
+        Inc(Position, 2);
+        SetLength(Exprs, Length(Exprs) +1);
+        Exprs[n] := SP_Convert_Expr(Tokens, Position, Error, -1);
+        Inc(n);
+        b := (Error.Code = SP_ERR_OK) and (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',');
+      Until (Position > Length(Tokens)) or Not b;
+      If Not b then Exit;
+      j := 0;
+      overallLen := n * SizeOf(LongWord);
+      GotoExpr := LongWordToString(n);
+      For i := 1 To n Do Begin
+        GotoExpr := GotoExpr + LongWordToString(j + overAllLen);
+        Inc(j, Length(Exprs[i]) + SizeOf(TToken) + SizeOf(Integer));
+        Dec(OverAllLen, SizeOf(LongWord));
       End;
+      For i := 1 to n Do Begin
+        k := 0;
+        For j := i +1 To n Do
+          Inc(k, Length(Exprs[j]) + SizeOf(TToken) + SizeOf(Integer));
+        GotoExpr := GotoExpr + Exprs[i] + CreateToken(SP_JUMP, 0, SizeOf(Integer)) + IntegerToString(k);
+      End;
+      Result := Condition + CreateToken(SP_IJMP, 0, (n * SizeOf(LongWord)) + SizeOf(Integer)) + GotoExpr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_GOTO);
     End Else Begin
-      If GotCondition Then
-        Every := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(0)
-      Else Begin
-        Error.Code := SP_ERR_SYNTAX_ERROR;
-        Exit;
-      End;
-    End;
-
-    KeyWordID := SP_KW_ON;
-    Result := Every + Condition + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
-
-    If (Byte(Tokens[Position]) = SP_KEYWORD) or (Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR]) Then Begin
-      If (Byte(Tokens[Position]) = SP_KEYWORD) Then Begin
-        KeyWordID := pLongWord(@Tokens[Position +1])^;
-        KeyWordPos := Position;
+      If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_EVERY) Then Begin
         Inc(Position, 1 + SizeOf(LongWord));
+        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_OFF) Then Begin
+          Every := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(-1);
+          Inc(Position, 1 + SizeOf(LongWord));
+          OffFlag := True;
+        End Else Begin
+          Every := SP_Convert_Expr(Tokens, Position, Error, -1);
+          If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
+        End;
       End Else Begin
-        KeyWordPos := Position;
-        KeyWordID := SP_KW_LET;
+        If GotCondition Then
+          Every := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(0)
+        Else Begin
+          Error.Code := SP_ERR_SYNTAX_ERROR;
+          Exit;
+        End;
       End;
-      FnResult := SP_Convert_KeyWord(Tokens, Position, KeyWordID, Error, StList);
-      If Error.Code <> SP_ERR_OK Then
-        Exit
-      Else Begin
-        Result := Result + FnResult;
-        If KeyWordID <> 0 Then Result := Result + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
-        KeyWordID := 0;
-      End;
-    End Else
-      If Not OffFlag Then
-        Error.Code := SP_ERR_SYNTAX_ERROR;
+
+      KeyWordID := SP_KW_ON;
+      Result := Every + Condition + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
+
+      If (Byte(Tokens[Position]) = SP_KEYWORD) or (Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR]) Then Begin
+        If (Byte(Tokens[Position]) = SP_KEYWORD) Then Begin
+          KeyWordID := pLongWord(@Tokens[Position +1])^;
+          KeyWordPos := Position;
+          Inc(Position, 1 + SizeOf(LongWord));
+        End Else Begin
+          KeyWordPos := Position;
+          KeyWordID := SP_KW_LET;
+        End;
+        FnResult := SP_Convert_KeyWord(Tokens, Position, KeyWordID, Error, StList);
+        If Error.Code <> SP_ERR_OK Then
+          Exit
+        Else Begin
+          Result := Result + FnResult;
+          If KeyWordID <> 0 Then Result := Result + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
+          KeyWordID := 0;
+        End;
+      End Else
+        If Not OffFlag Then
+          Error.Code := SP_ERR_SYNTAX_ERROR;
+    End;
 
   End;
 

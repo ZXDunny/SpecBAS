@@ -435,6 +435,8 @@ Var
   s, t: AnsiString;
 Begin
 
+  Assert(Index >= 0);
+
   fUndoLock.Enter;
 
   If not fUndoInProgress Then Begin
@@ -476,7 +478,10 @@ Begin
 
       opAdd:
         Begin
-          LineIndex := Count -1;
+          If Count = 0 Then
+            LineIndex := Index
+          Else
+            LineIndex := Count -1;
         End;
 
       opInsert:

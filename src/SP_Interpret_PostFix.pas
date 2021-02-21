@@ -225,6 +225,7 @@ Procedure SP_Interpret_FN_LOWS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_LEFTS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_WINOFF(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_MIDS(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_MID(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_RIGHTS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_REPS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_CODE(Var Info: pSP_iInfo);
@@ -827,7 +828,7 @@ Procedure SP_Interpret_KW_MEMWRITEF(Var Info: pSP_iInfo);
 Procedure SP_Interpret_KW_MEMWRITES(Var Info: pSP_iInfo);
 Procedure SP_Interpret_KW_CLS_ALPHA(Var Info: pSP_iInfo);
 
-Procedure SP_SetUpPROC(CALLType: Byte; Var CacheVal: LongWord; Var Error: TSP_ErrorCode);
+Function  SP_SetUpPROC(CALLType: Byte; Var CacheVal: LongWord; Var Error: TSP_ErrorCode): Integer;
 
 Procedure SP_Interpret_SP_KEYWORD(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_STRING(Var iInfo: pSP_iInfo);
@@ -2619,7 +2620,7 @@ Begin
     Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
     Exit;
   End Else
-    If Lim = 0 Then Begin
+    If Len = 0 Then Begin
       SP_StackPtr^.Str := '';
       SP_StackPtr^.OpType := SP_STRING;
       Exit;
@@ -2660,13 +2661,14 @@ Begin
   If Lim < 0 Then Begin
     Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
     Exit;
-  End Else
-    If Lim = 0 Then Begin
+  End Else Begin
+    Len := Length(SP_StackPtr^.Str);
+    If (Lim = 0) or (Len = 0) Then Begin
       SP_StackPtr^.Str := '';
       Exit;
     End;
+  End;
 
-  Len := Length(SP_StackPtr^.Str);
   Lim := Lim * Len;
   SetLength(SP_StackPtr^.Str, Lim);
   PtrS := pByte(pNativeUInt(@SP_StackPtr^.Str)^);
@@ -2913,10 +2915,7 @@ End;
 Procedure SP_Interpret_SP_CHAR_POWER(Var Info: pSP_iInfo);
 Begin
   Dec(SP_StackPtr);
-  If SP_StackPtr^.Val >= 0 Then
-    SP_StackPtr^.Val := Power(SP_StackPtr^.Val, pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val)
-  Else
-    Info^.Error^.Code := SP_ERR_INVALID_ARGUMENT;
+  SP_StackPtr^.Val := Power(SP_StackPtr^.Val, pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val)
 End;
 
 Procedure SP_Interpret_SP_CHAR_COLON(Var Info: pSP_iInfo);
@@ -3364,14 +3363,12 @@ Begin
       If Tkn^.Token = SP_TERMINAL Then
         Break
       Else Begin
-        If Idx <= Length(Tokens) Then Begin
+        If Idx <= Length(Tokens) +1 Then Begin
           StrPtr := @Tokens[Idx];
           SP_SetHandler(Tkn, StrPtr);
           Inc(Idx, Tkn^.TokenLen);
         End;
       End;
-
-      If Idx > Length(Tokens) Then Exit;
 
     End;
 
@@ -6573,6 +6570,18 @@ Begin
   SP_StackPtr^.Str := Copy(SP_StackPtr^.Str, S, L);
 End;
 
+Procedure SP_Interpret_FN_MID(Var Info: pSP_iInfo);
+Var
+  A, B, C: aFloat;
+Begin
+  A := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  B := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  C := SP_StackPtr^.Val;
+  SP_StackPtr^.Val := Max(Min(A,B), Min(Max(A,B),C));
+End;
+
 Procedure SP_Interpret_FN_RIGHTS(Var Info: pSP_iInfo);
 Var
   L: Integer;
@@ -7225,7 +7234,7 @@ Procedure SP_Interpret_FN_TXTW(Var Info: pSP_iInfo);
 Begin
   Inc(SP_StackPtr);
   With SP_StackPtr^ Do Begin
-    Val := SCREENWIDTH Div FONTWIDTH;
+    Val := Round(SCREENWIDTH/(FONTWIDTH * T_SCALEX));
     OpType := SP_VALUE;
   End;
 End;
@@ -7234,7 +7243,7 @@ Procedure SP_Interpret_FN_TXTH(Var Info: pSP_iInfo);
 Begin
   Inc(SP_StackPtr);
   With SP_StackPtr^ Do Begin
-    Val := SCREENHEIGHT Div FONTHEIGHT;
+    Val := Round(SCREENHEIGHT/(FONTHEIGHT * T_SCALEY));
     OpType := SP_VALUE;
   End;
 End;
@@ -15435,7 +15444,7 @@ Begin
 
 End;
 
-Procedure SP_SetUpPROC(CALLType: Byte; Var CacheVal: LongWord; Var Error: TSP_ErrorCode);
+Function SP_SetUpPROC(CALLType: Byte; Var CacheVal: LongWord; Var Error: TSP_ErrorCode): Integer;
 Type
   TProcVar = Packed Record
     ID: Byte;
@@ -15456,6 +15465,8 @@ Var
 Label
   FoundIt;
 Begin
+
+  Result := -1;
 
   // Get the parameter count and the procedure name
 
@@ -15730,6 +15741,7 @@ FoundIt:
           NumVars[Idx3]^.ProcVar := True;
           NumVars[Idx3]^.Content.Value := 0;
           NumVars[Idx3]^.ContentPtr := @NumVars[Idx3]^.Content;
+          Result := Idx3;
         End Else
           If CALLType = SP_STRVAR Then Begin
             Idx3 := SP_NewStrVar;
@@ -15738,6 +15750,7 @@ FoundIt:
             StrVars[Idx3]^.ContentPtr := @StrVars[Idx3]^.Content;
             StrVars[Idx3]^.Content.DLen := 0;
             StrVars[Idx3]^.ProcVar := True;
+            Result := Idx3;
           End;
         SP_ProcStack[SP_ProcStackPtr].CALLType := CALLType;
 
@@ -15771,19 +15784,6 @@ Begin
 
   If SP_ProcStackPtr >= 0 Then Begin
 
-    If SP_ProcStack[SP_ProcStackPtr].CALLType = SP_NUMVAR Then Begin
-      Idx := SP_FindNumVar('result');
-      Inc(SP_StackPtr);
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
-    End Else
-      If SP_ProcStack[SP_ProcStackPtr].CALLType = SP_STRVAR Then Begin
-        Idx := SP_FindStrVar('result');
-        Inc(SP_StackPtr);
-        SP_StackPtr^.OpType := SP_STRING;
-        SP_StackPtr^.Str := StrVars[Idx]^.ContentPtr^.Value;
-      End;
-
     SP_ResizeNumVars(SP_ProcStack[SP_ProcStackPtr].VarPosN);
     SP_ResizeStrVars(SP_ProcStack[SP_ProcStackPtr].VarPosS);
     SP_TruncateNumArrays(SP_ProcStack[SP_ProcStackPtr].VarPosNA);
@@ -15815,24 +15815,12 @@ Begin
 
   If SP_ProcStackPtr >= 0 Then Begin
 
-    If SP_ProcStack[SP_ProcStackPtr].CALLType = SP_NUMVAR Then Begin
-      Idx := SP_FindNumVar('result');
-      Inc(SP_StackPtr);
-      SP_StackPtr^.OpType := SP_VALUE;
-      SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
-    End Else
-      If SP_ProcStack[SP_ProcStackPtr].CALLType = SP_STRVAR Then Begin
-        Idx := SP_FindStrVar('result');
-        Inc(SP_StackPtr);
-        SP_StackPtr^.OpType := SP_STRING;
-        SP_StackPtr^.Str := StrVars[Idx]^.ContentPtr^.Value;
-      End;
-
     SP_ResizeNumVars(SP_ProcStack[SP_ProcStackPtr].VarPosN);
     SP_ResizeStrVars(SP_ProcStack[SP_ProcStackPtr].VarPosS);
     SP_TruncateNumArrays(SP_ProcStack[SP_ProcStackPtr].VarPosNA);
     SP_TruncateStrArrays(SP_ProcStack[SP_ProcStackPtr].VarPosSA);
     Dec(SP_ProcStackPtr);
+
     NXTLINE := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].Line;
     NXTSTATEMENT := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].Statement;
     Info^.Error^.Statement := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].St;
@@ -16119,6 +16107,7 @@ Var
   Tkns: aString;
   OldSp: pSP_StackItem;
   TempLine: TSP_Gosub_Item;
+  ResultIdx, ResultType: Integer;
   CurLine, OldErrorStatement, OldNxtStatement, OldNxtLine, OldProcStack: Integer;
 Label
   NextStatement, BailOut;
@@ -16132,11 +16121,8 @@ Begin
     OldErrorStatement := Error^.Statement;
 
     OldProcStack := SP_ProcStackPtr;
-    SP_SetUpPROC(1, Token^.Cache, Error^);
+    ResultIdx := SP_SetUpPROC(1, Token^.Cache, Error^);
     If Error^.Code <> SP_ERR_OK Then Exit;
-
-    OldSP := SP_StackPtr;
-    Inc(OldSP);
 
     CurLine := NXTLINE;
     Error^.ReturnType := OldError.ReturnType;
@@ -16146,6 +16132,8 @@ Begin
     TempLine := SP_ConvertLineStatement(NXTLINE, NXTST + 1);
     NXTLINE := TempLine.Line;
     NXTSTATEMENT := TempLine.Statement;
+    ResultType := SP_ProcStack[SP_ProcStackPtr].CALLType;
+    OldSp := SP_StackPtr;
 
   NextStatement :
 
@@ -16204,6 +16192,17 @@ Begin
   BailOut :
 
     SP_StackPtr := OldSP;
+    If ResultType = SP_NUMVAR Then Begin
+      Inc(SP_StackPtr);
+      SP_StackPtr^.OpType := SP_VALUE;
+      SP_StackPtr^.Val := NumVars[ResultIdx]^.ContentPtr^.Value;
+    End Else
+      If ResultType = SP_STRVAR Then Begin
+        Inc(SP_StackPtr);
+        SP_StackPtr^.OpType := SP_STRING;
+        SP_StackPtr^.Str := StrVars[ResultIdx]^.ContentPtr^.Value;
+      End;
+
     NXTLINE := OldNxtLine;
     NXTSTATEMENT := OldNxtStatement;
     Error^.Statement := OldErrorStatement;
@@ -25482,6 +25481,7 @@ Initialization
   InterpretProcs[SP_FN_LEFTS] := @SP_Interpret_FN_LEFTS;
   InterpretProcs[SP_FN_WINOFF] := @SP_Interpret_FN_WINOFF;
   InterpretProcs[SP_FN_MIDS] := @SP_Interpret_FN_MIDS;
+  InterpretProcs[SP_FN_MID] := @SP_Interpret_FN_MID;
   InterpretProcs[SP_FN_RIGHTS] := @SP_Interpret_FN_RIGHTS;
   InterpretProcs[SP_FN_REPS] := @SP_Interpret_FN_REPS;
   InterpretProcs[SP_FN_CODE] := @SP_Interpret_FN_CODE;

@@ -4684,7 +4684,7 @@ End;
 Procedure SP_FPEditorPerformEdit(Key: pSP_KeyInfo);
 Var
   s, s2, prev: aString;
-  Idx, DesiredPos, OldLine, c, i, n, nl, m, p, fp, GfxMode, Flag, l, cx, cy: Integer;
+  Idx, DesiredPos, lc, OldLine, c, i, n, nl, m, p, fp, GfxMode, Flag, l, cx, cy: Integer;
   OldPt, NewPt: TPoint;
   SB: pSP_ScrollBar;
   Sel: SP_SelectionInfo;
@@ -4702,6 +4702,7 @@ Begin
   // Test for control keys, then convert to ASCII using the
   // KEYBOARDSTATE sysvar.
 
+  lc := Listing.Count;
   GfxMode := GFXLOCK;
 
   DesiredPos := FPCDes;
@@ -4714,6 +4715,9 @@ Begin
   If Not (Key.KeyCode in [K_F3, K_ESCAPE]) Then
     HideSearchResults;
 
+  If (Key.KeyChar = ' ') And Listing.UndoInProgress Then
+    Listing.CompleteUndo;
+
   If (Key.KeyChar in ['a'..'z', 'A'..'Z', '0'..'9']) And Not Listing.UndoInProgress Then
     Listing.CommenceUndo;
 
@@ -4721,6 +4725,9 @@ Begin
   cy := Listing.FPCLine;
 
   If Key.KeyChar = #0 then Begin
+
+    If Not (Key.KeyCode in [K_BACK, K_DELETE]) And Listing.UndoInProgress Then
+      Listing.CompleteUndo;
 
     Case Key.KeyCode of
       K_F1..K_F10:
@@ -5495,6 +5502,8 @@ Begin
           Begin
             // Undo
             CompilerLock.Enter;
+            If Listing.UndoInProgress Then
+              Listing.CompleteUndo;
             If KEYSTATE[K_SHIFT] = 0 Then
               s := Listing.PerformUndo
             Else
@@ -5614,6 +5623,9 @@ Begin
     SP_SetCursorColours;
 
   // Work through any updates.
+
+  if lc <> Listing.Count then
+    AddVisibleDirty;
 
   SP_CalculateFPCursorPos;
   SP_CursorPosChanged;
@@ -7493,7 +7505,7 @@ Begin
         Dec(x, 8);
       End;
       T_SCALEY := 1;
-      SP_TextOut(FONTBANKID, 16, WinH - 22, #127' 2020 ZX Development Ltd.'{#13'        ZXDunny    Windows/Pandora/OSX'#13'        Piez       Linux'#13'        Chris      Pi'}, 232, 0, True);
+      SP_TextOut(FONTBANKID, 16, WinH - 22, #127' 2021 ZX Development Ltd.'{#13'        ZXDunny    Windows/Pandora/OSX'#13'        Piez       Linux'#13'        Chris      Pi'}, 232, 0, True);
       SP_InvalidateWholeDisplay;
       SP_NeedDisplayUpdate := True;
       SP_WaitForSync;

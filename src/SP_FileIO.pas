@@ -1251,6 +1251,7 @@ Begin
                   SetLength(NewProg, 0);
                   LineCount := 0;
                   Idx := 7;
+                  While Buffer[Idx] < 32 Do Inc(Idx);
 
                   // Now start pulling in lines.
 
@@ -1271,14 +1272,15 @@ Begin
                     ProgLine := StrCopy(@Buffer[Idx], lIdx - Idx);
                     PlainCode := StripLeadingSpaces(ProgLine);
                     Idx := lIdx;
-                    While (Idx < Length(Buffer)) And (Buffer[Idx] in [13, 10]) Do Inc(Idx);
+                    If Buffer[Idx] = 13 Then Inc(Idx);
+                    If Buffer[Idx] = 10 Then Inc(Idx);
 
                     // Strip trailing spaces
                     While (ProgLine <> '') And (ProgLine[Length(ProgLine)] <= ' ') Do
                       ProgLine := Copy(ProgLine, 1, Length(ProgLine) -1);
 
                     // Now figure out what it is and what to do with it.
-                    If ProgLine <> '' Then Begin
+//                    If ProgLine <> '' Then Begin
                       If Lower(Copy(PlainCode, 1, 4)) = 'auto' Then Begin
                         PlainCode := Copy(PlainCode, 5, Length(PlainCode));
                         While Copy(PlainCode, 1, 1) <= ' ' Do
@@ -1309,16 +1311,14 @@ Begin
                                 changed := False;
                             ProgLine := '';
                           End Else Begin
-
                             Inc(LineCount);
                             SetLength(NewProg, LineCount);
                             NewProg[LineCount -1] := ProgLine;
                             ProgLine := '';
-
                           End;
                         End;
                       End;
-                    End;
+//                    End;
 
                   End;
 

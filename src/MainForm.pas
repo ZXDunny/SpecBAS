@@ -554,6 +554,8 @@ Var
   Handled: Boolean;
 begin
 
+  SetCapture(Handle);
+
   {$IFDEF OPENGL}
   X := Round(X / ScaleMouseX);
   Y := Round(Y / ScaleMouseY);
@@ -686,35 +688,37 @@ begin
 
       // Now check for controls under the mouse
 
-      DisplaySection.Enter;
-      Handled := False;
+      If DisplaySection.TryEnter Then Begin
+        Handled := False;
 
-      tX := X; tY := Y;
-      Win := WindowAtPoint(tX, tY);
-      If Assigned(Win) Then Begin
-        Win := ControlAtPoint(Win, tX, tY);
-        If MouseControl <> SP_BaseComponent(Win) Then
-          If Assigned(MouseControl) Then
-            MouseControl.MouseExit;
-      End;
-      If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
-        p := CaptureControl.ScreenToClient(Point(x, y));
-        CaptureControl.MouseMove(p.x, p.y, Btn);
-      End Else Begin
+        tX := X; tY := Y;
+        Win := WindowAtPoint(tX, tY);
         If Assigned(Win) Then Begin
-          If MouseControl <> SP_BaseComponent(Win) Then Begin
-            MouseControl := Win;
-            p := MouseControl.ScreenToClient(Point(tX, tY));
-            MouseControl.MouseEnter(p.X, p.Y);
-          End;
-          SP_BaseComponent(Win).MouseMove(tX, tY, Btn);
-          Handled := True;
-        End Else
-          If Assigned(MouseControl) Then
-            MouseControl.MouseExit;
-      End;
+          Win := ControlAtPoint(Win, tX, tY);
+          If MouseControl <> SP_BaseComponent(Win) Then
+            If Assigned(MouseControl) Then
+              MouseControl.MouseExit;
+        End;
+        If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
+          p := CaptureControl.ScreenToClient(Point(x, y));
+          CaptureControl.MouseMove(p.x, p.y, Btn);
+        End Else Begin
+          If Assigned(Win) Then Begin
+            If MouseControl <> SP_BaseComponent(Win) Then Begin
+              MouseControl := Win;
+              p := MouseControl.ScreenToClient(Point(tX, tY));
+              MouseControl.MouseEnter(p.X, p.Y);
+            End;
+            SP_BaseComponent(Win).MouseMove(tX, tY, Btn);
+            Handled := True;
+          End Else
+            If Assigned(MouseControl) Then
+              MouseControl.MouseExit;
+        End;
 
-      DisplaySection.Leave;
+        DisplaySection.Leave;
+
+      End;
 
     End;
 
@@ -735,6 +739,8 @@ Var
   p: TPoint;
   Handled: Boolean;
 begin
+
+  ReleaseCapture;
 
   {$IFDEF OPENGL}
   X := Round(X / ScaleMouseX);
@@ -858,7 +864,7 @@ begin
     BUILDSTR := BUILDSTR + '-GL';
   {$ENDIF}
   {$IFDEF WIN64}
-    BUILDSTR := BUILDSTR + ' 64 Bit';
+    BUILDSTR := BUILDSTR + ' x64';
   {$ENDIF}
   {$IFDEF DEBUG}
     BUILDSTR := BUILDSTR + ' [Debug]';

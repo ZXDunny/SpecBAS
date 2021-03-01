@@ -10110,11 +10110,12 @@ End;
 
 Function  SP_Convert_ON(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode; Var StList: aString): aString;
 Var
+  Vals: Array of Longword;
   Exprs: Array of aString;
   Condition, Every, FnResult, GotoExpr: aString;
   Condition_Pos, KeyWord, KeyWordPos: LongWord;
   GotCondition, OffFlag, b: Boolean;
-  n, i, j, k, overallLen, JumpOffset: Integer;
+  n, i, j, k, overallLen, JumpOffset, KW: Integer;
   Token: pToken;
 Begin
 
@@ -10258,38 +10259,56 @@ Begin
     End;
 
     OffFlag := False;
-    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GOTO) And GotCondition Then Begin
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GO) And GotCondition Then Begin
       Inc(Position, 1 + SizeOf(LongWord));
-      Condition := Copy(Condition, Length(Condition) +1);
-      // Followed by at least one numexpr, subsequent exprs separated by commas.
-      // Store as a expression, then SP_IJMP followed by count (n) and n * longwords pointing at the expressions, then the expressions themselves.
-      // Expressions followed by an SP_JUMP opcode with a displacement to the GOTO/GOSUB keyword token.
-      Dec(Position, 2);
-      SetLength(Exprs, 0);
-      n := 0;
-      Repeat
-        Inc(Position, 2);
-        SetLength(Exprs, Length(Exprs) +1);
-        Exprs[n] := SP_Convert_Expr(Tokens, Position, Error, -1);
-        Inc(n);
-        b := (Error.Code = SP_ERR_OK) and (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',');
-      Until (Position > Length(Tokens)) or Not b;
-      If Not b then Exit;
-      j := 0;
-      overallLen := n * SizeOf(LongWord);
-      GotoExpr := LongWordToString(n);
-      For i := 1 To n Do Begin
-        GotoExpr := GotoExpr + LongWordToString(j + overAllLen);
-        Inc(j, Length(Exprs[i]) + SizeOf(TToken) + SizeOf(Integer));
-        Dec(OverAllLen, SizeOf(LongWord));
-      End;
-      For i := 1 to n Do Begin
-        k := 0;
-        For j := i +1 To n Do
-          Inc(k, Length(Exprs[j]) + SizeOf(TToken) + SizeOf(Integer));
-        GotoExpr := GotoExpr + Exprs[i] + CreateToken(SP_JUMP, 0, SizeOf(Integer)) + IntegerToString(k);
-      End;
-      Result := Condition + CreateToken(SP_IJMP, 0, (n * SizeOf(LongWord)) + SizeOf(Integer)) + GotoExpr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_GOTO);
+      KW := pLongWord(@Tokens[Position +1])^;
+      If (Byte(Tokens[Position]) = SP_KEYWORD) And ((KW = SP_KW_SUB) or (KW = SP_KW_TO)) Then Begin
+        Case KW Of
+          SP_KW_SUB: KW := SP_KW_GOSUB;
+          SP_KW_TO: KW := SP_KW_GOTO;
+        End;
+        Condition := Copy(Condition, SizeOf(TToken) +1);
+        Inc(Position, 1 + SizeOf(LongWord));
+        // Followed by at least one numexpr, subsequent exprs separated by commas.
+        // Store as a expression, then SP_IJMP followed by count (n) and n * longwords pointing at the expressions, then the expressions themselves.
+        // Expressions followed by an SP_JUMP opcode with a displacement to the GOTO/GOSUB keyword token.
+        SetLength(Exprs, 0);
+        n := 0;
+        Repeat
+          SetLength(Exprs, Length(Exprs) +1);
+          Exprs[n] := SP_Convert_Expr(Tokens, Position, Error, -1) + CreateToken(SP_KEYWORD, 0, SizeOf(LongWord)) + LongWordToString(KW);
+          SP_AddHandlers(Exprs[n]);
+          Inc(n);
+          b := (Error.Code = SP_ERR_OK) and (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',');
+          if b then Inc(Position, 2);
+        Until (Position > Length(Tokens)) or Not b;
+        If Error.Code <> SP_ERR_OK then Exit;
+
+        // SP_IJMP, Count, FalseJmp, Skip0, Skip1, Skip2, Skip3, expr0, expr1, expr2, expr3
+
+        SetLength(vals, n);
+        For i := 0 To n -1 Do Begin
+          vals[i] := (n - i) * SizeOf(LongWord);
+          if i > 0 then
+            for j := 0 to i-1 do
+              Inc(vals[i], Length(Exprs[j]));
+        End;
+        for j := 0 to n-1 do
+          Inc(vals[n], Length(Exprs[j]));
+
+        // Got the lengths, now build the result string.
+        GotoExpr := LongWordToString(n); // Number of expressions
+        For i := 0 to n-1 Do
+          GotoExpr := GotoExpr + LongWordToString(vals[i]); // Jump table
+
+        For i := 0 to n-1 Do
+          GotoExpr := GotoExpr + Exprs[i];
+
+        Result := Condition + CreateToken(SP_IJMP, 0, Length(GotoExpr)) + GotoExpr;
+        KeyWordID := 0;
+
+      End Else
+        Error.Code := SP_ERR_SYNTAX_ERROR;
     End Else Begin
       If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_EVERY) Then Begin
         Inc(Position, 1 + SizeOf(LongWord));

@@ -854,6 +854,7 @@ Procedure SP_Interpret_SP_SKIP_LINE(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_DATA_ITEM(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_LABEL(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_DISPLACEMENT(Var iInfo: pSP_iInfo);
+Procedure SP_Interpret_SP_IJMP(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_VALUE(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_NUMVAR_LET(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_STRVAR_LET(Var iInfo: pSP_iInfo);
@@ -2083,6 +2084,26 @@ Begin
     End;
   End;
 
+End;
+
+Procedure SP_Interpret_SP_IJMP(Var iInfo: pSP_iInfo);
+Var
+  c, n: Integer;
+  d: Longword;
+Begin
+  With iInfo^ Do Begin
+    // Read count
+    c := pLongWord(StrPtr)^;
+    n := Round(SP_StackPtr^.Val);
+    If (n < 1) or (n > c) Then
+      //Inc(StrPtr, pLongWord(StrPtr)^)
+      Exit
+    Else Begin
+      Inc(StrPtr, n * SizeOf(LongWord));
+      Inc(StrPtr, pLongWord(StrPtr)^);
+    End;
+    Token := @DummyToken;
+  End;
 End;
 
 Procedure SP_Interpret_SP_JZ(Var iInfo: pSP_iInfo);
@@ -19932,6 +19953,11 @@ Begin
           Inc(StrPtr, Token^.TokenLen);
         End;
 
+      SP_IJMP:
+        Begin
+          Inc(StrPtr, Token^.TokenLen);
+        End;
+
       SP_LABEL:
         Begin
           nOutput := 'LABEL ['+ StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)), Token^.TokenLen) + ']';
@@ -25696,6 +25722,7 @@ Initialization
   InterpretProcs[SP_DATA_ITEM] := @SP_Interpret_SP_DATA_ITEM;
   InterpretProcs[SP_LABEL] := @SP_Interpret_SP_LABEL;
   InterpretProcs[SP_DISPLACEMENT] := @SP_Interpret_SP_DISPLACEMENT;
+  InterpretProcs[SP_IJMP] := @SP_Interpret_SP_IJMP;
   InterpretProcs[SP_VALUE] := @SP_Interpret_SP_VALUE;
   InterpretProcs[SP_NUMVAR_LET] := @SP_Interpret_SP_NUMVAR_LET;
   InterpretProcs[SP_STRVAR_LET] := @SP_Interpret_SP_STRVAR_LET;

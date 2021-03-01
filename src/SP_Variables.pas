@@ -2587,7 +2587,6 @@ Begin
 
     SP_ClearEvery;
     SP_ResetConditionalBreakPoints;
-    SetLength(SP_FnList, 0);
     EveryEnabled := True;
     ERROR_LineNum := -1;
     MOUSEDOWN_LineNum := -1;
@@ -2757,7 +2756,7 @@ Var
                  // Used by ON <a> GOTO <m,n,o,p...>
           Begin
             n := pLongWord(@Tokens[Idx])^;
-            Inc(Idx, Token^.TokenLen);
+            Inc(Idx, SizeOf(LongWord));
             While n > 0 Do Begin
               Jump := pLongWord(@Tokens[Idx])^;
               If (Idx + Jump >= Position - Displacement) And (Jump > 0) Then

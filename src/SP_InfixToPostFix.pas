@@ -10247,6 +10247,7 @@ Begin
 
     // The condition is optional if EVERY is used
 
+    KeyWordPos := Position;
     GotCondition := False;
     If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_EVERY) Then
       Condition := CreateToken(SP_STRING, Condition_Pos, 0)
@@ -10261,14 +10262,23 @@ Begin
     OffFlag := False;
     If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GO) And GotCondition Then Begin
       Inc(Position, 1 + SizeOf(LongWord));
-      KW := pLongWord(@Tokens[Position +1])^;
-      If (Byte(Tokens[Position]) = SP_KEYWORD) And ((KW = SP_KW_SUB) or (KW = SP_KW_TO)) Then Begin
+
+      KW := -1;
+      If Byte(Tokens[Position]) = SP_KEYWORD Then Begin
+        KW := pLongWord(@Tokens[Position +1])^;
+        Inc(Position, 1 + SizeOf(LongWord));
+      End Else
+        If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
+          KW := Ord(Tokens[Position +1]);
+          Inc(Position, 2);
+        End;
+
+      If KW >= 0 Then Begin
         Case KW Of
-          SP_KW_SUB: KW := SP_KW_GOSUB;
-          SP_KW_TO: KW := SP_KW_GOTO;
+          Ord(SP_CHAR_SUB): KW := SP_KW_GOSUB;
+               SP_KW_TO:    KW := SP_KW_GOTO;
         End;
         Condition := Copy(Condition, SizeOf(TToken) +1);
-        Inc(Position, 1 + SizeOf(LongWord));
         // Followed by at least one numexpr, subsequent exprs separated by commas.
         // Store as a expression, then SP_IJMP followed by count (n) and n * longwords pointing at the expressions, then the expressions themselves.
         // Expressions followed by an SP_JUMP opcode with a displacement to the GOTO/GOSUB keyword token.
@@ -10276,7 +10286,7 @@ Begin
         n := 0;
         Repeat
           SetLength(Exprs, Length(Exprs) +1);
-          Exprs[n] := SP_Convert_Expr(Tokens, Position, Error, -1) + CreateToken(SP_KEYWORD, 0, SizeOf(LongWord)) + LongWordToString(KW);
+          Exprs[n] := SP_Convert_Expr(Tokens, Position, Error, -1) + CreateToken(SP_KEYWORD, KeywordPos, SizeOf(LongWord)) + LongWordToString(KW);
           SP_AddHandlers(Exprs[n]);
           Inc(n);
           b := (Error.Code = SP_ERR_OK) and (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',');

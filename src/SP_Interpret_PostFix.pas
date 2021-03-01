@@ -3558,7 +3558,6 @@ Begin
           SP_KEYWORD:
             Begin
               Error^.Position := Token^.TokenLen + 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart));
-              Error^.Statement := Token^.TokenPos;
               INPUTERROR := False;
               TSP_InterpretProc(Token^.Handler)(pInfo);
             End;

@@ -854,11 +854,7 @@ begin
 
   InitTime := GetTicks;
 
-  {$IFDEF DEBUG}
-    BUILDSTR := aString(Sto_GetFmtFileVersion('', '%d.%d.%d.%d'));
-  {$ELSE}
-    BUILDSTR := '0.980';
-  {$ENDIF}
+  BUILDSTR := aString(Sto_GetFmtFileVersion('', '%d.%d.%d.%d'));
   If IsDebuggerPresent Then UpdateLinuxBuildStr;
   {$IFDEF OPENGL}
     BUILDSTR := BUILDSTR + '-GL';

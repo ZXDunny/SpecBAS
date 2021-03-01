@@ -10,3 +10,5 @@ sampled.sampling
 *.map
 SpecBAS.drc
 src/SpecBAS_project.tvsconfig
+src/bass.dll
+src/bass64.dll

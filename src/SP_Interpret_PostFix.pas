@@ -2095,8 +2095,8 @@ Begin
     // Read count
     c := pLongWord(StrPtr)^;
     n := Round(SP_StackPtr^.Val);
+    Dec(SP_StackPtr);
     If (n < 1) or (n > c) Then
-      //Inc(StrPtr, pLongWord(StrPtr)^)
       Exit
     Else Begin
       Inc(StrPtr, n * SizeOf(LongWord));
@@ -7858,7 +7858,7 @@ End;
 
 Procedure SP_Interpret_PR_TAB(Var Info: pSP_iInfo);
 Var
-  aX, X, aY: Integer;
+  cW, nx, tc, Y: Integer;
 Begin
 
   // TAB numexpr
@@ -7870,12 +7870,18 @@ Begin
     OUTBUFFER := OUTBUFFER + aChar(23) + IntegerToString(Round(SP_StackPtr^.Val));
 
   End Else Begin
-
-    aX := 0; aY := 0;
-    SP_ConvertToOrigin_i(aX, aY);
-    X := Round(SP_StackPtr^.Val);
-    PRPOSX := Round(aX + (FONTWIDTH * X * T_SCALEX)) Mod SCREENWIDTH;
-
+    Y := Round(PRPOSY);
+    Cw := Round(FONTWIDTH * T_SCALEX);
+    nx := Round(PRPOSX) Div Cw; // current pos
+    tc := Round(SP_StackPtr^.Val);
+    If tc < nx Then Begin
+      tc := ((SCREENWIDTH - (nx * cW)) Div Cw) + tc;
+      SP_PRINT(-1, Round(PRPOSX), Y, -1, StringOfChar(aChar(' '), tc), T_INK, T_PAPER, Info^.Error^);
+    End Else
+      If tc > nx Then Begin
+        tc := tc * Cw;
+        SP_PRINT(-1, Round(PRPOSX), Y, -1, StringOfChar(aChar(' '), ((tc - nx) Div Cw) +1), T_INK, T_PAPER, Info^.Error^);
+      End;
   End;
 
   Dec(SP_StackPtr);
@@ -8222,7 +8228,7 @@ Begin
   // Repeat: Unstack values and PRINT them, until there are no values left. That's it :)
 
   PrItem := '';
-  AddReturn := True;
+  AddReturn := False;
   UsingPos := 1;
 
   While SP_StackPtr <> SP_StackStart Do Begin
@@ -8238,7 +8244,6 @@ Begin
               CurItem := aString(aFloatToStr(Val));
             prItem := PrItem + CurItem;
             CurItem := '';
-            AddReturn := True;
           End;
         SP_STRING:
           Begin
@@ -8253,7 +8258,6 @@ Begin
               CurItem := Str;
             prItem := PrItem + CurItem;
             CurItem := '';
-            AddReturn := True;
           End;
         SP_SYMBOL:
           Begin
@@ -8261,15 +8265,17 @@ Begin
               #39:
                 Begin
                   PrItem := PrItem + aChar(13);
-                  AddReturn := False;
                 End;
-              ';':
+              #255:
                 Begin
-                  AddReturn := False;
+                  AddReturn := True;
                 End;
               ',':
                 Begin
                   PrItem := PrItem + aChar(6);
+                End;
+              ';':
+                Begin
                   AddReturn := False;
                 End;
             End;
@@ -8281,7 +8287,7 @@ Begin
   End;
 
   If PrItem <> '' Then Begin
-    If PrItem[Length(PrItem)] in [#13, #6] Then
+    If PrItem[Length(PrItem)] = #13 Then
       AddReturn := False;
 
     If AddReturn Then PrItem := PrItem + #13;
@@ -8342,7 +8348,7 @@ Var
 Begin
 
   PrItem := '';
-  AddReturn := True;
+  AddReturn := False;
   UsingPos := 1;
 
   While SP_StackPtr <> SP_StackStart Do Begin
@@ -8358,7 +8364,6 @@ Begin
               CurItem := aString(aFloatToStr(Val));
             prItem := PrItem + CurItem;
             CurItem := '';
-            AddReturn := True;
           End;
         SP_STRING:
           Begin
@@ -8370,7 +8375,6 @@ Begin
               CurItem := Str;
             prItem := PrItem + CurItem;
             CurItem := '';
-            AddReturn := True;
           End;
         SP_SYMBOL:
           Begin
@@ -8378,16 +8382,14 @@ Begin
               #39:
                 Begin
                   PrItem := PrItem + aChar(13);
-                  AddReturn := False;
                 End;
-              ';':
+              #255:
                 Begin
-                  AddReturn := False;
+                  AddReturn := True;
                 End;
               ',':
                 Begin
                   PrItem := PrItem + aChar(6);
-                  AddReturn := False;
                 End;
             End;
           End;
@@ -8398,7 +8400,7 @@ Begin
   End;
 
   If PrItem <> '' Then Begin
-    If PrItem[Length(PrItem)] in [#13, #6] Then
+    If PrItem[Length(PrItem)] = #13 Then
       AddReturn := False;
 
     If AddReturn Then PrItem := PrItem + #13;

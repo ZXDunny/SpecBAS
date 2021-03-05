@@ -6092,13 +6092,8 @@ Begin
 
 Finalise:
 
-  If Expr <> '' Then
-    Result := Result + Expr;
-
-  If (((TransFlag or CentreFlag) or (Expr <> '')) And (KID <> 0)) or (KID <> 0) Then Begin
-    Result := Result + CreateToken(SP_KEYWORD, 0, SizeOf(LongWord)) + LongWordToString(KID);
-    KID := 0;
-  End;
+  Result := Result + Expr + CreateToken(SP_SYMBOL, 0, 1) + #255 + CreateToken(SP_KEYWORD, 0, SizeOf(LongWord)) + LongWordToString(InitialKID); // #255 to signal end of PRINT sequence
+  KID := 0;
 
   If TransFlag Then
     Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0) + CreateToken(SP_KEYWORD, 0, SizeOf(LongWord)) + LongWordToString(SP_KW_PR_TRANSPARENT);
@@ -10115,7 +10110,7 @@ Var
   Condition, Every, FnResult, GotoExpr: aString;
   Condition_Pos, KeyWord, KeyWordPos: LongWord;
   GotCondition, OffFlag, b: Boolean;
-  n, i, j, k, overallLen, JumpOffset, KW: Integer;
+  n, i, j, k, overallLen, JumpOffset, KW, ot: Integer;
   Token: pToken;
 Begin
 
@@ -10260,33 +10255,45 @@ Begin
     End;
 
     OffFlag := False;
-    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GO) And GotCondition Then Begin
+    KW := pLongWord(@Tokens[Position +1])^;
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And ((KW = SP_KW_GO) or (KW = SP_KW_EXECUTE)) And GotCondition Then Begin
       Inc(Position, 1 + SizeOf(LongWord));
 
-      KW := -1;
-      If Byte(Tokens[Position]) = SP_KEYWORD Then Begin
-        KW := pLongWord(@Tokens[Position +1])^;
-        Inc(Position, 1 + SizeOf(LongWord));
-      End Else
-        If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
-          KW := Ord(Tokens[Position +1]);
-          Inc(Position, 2);
-        End;
+      If KW = SP_KW_GO Then Begin // Sort out which one we're gonna get
+        KW := -1;
+        If Byte(Tokens[Position]) = SP_KEYWORD Then Begin
+          KW := pLongWord(@Tokens[Position +1])^;
+          Inc(Position, 1 + SizeOf(LongWord));
+        End Else
+          If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
+            KW := Ord(Tokens[Position +1]);
+            Inc(Position, 2);
+          End;
+      End;
 
       If KW >= 0 Then Begin
         Case KW Of
-          Ord(SP_CHAR_SUB): KW := SP_KW_GOSUB;
-               SP_KW_TO:    KW := SP_KW_GOTO;
+          Ord(SP_CHAR_SUB): Begin KW := SP_KW_GOSUB; ot := SP_VALUE; End;
+               SP_KW_TO:    Begin KW := SP_KW_GOTO; ot := SP_VALUE; End;
+             SP_KW_EXECUTE: Begin KW := SP_KW_EXECUTE; ot := SP_STRING; End;
+        Else
+          Begin
+            Error.Code := SP_ERR_SYNTAX_ERROR;
+            Exit;
+          End;
         End;
         Condition := Copy(Condition, SizeOf(TToken) +1);
         // Followed by at least one numexpr, subsequent exprs separated by commas.
         // Store as a expression, then SP_IJMP followed by count (n) and n * longwords pointing at the expressions, then the expressions themselves.
-        // Expressions followed by an SP_JUMP opcode with a displacement to the GOTO/GOSUB keyword token.
+        // Expressions followed by an SP_JUMP opcode with a displacement to the GOTO/GOSUB/EXECUTE keyword token.
         SetLength(Exprs, 0);
         n := 0;
         Repeat
           SetLength(Exprs, Length(Exprs) +1);
           Exprs[n] := SP_Convert_Expr(Tokens, Position, Error, -1) + CreateToken(SP_KEYWORD, KeywordPos, SizeOf(LongWord)) + LongWordToString(KW);
+          If Error.ReturnType = SP_LABEL then Error.ReturnType := SP_VALUE;
+          If Error.ReturnType <> ot Then Error.Code := SP_ERR_SYNTAX_ERROR;
+          If Error.Code <> SP_ERR_OK Then Exit;
           SP_AddHandlers(Exprs[n]);
           Inc(n);
           b := (Error.Code = SP_ERR_OK) and (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',');

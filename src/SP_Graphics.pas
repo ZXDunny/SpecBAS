@@ -1950,7 +1950,7 @@ End;
 
 Function SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Visible: Boolean): Integer;
 Var
-  CharW, CharH, Idx, Val, cCount, OVER, ItalicOffset, DefInk, DefPaper: Integer;
+  CharW, CharH, Idx, Val, cCount, OVER, ItalicOffset, DefInk, DefPaper, nx: Integer;
   sx, sy, Cw, Ch, yp, xp, TC, t: LongWord;
   Transparent: Boolean;
   FontBank: pSP_Font_Info;
@@ -2151,8 +2151,10 @@ Begin
         Case Ord(Text[Idx]) of
           6:
             Begin // PRINT comma
-              Inc(X, TABSIZE*Cw);
-              X := Round(X/(TABSIZE*Cw))*(TABSIZE*Cw);
+              nx := X + (TABSIZE * Cw);
+              nx := Round(nx / (TABSIZE * Cw)) * (TABSIZE * Cw);
+              SP_TextOut(-1, X, Y, StringOfChar(aChar(' '), ((nx - x) Div Cw) +1), Ink, Paper, True);
+              X := nx;
             End;
           8:
             Begin // Cursor Left
@@ -2160,6 +2162,7 @@ Begin
             End;
           9:
             Begin // Cursor right
+              SP_TextOut(-1, X, Y, aString(' '), Ink, Paper, True);
               X := (X + Cw) Mod SCREENWIDTH;
             End;
          10:
@@ -2239,10 +2242,21 @@ Begin
             End;
          23:
             Begin // TAB control
-              X := 0;
-              SP_ConvertToOrigin_i_x(X);
-              Inc(X, (pInteger(@Text[Idx+1])^ Mod LongWord(SCREENWIDTH Div Cw)) * LongWord(Ch));
-              Inc(Idx, SizeOf(Integer));
+              nx := X Div Cw;
+              tc := pLongWord(@Text[Idx+1])^;
+              If tc < nx Then Begin
+                tc := ((SCREENWIDTH - X) Div Cw) + tc;
+                SP_TextOut(-1, X, Y, StringOfChar(aChar(' '), tc), Ink, Paper, True);
+                X := Round(PRPOSX);
+                Y := ROUND(PRPOSY);
+              End Else
+                If tc > nx Then Begin
+                  tc := tc * Cw;
+                  SP_TextOut(-1, X, Y, StringOfChar(aChar(' '), ((tc - nx) Div Cw) +1), Ink, Paper, True);
+                  X := Round(PRPOSX);
+                  Y := ROUND(PRPOSY);
+                End;
+              Inc(Idx, SizeOf(LongWord));
             End;
          24:
             Begin // CENTRE control
@@ -4640,7 +4654,7 @@ End;
 
 Function SP_PRINT(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: Integer; var Error: TSP_ErrorCode): Integer;
 Var
-  CharW, CharH, Idx, Scrolls, cCount, OVER, StreamIdx, sx, sy, TInk, TPaper, ItalicOffset: Integer;
+  CharW, CharH, Idx, Scrolls, cCount, OVER, StreamIdx, sx, sy, TInk, TPaper, ItalicOffset, nx: Integer;
   yp, xp, Cw, Ch, TC, t: LongWord;
   Transparent: Boolean;
   FontBank: pSP_Font_info;
@@ -4882,8 +4896,10 @@ Begin
           Case Ord(Text[Idx]) of
             6:
               Begin // PRINT comma
-                Inc(X, TABSIZE*Cw);
-                X := Round(X/(TABSIZE*Cw))*(TABSIZE*Cw);
+                nx := X + (TABSIZE * Cw);
+                nx := Round(nX / (TABSIZE * Cw)) * (TABSIZE * Cw);
+                SP_TextOut(-1, X, Y, StringOfChar(aChar(' '), ((nx - x) Div Cw) +1), Ink, Paper, True);
+                X := nx;
               End;
             8:
               Begin // Cursor Left
@@ -4891,6 +4907,7 @@ Begin
               End;
             9:
               Begin // Cursor right
+                SP_TextOut(-1, X, Y, aString(' '), Ink, Paper, True);
                 X := (X + Cw) Mod SCREENWIDTH;
               End;
            10:
@@ -4977,10 +4994,21 @@ Begin
               End;
            23:
               Begin // TAB control
-                X := 0;
-                SP_ConvertToOrigin_i_x(X);
-                Inc(X, (pInteger(@Text[Idx+1])^ Mod LongWord(SCREENWIDTH Div Cw)) * LongWord(Cw));
-                Inc(Idx, SizeOf(Integer));
+                nx := X Div Cw;
+                tc := pLongWord(@Text[Idx+1])^;
+                If tc < nx Then Begin
+                  tc := ((SCREENWIDTH - X) Div Cw) + tc;
+                  SP_PRINT(-1, X, Y, -1, StringOfChar(aChar(' '), tc), Ink, Paper, Error);
+                  X := Round(PRPOSX);
+                  Y := ROUND(PRPOSY);
+                End Else
+                  If tc > nx Then Begin
+                    tc := tc * Cw;
+                    SP_PRINT(-1, X, Y, -1, StringOfChar(aChar(' '), ((tc - nx) Div Cw) +1), Ink, Paper, Error);
+                    X := Round(PRPOSX);
+                    Y := ROUND(PRPOSY);
+                  End;
+                Inc(Idx, SizeOf(LongWord));
               End;
            24:
               Begin // CENTRE control

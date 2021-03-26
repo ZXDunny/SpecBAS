@@ -217,21 +217,21 @@ Const
   SP_ERR_STREAM_ID_NOT_FOUND = -12;
 
   ErrorMessages: Array[0..MAXERROR] of aString =
-    ('Ok',
-     'Missing numeric expression',
-     'Missing bracket',
-     'Missing operator',
-     'Illegal character in expression',
-     'Unhandled function',
-     'Missing String expression',
-     'Invalid keyword',
-     'Missing separator',
-     'Variable not found',
+    ('Ok', // 0
+     'Missing numeric expression', // 1
+     'Missing bracket', // 2
+     'Missing operator', // 3
+     'Illegal character in expression', // 4
+     'Unhandled function', // 5
+     'Missing String expression', //6
+     'Invalid keyword', // 7
+     'Missing separator', // 8
+     'Variable %v not found',
      'Missing "=" character',
      'Integer out of range',
      'Invalid String-slicer',
-     'Subscript wrong',
-     'Array not found',
+     'Subscript wrong in %v()',
+     'Array %v() not found',
      'Invalid numeric argument',
      'BREAK into program',
      'Expecting TO or SUB',
@@ -245,9 +245,9 @@ Const
      'IF without THEN',
      'Types not compatible',
      'Nonsense in BASIC',
-     'File in use',
+     'File %v in use',
      'Unable to save',
-     'File not found',
+     'File %v not found',
      'LOAD failed',
      'LOOP without DO',
      'WHILE without LOOP',
@@ -264,8 +264,8 @@ Const
      'Bank protected',
      'Invalid WAIT period',
      'Invalid stream ID',
-     'Directory not found',
-     'Label not declared',
+     'Directory %v not found',
+     'Label %v not declared',
      'Divide by zero',
      'File not valid palette',
      'Stack unbalanced in ',
@@ -281,7 +281,7 @@ Const
      'Invalid music file',
      'Invalid procedure name',
      'END PROC without DEF PROC',
-     'Procedure has no END PROC',
+     'Procedure %v has no END PROC',
      'PROC without DEF PROC',
      'Invalid parameter count',
      'Parameter error',
@@ -290,7 +290,7 @@ Const
      'FN without DEF FN',
      'END PROC without PROC or CALL',
      'EXIT PROC without PROC or CALL',
-     'Directory not found',
+     'Directory %v not found',
      'Invalid SCALE factor',
      'Invalid sprite frame',
      'Sprite not found',
@@ -306,12 +306,12 @@ Const
      'Error creating package',
      'Invalid package',
      'Invalid assignment',
-     'Assignment not found',
-     'Directory not empty',
+     'Assignment %v not found',
+     'Directory %v not empty',
      'Write protect error',
-     'File already exists in COPY',
-     'Directory already exists',
-     'Could not create directory',
+     'File %v already exists in COPY',
+     'Directory %v already exists',
+     'Could not create directory %v',
      'Mismatched mask in RENAME',
      'Could not RENAME file',
      'Cannot RENAME out of package',
@@ -322,7 +322,7 @@ Const
      'Invalid separator',
      'Invalid structure name',
      'Invalid structure member',
-     'STRUCT not found',
+     'STRUCT %v not found',
      'No STRUCT for string variable',
      'STRUCT member cannot be referenced',
      'INPUT without variable',
@@ -338,25 +338,25 @@ Const
      'Invalid hardware type',
      'Invalid nub ID',
      'Invalid nub mode',
-     'Invalid array variable',
-     'Unsuitable array',
+     'Invalid array variable %v',
+     'Unsuitable array %v',
      'Statement lost',
      'Invalid keyboard definition',
      'Invalid ORIGIN',
      'Clone not found',
      'Out of clones',
-     'Invalid note name',
-     'File not found',
-     'Invalid file name',
-     'Could not open file',
+     'Invalid note name %v',
+     'File %v not found',
+     'Invalid file name %v',
+     'Could not open file %v',
      'File not open',
      'File locked for writing',
      'Invalid duration',
      'CASE without END CASE',
      'Out of CASE',
      'Mismatched type in WHEN',
-     'Key not found in array',
-     'Key already exists in array',
+     'Key not found in array %v',
+     'Key already exists in array %v',
      'Invalid matrix',
      'Cannot invert singular matrix',
      'Mismatched matrix sizes',
@@ -378,6 +378,28 @@ Const
      'Invalid window',
      'Breakpoint reached');
 
+  Function ProcessErrorMessage(s: aString): aString;
+
 implementation
+
+Uses SP_SysVars;
+
+Function ProcessErrorMessage(s: aString): aString;
+Var
+  i: Integer;
+Begin
+
+  i := Pos('%v', s);
+  If i > 0 Then Begin
+    If Copy(s, i +2, 2) = '()' Then Begin
+      s := Copy(s, 1, i +1) + Copy(s, i +4);
+      If ERRStr <> '' Then
+        ERRStr := ERRStr + '()';
+    End;
+    Result := Copy(s, 1, i -1) + ERRStr + Copy(s, i +2)
+  End Else
+    Result := s;
+
+End;
 
 end.

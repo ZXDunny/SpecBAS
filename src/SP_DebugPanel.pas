@@ -429,7 +429,7 @@ Begin
                 MaxW := Max(Length(s), MaxW);
                 vContent := ' ' + SP_FPExecuteAnyExpression(SP_WatchList[i].Compiled_Expression, Error);
                 If Error.Code <> SP_ERR_OK Then Begin
-                  vContent := ' ' + ErrorMessages[Error.Code];
+                  vContent := ' ' + ProcessErrorMessage(ErrorMessages[Error.Code]);
                   MaxP := Max(Length(vContent), MaxP);
                   vContent := #16#2#0#0#0 + vContent;
                 End Else Begin

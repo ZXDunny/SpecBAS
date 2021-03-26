@@ -1412,6 +1412,7 @@ Begin
     RenameFile(String(OldFilename), String(Filename));
   End;
 
+  ERRStr := Filename;
   If FileExists(String(Filename)) Then Begin
     Bmp := TPicture.Create;
     Try

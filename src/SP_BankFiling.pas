@@ -473,6 +473,7 @@ Begin
 
   INI := TAnsiStringList.Create;
 
+  ERRStr := Filename;
   If SP_FileExists(Filename) Then Begin
 
     // Load into a temporary bank
@@ -1131,8 +1132,10 @@ Begin
       SP_FileClose(FileID, Error);
       INI.Free;
 
-    End Else
+    End Else Begin
+      ERRStr := Filename;
       Error.Code := SP_ERR_SAVE_OPEN_ERROR;
+    End;
 
   End Else
     Error.Code:= SP_ERR_BANK_NOT_FOUND;

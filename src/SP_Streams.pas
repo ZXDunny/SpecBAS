@@ -95,6 +95,7 @@ Begin
       Stream^.FileID := fID;
       Stream^.BankID := -1;
     End Else Begin
+      ERRStr := Filename;
       Error.Code := SP_ERR_SAVE_OPEN_ERROR;
       Exit;
     End;

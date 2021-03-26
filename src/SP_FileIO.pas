@@ -276,6 +276,7 @@ Begin
 
   // Converts a specbas file/folder to the host architecture's file/folder
 
+  ERRStr := SP_ExtractFileDir(Filename);
   If Pos(':', String(Filename)) <> 0 Then Begin
     fName := SP_Decode_Assignment(Copy(Filename, 1, Pos(':', String(Filename)) -1), Error);
     fName2 := Copy(Filename, Pos(':', String(Filename)) +1, Length(Filename));
@@ -319,6 +320,7 @@ Begin
 
   If Lower(Copy(fName, 1, Length(HOMEFOLDER))) <> Lower(Homefolder) Then Begin
     Result := '';
+    ERRStr := Filename;
     Error.Code := SP_ERR_INVALID_FILENAME;
     Exit;
   End Else Begin
@@ -345,6 +347,7 @@ Begin
   // Filename is in SpecBAS format.
 
   System := Pos(':', String(Filename)) > 0;
+  ERRStr := Filename;
 
   If System or Not PackageIsOpen Then Begin
 
@@ -444,6 +447,7 @@ Begin
 
     End Else Begin
 
+      ERRStr := SP_ExtractFileDir(ERRStr);
       Error.Code := SP_ERR_DIRECTORYNOTFOUND;
       Result := -1;
 
@@ -466,6 +470,7 @@ Begin
   // Filename might be in SpecBAS format, but may also be a host-format filename.
 
   System := Pos(':', String(Filename)) > 0;
+  ERRStr := Filename;
 
   If System or Not PackageIsOpen Then Begin
     If System Then Begin
@@ -651,6 +656,7 @@ Begin
         End;
         Result := SP_FileList[Idx]^.Stream.Write(Buffer^, Count);
       Except
+        ERRStr := '';
         Error.Code := SP_ERR_SAVE_OPEN_ERROR;
       End;
     End;
@@ -808,6 +814,7 @@ Begin
       Exit;
     End;
 
+  ERRStr := Filename;
   If SP_FileExists(Filename) Then Begin
     System := Pos(':', String(Filename)) > 0;
     If PackageIsOpen And Not System Then Begin
@@ -1105,8 +1112,10 @@ Begin
   cPos := -1;
   FileID := -1;
   changed := False;
+  ERRStr := Filename;
   Dir := SP_ExtractFileDir(Filename);
   SP_SetCurrentDir(Dir, Error);
+  If Error.Code <> SP_ERR_OK Then Goto Finish;
 
   If pList = Nil Then Begin
 
@@ -1453,6 +1462,7 @@ Begin
     If Ass[Idx] in ['0'..'9', 'a'..'z', '_'] Then
       Inc(Idx)
     Else Begin
+      ERRStr := Ass + ':';
       Error.Code := SP_ERR_INVALID_ASSIGNMENT;
       Exit;
     End;
@@ -1486,6 +1496,7 @@ Begin
 
     // Otherwise, check the path - does it exist in the host filesystem?
 
+    ERRStr := Path;
     Path := SP_ConvertFilenameToHost(Path, Error);
     If DirectoryExists(String(Path)) Then Begin
 
@@ -1535,6 +1546,7 @@ Begin
       Inc(Idx);
   End;
 
+  ERRStr := Ass + ':';
   If ListPos = -1 Then Begin
     If Ass = '$' Then
       Result := SP_ConvertHostFilename(aString(GetCurrentDir+PathDelim), Error)
@@ -1630,6 +1642,7 @@ End;
 Procedure SP_DeleteFile(Filename: aString; var Error: TSP_ErrorCode);
 Begin
 
+  ErrStr := Filename;
   If PackageIsOpen And (Pos(':', String(Filename)) = 0) Then
     SP_DeletePackageFile(Filename, Error)
   Else Begin
@@ -1646,6 +1659,7 @@ End;
 Procedure SP_SetCurrentDir(Dir: aString; Var Error: TSP_ErrorCode);
 Begin
 
+  ERRStr := Dir;
   If Dir <> '' Then
     If Not PackageIsOpen or (Pos(':', String(Dir)) > 0) Then Begin
       Dir := SP_ConvertFilenameToHost(Dir, Error);
@@ -1812,6 +1826,7 @@ Begin
       If Copy(PathStr, Length(PathStr), 1) <> '/' Then
         PathStr := PathStr + '/';
 
+  ERRStr := PathStr;
   If SP_DirectoryExists(PathStr) Then Begin
 
     // Get all the files in the folder.
@@ -1987,10 +2002,12 @@ Begin
 
   OrgFileSpecDir := SP_ExtractFileDir(FileSpec);
 
+  ERRStr := FileSpec;
   SP_GetFileList(FileSpec, Files, FileSizes, Error, False);
 
   If Files.Count > 0 Then Begin
 
+    ERRStr := Dest;
     If SP_DirectoryExists(Dest) Then Begin
 
       If Copy(Dest, Length(Dest), 1) <> '/' Then
@@ -2021,7 +2038,13 @@ Begin
 
         End Else Begin
 
-          Error.Code := SP_ERR_FILE_ALREADY_EXISTS;
+          If Not SP_DirectoryExists(Dest) Then Begin
+            ERRStr := Dest;
+            Error.Code := SP_ERR_DIR_NOT_FOUND;
+          End Else Begin
+            ERRStr := Files[Idx];
+            Error.Code := SP_ERR_FILE_ALREADY_EXISTS;
+          End;
           Break;
 
         End;
@@ -2080,6 +2103,7 @@ End;
 Procedure SP_MakeDir(Dir: aString; var Error: TSP_ErrorCode);
 Begin
 
+  ERRStr := Dir;
   If PackageIsOpen And (Pos(':', String(Dir)) = 0) Then Begin
 
     SP_PackageCreateDir(Dir, Error);
@@ -2107,6 +2131,7 @@ Begin
 
   // Rename a host-filesystem file. Filename must be in host format.
 
+  ErrStr := Src;
   If FileExists(String(Src)) Then begin
 
     {$IOChecks off}
@@ -2143,6 +2168,7 @@ Begin
   End Else
     HostFS := SrcHost;
 
+
   If (Pos('?', String(SrcFiles)) = 0) And (Pos('*', String(SrcFiles)) = 0) And (Pos('?', String(DstFiles)) = 0) And (Pos('*', String(DstFiles)) = 0) Then Begin
 
     If HostFS Then
@@ -2177,6 +2203,7 @@ Begin
     Files := TAnsiStringList.Create;
     FileSizes := TAnsiStringList.Create;
 
+    ERRStr := SrcFiles;
     FileSpec := SrcFiles;
     SP_GetFileList(FileSpec, Files, FileSizes, Error, False);
 

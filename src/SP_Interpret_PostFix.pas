@@ -1310,7 +1310,7 @@ Begin
     '/':
       If Val2 <> 0 Then SP_StackPtr^.Val := Val1 / Val2 Else Error.Code := SP_ERR_DIV_BY_ZERO;
     '^':
-      SP_StackPtr^.Val := Power(Val1, Val2);
+      SP_StackPtr^.Val := SP_Power(Val1, Val2);
     SP_CHAR_NUM_EQU, '=':
       SP_StackPtr^.Val := Byte(Val1 = Val2);
     SP_CHAR_NUM_LES, '<':
@@ -1835,7 +1835,8 @@ Begin
         Dec(Idx);
       With SP_StackPtr^ Do Begin
         OpType := SP_VALUE;
-         Val := SP_QueryNumArray(Idx, gbIndices, gbKey, Error^);
+        Val := SP_QueryNumArray(Idx, gbIndices, gbKey, Error^);
+        ERRStr := NumArrays[Idx].Name;
         If Error.Code <> SP_ERR_OK Then Exit;
       End;
     End Else Begin
@@ -1860,6 +1861,7 @@ Begin
           End Else
             With SP_StackPtr^ Do Begin
               OpType := SP_STRING;
+              ERRStr := StrArrays[Idx].Name;
               Str := SP_QueryStrArray(Idx, gbIndices, gbKey, Error^);
             End;
         End Else Begin
@@ -2936,7 +2938,7 @@ End;
 Procedure SP_Interpret_SP_CHAR_POWER(Var Info: pSP_iInfo);
 Begin
   Dec(SP_StackPtr);
-  SP_StackPtr^.Val := Power(SP_StackPtr^.Val, pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val)
+  SP_StackPtr^.Val := SP_Power(SP_StackPtr^.Val, pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val)
 End;
 
 Procedure SP_Interpret_SP_CHAR_COLON(Var Info: pSP_iInfo);
@@ -3172,7 +3174,7 @@ Begin
 
   If SP_StackPtr^.OpType = SP_NUM_ARRAY_PTR Then Begin
     vl := Round(SP_StackPtr^.Val);
-    pSP_NumVarContent(vl)^.Value := Power(pSP_NumVarContent(vl)^.Value, n);
+    pSP_NumVarContent(vl)^.Value := SP_Power(pSP_NumVarContent(vl)^.Value, n);
     SP_StackPtr^.OpType := SP_VALUE;
     SP_StackPtr^.Val := pSP_NumVarContent(vl)^.Value;
   End Else Begin
@@ -4339,6 +4341,7 @@ Begin
   Dec(SP_StackPtr);
 
   VarName := SP_StackPtr^.Str;
+  ERRStr := VarName;
   Case SP_StackPtr^.OpType of
     SP_NUMVAR:
       Begin
@@ -4384,6 +4387,7 @@ Begin
   Dec(SP_StackPtr);
 
   VarName := SP_StackPtr^.Str;
+  ERRStr := VarName;
   Case SP_StackPtr^.OpType of
     SP_NUMVAR:
       Begin
@@ -6342,7 +6346,7 @@ Begin
   Inc(SP_StackPtr);
   With SP_StackPtr^ Do Begin
     OpType := SP_STRING;
-    Str := ErrorMessages[LASTERROR];
+    Str := ProcessErrorMessage(ErrorMessages[LASTERROR]);
   End;
 End;
 
@@ -6910,7 +6914,7 @@ Begin
   R := SP_StackPtr^.Val; // Power
   Dec(SP_StackPtr);
   G := SP_StackPtr^.Val; // Base
-  SP_StackPtr^.Val := Power(G, R);
+  SP_StackPtr^.Val := SP_Power(G, R);
 End;
 
 Procedure SP_Interpret_FN_PEEK(Var Info: pSP_iInfo);
@@ -7699,7 +7703,8 @@ Begin
   // Get the determinant of a matrix (a 2-dimensional array)
   // Destructive, so make a copy of the array.
 
-  sIdx := SP_FindNumArray(SP_StackPtr^.Str);
+  ERRStr := SP_StackPtr^.Str;
+  sIdx := SP_FindNumArray(ERRStr);
   If sIdx > -1 Then Begin
 
     SP_StackPtr^.OpType := SP_VALUE;
@@ -8948,6 +8953,7 @@ Begin
                 If SliceTo > -1 Then
                   SliceTo := Min(SliceTo, Length(StrVars[Idx]^.ContentPtr^.Value));
                 If SliceFrom < 1  Then Begin
+                  ERRStr := Str;
                   Info^.Error^.Code := SP_ERR_SUBSCRIPT_WRONG;
                   Exit;
                 End Else Begin
@@ -8955,8 +8961,10 @@ Begin
                   Dec(Sp1);
                   SP_SliceAssign(StrVars[Idx]^.ContentPtr^.Value, Sp1^.Str, SliceFrom, SliceTo, Info^.Error^);
                 End;
-              End Else
+              End Else Begin
+                ERRStr := SP_StackPtr^.Str;
                 Info^.Error^.Code := SP_ERR_MISSING_VAR;
+              End;
             End Else
               Info^.Error^.Code := SP_ERR_CONST_IN_ASSIGNMENT;
           End Else Begin
@@ -8976,6 +8984,7 @@ Begin
                   If SliceFlags <> 0 Then Begin
                     Content := SP_GetStructMemberS(StrPtr, Sp1^.Str, Info^.Error^);
                     If (SliceTo < 1) or (SliceTo > Length(Content)) Then Begin
+                      ERRStr := Str;
                       Info^.Error^.Code := SP_ERR_SUBSCRIPT_WRONG;
                       Exit;
                     End Else Begin
@@ -9107,6 +9116,7 @@ Begin
     If aIdx > 0 Then
       Indices := Indices + LongWordToString(Round(SP_StackPtr^.Val))
     Else Begin
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_SUBSCRIPT_WRONG;
       Exit;
     End;
@@ -9311,6 +9321,7 @@ Begin
     If aIdx > 0 Then
       Indices := Indices + LongWordToString(Round(SP_StackPtr^.Val))
     Else Begin
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_SUBSCRIPT_WRONG;
       Exit;
     End;
@@ -9377,8 +9388,8 @@ Begin
         NXTSTATEMENT := nLabel.Statement;
         Info^.Error^.Statement := nLabel.St;
         Goto RunIt;
-      End
-      Else Begin
+      End Else Begin
+        ERRStr := nLabel.Name;
         Info^.Error^.Code := SP_ERR_LABEL_NOT_FOUND;
         Exit;
       End;
@@ -9439,6 +9450,7 @@ Begin
       NXTSTATEMENT := nLabel.Statement;
       Info^.Error^.Statement := nLabel.St;
     End Else Begin
+      ERRstr := nLabel.Name;
       Info^.Error^.Code := SP_ERR_LABEL_NOT_FOUND;
       Exit;
     End;
@@ -9548,6 +9560,7 @@ Begin
         NXTSTATEMENT := nLabel.Statement;
         Stat := nLabel.St;
       End Else Begin
+        ERRStr := nLabel.Name;
         Error^.Code := SP_ERR_LABEL_NOT_FOUND;
         Exit;
       End;
@@ -10157,8 +10170,9 @@ Var
   Idx, iSize, vIdx, pIdx: Integer;
 Begin
 
+  VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
-    VarName := Lower(SP_StackPtr^.Str);
     If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
       Dec(SP_StackPtr);
       Idx := 0;
@@ -10224,6 +10238,7 @@ Begin
         End;
         Inc(Idx);
       End;
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
     End Else
       Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -10256,8 +10271,9 @@ Var
 Const
   pdx = 5; pdy = 6;
 Begin
+  VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
-    VarName := Lower(SP_StackPtr^.Str);
     If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
       Dec(SP_StackPtr);
       Idx := 0;
@@ -10295,6 +10311,7 @@ Begin
         End;
         Inc(Idx);
       End;
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
     End Else
       Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -10314,8 +10331,9 @@ Const
   px = 0; py = 1; pr = 3; pm = 4; pdx = 5; pdy = 6;
 Begin
 
+  VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
-    VarName := Lower(SP_StackPtr^.Str);
     If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
       Dec(SP_StackPtr);
       Idx := 0;
@@ -10415,6 +10433,7 @@ Begin
         End;
         Inc(Idx);
       End;
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
     End Else
       Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -10603,6 +10622,7 @@ Var
 Begin
 
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     Idx := 0;
@@ -10652,6 +10672,7 @@ Begin
       End;
       Inc(Idx);
     End;
+    ERRStr := VarName;
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
   End Else
     Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -10666,6 +10687,7 @@ Var
 Begin
 
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     Idx := 0;
@@ -10715,6 +10737,7 @@ Begin
       End;
       Inc(Idx);
     End;
+    ERRStr := VarName;
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
   End Else
     Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -10729,6 +10752,7 @@ Var
 Begin
 
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     Idx := 0;
@@ -10772,6 +10796,7 @@ Begin
       End;
       Inc(Idx);
     End;
+    ERRStr := VarName;
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
   End Else
     Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -10786,6 +10811,7 @@ Var
 Begin
 
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     Idx := 0;
@@ -10829,6 +10855,7 @@ Begin
       End;
       Inc(Idx);
     End;
+    ERRStr := VarName;
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
   End Else
     Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -11366,6 +11393,7 @@ Begin
             If Idx = 0 Then Begin
               Idx := SP_FindNumArray(Str);
               If Idx = -1 Then Begin
+                ERRStr := Str;
                 Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
                 Exit;
               End;
@@ -11444,6 +11472,7 @@ Begin
             If Idx = 0 Then Begin
               Idx := SP_FindNumArray(Str);
               If Idx = -1 Then Begin
+                ERRStr := Str;
                 Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
                 Exit;
               End;
@@ -11511,6 +11540,7 @@ Begin
             If Idx = 0 Then Begin
               Idx := SP_FindNumArray(Str);
               If Idx = -1 Then Begin
+                ERRStr := Str;
                 Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
                 Exit;
               End;
@@ -11580,6 +11610,7 @@ Begin
             If Idx = 0 Then Begin
               Idx := SP_FindNumArray(Str);
               If Idx = -1 Then Begin
+                ERRStr := Str;
                 Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
                 Exit;
               End;
@@ -12387,6 +12418,7 @@ Begin
         SP_DATA_Line.Statement := nLabel.Statement;
         SP_DATA_Line.St := nLabel.St;
       End Else Begin
+        ERRStr := nLabel.Name;
         Info^.Error^.Code := SP_ERR_LABEL_NOT_FOUND;
         Exit;
       End;
@@ -13668,18 +13700,20 @@ Begin
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     VarIdx := SP_FindNumArray(VarName);
-    If VarIdx = -1 Then
+    If VarIdx = -1 Then Begin
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
-    Else Begin
+    End Else Begin
       SP_FillNumArray(VarIdx, SP_StackPtr^.Val);
     End;
   End Else
     If SP_StackPtr^.OpType = SP_STRVAR Then Begin
       Dec(SP_StackPtr);
       VarIdx := SP_FindStrArray(VarName);
-      If VarIdx = -1 Then
+      If VarIdx = -1 Then Begin
+        ERRStr := VarName + '$';
         Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
-      Else Begin
+      End Else Begin
         SP_FillStrArray(VarIdx, SP_StackPtr^.Str);
       End;
     End;
@@ -13707,17 +13741,19 @@ Begin
   VarName := SP_StackPtr^.Str;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     VarIdx := SP_FindNumArray(VarName);
-    If VarIdx = -1 Then
+    If VarIdx = -1 Then Begin
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
-    Else Begin
+    End Else Begin
       SP_DeleteNumArray(VarName, Info^.Error^);
     End;
   End Else
     If SP_StackPtr^.OpType = SP_STRVAR Then Begin
       VarIdx := SP_FindStrArray(VarName);
-      If VarIdx = -1 Then
-        Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
-      Else Begin
+      If VarIdx = -1 Then Begin
+        ERRStr := VarName + '$';
+        Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
+      End Else Begin
         SP_DeleteStrArray(VarName, Info^.Error^);
       End;
     End;
@@ -14035,8 +14071,9 @@ Begin
   IsOpen := SP_StackPtr^.Val = 1;
   Dec(SP_StackPtr);
 
+  VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
-    VarName := Lower(SP_StackPtr^.Str);
     If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
       Dec(SP_StackPtr);
       Idx := 0;
@@ -14075,6 +14112,7 @@ Begin
         End;
         Inc(Idx);
       End;
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
     End Else
       Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -14157,6 +14195,7 @@ Begin
 
   If VarName <> '' Then Begin
     Idx := 0;
+    ERRStr := VarName;
     While Idx < Length(NumArrays) Do Begin
       If NumArrays[Idx].Name = VarName Then Begin
         numPoints := NumArrays[Idx].Indices[0];
@@ -14535,11 +14574,7 @@ Begin
     SCREENLOCK := OldScreenLock;
   End Else
     If Delay = 0 Then Begin // WAIT SCREEN - forces a display update
-      OldScreenLock := SCREENLOCK;
-      SCREENLOCK := False;
-      SP_NeedDisplayUpdate := True;
-      SP_WaitForSync;
-      SCREENLOCK := OldScreenLock;
+      SP_ForceScreenUpdate;
     End Else Begin // WAIT n
       CurrentTicks := CB_GetTicks;
       TargetTicks := CurrentTicks + LongWord(Delay);
@@ -15453,9 +15488,12 @@ Begin
       Error^.ReturnType := SP_JUMP;
     End;
 
-  End Else
+  End Else Begin
 
+    ERRStr := Name;
     Info^.Error^.Code := SP_ERR_PROC_NOT_CLOSED;
+
+  End;
 
 End;
 
@@ -15670,6 +15708,7 @@ FoundIt:
                   Idx3 := SP_FindStrVar(SP_StackPtr^.Str);
                   If Idx3 > -1 Then Begin
                     If (SliceTo < 1) or (SliceTo > Length(StrVars[Idx3].ContentPtr^.Value)) Then Begin
+                      ERRStr := SP_StackPtr^.Str;
                       Error.Code := SP_ERR_SUBSCRIPT_WRONG;
                       Exit;
                     End Else Begin
@@ -16456,6 +16495,7 @@ Begin
     Recurse := SP_StackPtr^.Val <> 0;
     Dec(SP_StackPtr);
 
+    ERRStr := DirString;
     If DirString = '' Then Begin
       Error^.Code := SP_ERR_FILE_NOT_FOUND;
       Exit;
@@ -16468,6 +16508,7 @@ Begin
 
       SP_GetFileList(DirString, Files, FileSizes, Error^, False);
 
+      ERRStr := DirString;
       If Error^.Code = SP_ERR_OK Then Begin
 
         If Files.Count > 0 Then Begin
@@ -17246,6 +17287,7 @@ Begin
   Dec(SP_StackPtr);
   T := Round(SP_StackPtr^.Val) And $FFFF;
 
+  ERRStr := Filename;
   If SP_FileExists(Filename) Then
     SP_StackPtr^.Val := SP_New_GraphicC(Filename, T, Info^.Error^)
   Else Begin
@@ -18827,6 +18869,7 @@ Begin
         Inc(Idx);
   End;
 
+  ERRStr := VarName;
   Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
   Dec(SP_StackPtr);
 
@@ -19000,6 +19043,7 @@ Begin
   If PackageIsOpen Then
     SP_ClosePackage;
 
+  ERRStr := Filename;
   Filename := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
 
@@ -19403,6 +19447,7 @@ Begin
         End;
         Output := Output + ')'+#13;
       End Else Begin
+        ERRStr := SP_StackPtr^.Str;
         Info^.Error^.Code := SP_ERR_STRUCT_NOT_FOUND;
         Exit;
       End;
@@ -20741,6 +20786,7 @@ Var
 Begin
 
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     Idx := 0;
@@ -20785,6 +20831,7 @@ Begin
       End;
       Inc(Idx);
     End;
+    ERRStr := VarName;
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
   End Else
     Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -20804,6 +20851,7 @@ Begin
 
   sIdx := -1;
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     Idx := 0;
@@ -20821,8 +20869,10 @@ Begin
       End;
       Inc(Idx);
     End;
-    If sIdx = -1 Then
+    If sIdx = -1 Then Begin
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
+    End;
   End Else
     Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
 
@@ -20957,6 +21007,7 @@ Begin
 
   sIdx := -1;
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     Idx := 0;
@@ -20974,8 +21025,10 @@ Begin
       End;
       Inc(Idx);
     End;
-    If sIdx = -1 Then
+    If sIdx = -1 Then Begin
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
+    End;
   End Else
     Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
 
@@ -21148,6 +21201,7 @@ Begin
 
   sIdx := -1;
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     Idx := 0;
@@ -21180,6 +21234,7 @@ Begin
 
   dIdx := -1;
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     Idx := 0;
@@ -22128,6 +22183,7 @@ Begin
   Dec(SP_StackPtr);
 
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   aType := SP_StackPtr^.OpType;
   If aType in [SP_NUMVAR, SP_STRVAR] Then Begin
     Dec(SP_StackPtr);
@@ -22346,14 +22402,16 @@ Begin
   Dec(SP_StackPtr);
 
   sIdxA := SP_FindNumArray(SP_StackPtr^.Str);
-  If sIdxA = -1 Then
+  If sIdxA = -1 Then Begin
+    ERRStr := SP_StackPtr^.Str;
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
-  Else Begin
+  End Else Begin
     Dec(SP_StackPtr);
     sIdxB := SP_FindNumArray(SP_StackPtr^.Str);
-    If sIdxB = -1 Then
+    If sIdxB = -1 Then Begin
+      ERRStr := SP_StackPtr^.Str;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
-    Else Begin
+    End Else Begin
       Dec(SP_StackPtr);
       Amt := SP_StackPtr^.Val;
       Dec(SP_StackPtr);
@@ -22374,8 +22432,10 @@ Begin
           St := NumArrays[sIdxA].Values[Idx].Value;
           NumArrays[dIdx].Values[Idx].Value := St + (Amt * (NumArrays[sIdxB].Values[Idx].Value - St));
         End;
-      End Else
+      End Else Begin
+        ERRStr := '';
         Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
+      End;
     End;
   End;
 
@@ -22395,9 +22455,10 @@ Begin
 
   Dec(SP_StackPtr);
   sIdx := SP_FindNumArray(SP_StackPtr^.Str);
-  If sIdx = -1 Then
+  If sIdx = -1 Then Begin
+    ERRStr := SP_StackPtr^.Str;
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
-  Else Begin
+  End Else Begin
     Dec(SP_StackPtr);
     SP_CopyNumArray(sIdx, dIdx, Info^.Error^);
   End;
@@ -22412,9 +22473,10 @@ Begin
   // Zero matrix - just fill with 0.
 
   sIdx := SP_FindNumArray(SP_StackPtr^.Str);
-  If sIdx = -1 Then
+  If sIdx = -1 Then Begin
+    ERRStr := SP_StackPtr^.Str;
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
-  Else Begin
+  End Else Begin
     Dec(SP_StackPtr);
     For Idx := 0 To NumArrays[sIdx].Size -1 Do
       NumArrays[sIdx].Values[Idx]^.Value := 0;
@@ -22430,7 +22492,8 @@ Begin
   // No parameter given, so need to check the array for compatibility -
   // NxN square only, and MUST exist.
 
-  sIdx := SP_FindNumArray(SP_StackPtr^.Str);
+  ERRStr := SP_StackPtr^.Str;
+  sIdx := SP_FindNumArray(ERRStr);
   If sIdx = -1 Then
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
   Else Begin
@@ -22467,10 +22530,14 @@ Begin
 
   If Size > 0 Then Begin
 
-    sIdx := SP_FindNumArray(SP_StackPtr^.Str);
+    ERRStr := SP_StackPtr^.Str;
+    sIdx := SP_FindNumArray(ERRStr);
     If sIdx <> -1 Then Begin
       Indices := LongWordToString(Size) + LongWordToString(Size);
       sIdx := SP_CreateNumArray(SP_StackPtr^.Str, Indices, BASE, False, Info^.Error^);
+    End Else Begin
+      Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
+      Exit;
     End;
 
     Dec(SP_StackPtr);
@@ -22502,9 +22569,10 @@ Begin
   // constant matrix with no parameter - just fill with 1.
 
   sIdx := SP_FindNumArray(SP_StackPtr^.Str);
-  If sIdx = -1 Then
+  If sIdx = -1 Then Begin
+    ERRStr := SP_StackPtr^.Str;
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
-  Else Begin
+  End Else Begin
     Dec(SP_StackPtr);
     For Idx := 0 To NumArrays[sIdx].Size -1 Do
       NumArrays[sIdx].Values[Idx]^.Value := 1;
@@ -22524,9 +22592,10 @@ Begin
   Dec(SP_StackPtr);
 
   sIdx := SP_FindNumArray(SP_StackPtr^.Str);
-  If sIdx = -1 Then
+  If sIdx = -1 Then Begin
+    ERRStr := SP_StackPtr^.Str;
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND
-  Else Begin
+  End Else Begin
     Dec(SP_StackPtr);
     For Idx := 0 To NumArrays[sIdx].Size -1 Do
       NumArrays[sIdx].Values[Idx]^.Value := Param;
@@ -22562,7 +22631,8 @@ Begin
   iCol := 0;
   dIdx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
-  sIdx := SP_FindNumArray(SP_StackPtr^.Str);
+  ERRStr := SP_StackPtr^.Str;
+  sIdx := SP_FindNumArray(ERRStr);
   Dec(SP_StackPtr);
   If sIdx <> -1 Then Begin
     If (NumArrays[sIdx].NumIndices = 2) And (NumArrays[sIdx].Indices[0] = NumArrays[sIdx].Indices[1]) Then Begin
@@ -22646,7 +22716,8 @@ Begin
 
   dIdx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
-  sIdx := SP_FindNumArray(SP_StackPtr^.Str);
+  ERRStr := SP_StackPtr^.Str;
+  sIdx := SP_FindNumArray(ERRStr);
   If sIdx <> -1 Then Begin
     If NumArrays[sIdx].NumIndices = 2 Then Begin
       m := NumArrays[sIdx].Indices[0];
@@ -22689,37 +22760,45 @@ Begin
 
   dIdx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
-  s2Idx := SP_FindNumArray(SP_StackPtr^.Str);
+  ERRStr := SP_StackPtr^.Str;
+  s2Idx := SP_FindNumArray(ERRStr);
   Dec(SP_StackPtr);
-  s1Idx := SP_FindNumArray(SP_StackPtr^.Str);
-  Dec(SP_StackPtr);
 
-  If (s2Idx <> -1) And (s2Idx <> -1) Then Begin
+  If s2Idx <> -1 Then Begin
 
-    If NumArrays[s1Idx].NumIndices = NumArrays[s2Idx].NumIndices Then Begin
+    ERRStr := SP_StackPtr^.Str;
+    s1Idx := SP_FindNumArray(ERRStr);
+    Dec(SP_StackPtr);
 
-      Indices := '';
-      For Idx := 0 To NumArrays[s1Idx].NumIndices -1 Do Begin
-        Indices := Indices + LongWordToString(NumArrays[s1Idx].Indices[Idx]);
-        If NumArrays[s1Idx].Indices[Idx] <> NumArrays[s2Idx].Indices[Idx] Then Begin
-          Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
-          Exit;
+    If s2Idx <> -1 Then Begin
+
+      If NumArrays[s1Idx].NumIndices = NumArrays[s2Idx].NumIndices Then Begin
+
+        Indices := '';
+        For Idx := 0 To NumArrays[s1Idx].NumIndices -1 Do Begin
+          Indices := Indices + LongWordToString(NumArrays[s1Idx].Indices[Idx]);
+          If NumArrays[s1Idx].Indices[Idx] <> NumArrays[s2Idx].Indices[Idx] Then Begin
+            Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
+            Exit;
+          End;
         End;
-      End;
 
-      SetLength(Values, NumArrays[s1Idx].Size);
-      For Idx := 0 To NumArrays[s1Idx].Size -1 Do
-        Values[Idx] := NumArrays[s1Idx].Values[Idx]^.Value + NumArrays[s2Idx].Values[Idx]^.Value;
+        SetLength(Values, NumArrays[s1Idx].Size);
+        For Idx := 0 To NumArrays[s1Idx].Size -1 Do
+          Values[Idx] := NumArrays[s1Idx].Values[Idx]^.Value + NumArrays[s2Idx].Values[Idx]^.Value;
 
-      Sp3 := SP_StackPtr;
-      Inc(Sp3, 3);
-      dIdx := SP_CreateNumArray(Sp3^.Str, Indices, NumArrays[s1Idx].Base, False, Info^.Error^);
-      If Info^.Error^.Code <> SP_ERR_OK Then Exit;
-      For Idx := 0 To NumArrays[dIdx].Size -1 Do
-        NumArrays[dIdx].Values[Idx]^.Value := Values[Idx];
+        Sp3 := SP_StackPtr;
+        Inc(Sp3, 3);
+        dIdx := SP_CreateNumArray(Sp3^.Str, Indices, NumArrays[s1Idx].Base, False, Info^.Error^);
+        If Info^.Error^.Code <> SP_ERR_OK Then Exit;
+        For Idx := 0 To NumArrays[dIdx].Size -1 Do
+          NumArrays[dIdx].Values[Idx]^.Value := Values[Idx];
+
+      End Else
+        Info^.Error^.Code := SP_ERR_MISMATCHED_MATRICES;
 
     End Else
-      Info^.Error^.Code := SP_ERR_MISMATCHED_MATRICES;
+      Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
 
   End Else
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
@@ -22741,35 +22820,42 @@ Begin
   Dec(SP_StackPtr);
   s2Idx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
-  s1Idx := SP_FindNumArray(SP_StackPtr^.Str);
-  Dec(SP_StackPtr);
 
-  If (s2Idx <> -1) And (s2Idx <> -1) Then Begin
+  If s2Idx <> -1 Then Begin
 
-    If NumArrays[s1Idx].NumIndices = NumArrays[s2Idx].NumIndices Then Begin
+    ERRStr := SP_StackPtr^.Str;
+    s1Idx := SP_FindNumArray(SP_StackPtr^.Str);
+    Dec(SP_StackPtr);
 
-      Indices := '';
-      For Idx := 0 To NumArrays[s1Idx].NumIndices -1 Do Begin
-        Indices := Indices + LongWordToString(NumArrays[s1Idx].Indices[Idx]);
-        If NumArrays[s1Idx].Indices[Idx] <> NumArrays[s2Idx].Indices[Idx] Then Begin
-          Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
-          Exit;
+    If s1Idx <> -1 Then Begin
+
+      If NumArrays[s1Idx].NumIndices = NumArrays[s2Idx].NumIndices Then Begin
+
+        Indices := '';
+        For Idx := 0 To NumArrays[s1Idx].NumIndices -1 Do Begin
+          Indices := Indices + LongWordToString(NumArrays[s1Idx].Indices[Idx]);
+          If NumArrays[s1Idx].Indices[Idx] <> NumArrays[s2Idx].Indices[Idx] Then Begin
+            Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
+            Exit;
+          End;
         End;
-      End;
 
-      SetLength(Values, NumArrays[s1Idx].Size);
-      For Idx := 0 To NumArrays[s1Idx].Size -1 Do
-        Values[Idx] := NumArrays[s1Idx].Values[Idx]^.Value - NumArrays[s2Idx].Values[Idx]^.Value;
+        SetLength(Values, NumArrays[s1Idx].Size);
+        For Idx := 0 To NumArrays[s1Idx].Size -1 Do
+          Values[Idx] := NumArrays[s1Idx].Values[Idx]^.Value - NumArrays[s2Idx].Values[Idx]^.Value;
 
-      Sp3 := SP_StackPtr;
-      Inc(Sp3, 2);
-      dIdx := SP_CreateNumArray(Sp3^.Str, Indices, NumArrays[s1Idx].Base, False, Info^.Error^);
-      If Info^.Error^.Code <> SP_ERR_OK Then Exit;
-      For Idx := 0 To NumArrays[dIdx].Size -1 Do
-        NumArrays[dIdx].Values[Idx]^.Value := Values[Idx];
+        Sp3 := SP_StackPtr;
+        Inc(Sp3, 2);
+        dIdx := SP_CreateNumArray(Sp3^.Str, Indices, NumArrays[s1Idx].Base, False, Info^.Error^);
+        If Info^.Error^.Code <> SP_ERR_OK Then Exit;
+        For Idx := 0 To NumArrays[dIdx].Size -1 Do
+          NumArrays[dIdx].Values[Idx]^.Value := Values[Idx];
+
+      End Else
+        Info^.Error^.Code := SP_ERR_MISMATCHED_MATRICES;
 
     End Else
-      Info^.Error^.Code := SP_ERR_MISMATCHED_MATRICES;
+      Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
 
   End Else
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
@@ -22792,43 +22878,51 @@ Begin
 
   dIdx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
-  s1Idx := SP_FindNumArray(SP_StackPtr^.Str);
+  ERRStr := SP_StackPtr^.Str;
+  s1Idx := SP_FindNumArray(ERRStr);
   Dec(SP_StackPtr);
-  s2Idx := SP_FindNumArray(SP_StackPtr^.Str);
-  Dec(SP_StackPtr);
 
-  If (s1Idx <> -1) and (s2Idx <> -1) Then Begin
+  If s1Idx <> -1 Then Begin
 
-    If (NumArrays[s1Idx].NumIndices = 2) and (NumArrays[s2Idx].NumIndices = 2) Then Begin
+    ERRStr := SP_StackPtr^.Str;
+    s2Idx := SP_FindNumArray(ERRStr);
+    Dec(SP_StackPtr);
 
-      m := NumArrays[s1Idx].Indices[0];
-      n := NumArrays[s1Idx].Indices[1];
-      If NumArrays[s2Idx].Indices[0] <> n Then Begin
-        Info^.Error^.Code := SP_ERR_INVALID_MATRIX;
-        Exit;
-      End;
-      p := NumArrays[s2Idx].Indices[1];
+    If s2Idx <> -1 Then Begin
 
-      SetLength(Values, m * p);
+      If (NumArrays[s1Idx].NumIndices = 2) and (NumArrays[s2Idx].NumIndices = 2) Then Begin
 
-      For r := 0 To m-1 Do
-        For c := 0 To p-1 Do Begin
-          Sum := 0;
-          For d := 0 To n-1 Do
-            Sum := Sum + (NumArrays[s1Idx].Values[(r*n)+d]^.Value * NumArrays[s2Idx].Values[(d*p)+c]^.Value);
-          Values[(r*p)+c] := Sum;
+        m := NumArrays[s1Idx].Indices[0];
+        n := NumArrays[s1Idx].Indices[1];
+        If NumArrays[s2Idx].Indices[0] <> n Then Begin
+          Info^.Error^.Code := SP_ERR_INVALID_MATRIX;
+          Exit;
         End;
+        p := NumArrays[s2Idx].Indices[1];
 
-      Sp3 := SP_StackPtr;
-      Inc(Sp3, 3);
-      Indices := LongWordToString(m) + LongWordToString(p);
-      dIdx := SP_CreateNumArray(Sp3^.Str, Indices, NumArrays[s1Idx].Base, False, Info^.Error^);
-      If Info^.Error^.Code = SP_ERR_OK Then
-        For Idx := 0 To Length(Values) -1 Do
-          NumArrays[dIdx].Values[Idx]^.Value := Values[Idx];
+        SetLength(Values, m * p);
+
+        For r := 0 To m-1 Do
+          For c := 0 To p-1 Do Begin
+            Sum := 0;
+            For d := 0 To n-1 Do
+              Sum := Sum + (NumArrays[s1Idx].Values[(r*n)+d]^.Value * NumArrays[s2Idx].Values[(d*p)+c]^.Value);
+            Values[(r*p)+c] := Sum;
+          End;
+
+        Sp3 := SP_StackPtr;
+        Inc(Sp3, 3);
+        Indices := LongWordToString(m) + LongWordToString(p);
+        dIdx := SP_CreateNumArray(Sp3^.Str, Indices, NumArrays[s1Idx].Base, False, Info^.Error^);
+        If Info^.Error^.Code = SP_ERR_OK Then
+          For Idx := 0 To Length(Values) -1 Do
+            NumArrays[dIdx].Values[Idx]^.Value := Values[Idx];
+
+      End Else
+        Info^.Error^.Code := SP_ERR_INVALID_MATRIX;
 
     End Else
-      Info^.Error^.Code := SP_ERR_INVALID_MATRIX;
+      Info^.Error.Code := SP_ERR_ARRAY_NOT_FOUND;
 
   End Else
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
@@ -22848,7 +22942,8 @@ Begin
 
   dIdx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
-  sIdx := SP_FindNumArray(SP_StackPtr^.Str);
+  ERRStr := SP_StackPtr^.Str;
+  sIdx := SP_FindNumArray(ERRStr);
   Dec(SP_StackPtr);
   Scalar := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
@@ -23672,6 +23767,7 @@ Begin
 
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     VarName := Lower(SP_StackPtr^.Str);
+    ERRStr := VarName;
     If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
       Dec(SP_StackPtr);
       Idx := 0;
@@ -23705,6 +23801,7 @@ Begin
         End;
         Inc(Idx);
       End;
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
     End Else
       Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -23787,6 +23884,7 @@ Begin
 
   If VarName <> '' Then Begin
     Idx := 0;
+    ERRStr := VarName;
     While Idx < Length(NumArrays) Do Begin
       If NumArrays[Idx].Name = VarName Then Begin
         numPoints := NumArrays[Idx].Indices[0];
@@ -23905,8 +24003,9 @@ Var
   Idx, iSize, vIdx, pIdx: Integer;
 Begin
 
+  VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
-    VarName := Lower(SP_StackPtr^.Str);
     If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
       Dec(SP_StackPtr);
       Idx := 0;
@@ -23947,6 +24046,7 @@ Begin
         End;
         Inc(Idx);
       End;
+      ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
     End Else
       Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
@@ -24158,6 +24258,7 @@ Var
 Begin
 
   VarName := Lower(SP_StackPtr^.Str);
+  ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
     Dec(SP_StackPtr);
     Idx := 0;
@@ -24435,6 +24536,7 @@ Begin
   Dec(SP_StackPtr);
 
   VarName := SP_StackPtr^.Str;
+  ERRStr := VarName;
   Dec(SP_StackPtr);
 
   Include := Round(SP_StackPtr^.Val);
@@ -24472,9 +24574,11 @@ Begin
 
       Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
 
-  End Else
+  End Else Begin
 
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
+
+  End;
 
 End;
 
@@ -24493,6 +24597,7 @@ Begin
   Dec(SP_StackPtr);
 
   VarName := SP_StackPtr^.Str;
+  ERRStr := VarName;
   Dec(SP_StackPtr);
 
   Include := Round(SP_StackPtr^.Val);
@@ -24527,9 +24632,11 @@ Begin
 
       Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
 
-  End Else
+  End Else Begin
 
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
+
+  End;
 
 End;
 
@@ -24603,6 +24710,7 @@ Begin
   End;
 
   VarName := SP_StackPtr^.Str;
+  ERRStr := VarName;
   Dec(SP_StackPtr);
 
   Include := Round(SP_StackPtr^.Val);
@@ -24663,9 +24771,11 @@ Begin
 
       Info^.Error^.Code := SP_ERR_UNSUITABLE_ARRAY;
 
-  End Else
+  End Else Begin
 
     Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
+
+  End;
 
 End;
 

@@ -270,6 +270,7 @@ Begin
     // Keyboard file not found - try prepending "keyboards:" to it
 
     Name := 'keyboards:'+Name;
+    ERRStr := Name;
     If Not SP_FileExists(Name) Then Begin
       Error.Code := SP_ERR_FILE_NOT_FOUND;
       Exit;

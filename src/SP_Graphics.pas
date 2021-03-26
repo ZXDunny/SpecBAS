@@ -50,6 +50,7 @@ Procedure SP_RadToAngle(var Angle: aFloat); inline;
 Procedure SP_AngleToRad(var Angle: aFloat); inline;
 Procedure SP_InitialGfxSetup(W, H: Integer; IsNEW: Boolean);
 Procedure SP_CreateSystemUDGs(ID: Integer);
+Procedure SP_ForceScreenUpdate;
 Procedure SP_WaitForSync;
 Function  SP_GetPalette(Idx: Integer): LongWord;
 Procedure SP_SetWindowPalette(Idx, R, G, B: Integer);
@@ -545,6 +546,18 @@ Const
 implementation
 
 Uses SP_Main, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components;
+
+Procedure SP_ForceScreenUpdate;
+Var
+  OldScreenLock: Boolean;
+Begin
+  OldScreenLock := SCREENLOCK;
+  SCREENLOCK := False;
+  SP_NeedDisplayUpdate := True;
+  SP_WaitForSync;
+  SCREENLOCK := OldScreenLock;
+End;
+
 
 Procedure SP_WaitForSync;
 Var
@@ -4611,8 +4624,10 @@ Begin
     SP_FileWrite(FileID, @BankIDStr[1], Length(BankIDStr), Error);
     SP_FileWrite(FileID, @pSP_Window_Info(WINDOWPOINTER)^.Palette[0], SizeOf(TP_Colour) * 256, Error);
     SP_FileClose(FileID, Error);
-  End Else
+  End Else Begin
+    ERRStr := Filename;
     Error.Code := SP_ERR_SAVE_OPEN_ERROR;
+  End;
 
 End;
 
@@ -4625,6 +4640,7 @@ Var
   Magic: Array of Byte;
 Begin
 
+  ERRStr := Filename;
   FileID := SP_FileOpen(Filename, False, Error);
 
   If FileID > -1 Then Begin

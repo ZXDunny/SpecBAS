@@ -142,7 +142,6 @@ Var
   EDITORMENU:               Integer;      // A backup of the current menu
   EDMENU:                   Integer;      // The menu ID number of the editor's menu
   CURMENU:                  Integer;      // The menu ID number of the currently used menu; -1 for no menu.
-//  DOUBLEFONT:               Integer;      // Index of the double-size font, optional for the editor
   NUMSTREAMS:               Integer;      // The number of streams allocated
   NUMCONSTS:                Integer;      // The number of constants currently allocated
 
@@ -216,8 +215,6 @@ Var
   BREAKSIGNAL:              Boolean;      // BREAK pressed?
   BPSIGNAL:                 Boolean;      // Breakpoint triggered, or impending Single-step event
   KEYSTATE:   array[0..255] of Byte;      // The state of the keyboard
-//  LASTKEY:                  Byte;         // The last key that went down. 0 if key in previous LASTKEY goes up.
-//  LASTKEYCHAR:              Byte;         // Decoded key - takes international keymaps into account.
   LASTKEYFLAG:              Byte;         // For the last key pressed, these are its flags (currently KF_NOCLICK possible)
   REPDEL:                   LongWord;     // The delay in frames before a key repeats when held down
   REPPER:                   LongWord;     // Delay between successive repeats of a key that is held down
@@ -285,47 +282,7 @@ Var
   LISTWINY:                 Integer;
   LISTWINW:                 Integer;
   LISTWINH:                 Integer;
-  LISTVSCUPENABLED:         Boolean;      // Is the list window's vertical scrollbar "up" arrow enabled?
-  LISTVSCUPTLX:             Integer;
-  LISTVSCUPTLY:             Integer;
-  LISTVSCUPBRX:             Integer;
-  LISTVSCUPBRY:             Integer;      // The vertical scrollbar in the listing window's "up" arrow's bounding box
-  LISTVSCDNENABLED:         Boolean;      // Is the list window's vertical scrollbar "down" arrow enabled?
-  LISTVSCDNTLX:             Integer;
-  LISTVSCDNTLY:             Integer;
-  LISTVSCDNBRX:             Integer;
-  LISTVSCDNBRY:             Integer;      // The vertical scrollbar in the listing window's "down" arrow's bounding box
-  LISTVSTRENABLED:          Boolean;      // Is the tracking region of the list window's vertical scrollbar enabled?
-  LISTVSTRTLX:              Integer;      // The list window's vertical scrollbar track region
-  LISTVSTRTLY:              Integer;
-  LISTVSTRBRX:              Integer;
-  LISTVSTRBRY:              Integer;
-  LISTVTHP:                 Integer;      // The vertical position of the listing window's vertical scrollbar thumb.
-  LISTVTHS:                 Integer;      // The physical size of the listing window's vertical scrollbar thumb.
-  LISTVSCTRKH:              Integer;      // The height of the vertical scrollbar's trackbar
-
-  LISTHSCUPENABLED:         Boolean;      // Is the list window's horizontal scrollbar "up" arrow enabled?
-  LISTHSCUPTLX:             Integer;
-  LISTHSCUPTLY:             Integer;
-  LISTHSCUPBRX:             Integer;
-  LISTHSCUPBRY:             Integer;      // The horizontal scrollbar in the listing window's "up" arrow's bounding box
-  LISTHSCDNENABLED:         Boolean;      // Is the list window's horizontal scrollbar "down" arrow enabled?
-  LISTHSCDNTLX:             Integer;
-  LISTHSCDNTLY:             Integer;
-  LISTHSCDNBRX:             Integer;
-  LISTHSCDNBRY:             Integer;      // The horizontal scrollbar in the listing window's "down" arrow's bounding box
-  LISTHSTRENABLED:          Boolean;      // Is the tracking region of the list window's horizontal scrollbar enabled?
-  LISTHSTRTLX:              Integer;      // The list window's horizontal scrollbar track region
-  LISTHSTRTLY:              Integer;
-  LISTHSTRBRX:              Integer;
-  LISTHSTRBRY:              Integer;
-  LISTHTHP:                 Integer;      // The horizontal position of the listing window's horizontal scrollbar thumb.
-  LISTHTHS:                 Integer;      // The physical size of the listing window's horizontal scrollbar thumb.
-
-  LISTSIZETLX:              Integer;
-  LISTSIZETLY:              Integer;
-  LISTSIZEBRX:              Integer;
-  LISTSIZEBRY:              Integer;
+  SCROLLBTNS:               Boolean;      // Scrollbars have buttons?
   CCOMMANDWINDOW:           Boolean;      // True when the command window exists
   CLISTWINDOW:              Boolean;      // True when the LIST window exists.
   COMMANDWINX:              Integer;      // The Command window metrics
@@ -391,6 +348,7 @@ Var
   debugChg:                 Integer;
 
   TEMPDIR:                  aString;      // the location of the TEMP directory in the host filesystem.
+  ERRStr:                   aString;      // Extra info for errors - like variable name for example
 
   // Thread-specific sysvars
 
@@ -1556,8 +1514,9 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..279] of TSysVar =
+  SysVars: Array[0..241] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
+   (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
    (Name: 'EDITORFPS'; svType: svLongWord; Size: 4; Data: @EDITORFPS),
    (Name: 'HARDWARE'; svType: svString; Size: 0; Data: @HARDWARE),
@@ -1664,45 +1623,6 @@ Const
    (Name: 'LISTWINY'; svType: svInteger; Size: 4; Data: @LISTWINY),
    (Name: 'LISTWINW'; svType: svInteger; Size: 4; Data: @LISTWINW),
    (Name: 'LISTWINH'; svType: svInteger; Size: 4; Data: @LISTWINH),
-   (Name: 'LISTVSCUPENABLED'; svType: svBoolean; Size: 1; Data: @LISTVSCUPENABLED),
-   (Name: 'LISTVSCUPTLX'; svType: svInteger; Size: 4; Data: @LISTVSCUPTLX),
-   (Name: 'LISTVSCUPTLY'; svType: svInteger; Size: 4; Data: @LISTVSCUPTLY),
-   (Name: 'LISTVSCUPBRX'; svType: svInteger; Size: 4; Data: @LISTVSCUPBRX),
-   (Name: 'LISTVSCUPBRY'; svType: svInteger; Size: 4; Data: @LISTVSCUPBRY),
-   (Name: 'LISTVSCDNENABLED'; svType: svBoolean; Size: 1; Data: @LISTVSCDNENABLED),
-   (Name: 'LISTVSCDNTLX'; svType: svInteger; Size: 4; Data: @LISTVSCDNTLX),
-   (Name: 'LISTVSCDNTLY'; svType: svInteger; Size: 4; Data: @LISTVSCDNTLY),
-   (Name: 'LISTVSCDNBRX'; svType: svInteger; Size: 4; Data: @LISTVSCDNBRX),
-   (Name: 'LISTVSCDNBRY'; svType: svInteger; Size: 4; Data: @LISTVSCDNBRY),
-   (Name: 'LISTVSTRENABLED'; svType: svBoolean; Size: 1; Data: @LISTVSTRENABLED),
-   (Name: 'LISTVSTRTLX'; svType: svInteger; Size: 4; Data: @LISTVSTRTLX),
-   (Name: 'LISTVSTRTLY'; svType: svInteger; Size: 4; Data: @LISTVSTRTLY),
-   (Name: 'LISTVSTRBRX'; svType: svInteger; Size: 4; Data: @LISTVSTRBRX),
-   (Name: 'LISTVSTRBRY'; svType: svInteger; Size: 4; Data: @LISTVSTRBRY),
-   (Name: 'LISTVTHP'; svType: svInteger; Size: 4; Data: @LISTVTHP),
-   (Name: 'LISTVTHS'; svType: svInteger; Size: 4; Data: @LISTVTHS),
-   (Name: 'LISTVSCTRKH'; svType: svInteger; Size: 4; Data: @LISTVSCTRKH),
-   (Name: 'LISTHSCUPENABLED'; svType: svBoolean; Size: 1; Data: @LISTHSCUPENABLED),
-   (Name: 'LISTHSCUPTLX'; svType: svInteger; Size: 4; Data: @LISTHSCUPTLX),
-   (Name: 'LISTHSCUPTLY'; svType: svInteger; Size: 4; Data: @LISTHSCUPTLY),
-   (Name: 'LISTHSCUPBRX'; svType: svInteger; Size: 4; Data: @LISTHSCUPBRX),
-   (Name: 'LISTHSCUPBRY'; svType: svInteger; Size: 4; Data: @LISTHSCUPBRY),
-   (Name: 'LISTHSCDNENABLED'; svType: svBoolean; Size: 1; Data: @LISTHSCDNENABLED),
-   (Name: 'LISTHSCDNTLX'; svType: svInteger; Size: 4; Data: @LISTHSCDNTLX),
-   (Name: 'LISTHSCDNTLY'; svType: svInteger; Size: 4; Data: @LISTHSCDNTLY),
-   (Name: 'LISTHSCDNBRX'; svType: svInteger; Size: 4; Data: @LISTHSCDNBRX),
-   (Name: 'LISTHSCDNBRY'; svType: svInteger; Size: 4; Data: @LISTHSCDNBRY),
-   (Name: 'LISTHSTRENABLED'; svType: svBoolean; Size: 1; Data: @LISTHSTRENABLED),
-   (Name: 'LISTHSTRTLX'; svType: svInteger; Size: 4; Data: @LISTHSTRTLX),
-   (Name: 'LISTHSTRTLY'; svType: svInteger; Size: 4; Data: @LISTHSTRTLY),
-   (Name: 'LISTHSTRBRX'; svType: svInteger; Size: 4; Data: @LISTHSTRBRX),
-   (Name: 'LISTHSTRBRY'; svType: svInteger; Size: 4; Data: @LISTHSTRBRY),
-   (Name: 'LISTHTHP'; svType: svInteger; Size: 4; Data: @LISTHTHP),
-   (Name: 'LISTHTHS'; svType: svInteger; Size: 4; Data: @LISTHTHS),
-   (Name: 'LISTSIZETLX'; svType: svInteger; Size: 4; Data: @LISTSIZETLX),
-   (Name: 'LISTSIZETLY'; svType: svInteger; Size: 4; Data: @LISTSIZETLY),
-   (Name: 'LISTSIZEBRX'; svType: svInteger; Size: 4; Data: @LISTSIZEBRX),
-   (Name: 'LISTSIZEBRY'; svType: svInteger; Size: 4; Data: @LISTSIZEBRY),
    (Name: 'CCOMMANDWINDOW'; svType: svBoolean; Size: 1; Data: @CCOMMANDWINDOW),
    (Name: 'CLISTWINDOW'; svType: svBoolean; Size: 1; Data: @CLISTWINDOW),
    (Name: 'COMMANDWINX'; svType: svInteger; Size: 4; Data: @COMMANDWINX),

@@ -926,7 +926,7 @@ Begin
         oPtr^ := ClrsUnFocused[i];
       inc(oPtr);
     End;
-    Dec(oPtr, Width + (StripeWidth * 4) -1);
+    Dec(oPtr, Width + (StripeWidth * 4) - (y and 1)); // change "(y and 1)" to "1" for 45 degree stripes
   End;
 
 End;
@@ -1390,7 +1390,7 @@ End;
 Procedure SP_CreateScrollBar(ScrollBarID, scKind, WinID, Step: Integer; Bounds: TRect; ChangeProc: SP_EventHandler);
 Var
   ScrollBar: pSP_ScrollBar;
-  Idx: Integer;
+  Idx, w, h, MarginSize: Integer;
 Begin
 
   Idx := SP_FindScrollBar(ScrollBarID);
@@ -1401,19 +1401,25 @@ Begin
   End Else
     ScrollBar := @FPScrollBars[Idx];
 
+  If SCROLLBTNS Then Begin
+    h := Fh; w := Fw; MarginSize := FPMarginSize;
+  End Else Begin
+    h := 0; w := 0; MarginSize := 0;
+  End;
+
   With ScrollBar^ Do Begin
     ID := ScrollBarID;
     Kind := scKind;
     With Bounds Do Begin
       BoundsRect := Rect(Left, Top, Right, Bottom);
       If Kind = scVertical Then Begin
-        UpRect := Rect(Left, Top, Right, Top + Fh);
-        DownRect := Rect(Left, Bottom - Fh, Right, Bottom);
-        TrackRect := Rect(Left, UpRect.Bottom + FPMarginSize, Right, DownRect.Top - FPMarginSize);
+        UpRect := Rect(Left, Top, Right, Top + h);
+        DownRect := Rect(Left, Bottom - h, Right, Bottom);
+        TrackRect := Rect(Left, UpRect.Bottom + MarginSize, Right, DownRect.Top - MarginSize);
       End Else Begin
-        UpRect := Rect(Left, Top, Left + Fw, Bottom);
-        DownRect := Rect(Right - Fw, Top, Right, Bottom);
-        TrackRect := Rect(UpRect.Right + FPMarginSize, Top, DownRect.Left - FPMarginSize, Bottom);
+        UpRect := Rect(Left, Top, Left + w, Bottom);
+        DownRect := Rect(Right - w, Top, Right, Bottom);
+        TrackRect := Rect(UpRect.Right + MarginSize, Top, DownRect.Left - MarginSize, Bottom);
       End;
     End;
     OnChange := ChangeProc;
@@ -1656,19 +1662,23 @@ Begin
       End;
     End;
 
-    // Up arrow
+    If SCROLLBTNS Then Begin
 
-    If UpEnabled Then
-      SP_TextOut(-1, UpRect.Left, UpRect.Top, EdCSc + UpChar, scrollActive, -1, True)
-    Else
-      SP_TextOut(-1, UpRect.Left, UpRect.Top, EdCSc + UpChar, scrollInactive, -1, True);
+      // Up arrow
 
-    // Down Arrow
+      If UpEnabled Then
+        SP_TextOut(-1, UpRect.Left, UpRect.Top, EdCSc + UpChar, scrollActive, -1, True)
+      Else
+        SP_TextOut(-1, UpRect.Left, UpRect.Top, EdCSc + UpChar, scrollInactive, -1, True);
 
-    If DownEnabled Then
-      SP_TextOut(-1, DownRect.Left, DownRect.Top, EdCSc + DownChar, scrollActive, -1, True)
-    Else
-      SP_TextOut(-1, DownRect.Left, DownRect.Top, EdCSc + DownChar, scrollInactive, -1, True);
+      // Down Arrow
+
+      If DownEnabled Then
+        SP_TextOut(-1, DownRect.Left, DownRect.Top, EdCSc + DownChar, scrollActive, -1, True)
+      Else
+        SP_TextOut(-1, DownRect.Left, DownRect.Top, EdCSc + DownChar, scrollInactive, -1, True);
+
+    End;
 
     // Track
 
@@ -3744,7 +3754,7 @@ Begin
     ThumbGrabbed := False;
     FPScrolling := False;
     NewPosition := Trunc(TargetPos);
-    If PtInRect(UpRect, Pt) Then Begin
+    If SCROLLBTNS And PtInRect(UpRect, Pt) Then Begin
       // One line up
       If NewPosition Mod StepSize > 0 Then
         Dec(NewPosition, NewPosition Mod StepSize)
@@ -3752,7 +3762,7 @@ Begin
         Dec(NewPosition, StepSize);
       CanRepeat := True;
     End Else
-      If PtInRect(DownRect, Pt) Then Begin
+      If SCROLLBTNS And PtInRect(DownRect, Pt) Then Begin
         // One line down
         c := (NewPosition + PageSize) Mod StepSize;
         If c > 0 Then
@@ -7315,11 +7325,11 @@ Begin
       Error.Line := SP_GetLineNumberFromText(Listing[LineNum]);
     If Error.Code = 51 Then Begin
       If SP_KeyWordID < 4000 Then
-        Text := IntToString(Error.Code)+' '+ErrorMessages[Error.Code] + SP_KEYWORDS[SP_KeyWordID - SP_KeyWord_Base] + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement)
+        Text := IntToString(Error.Code)+' '+ProcessErrorMessage(ErrorMessages[Error.Code]) + SP_KEYWORDS[SP_KeyWordID - SP_KeyWord_Base] + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement)
       Else
-        Text := IntToString(Error.Code)+' '+ErrorMessages[Error.Code] + IntToString(SP_KeyWordID) + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement);
+        Text := IntToString(Error.Code)+' '+ProcessErrorMessage(ErrorMessages[Error.Code]) + IntToString(SP_KeyWordID) + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement);
     End Else
-      Text := IntToString(Error.Code)+' '+ErrorMessages[Error.Code] + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement);
+      Text := IntToString(Error.Code)+' '+ProcessErrorMessage(ErrorMessages[Error.Code]) + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement);
   End Else Begin
     Text := #32#32#32#32#32#32#32#32#32#32#32#32#32#32#32#32#32#32#32#235#13+
             #32#32#236#228#228#228#230#228#228#228#235#236#228#228#232#230#228#228#228#227#236#228#228#232#226#228#228#228#235#236#228#228#228#13+

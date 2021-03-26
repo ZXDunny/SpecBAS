@@ -444,6 +444,7 @@ Begin
     FileID := SP_FileOpen(Filename, False, Error);
     Result := -1;
 
+    ERRStr := Filename;
     If FileID > -1 Then Begin
 
       If BankNum > -1 Then Begin

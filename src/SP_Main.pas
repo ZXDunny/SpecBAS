@@ -411,12 +411,13 @@ Begin
       SP_TextOut(-1, 2, SCREENHEIGHT - 2 - Height, 'Scroll?', CINK, CPAPER, True)
     Else
       SP_TextOut32(-1, 2, SCREENHEIGHT - 2 - Height, 'Scroll?', CINK, CPAPER, True);
+    SP_ForceScreenUpdate; // Make sure the message is shown
 
     Key := Nil;
     LASTKEYFLAG := 0;
     While Not Assigned(Key) And not QUITMSG Do Begin
       key := SP_GetNextKey(FRAMES);
-      CB_Yield;
+      SP_WaitForSync;
     End;
 
     If QUITMSG Then Exit;
@@ -427,12 +428,12 @@ Begin
     Else Begin
       Result := True;
       SP_Scroll(Height);
-      CB_Yield;
+      SP_WaitForSync;
     End;
 
   End Else Begin
     SP_Scroll(Height);
-    CB_Yield;
+    SP_WaitForSync;
   End;
 
   SP_NeedDisplayUpdate := True;
@@ -628,8 +629,10 @@ Var
   nLabelText: aString;
 Begin
 
+  ERRStr := LabelText;
   Result.Line := -1;
   Result.Dline := -1;
+  Result.Name := LabelText;
 
   LabelPos := 0;
   LabelLen := 0;

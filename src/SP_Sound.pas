@@ -390,6 +390,7 @@ Begin
   // Loads a sample into the bank specified. Must be supported by SDL_Mixer.
   // First, get the filename - mangled to fit the SpecBAS folder system.
 
+  ERRStr := Filename;
   SP_TestPackageFile(Filename, Error);
   pFile := PAnsiChar(Filename);
 
@@ -905,6 +906,8 @@ Var
   pFile: PAnsiChar;
 Begin
 
+  ERRStr := Filename;
+
   If MUSICHANDLE <> 0 Then SP_Music_Stop(Error);
   Error.Code := SP_ERR_OK;
 
@@ -987,6 +990,7 @@ Begin
 
   If MUSICHANDLE <> 0 Then SP_Music_Stop(Error);
 
+  ERRStr := '';
   Error.Code := SP_ERR_OK;
 
   // Determine if the bank exists, and what sort of music it contains
@@ -1193,6 +1197,7 @@ Const
 Begin
 
   Result := 0;
+  ERRStr := Str;
   Len := Length(Str);
   If (Len < 1) or (Len > 3) Then Begin
     Error.Code := SP_ERR_INVALID_NOTE;

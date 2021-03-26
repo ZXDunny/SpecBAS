@@ -259,6 +259,7 @@ Uses SP_Main, SP_Interpret_PostFix, SP_InfixToPostFix, SP_Graphics, SP_Streams, 
 Function SP_FindNumVar(const Name: aString): Integer; inline;
 Begin
 
+  ERRstr := Name;
   Result := NumNV -1;
   While Result >= 0 Do Begin
     If Name = NumVars[Result]^.Name Then
@@ -273,6 +274,7 @@ var
   limit: LongWord;
 Begin
 
+  ERRStr := Name;
   If SP_ProcStackPtr > -1 Then
     limit := SP_ProcStack[SP_ProcStackPtr].VarPosN
   Else
@@ -291,6 +293,7 @@ End;
 Function SP_FindGlobalNumVar(const Name: aString): Integer; inline;
 Begin
 
+  ERRStr := Name;
   If SP_ProcStackPtr > -1 Then Begin
     Result := 0;
     While Result < SP_ProcStack[0].VarPosN Do Begin
@@ -308,6 +311,7 @@ End;
 Function SP_FindNumArray(const Name: aString): Integer; inline;
 Begin
 
+  ERRStr := Name;
   Result := Length(NumArrays) -1;
   While Result >= 0 Do Begin
     If Name = NumArrays[Result].Name Then
@@ -320,6 +324,7 @@ End;
 Function SP_FindStrArray(const Name: aString): Integer; inline;
 Begin
 
+  ERRStr := Name + '$';
   Result := Length(StrArrays) -1;
   While Result >= 0 Do Begin
     If Name = StrArrays[Result].Name Then
@@ -332,6 +337,7 @@ End;
 Function SP_FindStrVar(const Name: aString): Integer; inline;
 Begin
 
+  ERRStr := Name + '$';
   Result := NumSV -1;
   While Result >= 0 Do Begin
     If Name = StrVars[Result]^.Name Then
@@ -344,6 +350,7 @@ End;
 Function SP_FindGlobalStrVar(const Name: aString): Integer; inline;
 Begin
 
+  ERRStr := Name + '$';
   If SP_ProcStackPtr > -1 Then Begin
     Result := 0;
     While Result < SP_ProcStack[0].VarPosS Do Begin
@@ -486,6 +493,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_MISSING_VAR;
       Result := -1;
       Exit;
@@ -512,6 +520,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_MISSING_VAR;
       Result := -1;
       Exit;
@@ -538,6 +547,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_MISSING_VAR;
       Result := -1;
       Exit;
@@ -564,6 +574,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_MISSING_VAR;
       Result := -1;
       Exit;
@@ -596,6 +607,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_MISSING_VAR;
       Result := -1;
       Exit;
@@ -604,7 +616,7 @@ Begin
   End Else
     Dec(Idx);
 
-  NumVars[Idx]^.ContentPtr^.Value := Power(NumVars[Idx]^.ContentPtr^.Value, Value);
+  NumVars[Idx]^.ContentPtr^.Value := SP_Power(NumVars[Idx]^.ContentPtr^.Value, Value);
   Result := Idx;
 
 End;
@@ -612,7 +624,7 @@ End;
 Procedure SP_PowNumVarIndex(Idx: Integer; Var Value: aFloat); inline;
 Begin
 
-  NumVars[Idx -1]^.ContentPtr^.Value := Power(NumVars[Idx -1]^.ContentPtr^.Value, Value);
+  NumVars[Idx -1]^.ContentPtr^.Value := SP_Power(NumVars[Idx -1]^.ContentPtr^.Value, Value);
 
 End;
 
@@ -622,6 +634,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_MISSING_VAR;
       Result := -1;
       Exit;
@@ -654,6 +667,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_MISSING_VAR;
       Result := -1;
       Exit;
@@ -680,6 +694,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_MISSING_VAR;
       Result := -1;
       Exit;
@@ -706,6 +721,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumVar(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_MISSING_VAR;
       Result := -1;
       Exit;
@@ -944,6 +960,7 @@ Begin
   // Indices are dimensions, stored in 4byte longword format.
   // If indices are blank ('') then this is a dynamic array.
 
+  ERRStr := Name;
   Idx := SP_FindNumArray(Name);
   If Idx > -1 Then
     SP_RemoveNumArray(Idx)
@@ -1063,8 +1080,10 @@ Begin
 
     SetLength(NumArrays, Length(NumArrays) -1);
 
-  End Else
+  End Else Begin
+    ERRstr := Name;
     Error.Code := SP_ERR_ARRAY_NOT_FOUND;
+  End;
 
 End;
 
@@ -1077,6 +1096,7 @@ Label
   SubWrong;
 Begin
 
+  ERRStr := Key;
   If Not NumArrays[Idx].DynArray Then Begin
     If Key = '' Then Begin
       Ln := Length(Indices) Div SizeOf(LongWord);
@@ -1101,6 +1121,7 @@ Begin
     End;
   End Else Begin
     If Key = '' Then Begin
+      ERRStr := NumArrays[Idx].Name;
       nHash := NumArrays[Idx].DynHashes[pWord(@Indices[1])^];
       While nHash <> nil Do Begin
         If nHash^.Key = Indices Then Begin
@@ -1191,6 +1212,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumArray(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_ARRAY_NOT_FOUND;
       Exit;
     End;
@@ -1308,6 +1330,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindNumArray(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name;
       Error.Code := SP_ERR_ARRAY_NOT_FOUND;
       Exit;
     End;
@@ -1354,6 +1377,7 @@ Begin
   Result := False;
   Idx := SP_FindNumArray(Name);
   If Idx = -1 Then Begin
+    ERRStr := Name;
     Error.Code := SP_ERR_ARRAY_NOT_FOUND;
     Exit;
   End;
@@ -1379,6 +1403,7 @@ Begin
   Result := -1;
   Idx := SP_FindNumArray(Name);
   If Idx = -1 Then Begin
+    ERRStr := Name;
     Error.Code := SP_ERR_ARRAY_NOT_FOUND;
     Exit;
   End;
@@ -1415,6 +1440,7 @@ Begin
   Result := False;
   Idx := SP_FindStrArray(Name);
   If Idx = -1 Then Begin
+    ERRStr := Name + '$';
     Error.Code := SP_ERR_ARRAY_NOT_FOUND;
     Exit;
   End;
@@ -1440,6 +1466,7 @@ Begin
   Result := -1;
   Idx := SP_FindNumArray(Name);
   If Idx = -1 Then Begin
+    ERRStr := Name;
     Error.Code := SP_ERR_ARRAY_NOT_FOUND;
     Exit;
   End;
@@ -1479,6 +1506,7 @@ Begin
     If sIdx <> -1 Then
       Content := SP_GetDefaultFields(sIdx)
     Else Begin
+      ERRStr := StructName;
       Error.Code := SP_ERR_STRUCT_NOT_FOUND;
       Exit;
     End;
@@ -1614,8 +1642,12 @@ Begin
 
     SetLength(StrArrays, Length(StrArrays) -1);
 
-  End Else
+  End Else Begin
+
+    ERRStr := Name + '$';
     Error.Code := SP_ERR_ARRAY_NOT_FOUND;
+
+  End;
 
 End;
 
@@ -1632,6 +1664,7 @@ Begin
   // Returns a negative value if an extra index has been supplied - a one character
   // slicer.
 
+  ERRStr := StrArrays[Idx].Name + '$';
   If StrArrays[Idx].DynArray Then Begin
     If Key = '' Then Begin
       nHash := StrArrays[Idx].DynHashes[pWord(@Indices[1])^];
@@ -1648,8 +1681,10 @@ Begin
       End;
     End Else Begin
       Result := SP_GetStrArrayKey(Idx, Key);
-      If Result = -1 Then
+      If Result = -1 Then Begin
+        ERRStr := Key;
         Error.Code := SP_ERR_KEY_NOT_FOUND;
+      End;
     End;
   End Else Begin
     If Key = '' Then Begin
@@ -1689,6 +1724,7 @@ Begin
     End Else Begin
       Result := SP_GetStrArrayKey(Idx, Key);
       If Result = -1 Then Begin
+        ERRStr := Key;
         Error.Code := SP_ERR_KEY_NOT_FOUND;
         Exit;
       End;
@@ -1712,6 +1748,7 @@ Begin
   If Idx = 0 Then Begin
     Idx := SP_FindStrArray(Name);
     If Idx = -1 Then Begin
+      ERRStr := Name + '$';
       Error.Code := SP_ERR_ARRAY_NOT_FOUND;
       Exit;
     End;
@@ -1764,6 +1801,7 @@ Begin
         If aSliceFrom = -1 Then aSliceFrom := 1;
         If aSliceTo = -1 Then aSliceTo := Length(StrArrays[Idx].Strings[Offset]^.Value);
         If (aSliceTo > Length(StrArrays[Idx].Strings[Offset]^.Value)) or (aSliceFrom < 1) Then Begin
+          ERRStr := StrArrays[Idx].Name + '$';
           Error.Code := SP_ERR_SUBSCRIPT_WRONG;
           Exit;
         End;
@@ -1868,7 +1906,7 @@ Begin
     Error.Code := SP_ERR_ARRAY_NOT_FOUND;
     Exit;
   End;
-
+  ERRStr := StrArrays[Idx].Name + '$';
   If Key = '' Then Begin
     Ln := Length(Indices);
     If Ln Div SizeOf(LongWord) <> Length(StrArrays[Idx].Indices) Then Begin
@@ -1895,6 +1933,7 @@ Begin
   End Else Begin
     Offset := SP_GetStrArrayKey(Idx, Key);
     If Offset = -1 Then Begin
+      ERRStr := Key;
       Error.Code := SP_ERR_KEY_NOT_FOUND;
       Exit;
     End;
@@ -1960,6 +1999,7 @@ Var
 Begin
 
   Result := nil;
+  ERRStr := Name + '$';
   If Idx = 0 Then Begin
     Idx := SP_FindStrArray(Name);
     If Idx = -1 Then Begin
@@ -1994,9 +2034,10 @@ Begin
     Else Begin
       Offset := -(Offset +1);
       Index := pLongWord(@Indices[1 + Length(Indices) - SizeOf(LongWord)])^;
-      If Index > Length(StrArrays[Idx].Strings[Offset]^.Value) Then
+      If Index > Length(StrArrays[Idx].Strings[Offset]^.Value) Then Begin
+        ERRStr := StrArrays[Idx].Name + '$';
         Error.Code := SP_ERR_SUBSCRIPT_WRONG
-      Else
+      End Else
         Result := StrArrays[Idx].Strings[Offset]^.Value[Index];
     End;
 
@@ -2023,6 +2064,7 @@ Begin
   Result := -1;
   Idx := SP_FindStrArray(Name);
   If Idx = -1 Then Begin
+    ERRStr := Name + '$';
     Error.Code := SP_ERR_ARRAY_NOT_FOUND;
     Exit;
   End;
@@ -2059,6 +2101,7 @@ Begin
   Result := -1;
   Idx := SP_FindStrArray(Name);
   If Idx = -1 Then Begin
+    ERRStr := Name + '$';
     Error.Code := SP_ERR_ARRAY_NOT_FOUND;
     Exit;
   End;
@@ -2103,6 +2146,7 @@ Begin
   If sFrom = -1 Then sliceFrom := 1 Else sliceFrom := sFrom;
   If sTo = -1 Then sliceTo := Length(Dst) Else sliceTo := sTo;
   If sliceFrom > Length(Dst) Then Begin
+    ERRStr := '';
     Error.Code := SP_ERR_SUBSCRIPT_WRONG;
     Exit;
   End;
@@ -2544,6 +2588,7 @@ Begin
 
   For Idx3 := 0 To SP_ProcsListPtr Do Begin
     If SP_ProcsList[Idx3].EP_Line = -1 Then Begin
+      ERRStr := SP_ProcsList[Idx3].Name;
       Error.Code := SP_ERR_PROC_NOT_CLOSED;
       Error.Line := SP_ProcsList[Idx3].Line;
       Error.Statement := SP_ProcsList[Idx3].St;
@@ -3464,6 +3509,7 @@ Begin
 
       End Else Begin
 
+        ERRStr := VarName + '$';
         Error.Code := SP_ERR_ARRAY_NOT_FOUND;
         Exit;
 
@@ -3538,6 +3584,7 @@ Begin
 
       End Else Begin
 
+        ERRStr := VarName;
         Error.Code := SP_ERR_ARRAY_NOT_FOUND;
         Exit;
 
@@ -3582,6 +3629,7 @@ Begin
 
       End Else Begin
 
+        ERRStr := VarName + '$';
         Error.Code := SP_ERR_MISSING_VAR;
         Exit;
 
@@ -3604,6 +3652,7 @@ Begin
 
       End Else Begin
 
+        ERRStr := VarName;
         Error.Code := SP_ERR_MISSING_VAR;
         Exit;
 
@@ -3613,6 +3662,7 @@ Begin
 
   End;
 
+  ERRStr := Filename;
   If SP_FileExists(Filename) Then
     SP_DeleteFile(Filename, Error);
 
@@ -3663,6 +3713,7 @@ Var
 Begin
 
   HasStruct := False;
+  ERRStr := Filename;
 
   If SP_FileExists(Filename) Then Begin
 
@@ -4296,9 +4347,12 @@ Begin
         If StrArrays[mIdx].Strings[Idx]^.StructName = Name Then
           StrArrays[mIdx].Strings[Idx]^.StructName := '';
 
-  End Else
+  End Else Begin
 
+    ERRStr := Name;
     Error.Code := SP_ERR_STRUCT_NOT_FOUND;
+
+  End;
 
 End;
 
@@ -4364,6 +4418,7 @@ Begin
 
   End Else Begin
 
+    ERRStr := Name;
     Error.Code := SP_ERR_STRUCT_NOT_FOUND;
 
   End;
@@ -4384,6 +4439,7 @@ Begin
 
   End Else Begin
 
+    ERRStr := StructName;
     Error.Code := SP_ERR_STRUCT_NOT_FOUND;
 
   End;
@@ -4503,9 +4559,12 @@ Begin
     Else
       Error.Code := SP_ERR_INVALID_STRUCT_MEMBER;
 
-  End Else
+  End Else Begin
 
+    ERRStr := StrPtr^.StructName;
     Error.Code := SP_ERR_MISSING_STRUCT;
+
+  End;
 
 End;
 
@@ -4550,9 +4609,12 @@ Begin
 
     Error.Code := SP_ERR_INVALID_STRUCT_MEMBER;
 
-  End Else
+  End Else Begin
 
+    ERRStr := sPtr^.StructName;
     Error.Code := SP_ERR_MISSING_STRUCT;
+
+  End;
 
 End;
 
@@ -4603,9 +4665,12 @@ Begin
 
     Error.Code := SP_ERR_INVALID_STRUCT_MEMBER;
 
-  End Else
+  End Else Begin
 
+    ERRStr := sPtr^.StructName;
     Error.Code := SP_ERR_MISSING_STRUCT;
+
+  End;
 
 End;
 
@@ -4673,6 +4738,7 @@ Begin
 
     End Else Begin
 
+      ERRStr := Arrayname + '$';
       Error.Code := SP_ERR_ARRAY_NOT_FOUND;
 
     End;
@@ -4693,6 +4759,7 @@ Begin
 
     End Else Begin
 
+      ERRStr := ArrayName;
       Error.Code := SP_ERR_ARRAY_NOT_FOUND;
 
     End;
@@ -4714,6 +4781,7 @@ Begin
 
   // Find the variable to use. Can be string or numeric.
 
+  ERRStr := Name;
   StrVar := False;
   If Idx = 0 Then Begin
     If Name[Length(Name)] <> '$' Then Begin

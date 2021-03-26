@@ -389,6 +389,7 @@ Begin
     // Find that directory.
     // Start with all dirs that have no parent (are in root)
 
+    ERRStr := DirPart;
     If DirPart = '/' Then Begin
 
       // Specified the root directory, which always exists.
@@ -479,6 +480,7 @@ Var
   PackagePos, BytesWritten, NewChunkID: LongWord;
 Begin
 
+  ERRStr := Filename;
   Result := 0;
   If CurrentPackage.WriteProtect Then Begin
     Error.Code := SP_ERR_WRITE_PROTECT;
@@ -598,6 +600,7 @@ Var
   PackagePos, BytesRead: LongWord;
 Begin
 
+  ERRStr := Filename;
   Result := 0;
 
   // Write bytes from Buffer^ out to the file specified.
@@ -675,6 +678,7 @@ Begin
 
   // Finds the file and sets the CurrentChunk and SEEKPos member to match the intended seek position.
 
+  ERRStr := Filename;
   Result := 0;
   SP_FindPackageFile(Filename, Found, Error);
 
@@ -724,6 +728,7 @@ Begin
   // means we have to walk through the chunks one by one until we find the current chunk though :(
 
   Result := 0;
+  ERRStr := Filename;
   SP_FindPackageFile(Filename, Found, Error);
 
   If Found.FoundFileIndex <> -1 Then Begin
@@ -755,6 +760,7 @@ Var
 Begin
 
   Result := 0;
+  ERRStr := Filename;
   SP_FindPackageFile(Filename, Found, Error);
 
   If Found.FoundFileIndex <> -1 Then Begin
@@ -793,6 +799,7 @@ Begin
 
   // Find the file.
 
+  ERRStr := Filename;
   SP_FindPackageFile(Filename, Found, Error);
 
   If Found.FoundFileIndex <> -1 Then Begin
@@ -873,6 +880,7 @@ Var
   DirPart: aString;
 Begin
 
+  ERRStr := Directory;
   If Directory <> '' Then Begin
 
     OldDir := CurrentPackage.CurDirectory;
@@ -960,6 +968,7 @@ Begin
         Path := '';
       End;
 
+      ERRStr := DirPart;
       If DirPart <> '.' Then Begin
 
         If DirPart = '..' Then Begin
@@ -1218,6 +1227,7 @@ Begin
       Path := '';
     End;
 
+    ERRStr := DirPart;
     If DirPart <> '.' Then Begin
 
       If DirPart = '..' Then Begin
@@ -1272,6 +1282,7 @@ Begin
 
   Path := SP_ExtractFileDir(DirString);
   NewDir := SP_ExtractFileName(DirString);
+  ERRStr := DirString;
 
   If Path <> '' Then
     DirIndex := SP_PackageFindDir(Path, Error)
@@ -1413,6 +1424,7 @@ Var
   HostFilename: aString;
 Begin
 
+  ERRStr := Filename;
   BuffSize := 1024*1024-1;
   SetLength(Buffer, BuffSize);
 

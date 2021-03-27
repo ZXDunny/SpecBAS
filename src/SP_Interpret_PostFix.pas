@@ -12581,7 +12581,10 @@ End;
 
 Procedure SP_Interpret_WIN_NEW(Var Info: pSP_iInfo);
 Var
-  Left, Top, Width, Height, Trans, Bpp, Alpha: Integer;
+  i, j, w, Left, Top, Width, Height, Trans, Bpp, Alpha, cX1, cY1, cX2, cY2: Integer;
+  Window: pSP_Window_Info;
+  Graphic: pSP_Graphic_Info;
+  fName: aString;
 Begin
 
   Left := Round(SP_StackPtr^.Val);
@@ -12597,8 +12600,44 @@ Begin
   Bpp := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
   Alpha := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  fName := SP_StackPtr^.Str;
 
-  SP_StackPtr^.Val := SP_Add_Window(Left, Top, Width, Height, Trans, Bpp, Alpha, Info^.Error^);
+  If fName <> '' Then Begin
+    ERRStr := fName;
+    If SP_FileExists(fName) Then
+      i := SP_New_GraphicC(fName, $FFFF, Info^.Error^)
+    Else Begin
+      Info^.Error^.Code := SP_ERR_FILE_MISSING;
+      Exit;
+    End;
+    i := SP_FindBankID(i);
+    Graphic := @SP_BankList[i]^.Info[0];
+  End Else
+    i := -1;
+
+  If (Width = 0) And (i <> -1) Then
+    Width := Graphic^.Width;
+
+  If (Height = 0) And (i <> -1) Then
+    Height := Graphic^.Height;
+
+  SP_StackPtr^.OpType := SP_Value;
+  w := SP_Add_Window(Left, Top, Width, Height, Trans, Bpp, Alpha, Info^.Error^);
+  SP_StackPtr^.Val := w;
+  SP_StackPtr^.OpType := SP_VALUE;
+
+  If i <> -1 Then Begin
+    SP_GetWindowDetails(w, Window, Info^.Error^);
+    cX1 := Window^.clipx1;
+    cY1 := Window^.clipy1;
+    cX2 := Window^.clipx2;
+    cY2 := Window^.clipy2;
+    SP_PutRegion(Window^.Surface, 0, 0, Window^.Stride, Window^.Height, pByte(Graphic), -1, 0, 1, cX1, cY1, cX2, cY2, Info^.Error^);
+    For j := 0 To 255 Do
+      Window^.Palette[j] := Graphic^.Palette[j];
+    SP_DeleteBank(i, Info^.Error^);
+  End;
 
   SP_NeedDisplayUpdate := True;
 
@@ -18036,12 +18075,14 @@ End;
 
 Procedure SP_Interpret_PAL_COPY(Var Info: pSP_iInfo);
 Var
-  Id, Idx, Start, Count, Dest: Integer;
+  Id, Idx, Start, Count, Dest, DestObject, DestObjectType: Integer;
+  GotDestObject: Boolean;
   Gfx: pSP_Graphic_Info;
+  Win: pSP_Window_Info;
   Palette: Array of TP_Colour;
 Begin
 
-  Id := Round(SP_StackPtr^.Val);
+  Id := Round(SP_StackPtr^.Val); // -ve for a WINDOW, +ve for a GRAPHIC
   Dec(SP_StackPtr);
 
   Start := Round(SP_StackPtr^.Val);
@@ -18049,6 +18090,19 @@ Begin
 
   Count := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
+
+  GotDestObject := Round(SP_StackPtr^.Val) = 1;
+  If GotDestObject Then Begin
+    Dec(SP_StackPtr);
+    DestObject := Round(SP_StackPtr^.Val); // -ve for a WINDOW, +ve for a GRAPHIC
+    If DestObject < 0 Then
+      DestObjectType := SP_WINDOW_BANK
+    Else
+      DestObjectType := SP_GRAPHIC_BANK;
+    DestObject := Abs(DestObject);
+    Dec(SP_StackPtr);
+  End Else
+    Dec(SP_StackPtr);
 
   Dest := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
@@ -18058,22 +18112,54 @@ Begin
     Exit;
   End;
 
-  Idx := SP_FindBankID(Id);
+  Idx := SP_FindBankID(Abs(Id));
   If Idx > -1 Then Begin
-
     If SP_BankList[Idx]^.DataType = SP_GRAPHIC_BANK Then Begin
 
       Gfx := @SP_BankList[Idx]^.Info[0];
       SetLength(Palette, Count);
       For Idx := Start To Start + Count -1 Do
         Palette[Idx - Start] := Gfx^.Palette[Idx];
-      SP_SetPalette(Dest, Palette);
 
     End Else
-      Info^.Error^.Code := SP_ERR_INVALID_BANK;
+      If SP_BankList[Idx]^.DataType = SP_WINDOW_BANK Then Begin
+
+        Win := @SP_BankList[Idx]^.Info[0];
+        SetLength(Palette, Count);
+        For Idx := Start To Start + Count -1 Do
+          Palette[Idx - Start] := Win^.Palette[Idx];
+
+      End Else
+        Info^.Error^.Code := SP_ERR_INVALID_BANK;
 
   End Else
     Info^.Error^.Code := SP_ERR_BANK_NOT_FOUND;
+
+  If Info^.Error^.Code = SP_ERR_OK Then Begin
+
+    If GotDestObject Then Begin
+
+      Idx := SP_FindBankID(DestObject);
+      If Idx > -1 Then Begin
+        If SP_BankList[Idx]^.DataType = DestObjectType Then Begin
+          If DestObjectType = SP_GRAPHIC_BANK Then Begin
+            Gfx := @SP_BankList[Idx]^.Info[0];
+            For Idx := Dest To Dest + Count -1 Do
+              Gfx^.Palette[Idx] := Palette[Idx - Dest];
+          End Else Begin
+            Win := @SP_BankList[Idx]^.Info[0];
+            For Idx := Dest To Dest + Count -1 Do
+              Win^.Palette[Idx] := Palette[Idx - Dest];
+          End;
+        End Else
+          Info^.Error^.Code := SP_ERR_INVALID_BANK;
+      End Else
+        Info^.Error^.Code := SP_ERR_BANK_NOT_FOUND;
+
+    End Else
+      SP_SetPalette(Dest, Palette);
+
+  End;
 
 End;
 

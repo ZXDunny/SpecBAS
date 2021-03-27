@@ -8588,16 +8588,33 @@ Function  SP_Convert_PALETTE(Var KeyWordID: LongWord; Var Tokens: aString; Var P
 Var
   Expr: aString;
   Token: aChar;
+  SrcGfx, DstGfx: Integer;
+  GotDest: Boolean;
 Begin
 
   // PALETTE <SHL|SHR n, n TO n>|<<HSV>index,<r,g,b|RGB>|DEFAULT>
-  // PALETTE COPY gfxid,start,count TO index
+  // PALETTE COPY <[GRAPHIC|WINDOW]> id,start,count TO [WINDOW|GRAPHIC] id, index
 
   Result := '';
 
   If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_COPY) Then Begin
     Inc(Position, 1 + SizeOf(LongWord));
-    Result := SP_Convert_Expr(Tokens, Position, Error, -1); // Graphic Bank ID
+    SrcGfx := 1;
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_WINDOW) Then Begin
+      SrcGfx := -1;
+      Inc(Position, 1 + SizeOf(LongWord));
+    End;
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GRAPHIC) Then Begin
+      Inc(Position, 1 + SizeOf(LongWord));
+      If (SrcGfx = -1) Then Begin
+        Error.Code := SP_ERR_SYNTAX_ERROR;
+        Exit;
+      End;
+    End;
+
+    Result := SP_Convert_Expr(Tokens, Position, Error, -1); // SourceID (make negative for a WINDOW)
+    If SrcGfx = -1 Then
+      Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(-1) + CreateToken(SP_SYMBOL, 0, 1) + '*';
     If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
     If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
       Inc(Position, 2);
@@ -8609,7 +8626,32 @@ Begin
         If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
         If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
           Inc(Position, 1 + SizeOf(LongWord));
-          Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result; // Destination
+          DstGfx := 1;
+          GotDest := False;
+          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_WINDOW) Then Begin
+            DstGfx := -1;
+            GotDest := True;
+            Inc(Position, 1 + SizeOf(LongWord));
+          End;
+          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GRAPHIC) Then
+            If DstGfx = -1 Then Begin
+              Error.Code := SP_ERR_SYNTAX_ERROR;
+              Exit;
+            End Else Begin
+              GotDest := True;
+              Inc(Position, 1 + SizeOf(LongWord));
+          End;
+          Result := CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(Ord(GotDest)) + Result;
+          If GotDest Then Begin
+            Result := SP_Convert_Expr(Tokens, Position, Error, -1) + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(DstGfx) + CreateToken(SP_SYMBOL, 0, 1) + '*' + Result;
+            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then
+              Inc(Position, 2)
+            Else Begin
+              Error.Code := SP_ERR_MISSING_COMMA;
+              Exit;
+            End;
+          End;
+          Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result; // Destination index
           If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
           KeyWordID := SP_KW_PAL_COPY;
           Exit;
@@ -9292,7 +9334,7 @@ Var
 Begin
 
   // WINDOW [numexpr|
-  //         NEW var,x,y,w,h [TRANSPARENT t] [BPP n [ALPHA]]|
+  //         NEW var,x,y,w,h [TRANSPARENT t] [BPP n [ALPHA]][LOAD filename]|
   //         ERASE <numexpr>|
   //         MERGE {<numexpr>|ALL}|
   //         MOVE <numexpr,>x,y|
@@ -9376,6 +9418,15 @@ Begin
                 Expr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(1) + Expr; // Enable per-pixel alpha blending
               End Else
                 Expr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(0) + Expr;
+              If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_LOAD) Then Begin
+                Inc(Position, 1 + SizeOf(LongWord));
+                Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // Filename
+                If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_STRING Then Begin
+                  Error.Code := SP_ERR_MISSING_STREXPR;
+                  Exit;
+                End;
+              End Else
+                Expr := CreateToken(SP_STRING, Position, 0) + '' + Expr;
               Result := Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_WIN_NEW) + VarResult;
               If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
               Exit;

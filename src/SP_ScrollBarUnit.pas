@@ -133,7 +133,7 @@ Begin
   fScrollTimer := -1;
   fMouseTimer := -1;
   iSX := 1; iSY := 1;
-  iFH := FONTHEIGHT; iFW := FONTWIDTH;
+  iFH := fH; iFW := fW;
   fCanFocus := False;
   Paint;
 
@@ -344,11 +344,11 @@ Begin
 
     fUpBtn.SetBounds(fUpRect.Left, fUpRect.Top, fUpRect.Right - fUpRect.Left, fUpRect.Bottom - fUpRect.Top);
     fUpBtn.Caption := UpChar;
-    fUpBtn.CaptionPos := Point((fUpBtn.Width - FONTWIDTH) Div 2, (fUpBtn.Height - FONTHEIGHT) Div 2);
+    fUpBtn.CaptionPos := Point((fUpBtn.Width - fW) Div 2, (fUpBtn.Height - fH) Div 2);
 
     fDownBtn.SetBounds(fDownRect.Left, fDownRect.Top, fDownRect.Right - fDownRect.Left, fDownRect.Bottom - fDownRect.Top);
     fDownBtn.Caption := DnChar;
-    fDownBtn.CaptionPos := Point((fDownBtn.Width - FONTWIDTH) Div 2, (fDownBtn.Height - FONTHEIGHT) Div 2);
+    fDownBtn.CaptionPos := Point((fDownBtn.Width - fW) Div 2, (fDownBtn.Height - fH) Div 2);
 
     Paint;
 
@@ -418,10 +418,10 @@ Begin
       r.left := fTrackRect.Left;
       r.Right := fTrackRect.Right;
       r.Top := fUpBtn.CaptionPos.y;
-      r.Bottom := r.Top + FONTHEIGHT -1;
+      r.Bottom := r.Top + fH -1;
     End Else Begin
       r.Left := fUpBtn.CaptionPos.x;
-      r.Right := r.Left + FONTWIDTH -1;
+      r.Right := r.Left + fW -1;
       r.Top := fTrackRect.Top;
       r.Bottom := fTrackRect.Bottom;
     End;

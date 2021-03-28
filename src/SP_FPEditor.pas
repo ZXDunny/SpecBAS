@@ -837,7 +837,7 @@ Begin
   DWPaperTop := FPCaptionHeight + BSize;
   DWPaperWidth := DWClientWidth - (BSize * 2);
   DWPaperHeight := DWClientHeight - (BSize * 2);
-  sz := Trunc(Max(EDFONTSCALEX * FONTWIDTH, EDFONTSCALEY * FONTHEIGHT));
+  sz := Trunc(Max(EDFONTSCALEX * EDFONTWIDTH, EDFONTSCALEY * EDFONTHEIGHT));
   DWTextLeft := DWPaperLeft + sz + BSize;
   DWTextWidth := (DWPaperWidth - DWTextLeft) Div FPFw;
 

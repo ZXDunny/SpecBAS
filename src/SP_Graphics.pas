@@ -776,6 +776,8 @@ Begin
   SP_CLS(CPAPER);
 
   ID := SP_Font_Bank_Create(SP_FONT_TYPE_MONO, 8, 8, 7);
+  EDFONTWIDTH := 8;
+  EDFONTHEIGHT := 8;
   SP_Bank_Protect(ID, True);
   SYSFONT := ID;
   EDITORFONT := ID;
@@ -4721,7 +4723,7 @@ Begin
       Cw := CharW;
       Ch := CharH;
       If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
-        Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
+        Transparent := (FontBank^.Transparent <> $FFFF);
         TC := FontBank^.Transparent And $FF;
       End Else
         Transparent := T_TRANSPARENT;

@@ -146,8 +146,8 @@ Begin
     FPSizeGrabber := SP_Container.Create(Win^.Component);
   End;
   FPDebugPanelVisible := True;
-  FW := Trunc(FONTWIDTH * EDFONTSCALEX);
-  FH := Trunc(FONTHEIGHT * EDFONTSCALEY);
+  FW := Trunc(EDFONTWIDTH * EDFONTSCALEX);
+  FH := Trunc(EDFONTHEIGHT * EDFONTSCALEY);
 
   With FPDebugCombo Do Begin
     BackgroundClr := debugCombo;

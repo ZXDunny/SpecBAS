@@ -675,18 +675,18 @@ Begin
   While Not ScrollBarsDone Do Begin
 
     If h < (fCount * iFH) Then Begin
-      fVScroll.SetBounds(Width - FONTWIDTH - (Ord(fBorder) * 2), Ord(fBorder) * 2, FONTWIDTH, h + (iFH * Ord(fShowHeaders)) + (FONTHEIGHT * Ord(fHScroll.Visible)));
+      fVScroll.SetBounds(Width - fW - (Ord(fBorder) * 2), Ord(fBorder) * 2, fW, h + (iFH * Ord(fShowHeaders)) + (fH * Ord(fHScroll.Visible)));
       fVScroll.Visible := True;
-      Dec(w, FONTWIDTH + 2);
+      Dec(w, fW + 2);
       ScrollBarsDone := True;
     End;
 
     ScrollBarsDone := fHScroll.Visible;
     If w < t Then Begin
-      fHScroll.SetBounds(Ord(fBorder) * 2, fHeight - FONTHEIGHT - (Ord(fBorder) * 2), w + (Ord(fBorder) * 2) + (Ord(fVScroll.Visible) * (FONTWIDTH + 2)), FONTHEIGHT);
+      fHScroll.SetBounds(Ord(fBorder) * 2, fHeight - fH - (Ord(fBorder) * 2), w + (Ord(fBorder) * 2) + (Ord(fVScroll.Visible) * (fW + 2)), fH);
       fHScroll.Visible := True;
-      Dec(h, FONTHEIGHT);
-      fVScroll.SetBounds(Width - FONTWIDTH - (Ord(fBorder) * 2), Ord(fBorder) * 2, FONTWIDTH, h + (iFH * Ord(fShowHeaders)) + (FONTHEIGHT * Ord(fHScroll.Visible)));
+      Dec(h, fH);
+      fVScroll.SetBounds(Width - fW - (Ord(fBorder) * 2), Ord(fBorder) * 2, fW, h + (iFH * Ord(fShowHeaders)) + (fH * Ord(fHScroll.Visible)));
     End Else
       ScrollBarsDone := True;
 
@@ -836,7 +836,7 @@ Begin
       Else
         c := fDisabledFontClr;
       Print(hx + (Ord(fBorder) * 2), Ord(fBorder) * 2, fHeaders[j].Caption, c, -1, iSX, iSY, False, False);
-      Print(hx + (Ord(fBorder) * 2) + ((Length(fHeaders[j].Caption) +1) * iFW), ((iFH - FONTHEIGHT) Div 2) + (Ord(fBorder) * 2), pr, fSortIndClr, -1, 1, 1, False, False);
+      Print(hx + (Ord(fBorder) * 2) + ((Length(fHeaders[j].Caption) +1) * iFW), ((iFH - fH) Div 2) + (Ord(fBorder) * 2), pr, fSortIndClr, -1, 1, 1, False, False);
       Inc(hx, fHeaders[j].Width);
 
     End;
@@ -844,11 +844,11 @@ Begin
   End;
 
   If not fTransparent Then Begin
-    FillRect(fWidth - FONTWIDTH, fHeight - FONTHEIGHT, fWidth, fHeight, fBackgroundClr);
+    FillRect(fWidth - fW, fHeight - fH, fWidth, fHeight, fBackgroundClr);
     If fHScroll.Visible Then
-      FillRect(0, Height - (FONTHEIGHT + 2), Width, Height, fBackgroundClr);
+      FillRect(0, Height - (fH + 2), Width, Height, fBackgroundClr);
     If fVScroll.Visible Then
-      FillRect(Width - (FONTWIDTH +3), 0, Width, Height, fBackgroundClr);
+      FillRect(Width - (fW +3), 0, Width, Height, fBackgroundClr);
   End;
 
   If fBorder Then Begin

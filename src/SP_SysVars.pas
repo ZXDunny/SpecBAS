@@ -136,6 +136,8 @@ Var
   SYSFONT:                  Integer;      // The index of the system font - cannot be deleted.
   EDITORFONT:               Integer;      // The index of the editor font.
   ANIMSPEED:                Integer;      // Speed in ms that it takes to hide or show a window in the editor
+  EDFONTWIDTH:              Integer;      // The size of the editor font. Usually the default system font.
+  EDFONTHEIGHT:             Integer;
   EDFONTSCALEX,
   EDFONTSCALEY:             aFloat;       // The editor font's size (as scalars for width and height)
   EDINVERSE:                Byte;

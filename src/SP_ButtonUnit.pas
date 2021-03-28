@@ -51,8 +51,8 @@ Begin
   If Owner is SP_ScrollBar Then Begin
     iSX := 1;
     iSY := 1;
-    iFH := FONTHEIGHT;
-    iFW := FONTWIDTH;
+    iFH := fH;
+    iFW := fW;
   End;
 
   fBorder := True;
@@ -79,8 +79,8 @@ Var
 Begin
 
   If fOverrideScl Then Begin
-    w := FONTWIDTH;
-    h := FONTHEIGHT;
+    w := fW;
+    h := fH;
   End Else Begin
     w := iFW;
     h := iFH;

@@ -2621,6 +2621,7 @@ Begin
 
     If SP_Interpreter_Ready Then Begin
       DisplaySection.Enter;
+      SP_SetSystemFont(SYSFONT, Error);
       SP_DeleteAllWindows;
       SP_DeleteAllStreams(Error);
       SP_DeleteAllBanks(False);

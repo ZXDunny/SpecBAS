@@ -14455,7 +14455,14 @@ End;
 
 Procedure SP_Interpret_FONT_NEW(Var Info: pSP_iInfo);
 Var
-  Width, Height, Mode, Trans: Integer;
+  Width, Height, Mode, Trans, WChars, HCHars, xc, yc: Integer;
+  i, j, c, MinChar, cX1, cX2, cY1, cY2: Integer;
+  Graphic: pSP_Graphic_Info;
+  Window: pSP_Window_Info;
+  Font: pSP_Font_Info;
+  sPtr, dPtr: pByte;
+  Bank: pSP_Bank;
+  fName: aString;
 Begin
 
   Width := Round(SP_StackPtr^.Val);
@@ -14465,8 +14472,54 @@ Begin
   Mode := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
   Trans := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  fName := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+  MinChar := Round(SP_StackPtr^.Val);
+
+  If fName <> '' Then Begin
+    ERRStr := fName;
+    If SP_FileExists(fName) Then
+      i := SP_New_GraphicC(fName, $FFFF, Info^.Error^)
+    Else Begin
+      Info^.Error^.Code := SP_ERR_FILE_MISSING;
+      Exit;
+    End;
+    i := SP_FindBankID(i);
+    Graphic := @SP_BankList[i]^.Info[0];
+  End Else
+    i := -1;
 
   SP_StackPtr^.Val := SP_Font_Bank_Create(Mode, Width, Height, Trans);
+
+  If i <> -1 Then Begin
+
+    WChars := Graphic^.Width div Width;
+    HChars := Graphic^.Height Div Height;
+    Bank := SP_BankList[SP_FindBankID(Round(SP_StackPtr^.Val))];
+    Font := @Bank^.Info[0];
+    For c := MinChar to 127 Do Begin
+      j := c - MinChar;
+      xc := (j Mod WChars) * Width;
+      yc := (j Div WChars) * Height;
+      If yc + Height > Graphic^.Height Then
+        Break
+      Else Begin
+        sPtr := Graphic^.Data;
+        dPtr := @Bank^.Memory[Font^.Font_Info[c].Data];
+        SP_CopyRect(sPtr, Graphic^.Width, Graphic^.Height, xc, yc, Width, Height,
+                    dPtr, Width, Height, 0, 0, Width, Height,
+                    0, 0, Width, Height, Info^.Error^);
+      End;
+    End;
+
+    SP_GetWindowDetails(SCREENBANK, Window, Info^.Error^);
+    For c := 0 To 255 Do
+      Window^.Palette[c] := Graphic^.Palette[c];
+
+    SP_DeleteBank(i, Info^.Error^);
+
+  End;
 
 End;
 

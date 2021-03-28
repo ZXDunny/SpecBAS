@@ -108,7 +108,7 @@ SP_BaseComponent = Class
     fBorderClr: Byte;
     fTransparent: Boolean;
     fMinWidth, fMinHeight, fMaxWidth, fMaxHeight: Integer;
-    iFH, iFW: Integer;
+    iFH, iFW, fH, fW: Integer;
     iSX, iSY: aFloat;
     fLastKeyChar: Byte;
     fLastKey: Byte;
@@ -916,17 +916,23 @@ Begin
 
   If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then Begin
     If not fOverrideScl Then Begin
-      iFW := Trunc(FONTWIDTH * EDFONTSCALEX);
-      iFH := Trunc(FONTHEIGHT * EDFONTSCALEY);
+      fW := EDFONTWIDTH;
+      fH := EDFONTHEIGHT;
+      iFW := Trunc(EDFONTWIDTH * EDFONTSCALEX);
+      iFH := Trunc(EDFONTHEIGHT * EDFONTSCALEY);
       iSX := EDFONTSCALEX;
       iSY := EDFONTSCALEY;
     End Else Begin
-      iFH := FONTHEIGHT;
-      iFW := FONTWIDTH;
+      fW := EDFONTWIDTH;
+      fH := EDFONTHEIGHT;
+      iFH := EDFONTHEIGHT;
+      iFW := EDFONTWIDTH;
       iSX := 1;
       iSY := 1;
     End;
   End Else Begin
+    fW := FONTWIDTH;
+    fH := FONTHEIGHT;
     iFH := FONTHEIGHT;
     iFW := FONTWIDTH;
     iSX := T_SCALEX;

@@ -10896,7 +10896,7 @@ Var
   VarResult, Expr: aString;
 Begin
 
-  // FONT [id|NEW id,w,h,mode[ TRANSPARENT n]|TRANSPARENT id,n|ERASE n]
+  // FONT [id|NEW id,w,h,mode[ TRANSPARENT n][LOAD f$[,MinChar]]|TRANSPARENT id,n|ERASE n]
 
   Result := '';
   If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_NEW) Then Begin
@@ -10939,6 +10939,24 @@ Begin
               End;
             End Else
               Expr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(-1) + Expr;
+            If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_LOAD) Then Begin
+              Inc(Position, 1 + SizeOf(LongWord));
+              Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // Filename for LOAD
+              If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_STRING Then Begin
+                Error.Code := SP_ERR_MISSING_STREXPR;
+                Exit;
+              End;
+              If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+                Inc(Position, 2);
+                Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // MinChar
+                If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+                  Error.Code := SP_ERR_MISSING_NUMEXPR;
+                  Exit;
+                End;
+              End Else
+                Expr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(32) + Expr;
+            End Else
+              Expr := CreateToken(SP_STRING, Position, 0) + Expr;
             Result := Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_FONT_NEW) + VarResult;
             If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
             Exit;

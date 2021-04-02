@@ -3003,10 +3003,10 @@ begin
       Ink := T_PAPER;
 
     r := Round((Rx+0.5)*Ry*Rx*rY);
-    xmn := Max(T_CLIPX1, Cx - rX) - cX;
-    xmx := Min(T_CLIPX2, Cx + rX) - cX;
-    ymn := Max(T_CLIPY1, Cy - rY) - cY;
-    ymx := Min(T_CLIPY2, Cy + rY) - cY;
+    xmn := Max(T_CLIPX1,    Cx - rX) - cX;
+    xmx := Min(T_CLIPX2 -1, Cx + rX) - cX;
+    ymn := Max(T_CLIPY1,    Cy - rY) - cY;
+    ymx := Min(T_CLIPY2 -1, Cy + rY) - cY;
     w := SCREENSTRIDE - (xmx - xmn + 1);
 
     DstA := pByte(NativeUInt(SCREENPOINTER) + (xmn + cX) + ((ymn + cY) * SCREENSTRIDE));

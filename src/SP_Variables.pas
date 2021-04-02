@@ -285,7 +285,7 @@ Begin
       Break;
     Dec(Result);
   End;
-  If Result = limit -1 Then
+  If (Limit > 0) And (Result = limit -1) Then
     Result := -1;
 
 End;

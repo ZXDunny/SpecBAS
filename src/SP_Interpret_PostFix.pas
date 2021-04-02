@@ -3386,7 +3386,7 @@ Begin
       If Tkn^.Token = SP_TERMINAL Then
         Break
       Else Begin
-        If Idx <= Length(Tokens) +1 Then Begin
+        If Idx <= Length(Tokens) Then Begin
           StrPtr := @Tokens[Idx];
           SP_SetHandler(Tkn, StrPtr);
           Inc(Idx, Tkn^.TokenLen);
@@ -3560,6 +3560,7 @@ Begin
           SP_KEYWORD:
             Begin
               Error^.Position := Token^.TokenLen + 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart));
+              Error^.Statement := Token^.TokenPos;
               INPUTERROR := False;
               TSP_InterpretProc(Token^.Handler)(pInfo);
             End;

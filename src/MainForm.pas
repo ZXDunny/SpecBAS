@@ -653,8 +653,10 @@ begin
   LastMouseX := X;
   LastMouseY := Y;
   {$IFDEF OPENGL}
-  X := Round(X / ScaleMouseX);
-  Y := Round(Y / ScaleMouseY);
+  If ScaleMouseX > 0 Then
+    X := Round(X / ScaleMouseX);
+  If ScaleMouseY > 0 Then
+    Y := Round(Y / ScaleMouseY);
   {$ENDIF}
 
   Btn := Integer(ssLeft in Shift) + (2 * Integer(ssRight in Shift)) + (4 * Integer(ssMiddle in Shift));

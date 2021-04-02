@@ -390,7 +390,7 @@ Begin
                 Add(' ' + vName + #255 + ' ' + vContent);
               End;
               MaxW := Max(10, MaxW);
-              MaxP := Max(6, MaxP);
+              MaxP := Max(6, MaxP +1);
               AddHeader(' Name', MaxP * iFW);
               AddHeader(' Contents', MaxW * iFW);
               //SortByAlpha := True;

@@ -40,6 +40,7 @@ SP_ScrollBar = Class(SP_BaseComponent)
     fMousePos:      TPoint;
     fSmoothing:     Integer;
     fWheelStep:     Integer;
+    fShowButtons:   Boolean;
     fBtnClr,
     fThumbClr,
     fTrackClr:      Byte;
@@ -57,6 +58,7 @@ SP_ScrollBar = Class(SP_BaseComponent)
     Procedure SetTrackClr(c: Byte);
     Procedure SetBtnClr(c: Byte);
     Procedure SetThumbClr(c: Byte);
+    Procedure SetShowButtons(b: Boolean);
     Procedure Resize;
     Procedure Draw; Override;
     Function  GetBorder: Boolean;
@@ -71,16 +73,17 @@ SP_ScrollBar = Class(SP_BaseComponent)
 
     Procedure ScrollInView(p: Integer);
 
-    Property Step:      Integer          read fStep      write fStep;
-    Property Min:       Integer          read fMin       write SetMin;
-    Property Max:       Integer          read fMax       write SetMax;
-    Property Pos:       Integer          read fPosition  write SetPos;
-    Property Kind:      SP_ScrollBarKind read fKind      write SetKind;
-    Property PageSize:  Integer          read fPageSize  write SetPageSize;
-    Property OnScroll:  SP_ScrollEvent   read fOnScroll  write fOnScroll;
-    Property WheelStep: Integer          read fWheelStep write fWheelStep;
-    Property TargetPos: Integer          read fTargetPos;
-    Property Border:    Boolean          read GetBorder  write SetBorder;
+    Property Step:        Integer          read fStep        write fStep;
+    Property Min:         Integer          read fMin         write SetMin;
+    Property Max:         Integer          read fMax         write SetMax;
+    Property Pos:         Integer          read fPosition    write SetPos;
+    Property Kind:        SP_ScrollBarKind read fKind        write SetKind;
+    Property PageSize:    Integer          read fPageSize    write SetPageSize;
+    Property OnScroll:    SP_ScrollEvent   read fOnScroll    write fOnScroll;
+    Property WheelStep:   Integer          read fWheelStep   write fWheelStep;
+    Property TargetPos:   Integer          read fTargetPos;
+    Property Border:      Boolean          read GetBorder    write SetBorder;
+    Property ShowButtons: Boolean          read fShowButtons write SetShowButtons;
 
     Procedure MouseDown(X, Y, Btn: Integer); Override;
     Procedure MouseUp(X, Y, Btn: Integer); Override;
@@ -129,6 +132,8 @@ Begin
   fOnResize := Resize;
   fOnMouseWheel := MouseWheel;
   fWheelStep := SP_ScrollWheelValue;
+  If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then
+    fShowButtons := SCROLLBTNS;
   SetUIElements;
   fScrollTimer := -1;
   fMouseTimer := -1;
@@ -146,6 +151,15 @@ Begin
   RemoveTimer(fMouseTimer);
 
   Inherited;
+
+End;
+
+Procedure SP_Scrollbar.SetShowButtons(b: Boolean);
+Begin
+
+  fShowButtons := b;
+  SetUIElements;
+  Paint;
 
 End;
 
@@ -300,7 +314,9 @@ Begin
   fDownEnabled := fPosition < fMax - fPageSize;
   If Assigned(fUpBtn) Then Begin
     fUpBtn.Enabled := fUpEnabled;
+    fUpBtn.Visible := fShowButtons;
     fDownBtn.Enabled := fDownEnabled;
+    fDownBtn.Visible := fShowButtons;
   End;
 
   // Calculate visual element sizes
@@ -311,7 +327,10 @@ Begin
     If fKind = spVertical Then Begin
       fUpRect := Rect(0, 0, m, m);
       fDownRect := Rect(0, Height - m, Width, Height);
-      fTrackRect := Rect(0, fUpRect.Bottom, Width, fDownRect.Top);
+      If fShowButtons Then
+        fTrackRect := Rect(0, fUpRect.Bottom, Width, fDownRect.Top)
+      Else
+        fTrackRect := Rect(0, 0, Width, Height);
       m2 := (fTrackRect.Bottom - fTrackRect.Top)/fRange;
       fThumbSize := fTrackRect.Bottom - (Trunc((fMax - fPageSize) * m2) + fTrackRect.Top);
       fThumbPos := Trunc(fPosition * m2) + fTrackRect.Top;
@@ -327,7 +346,10 @@ Begin
     End Else Begin
       fUpRect := Rect(0, 0, m, m);
       fDownRect := Rect(Width - m, 0, Width, m);
-      fTrackRect := Rect(fUpRect.Right, 0, fDownRect.Left, Height);
+      If fShowButtons Then
+        fTrackRect := Rect(fUpRect.Right, 0, fDownRect.Left, Height)
+      Else
+        fTrackRect := Rect(0, 0, Width, Height);
       m2 := (fTrackRect.Right - fTrackRect.Left)/fRange;
       fThumbSize := fTrackRect.Right - (Trunc((fMax - fPageSize) * m2) + fTrackRect.Left);
       fThumbPos := Trunc(fPosition * m2) + fTrackRect.Left;

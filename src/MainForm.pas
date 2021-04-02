@@ -1062,8 +1062,8 @@ procedure TMain.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
 
   KEYSTATE[Key] := 0;
-  If Not ControlKeyEvent(#0, Key, False) Then
-    SP_RemoveKey(Key);
+  ControlKeyEvent(#0, Key, False);
+  SP_RemoveKey(Key);
 
 end;
 

@@ -2111,7 +2111,7 @@ Begin
           cY1 := Max(Window^.clipy1, 0);
           cX2 := Min(Window^.Width, Window^.clipx2);
           cY2 := Min(Window^.Height, Window^.clipy2);
-          SP_PutSprite(dPtr, X, Y, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+          SP_PutSprite(dPtr, X, Y, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
           If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
           If Sprite^.WrapMode > 0 Then Begin
             W := pLongWord(SrcPtr)^;
@@ -2123,15 +2123,15 @@ Begin
               1: // Window Wrap
                 Begin
                   If X + Mx >= Window^.Width Then Begin
-                    SP_PutSprite(dPtr, X - Window^.Width, Y, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                    SP_PutSprite(dPtr, X - Window^.Width, Y, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                     If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                   End;
                   If Y + Mx >= Window^.Height Then Begin
-                    SP_PutSprite(dPtr, X, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                    SP_PutSprite(dPtr, X, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                     If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                   End;
                   If (X + Mx >= Window^.Width) And (Y + Mx >= Window^.Height) Then Begin
-                    If Window^.Visible Then SP_PutSprite(dPtr, X - Window^.Width, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                    If Window^.Visible Then SP_PutSprite(dPtr, X - Window^.Width, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                     SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                   End;
                 End;
@@ -2140,15 +2140,15 @@ Begin
                   wcX := Window^.clipx2 - Window^.clipx1;
                   wcY := Window^.clipy2 - Window^.clipy1;
                   If X + Mx >= Window^.clipx2 Then Begin
-                    SP_PutSprite(dPtr, X - wCx, Y, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                    SP_PutSprite(dPtr, X - wCx, Y, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                     If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                   End;
                   If Y + Mx >= Window^.clipy2 Then Begin
-                    SP_PutSprite(dPtr, X, Y - wCy, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                    SP_PutSprite(dPtr, X, Y - wCy, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                     If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                   End;
                   If (X + Mx >= Window^.Width) And (Y + Mx >= Window^.Height) Then Begin
-                    SP_PutSprite(dPtr, X - wCx, Y - wCy, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                    SP_PutSprite(dPtr, X - wCx, Y - wCy, Sprite^.OverMode, Window^.Paper, $FFFF, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                     If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                   End;
                 End;
@@ -2336,7 +2336,7 @@ Begin
     // A note about the parameters - we can use the window width and height as they will be identical to the size of the window that we're
     // masquerading as - this is only called by the compositor.
 
-    Collided := SP_PutSprite(dPtr, X, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+    Collided := SP_PutSprite(dPtr, X, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
     If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
 
     // Now issue sprite re-draws for wrapping sprites. Basically, if the sprite moves off the right or bottom edges (a wrapped sprite cannot move off the top or left),
@@ -2347,17 +2347,17 @@ Begin
           Begin
             If X + Mx >= Window^.Width Then Begin
               cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-              CollidedA := SP_PutSprite(dPtr, X - Window^.Width, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+              CollidedA := SP_PutSprite(dPtr, X - Window^.Width, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
               If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
             End;
             If Y + Mx >= Window^.Height Then Begin
               cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-              CollidedB := Sprite^.Collided Or SP_PutSprite(dPtr, X, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+              CollidedB := Sprite^.Collided Or SP_PutSprite(dPtr, X, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
               If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
             End;
             If (X + Mx >= Window^.Width) And (Y + Mx >= Window^.Height) Then Begin
               cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-              CollidedC := Sprite^.Collided Or SP_PutSprite(dPtr, X - Window^.Width, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+              CollidedC := Sprite^.Collided Or SP_PutSprite(dPtr, X - Window^.Width, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
               If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
             End;
           End;
@@ -2365,17 +2365,17 @@ Begin
           Begin
             If X + Mx >= Window^.clipx2 Then Begin
               cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-              CollidedA := SP_PutSprite(dPtr, X - wCx, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+              CollidedA := SP_PutSprite(dPtr, X - wCx, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
               If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
             End;
             If Y + Mx >= Window^.clipy2 Then Begin
               cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-              CollidedB := SP_PutSprite(dPtr, X, Y - wCy, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+              CollidedB := SP_PutSprite(dPtr, X, Y - wCy, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
               If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
             End;
             If (X + Mx >= Window^.clipx2) And (Y + Mx >= Window^.clipy2) Then Begin
               cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-              CollidedC := SP_PutSprite(dPtr, X - wCx, Y - wCy, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+              CollidedC := SP_PutSprite(dPtr, X - wCx, Y - wCy, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
               If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
             End;
           End;
@@ -2396,7 +2396,7 @@ Begin
         X := Round(dX);
         Y := Round(dY);
         cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-        SP_PutSprite(dPtr, X, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+        SP_PutSprite(dPtr, X, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
         If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
         If Sprite^.WrapMode > 0 Then Begin
           Case Sprite^.WrapMode of
@@ -2404,17 +2404,17 @@ Begin
               Begin
                 If X + Mx >= Window^.Width Then Begin
                   cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-                  CollidedA := CollidedA Or SP_PutSprite(dPtr, X - Window^.Width, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                  CollidedA := CollidedA Or SP_PutSprite(dPtr, X - Window^.Width, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                   If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                 End;
                 If Y + Mx >= Window^.Height Then Begin
                   cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-                  CollidedB := CollidedB Or SP_PutSprite(dPtr, X, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                  CollidedB := CollidedB Or SP_PutSprite(dPtr, X, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                   If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                 End;
                 If (X + Mx >= Window^.Width) And (Y + Mx >= Window^.Height) Then Begin
                   cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-                  CollidedC := CollidedC Or SP_PutSprite(dPtr, X - Window^.Width, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                  CollidedC := CollidedC Or SP_PutSprite(dPtr, X - Window^.Width, Y - Window^.Height, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                   If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                 End;
               End;
@@ -2422,17 +2422,17 @@ Begin
               Begin
                 If X + Mx >= Window^.clipx2 Then Begin
                   cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-                  CollidedA := CollidedA Or SP_PutSprite(dPtr, X - wCx, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                  CollidedA := CollidedA Or SP_PutSprite(dPtr, X - wCx, Y, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                   If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                 End;
                 If Y + Mx >= Window^.clipy2 Then Begin
                   cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-                  CollidedB := CollidedB Or SP_PutSprite(dPtr, X, Y - wCy, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                  CollidedB := CollidedB Or SP_PutSprite(dPtr, X, Y - wCy, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                   If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                 End;
                 If (X + Mx >= Window^.clipx2) And (Y + Mx >= Window^.clipy2) Then Begin
                   cX1 := ccX1; cY1 := ccY1; cX2 := ccX2; cY2 := ccY2;
-                  CollidedC := CollidedC Or SP_PutSprite(dPtr, X - wCx, Y - wCy, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, DegToRad(Sprite^.Angle), Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
+                  CollidedC := CollidedC Or SP_PutSprite(dPtr, X - wCx, Y - wCy, Sprite^.OverMode, Window^.Paper, Window^.Transparent, Window^.Width, Window^.Height, SrcPtr, SrcLen, Sprite^.Angle, Sprite^.Scale, cX1, cY1, cX2, cY2, Error);
                   If Window^.Visible Then SP_SetDirtyRect(Window^.Left + cX1, Window^.Top + cY1, Window^.Left + cX1 + cX2, Window^.Top + cY1 + cY2);
                 End;
               End;

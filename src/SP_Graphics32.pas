@@ -2826,19 +2826,11 @@ Begin
            23:
               Begin // TAB control
                 nx := X Div Cw;
-                tc := pLongWord(@Text[Idx+1])^;
-                If tc < nx Then Begin
-                  tc := ((SCREENWIDTH - X) Div Cw) + tc;
-                  SP_PRINT32(-1, X, Y, -1, StringOfChar(aChar(' '), tc), Ink, Paper, Error);
-                  X := Round(PRPOSX);
-                  Y := ROUND(PRPOSY);
-                End Else
-                  If tc > nx Then Begin
-                    tc := tc * Cw;
-                    SP_PRINT32(-1, X, Y, -1, StringOfChar(aChar(' '), ((tc - nx) Div Cw) +1), Ink, Paper, Error);
-                    X := Round(PRPOSX);
-                    Y := ROUND(PRPOSY);
-                  End;
+                tc := pLongWord(@Text[Idx+1])^ mod (SCREENWIDTH Div Cw);
+                If tc < nx Then Inc(tc, SCREENWIDTH Div Cw);
+                SP_PRINT32(-1, X, Y, -1, StringOfChar(aChar(' '), tc - nx), Ink, Paper, Error);
+                X := Round(PRPOSX);
+                Y := ROUND(PRPOSY);
                 Inc(Idx, SizeOf(LongWord));
               End;
            24:
@@ -3145,21 +3137,13 @@ Begin
             End;
          23:
             Begin // TAB control
-                nx := X Div Cw;
-                tc := pLongWord(@Text[Idx+1])^;
-                If tc < nx Then Begin
-                  tc := ((SCREENWIDTH - X) Div Cw) + tc;
-                  SP_TextOut32(-1, X, Y, StringOfChar(aChar(' '), tc), Ink, Paper, True);
-                  X := Round(PRPOSX);
-                  Y := ROUND(PRPOSY);
-                End Else
-                  If tc > nx Then Begin
-                    tc := tc * Cw;
-                    SP_TextOut32(-1, X, Y, StringOfChar(aChar(' '), ((tc - nx) Div Cw) +1), Ink, Paper, True);
-                    X := Round(PRPOSX);
-                    Y := ROUND(PRPOSY);
-                  End;
-                Inc(Idx, SizeOf(LongWord));
+              nx := X Div Cw;
+              tc := pLongWord(@Text[Idx+1])^;
+              If tc < nx Then Inc(tc, SCREENWIDTH Div Cw);
+              SP_TextOut32(-1, X, Y, StringOfChar(aChar(' '), tc - nx), Ink, Paper, True);
+              X := Round(PRPOSX);
+              Y := ROUND(PRPOSY);
+              Inc(Idx, SizeOf(LongWord));
             End;
          24:
             Begin // CENTRE control
@@ -3512,19 +3496,11 @@ Begin
            23:
               Begin // TAB control
                 nx := X Div Cw;
-                tc := pLongWord(@Text[Idx+1])^;
-                If tc < nx Then Begin
-                  tc := ((SCREENWIDTH - X) Div Cw) + tc;
-                  SP_PRINT32Alpha(-1, X, Y, -1, StringOfChar(aChar(' '), tc), Ink, Paper, Error);
-                  X := Round(PRPOSX);
-                  Y := ROUND(PRPOSY);
-                End Else
-                  If tc > nx Then Begin
-                    tc := tc * Cw;
-                    SP_PRINT32Alpha(-1, X, Y, -1, StringOfChar(aChar(' '), ((tc - nx) Div Cw) +1), Ink, Paper, Error);
-                    X := Round(PRPOSX);
-                    Y := ROUND(PRPOSY);
-                  End;
+                tc := pLongWord(@Text[Idx+1])^ mod (SCREENWIDTH Div Cw);
+                If tc < nx Then Inc(tc, SCREENWIDTH Div Cw);
+                SP_PRINT32Alpha(-1, X, Y, -1, StringOfChar(aChar(' '), tc - nx), Ink, Paper, Error);
+                X := Round(PRPOSX);
+                Y := ROUND(PRPOSY);
                 Inc(Idx, SizeOf(LongWord));
               End;
            24:
@@ -3829,21 +3805,13 @@ Begin
             End;
          23:
             Begin // TAB control
-                nx := X Div Cw;
-                tc := pLongWord(@Text[Idx+1])^;
-                If tc < nx Then Begin
-                  tc := ((SCREENWIDTH - X) Div Cw) + tc;
-                  SP_TextOut32Alpha(-1, X, Y, StringOfChar(aChar(' '), tc), Ink, Paper, True);
-                  X := Round(PRPOSX);
-                  Y := ROUND(PRPOSY);
-                End Else
-                  If tc > nx Then Begin
-                    tc := tc * Cw;
-                    SP_TextOut32Alpha(-1, X, Y, StringOfChar(aChar(' '), ((tc - nx) Div Cw) +1), Ink, Paper, True);
-                    X := Round(PRPOSX);
-                    Y := ROUND(PRPOSY);
-                  End;
-                Inc(Idx, SizeOf(LongWord));
+              nx := X Div Cw;
+              tc := pLongWord(@Text[Idx+1])^;
+              If tc < nx Then Inc(tc, SCREENWIDTH Div Cw);
+              SP_TextOut32Alpha(-1, X, Y, StringOfChar(aChar(' '), tc - nx), Ink, Paper, True);
+              X := Round(PRPOSX);
+              Y := ROUND(PRPOSY);
+              Inc(Idx, SizeOf(LongWord));
             End;
          24:
             Begin // CENTRE control

@@ -201,8 +201,12 @@
         <DCCReference Include="SP_MenuActions.pas"/>
         <DCCReference Include="SP_ControlMsgs.pas"/>
         <DCCReference Include="SP_DebugPanel.pas">
-            <Form>$IFNDEF PROFILE</Form>
+            <Form>,
+  SP_SliderUnit in &apos;SP_SliderUnit.pas&apos;;
+
+{$R *.res</Form>
         </DCCReference>
+        <DCCReference Include="SP_SliderUnit.pas"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

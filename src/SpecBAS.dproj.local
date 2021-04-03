@@ -1,2 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<BorlandProject/>
+<BorlandProject>
+  <Transactions>
+    <Transaction>2021/04/02 22:58:05.848,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2021/04/02 22:58:27.139,D:\Projects\SpecBAS\src\SP_SliderUnit.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+  </Transactions>
+</BorlandProject>

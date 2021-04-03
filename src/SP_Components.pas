@@ -36,7 +36,7 @@ Uses Types, SysUtils, Classes, SyncObjs, Math, ClipBrd, SP_SysVars, SP_FileIO, S
 // *SP_Container - visually a box with a caption, border and then components inside
 // *SP_RadioGroup
 // *SP_CheckList - a list of checkboxes
-// SP_Slider
+// SP_Slider - user manipulable scrollbar that fills as the value increases. Vertical or horizontal.
 // *SP_Combobox - SP_EditBox with SP_PopupMenu attached. Can be read-only, or editable
 // SP_Memo - a memo control, can be a single line (an Edit box), optional BASIC editor
 // SP_ProgressBar - non-interactive slider type with customisable fill graphic (character?)

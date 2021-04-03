@@ -7876,18 +7876,14 @@ Begin
     OUTBUFFER := OUTBUFFER + aChar(23) + IntegerToString(Round(SP_StackPtr^.Val));
 
   End Else Begin
+
     Y := Round(PRPOSY);
     Cw := Round(FONTWIDTH * T_SCALEX);
     nx := Round(PRPOSX) Div Cw; // current pos
-    tc := Round(SP_StackPtr^.Val);
-    If tc < nx Then Begin
-      tc := ((SCREENWIDTH - (nx * cW)) Div Cw) + tc;
-      SP_PRINT(-1, Round(PRPOSX), Y, -1, StringOfChar(aChar(' '), tc), T_INK, T_PAPER, Info^.Error^);
-    End Else
-      If tc > nx Then Begin
-        tc := tc * Cw;
-        SP_PRINT(-1, Round(PRPOSX), Y, -1, StringOfChar(aChar(' '), ((tc - nx) Div Cw) +1), T_INK, T_PAPER, Info^.Error^);
-      End;
+    tc := Round(SP_StackPtr^.Val) mod (SCREENWIDTH Div Cw);
+    If tc < nx Then Inc(tc, SCREENWIDTH Div Cw);
+    SP_PRINT(-1, Round(PRPOSX), Y, -1, StringOfChar(aChar(' '), tc - nx), T_INK, T_PAPER, Info^.Error^);
+
   End;
 
   Dec(SP_StackPtr);
@@ -14685,6 +14681,7 @@ Begin
 
   // Waits for a key. Returns as soon as a key is pressed.
 
+  SP_WaitForSync;
   While (Length(ActiveKeys) = 0) And Not QUITMSG Do
     CB_Yield;
 
@@ -14696,6 +14693,7 @@ Begin
   // Waits for a key *press* - if a key is down then wait for it to go up;
   // then wait for any key to go down.
 
+  SP_WaitForSync;
   While (Length(ActiveKeys) <> 0) And Not (BREAKSIGNAL or QUITMSG) Do CB_Yield;
   While (Length(ActiveKeys) = 0) And Not (BREAKSIGNAL or QUITMSG) Do CB_Yield;
 

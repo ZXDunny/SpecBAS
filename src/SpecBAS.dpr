@@ -66,7 +66,8 @@ uses
   SP_TabBarUnit in 'SP_TabBarUnit.pas',
   SP_MenuActions in 'SP_MenuActions.pas',
   SP_ControlMsgs in 'SP_ControlMsgs.pas',
-  SP_DebugPanel in 'SP_DebugPanel.pas';
+  SP_DebugPanel in 'SP_DebugPanel.pas',
+  SP_SliderUnit in 'SP_SliderUnit.pas';
 
 {$R *.res}
 

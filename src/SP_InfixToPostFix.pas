@@ -261,7 +261,7 @@ Procedure SP_Convert_ToPostFix(Var Tokens: aString; Var Position: Integer; Var E
 Var
   Token: pToken;
   i: Integer;
-  IsDirect: Boolean;
+  IsDirect, doJump: Boolean;
   Converted, Statement_RPN, StList: aString;
   KeyWordID, OldKeyWordID, KeyWordPos, StatementListPos, Idx, Val, StListLen,
   Statement, NextStatement, stIdx, LineNum: LongWord;
@@ -413,6 +413,7 @@ Begin
                 Else
                   NextStatement := pLongWord(@StList[stIdx])^;
               End;
+              doJump := True;
               Token := @Tokens[Idx];
               Case Token^.Token of
                 SP_DISPLACEMENT:
@@ -425,8 +426,17 @@ Begin
                     // The TokenPos member for KEYWORDs and FUNCTIONs is the statement number that they inhabit.
                     Token^.TokenPos := Statement;
                   End;
+                SP_IJMP:
+                  Begin
+                    // This is a special case - jump forward to the expression list so we can parse the keywords.
+                    Inc(Idx, SizeOf(TToken));
+                    i := pLongWord(@Tokens[Idx])^ + 1; // number of exprs
+                    Inc(Idx, i * SizeOf(LongWord)); // now after the next line, Idx will point to the first expression.
+                    doJump := False;
+                  End;
               End;
-              Inc(Idx, Token^.TokenLen + SizeOf(TToken));
+              If doJump Then
+                Inc(Idx, Token^.TokenLen + SizeOf(TToken));
             End;
             // And *finally* exit with some nicely encoded... code :)
             SP_AddHandlers(Tokens);
@@ -10324,9 +10334,9 @@ Begin
 
       If KW >= 0 Then Begin
         Case KW Of
-          Ord(SP_CHAR_SUB): Begin KW := SP_KW_GOSUB; ot := SP_VALUE; End;
-               SP_KW_TO:    Begin KW := SP_KW_GOTO; ot := SP_VALUE; End;
-             SP_KW_EXECUTE: Begin KW := SP_KW_EXECUTE; ot := SP_STRING; End;
+          Ord(SP_CHAR_SUB): Begin KW := SP_KW_GOSUB;    ot := SP_VALUE; End;
+                  SP_KW_TO: Begin KW := SP_KW_GOTO;     ot := SP_VALUE; End;
+             SP_KW_EXECUTE: Begin KW := SP_KW_EXECUTE;  ot := SP_STRING; End;
         Else
           Begin
             Error.Code := SP_ERR_SYNTAX_ERROR;
@@ -10352,7 +10362,7 @@ Begin
         Until (Position > Length(Tokens)) or Not b;
         If Error.Code <> SP_ERR_OK then Exit;
 
-        // SP_IJMP, Count, FalseJmp, Skip0, Skip1, Skip2, Skip3, expr0, expr1, expr2, expr3
+        // SP_IJMP, Count, Skip0, Skip1, Skip2, Skip3, expr0, expr1, expr2, expr3
 
         SetLength(vals, n);
         For i := 0 To n -1 Do Begin

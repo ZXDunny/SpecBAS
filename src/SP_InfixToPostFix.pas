@@ -880,7 +880,8 @@ Begin
               Error.Code := SP_ERR_SYNTAX_ERROR;
               Position := Token^.TokenPos;
               Exit;
-            End;
+            End Else
+              Break;
 
           // If numindices (the longword pointer) is 0, then current stack item must be a string/strvar and the previous must be a strvar/numvar.
           // If numindices is >1, then the current stack item must be a numvar/strvar and not a string.
@@ -2344,6 +2345,7 @@ Begin
     If FnResult <> '' Then
       If Not((Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO)) Then Begin
         Result := Result + FnResult;
+        SlicerFlags := 1;
         Inc(NumIndices);
         FnResult := '';
       End;
@@ -2377,6 +2379,7 @@ Begin
         // A comma separates indices, so skip over and loop.
         Inc(Position, 2);
         IsArray := True;
+        SlicerFlags := 0;
       End Else
         Slicer:
         If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
@@ -2385,26 +2388,24 @@ Begin
           If NumIndices > 0 Then Begin
             If Not Preserve Then
               If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR]) Then
-                Result := Result + FnResult + CreateToken(SP_NUM_ARRAY_PTR, Position, SizeOf(LongWord)) + LongWordToString(0)
+                Result := Result + FnResult + CreateToken(SP_NUM_ARRAY_PTR, Position, SizeOf(LongWord)) + LongWordToString(NumIndices)
               Else
-                Result := Result + FnResult + CreateToken(SP_ARRAY, Position, SizeOf(LongWord)) + LongWordToString(0);
+                Result := Result + CreateToken(SP_ARRAY, Position, SizeOf(LongWord)) + LongWordToString(NumIndices);
             Error.ReturnType := SP_ARRAY;
           End;{ Else
             If Error.ReturnType <> SP_ARRAY Then
               Error.ReturnType := SP_SLICER;}
           // Back to slicing. The flags will indicate which parameter is specified - initially both.
-          SlicerFlags := 3;
-          If FnResult = '' Then
-            // " TO " with no initial slice parameter, so unset the flag (2)
-            SlicerFlags := SlicerFlags - 2
-          Else
+          If FnResult <> '' Then Begin
+            // " TO " with initial slice parameter, so set the flag (2)
+            SlicerFlags := SlicerFlags or 2;
             Result := Result + FnResult;
+          End;
           // Skip the " TO " token.
           Inc(Position, 1 + SizeOf(LongWord));
           // Now either a numexpr or a close-bracket.
           If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ')') Then Begin
             // This indicates that there is no second parameter, so set the flags accordingly.
-            SlicerFlags := SlicerFlags - 1;
             If SlicerFlags = 0 Then
               SlicerFlags := 8; // Indicate that this is a slice-assign with no indices
             PosBeforeSlice := Length(Result);
@@ -2420,6 +2421,7 @@ Begin
               Exit;
             End;
             Result := Result + FnResult;
+            SlicerFlags := SlicerFlags or 1;
             // Now check for a bracket to close the slicer.
             If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ')') Then Begin
               // Add a slicer to the result.

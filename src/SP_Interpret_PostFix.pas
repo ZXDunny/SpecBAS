@@ -11205,7 +11205,7 @@ Begin
     LineStart := -1;
 
   If Filename = '' Then
-    Filename := OpenFileReq('Save program as...', PROGNAME, True, Info^.Error^);
+    Filename := OpenFileReq('Save program as...', PROGNAME, '10:ZXASCII;10:ZXPACK', True, Info^.Error^);
 
   If SP_ExtractFilename(Filename) <> '' Then Begin
     FILECHANGED := False;
@@ -11229,7 +11229,7 @@ Begin
     LineStart := $FFFFFFFF;
 
   If Filename = '' Then
-    Filename := OpenFileReq('Save program as...', PROGNAME, True, Info^.Error^);
+    Filename := OpenFileReq('Save program as...', PROGNAME, '10:ZXASCII;10:ZXPACK', True, Info^.Error^);
 
   If SP_ExtractFilename(Filename) <> '' Then Begin
     FILECHANGED := False;
@@ -11308,7 +11308,7 @@ Begin
   Dec(SP_StackPtr);
 
   If Filename = '' Then
-    Filename := OpenFileReq('Load program', PROGNAME, False, Info^.Error^);
+    Filename := OpenFileReq('Load program', PROGNAME, '10:ZXASCII;10:ZXPACK', False, Info^.Error^);
 
   If Filename <> '' Then Begin
     SP_LoadProgram(Filename, False, False, nil, Info^.Error^);
@@ -11342,7 +11342,7 @@ Begin
   Dec(SP_StackPtr);
 
   If Filename = '' Then
-    Filename := OpenFileReq('Merge program', PROGNAME, False, Info^.Error^);
+    Filename := OpenFileReq('Merge program', PROGNAME, '10:ZXASCII', False, Info^.Error^);
 
   If Filename <> '' Then
     SP_LoadProgram(Filename, True, False, nil, Info^.Error^);

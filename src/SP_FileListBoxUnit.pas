@@ -2,7 +2,7 @@ unit SP_FileListBoxUnit;
 
 interface
 
-Uses SP_BaseComponentUnit, SP_ListBoxUnit, SP_Util;
+Uses SP_BaseComponentUnit, SP_ListBoxUnit, SP_Util, SP_AnsiStringlist;
 
 Type
 
@@ -14,6 +14,9 @@ SP_FileListBox = Class(SP_ListBox)
     fOnChooseFile,
     fOnChooseDir: SP_FLBSelectEvent;
     fLastKeyDownTime: LongWord;
+    fFilterList: TAnsiStringlist;
+    fHasContentFilter: Boolean;
+    fMaxContentLen: Integer;
     Procedure Populate;
     Procedure SetDirectory(s: aString);
     Function  SortProc(Val1, Val2: aString): Integer;
@@ -22,6 +25,8 @@ SP_FileListBox = Class(SP_ListBox)
     Procedure Select(Index: Integer); Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
     Procedure PerformKeyUp(Var Handled: Boolean); Override;
+    Function  GetFilters: aString;
+    Procedure SetFilters(s: aString);
 
   Public
 
@@ -30,6 +35,7 @@ SP_FileListBox = Class(SP_ListBox)
     Property  Directory: aString read fDirectory write SetDirectory;
     Property  OnChooseFile: SP_FLBSelectEvent read fOnChooseFile write fOnChooseFile;
     Property  OnChooseDir: SP_FLBSelectEvent read fOnChooseDir write fOnChooseDir;
+    Property  Filters: aString read GetFilters write SetFilters;
     Procedure DoDoubleClick(X, Y, Btn: Integer);
 
     Constructor Create(Owner: SP_BaseComponent);
@@ -54,6 +60,7 @@ Begin
   fSortedBy := 0;
   fSortDir := 1;
   fSorted := True;
+  fFilterList := TAnsiStringList.Create;
   fOnDblClick := DoDoubleClick;
 
 End;
@@ -62,15 +69,73 @@ Destructor SP_FileListBox.Destroy;
 Begin
 
   Inherited;
+  fFilterList.Free;
+
+End;
+
+Function SP_FileListBox.GetFilters: aString;
+Var
+  s: aString;
+  i: Integer;
+Begin
+
+  Result := '';
+
+  For i := 0 To fFilterList.Count -1 Do Begin
+    s := fFilterList[i];
+    If s[1] = #0 Then // File mask
+      Result := Result + Copy(s, 2) + ';'
+    Else
+      If s[1] = #1 Then // File contents
+        Result := Result + IntToString(pLongWord(@s[2])^) + ':' + Copy(s, 6) + ';';
+  End;
+  Result := Copy(Result, 1, Length(Result) -1);
+
+End;
+
+Procedure SP_FileListBox.SetFilters(s: aString);
+Var
+  ps, ps2, i: Integer;
+  Filter, s2: aString;
+Begin
+
+  fHasContentFilter := False;
+  fMaxContentLen := 0;
+  fFilterList.Clear;
+
+  If s <> '' Then Repeat
+    ps := Pos(';', s);
+    If ps = 0 Then ps := Length(s) + 2;
+    If s[1] = '0' Then // File mask
+      Filter := #0 + Copy(s, 2, ps - 2)
+    Else
+      If s[1] = '1' Then Begin // File contents
+        s2 := Copy(s, 2, ps -2);
+        ps2 := Pos(':', s2);
+        If ps2 = 0 Then
+          Exit
+        Else Begin
+          i := StringToLong(Copy(s2, 1, ps2 - 1));
+          s2 := Copy(s2, ps2 + 1);
+          Filter := #1 + LongwordToString(i) + s2;
+          fHasContentFilter := True;
+          fMaxContentLen := SP_Max(i + Length(s2), fMaxContentLen);
+        End;
+      End;
+    s := Copy(s, ps + 1);
+    fFilterList.Add(Filter);
+
+  Until s = '';
 
 End;
 
 Procedure SP_FileListBox.Populate;
 Var
   Files, FileSizes: TStringlist;
+  s, t, Buffer: aString;
   Error: TSP_ErrorCode;
-  i: Integer;
-  s: aString;
+  Match, b: Boolean;
+  i, j, f: Integer;
 Begin
 
   Lock;
@@ -79,6 +144,47 @@ Begin
   Files := TStringlist.Create;
   FileSizes := TStringlist.Create;
   SP_GetFileList(s, Files, FileSizes, Error, False);
+
+  // Apply filters to the file list
+
+  If fFilterList.Count > 0 Then Begin
+
+    If fHasContentFilter Then
+      SetLength(Buffer, fMaxContentLen);
+
+    i := 0;
+    While i < Files.Count Do Begin
+      b := False;
+      If Integer(Files.Objects[i]) = 1 Then Begin
+        Inc(i);
+        Continue;
+      End Else
+        For j := 0 To fFilterList.Count -1 Do Begin
+          s := fFilterList[j];
+          If s[1] = #0 Then // Mask
+            Match := WildComp(Copy(s, 2), Files[i])
+          Else
+            If s[1] = #1 Then Begin // File content
+              If Not b Then Begin
+                f := SP_FileOpen(fDirectory + Files[i], False, Error);
+                SP_FileRead(f, @Buffer[1], fMaxContentLen, Error);
+                SP_FileClose(f, Error);
+                b := True;
+              End;
+              t := Copy(s, 6);
+              Match := Copy(Buffer, pLongWord(@s[2])^, Length(t)) = t;
+            End;
+          If Match Then Break;
+        End;
+      If Match Then
+        Inc(i)
+      Else Begin
+        Files.Delete(i);
+        FileSizes.Delete(i);
+      End;
+    End;
+
+  End;
 
   // Files.Objects contains 1 or 0 (directory or file)
   // Sizes.Objects contains numeric file size in bytes
@@ -106,10 +212,10 @@ Begin
 
     For i := 0 To Files.Count -1 Do
       If Not ((Files[i][1] = '.') And (Integer(Files.Objects[i]) = 1)) Then
-      Add(aChar(Files.Objects[i]) +                             // Directory flag
-          Files[i] + #255 +                                     // File name
-          IntToString(Int64(FileSizes.Objects[i])) + #255 +     // File size
-          Copy(FileSizes[i], Length(FileSizes[i]) - 9, 10));    // File date
+        Add(aChar(Files.Objects[i]) +                             // Directory flag
+            Files[i] + #255 +                                     // File name
+            IntToString(Int64(FileSizes.Objects[i])) + #255 +     // File size
+            Copy(FileSizes[i], Length(FileSizes[i]) - 9, 10));    // File date
 
   End;
 
@@ -316,9 +422,12 @@ Begin
 
   // Don't trigger select for directories
 
-  If fStrings[Index][1] = #0 Then
-    If Assigned(OnSelect) Then
-      OnSelect(Self, Index);
+  If (Index >= 0) And (Index < Count) Then Begin
+    If fStrings[Index][1] = #0 Then
+      If Assigned(OnSelect) Then
+        OnSelect(Self, Index);
+  End Else
+    ClearSelected;
 
 End;
 

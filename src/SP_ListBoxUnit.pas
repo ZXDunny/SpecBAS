@@ -56,6 +56,7 @@ SP_ListBox = Class(SP_BaseComponent)
     fLastMouseX:  Integer;
 
     Procedure     Clear;
+    Procedure     ClearSelected;
     Procedure     SetItem(Index: Integer; Value: aString);
     Function      GetItem(Index: Integer): aString;
     Procedure     SetObject(Index: Integer; Value: TObject);
@@ -450,6 +451,18 @@ Begin
   fHCount := 0;
   fCount := 0;
   SetUIElements;
+
+End;
+
+Procedure SP_ListBox.ClearSelected;
+Var
+  i: Integer;
+Begin
+
+  For i := 0 To Count -1 Do
+    fSelected[i] := False;
+  If Assigned(fOnSelect) Then
+    fOnSelect(Self, -1);
 
 End;
 

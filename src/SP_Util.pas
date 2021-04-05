@@ -111,6 +111,7 @@ Function SP_PartialMatch(const s1, s2: aString): Boolean; inline;
 Function SP_PartialMatchPtrs(ps, pd: pByte; l: Integer): Boolean;
 Function aFloatToStr(Value: aFloat): aString; inline;
 Function SP_Power(Base, Exponent: aFloat): aFloat; inline;
+Function SP_Max(A, B: Integer): Integer;
 
 Var
 
@@ -1397,6 +1398,14 @@ Begin
       Inc(pd);
     End;
 
+End;
+
+Function SP_Max(A, B: Integer): Integer;
+Begin
+  If A > B Then
+    Result := A
+  Else
+    Result := B;
 End;
 
 Initialization

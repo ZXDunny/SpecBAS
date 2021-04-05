@@ -9051,7 +9051,7 @@ Begin
   Case Operation of
     SP_KW_LOAD:
       Begin
-        Filename := OpenFileReq('Load program', PROGNAME, False, Error);
+        Filename := OpenFileReq('Load program', PROGNAME, '10:ZXASCII;10:ZXPACK', False, Error);
         If Filename <> '' Then
           AddControlMsg(clInterpretCommand, 'LOAD "'+Filename+'"');
       End;
@@ -9062,14 +9062,14 @@ Begin
           AddControlMsg(clInterpretCommand, 'SAVE "'+Filename+'"');
         End Else Begin
           // Save using the File requester
-          Filename := OpenFileReq('Save program', PROGNAME, True, Error);
+          Filename := OpenFileReq('Save program', PROGNAME, '10:ZXASCII;10:ZXPACK', True, Error);
           If Filename <> '' Then
             AddControlMsg(clInterpretCommand, 'SAVE "'+Filename+'"');
         End;
       End;
     SP_KW_MERGE:
       Begin
-        Filename := OpenFileReq('Merge program', PROGNAME, False, Error);
+        Filename := OpenFileReq('Merge program', PROGNAME, '10:ZXASCII', False, Error);
         If Filename <> '' Then
           AddControlMsg(clInterpretCommand, 'MERGE "'+Filename+'"');
       End;

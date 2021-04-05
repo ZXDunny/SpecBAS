@@ -28,7 +28,7 @@ Type
     chk: SP_CheckBox;
     PathEdt, FilenameEdt: SP_Edit;
     FilesList: SP_FileListBox;
-    Function Open(Caption, Filename: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
+    Function Open(Caption, Filename, Filter: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
     procedure ParentButtonClick(Sender: SP_BaseComponent);
     procedure okBtnClick(Sender: SP_BaseComponent);
     procedure caBtnClick(Sender: SP_BaseComponent);
@@ -75,7 +75,7 @@ Type
     Procedure Abort(Sender: SP_BaseComponent);
   End;
 
-  Function OpenFileReq(Caption, Filename: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
+  Function OpenFileReq(Caption, Filename, Filter: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
 
 Const
 
@@ -164,13 +164,13 @@ End;
 
 // File requester
 
-Function OpenFileReq(Caption, Filename: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
+Function OpenFileReq(Caption, Filename, Filter: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
 Var
   FileReq: SP_FileRequester;
 Begin
 
   FileReq := SP_FileRequester.Create;
-  Result := FileReq.Open(Caption, Filename, Save, Error);
+  Result := FileReq.Open(Caption, Filename, Filter, Save, Error);
   FileReq.Free;
 
 End;
@@ -235,16 +235,21 @@ Var
   p, s, t: aString;
 Begin
 
-  p := FilesList.Directory;
-  If Copy(p, Length(p), 1) <> '/' Then
-    p := p + '/';
-  s := FilesList.Items[i];
-  If FocusedControl <> FileNameEdt Then
-    FilenameEdt.Text := Copy(s, 2, Pos(#255, s) -2)
-  Else
-    FilenameEdt.GhostText := Copy(s, 2, Pos(#255, s) -2);
+  If i >= 0 Then Begin
+    p := FilesList.Directory;
+    If Copy(p, Length(p), 1) <> '/' Then
+      p := p + '/';
+    s := FilesList.Items[i];
+    If FocusedControl <> FileNameEdt Then
+      FilenameEdt.Text := Copy(s, 2, Pos(#255, s) -2)
+    Else
+      FilenameEdt.GhostText := Copy(s, 2, Pos(#255, s) -2);
+    okBtn.Enabled := SP_FileExists(p + FilenameEdt.Text) or (ToolMode = 2);
+  End Else Begin
+    FileNameEdt.Text := '';
+    okBtn.Enabled := False;
+  End;
 
-  okBtn.Enabled := SP_FileExists(p + FilenameEdt.Text) or (ToolMode = 2);
 
 End;
 
@@ -278,16 +283,19 @@ Var
   p: aString;
 Begin
 
-  FilesList.Find(s);
-  p := FilesList.Directory;
-  If Copy(p, Length(p), 1) <> '/' Then
-    p := p + '/';
-  s := p + s;
-  okBtn.Enabled := SP_FileExists(s) or (ToolMode = 2);
+  If s <> '' Then Begin
+    FilesList.Find(s);
+    p := FilesList.Directory;
+    If Copy(p, Length(p), 1) <> '/' Then
+      p := p + '/';
+    s := p + s;
+    okBtn.Enabled := SP_FileExists(s) or (ToolMode = 2);
+  End Else
+    okBtn.Enabled := False;
 
 End;
 
-Function SP_FileRequester.Open(Caption, Filename: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
+Function SP_FileRequester.Open(Caption, Filename, Filter: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
 Var
   Win: pSP_Window_Info;
   Font, cw, w, h, fw, fh: Integer;
@@ -360,6 +368,7 @@ Begin
 
   FilesList := SP_FileListBox.Create(Win^.Component);
   FilesList.SetBounds(FilenameEdt.Left, pBtn.Top + pBtn.Height + Bh, FilenameEdt.Width, FilenameEdt.Top - PathEdt.Top - FileNameEdt.Height - (Bh * 2));
+  FilesList.Filters := Filter;
   FilesList.Directory := PathEdt.Text;
   FilesList.Transparent := False;
   FilesList.Find(SP_ExtractFilename(Filename));

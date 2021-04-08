@@ -266,7 +266,7 @@ Var
   KeyWordID, OldKeyWordID, KeyWordPos, StatementListPos, Idx, Val, StListLen,
   Statement, NextStatement, stIdx, LineNum: LongWord;
 Label
-  RepeatParams;
+  RepeatParams, Finish;
 Begin
 
   // Creates "code" which will be executed by the interpreter. Takes tokenised code, and spits out:
@@ -320,6 +320,8 @@ Begin
       End;
 
     RepeatParams:
+
+    If Tokens[Position] = SP_TERMINAL_CHAR Then Goto Finish; // jeez what a hack. This covers the IF c THEN <nothing> case that's valid in Sinclair BASIC.
 
     If (KeyWordID <> 0) or (Ord(Tokens[Position]) = SP_KEYWORD) Then Begin
 
@@ -375,7 +377,11 @@ Begin
             Inc(Position, 1 + SizeOf(LongWord));
           KeyWordID := 0;
         End Else
+
           If Tokens[Position] = SP_TERMINAL_CHAR Then Begin
+
+            Finish:
+
             Tokens := Tokens + SP_TERMINAL_CHAR;
             SP_FixOnReturns(Tokens, stList, Position);
 

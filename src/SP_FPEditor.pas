@@ -2239,7 +2239,7 @@ Begin
       If (Listing.Flags[Idx].Statement > Statement) And (Listing.Flags[idx].Line = LineNum) Then
         Dec(Idx);
     Result.Y := 1;
-    While Listing[Idx][Result.Y] in ['0'..'9', ' '] Do
+    While (Result.Y < Length(Listing[Idx])) and (Listing[Idx][Result.Y] in ['0'..'9', ' ']) Do
       Inc(Result.Y);
     Result.X := Idx;
   End;

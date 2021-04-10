@@ -51,7 +51,7 @@ Type
   TCB_ReleaseSticks = Procedure;
 
 Function  SP_FrameUpdate: Boolean;
-Procedure DoAutoSave(Var Error: TSP_ErrorCode);
+Procedure DoAutoSave;
 Procedure SP_MainLoop;
 Procedure SP_CleanUp;
 Function  SP_TestScroll(Height: Integer; var Error: TSP_ErrorCode): Boolean;
@@ -106,8 +106,6 @@ Begin
 End;
 
 Function SP_FrameUpdate: Boolean;
-Var
-   Err: TSP_ErrorCode;
 Begin
 
   // Changes the FLASH sysvar once every 16 frames.
@@ -122,23 +120,19 @@ Begin
 
   Result := (NUMSPRITES > 0) or SP_NeedDisplayUpdate;
   FrameElapsed := True;
-
   Inc(AutoFrameCount);
-  If AutoFrameCount > AUTOSAVETIME Then Begin
-     Dec(AutoFrameCount, AUTOSAVETIME);
-     Err.Code := SP_ERR_OK;
-     DoAutoSave(Err);
-  end;
 
 End;
 
-Procedure DoAutoSave(Var Error: TSP_ErrorCode);
+Procedure DoAutoSave;
+Var
+  Error: TSP_ERRORCODE;
 Begin
-  If AUTOSAVE And (Error.Code = SP_ERR_OK) Then Begin
+  If AUTOSAVE and (PROGSTATE <> SP_PR_RUN) Then Begin
     FileSection.Enter;
+    Error.Code := SP_ERR_OK;
     SP_SaveProgram('s:autosave', -1, Error);
     FileSection.Leave;
-    Error.Code := SP_ERR_OK;
   End;
 End;
 
@@ -237,7 +231,7 @@ Begin
 
   SP_EditLoop(Error);
 
-  DoAutoSave(Error);
+  DoAutoSave;
   AUTOSAVE := False;
   SP_CleanUp;
   SP_DeleteAllBanks(True);

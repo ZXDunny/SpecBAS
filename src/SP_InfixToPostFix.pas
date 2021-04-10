@@ -279,6 +279,7 @@ Begin
   Converted := '';
   SP_OperandPtr := -1;
   SP_OperatorPtr := -1;
+  KeyWordPos := 0;
   IFCount := 0;
 
   // Skip the line number, if there is one - if there isn't, then this is a direct command and so
@@ -321,7 +322,7 @@ Begin
 
     RepeatParams:
 
-    If Tokens[Position] = SP_TERMINAL_CHAR Then Goto Finish; // jeez what a hack. This covers the IF c THEN <nothing> case that's valid in Sinclair BASIC.
+    If (Tokens[Position] = SP_TERMINAL_CHAR) And (KeyWordPos <> 0) Then Goto Finish; // jeez what a hack. This covers the IF c THEN <nothing> case that's valid in Sinclair BASIC.
 
     If (KeyWordID <> 0) or (Ord(Tokens[Position]) = SP_KEYWORD) Then Begin
 

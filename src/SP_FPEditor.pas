@@ -3259,8 +3259,10 @@ Procedure SP_FPWaitForUserEvent(Var Key: pSP_KeyInfo; Var LocalFlashState: Integ
 Begin
 
   Repeat
+
     ProcessNextControlMsg;
     DoTimerEvents;
+
     If LocalFlashState <> FLASHSTATE Then Begin
       If FocusedWindow = fwEditor Then
         SP_DisplayFPCursor
@@ -3270,6 +3272,10 @@ Begin
       SP_DrawBatteryStatus;
       LocalFlashState := FLASHSTATE;
     End;
+
+    If AutoFrameCount mod AUTOSAVETIME = 0 Then
+       DoAutoSave;
+
     If QUITMSG Then Exit;
     SP_CheckEvents;
     SP_SetGraphicsMode;
@@ -7850,7 +7856,7 @@ Begin
         // A line to be stored in the listing.
         SP_DeleteIncludes;
         SP_FPMakeListWindowVisible;
-        DoAutoSave(Error);
+        DoAutoSave;
         PROGLINE := dLongWord(@TokensStr[2]);
         ProcListAvailable := False;
         SP_DWStoreLine(TokensStr);

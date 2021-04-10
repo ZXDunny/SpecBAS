@@ -808,14 +808,11 @@ begin
 end;
 
 procedure TMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
-Var
-  Error: TSP_ErrorCode;
 begin
 
   If Not QUITMSG Then Begin
 
-    Error.Code := SP_ERR_OK;
-    DoAutoSave(Error);
+    DoAutoSave;
     Quitting := True;
 
   End;

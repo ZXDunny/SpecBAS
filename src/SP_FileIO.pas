@@ -1370,7 +1370,7 @@ Finish:
     If Error.Code = SP_ERR_OK Then Begin
 
       SP_DeleteIncludes;
-      DoAutoSave(Error);
+      DoAutoSave;
 
       If Not Merge Then Begin
 

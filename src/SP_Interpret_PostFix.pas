@@ -3406,6 +3406,32 @@ Begin
 
 End;
 
+Function CheckForONERROR(Var Error: TSP_ERRORCODE): Boolean;
+Var
+  LineItem: TSP_GOSUB_Item;
+Begin
+
+  Result := False;
+  If ERROR_LineNum <> -1 Then Begin
+    If (Error.Code <> SP_ERR_OK) And Not IGNORE_ON_ERROR Then Begin
+      Error.Code := SP_ERR_OK;
+      If Error.ReturnType >= SP_JUMP Then Begin
+        SP_StackLine(NXTLINE, NXTSTATEMENT, Error.Statement, SP_KW_ERROR, Error);
+      End Else Begin
+        LineItem := SP_ConvertLineStatement(Error.Line, Error.Statement +1);
+        SP_StackLine(LineItem.Line, LineItem.Statement, LineItem.St, SP_KW_ERROR, Error);
+      End;
+      NXTLINE := ERROR_LineNum;
+      NXTSTATEMENT := ERROR_Statement;
+      Error.Statement := ERROR_St;
+      Error.ReturnType := SP_JUMP;
+      IGNORE_ON_ERROR := True;
+      Result := True;
+    End;
+  End;
+
+End;
+
 Procedure SP_InterpretCONTSafe(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
 Var
   cLine, cStatement: Integer;
@@ -3578,12 +3604,13 @@ Begin
 
         If (Error.ReturnType >= SP_JUMP) or (Error.Code <> SP_ERR_OK) Then Begin
           // A jump or an error (or a user BREAK event) has occurred.
-          If (Error.ReturnType < SP_JUMP) and ((Error.Code = SP_ERR_STOP) or (Error.Code = SP_ERR_BREAK)) and (Error.Line >= 0) Then Begin
-            Ls := SP_ConvertLineStatement(Error.Line, Error.Statement + 1);
-            CONTLINE := Ls.Line;
-            If CONTLINE >= 0 Then
-              CONTSTATEMENT := SP_GetStatementFromOffset(CONTLINE, Ls.Statement);
-          End;
+          If Not CheckForONERROR(Error^) Then
+            If (Error.ReturnType < SP_JUMP) and ((Error.Code = SP_ERR_STOP) or (Error.Code = SP_ERR_BREAK)) and (Error.Line >= 0) Then Begin
+              Ls := SP_ConvertLineStatement(Error.Line, Error.Statement + 1);
+              CONTLINE := Ls.Line;
+              If CONTLINE >= 0 Then
+                CONTSTATEMENT := SP_GetStatementFromOffset(CONTLINE, Ls.Statement);
+            End;
           Break;
         End;
 
@@ -3796,23 +3823,6 @@ Begin
       NXTSTATEMENT := MENUITEM_Statement;
       Error.Statement := MENUITEM_St;
       Error.ReturnType := SP_JUMP;
-    End;
-  End;
-
-  If ERROR_LineNum <> -1 Then Begin
-    If (Error.Code <> SP_ERR_OK) And Not IGNORE_ON_ERROR Then Begin
-      Error.Code := SP_ERR_OK;
-      If Error.ReturnType >= SP_JUMP Then Begin
-        SP_StackLine(NXTLINE, NXTSTATEMENT, Error.Statement, SP_KW_ERROR, Error);
-      End Else Begin
-        LineItem := SP_ConvertLineStatement(Error.Line, Error.Statement +1);
-        SP_StackLine(LineItem.Line, LineItem.Statement, LineItem.St, SP_KW_ERROR, Error);
-      End;
-      NXTLINE := ERROR_LineNum;
-      NXTSTATEMENT := ERROR_Statement;
-      Error.Statement := ERROR_St;
-      Error.ReturnType := SP_JUMP;
-      IGNORE_ON_ERROR := True;
     End;
   End;
 
@@ -13395,7 +13405,7 @@ Begin
 
   With Info^ Do Begin
 
-    DoAutoSave(Error^);
+    DoAutoSave;
 
     SP_DeleteIncludes;
     If PackageIsOpen Then SP_ClosePackage;
@@ -18232,7 +18242,7 @@ Begin
   Start := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  DoAutoSave(Info^.Error^);
+  DoAutoSave;
 
   SP_FPRenumberListing(Start, Finish, Line, Step, Info^.Error^);
 
@@ -18256,7 +18266,7 @@ Begin
   Start := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  DoAutoSave(Info^.Error^);
+  DoAutoSave;
   SP_FPDeleteLines(Start, Finish, Info^.Error^);
 
 End;
@@ -19247,7 +19257,7 @@ Begin
   Finish := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  DoAutoSave(Info^.Error^);
+  DoAutoSave;
   SP_FPMergeLines(Start, Finish, Info^.Error^);
 
 End;

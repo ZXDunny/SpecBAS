@@ -684,6 +684,8 @@ Begin
 
   SP_GetFPUserInput;
 
+  DoAutoSave;
+
   UndoLock.Free;
   CompilerLock.Free;
   Listing.Free;
@@ -3273,10 +3275,11 @@ Begin
       LocalFlashState := FLASHSTATE;
     End;
 
-    If AutoFrameCount mod AUTOSAVETIME = 0 Then
+    If (AutoFrameCount mod AUTOSAVETIME = 0) and (PROGSTATE <> SP_PR_RUN) Then
        DoAutoSave;
 
     If QUITMSG Then Exit;
+
     SP_CheckEvents;
     SP_SetGraphicsMode;
 

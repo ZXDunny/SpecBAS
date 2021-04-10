@@ -810,12 +810,8 @@ end;
 procedure TMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
 
-  If Not QUITMSG Then Begin
-
-    DoAutoSave;
+  If Not QUITMSG Then
     Quitting := True;
-
-  End;
 
   QUITMSG := True;
   Repeat

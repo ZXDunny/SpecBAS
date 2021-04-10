@@ -128,7 +128,7 @@ Procedure DoAutoSave;
 Var
   Error: TSP_ERRORCODE;
 Begin
-  If AUTOSAVE and (PROGSTATE <> SP_PR_RUN) Then Begin
+  If AUTOSAVE Then Begin
     FileSection.Enter;
     Error.Code := SP_ERR_OK;
     SP_SaveProgram('s:autosave', -1, Error);
@@ -231,7 +231,6 @@ Begin
 
   SP_EditLoop(Error);
 
-  DoAutoSave;
   AUTOSAVE := False;
   SP_CleanUp;
   SP_DeleteAllBanks(True);

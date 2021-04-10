@@ -1084,7 +1084,7 @@ Procedure SP_LoadProgram(Filename: aString; Merge, DirtyFile: Boolean; Const pLi
 Var
   cPos, FileID, FileSize, LineCount, AutoStart, NameLen, Idx, lIdx, LineLen, Posn, LineNum, LineNum2, i: Integer;
   pName, ProgLine, Tokens, PlainCode, s, Dir: aString;
-  Done, InString, changed: Boolean;
+  Done, InString, changed, isAutoSaved: Boolean;
   Buffer: Array of Byte;
   NewProg: array of aString;
   CheckSum: LongWord;
@@ -1113,6 +1113,8 @@ Begin
   FileID := -1;
   changed := False;
   ERRStr := Filename;
+  isAutoSaved := Lower(Filename) = 's:autosave';
+
   Dir := SP_ExtractFileDir(Filename);
   SP_SetCurrentDir(Dir, Error);
   If Error.Code <> SP_ERR_OK Then Goto Finish;
@@ -1302,7 +1304,8 @@ Begin
                           PlainCode := Copy(PlainCode, 5, Length(PlainCode));
                           While Copy(PlainCode, 1, 1) <= ' ' Do
                             PlainCode := Copy(PlainCode, 2, Length(PlainCode));
-                          pName := PlainCode;
+                          If isAutoSaved Then
+                            pName := PlainCode;
                           If SP_ExtractFileDir(pName) = '' Then
                             pName := SP_ConvertHostFilename(SP_GetCurrentDir + '/', Error) + SP_ExtractFilename(pName);
                           ProgLine := '';

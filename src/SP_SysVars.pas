@@ -204,7 +204,7 @@ Var
 
   DBGSTR:                   aString;      // Debugging purposes
   FPS:                      aFloat;       // Frames per second - default 50.
-  FRAME_MS:                 Integer;      // Frame size in Ms.
+  FRAME_MS:                 aFloat;       // Frame size in Ms.
   FC:                       Integer;      // Frame Counter
   FCM:                      Integer;
   SKIPDRAW:                 Boolean;      // Did we skip the last wait for vbl?
@@ -1581,7 +1581,7 @@ Const
    (Name: 'SHOWLINE'; svType: svInteger; Size: 4; Data: @SHOWLINE),
    (Name: 'DBGSTR'; svType: svString; Size: 0; Data: @DBGSTR),
    (Name: 'FPS'; svType: svaFloat; Size: 8; Data: @FPS),
-   (Name: 'FRAME_MS'; svType: svInteger; Size: 4; Data: @FRAME_MS),
+   (Name: 'FRAME_MS'; svType: svaFloat; Size: 8; Data: @FRAME_MS),
    (Name: 'CAPSLOCK'; svType: svInteger; Size: 4; Data: @CAPSLOCK),
    (Name: 'NUMLOCK'; svType: svInteger; Size: 4; Data: @NUMLOCK),
    (Name: 'INSERT'; svType: svBoolean; Size: 1; Data: @INSERT),

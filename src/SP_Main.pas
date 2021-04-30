@@ -45,7 +45,7 @@ Type
   TCB_YieldProc = Procedure;
   TCB_MsgProc = Procedure;
   TCB_QuitProc = Procedure;
-  TCB_GetTicks = Function: LongWord;
+  TCB_GetTicks = Function: aFloat;
   TCB_GetAxis = Function(NubID, Axis: Integer): Integer;
   TCB_InitSticks = Procedure;
   TCB_ReleaseSticks = Procedure;
@@ -94,12 +94,12 @@ Procedure SP_SetFPS(Value: aFloat);
 Begin
 
   FPS := Value;
-  FRAME_MS := Round((1000/FPS)+0.5);
-  FPS := Round(1000/FRAME_MS);
+  FRAME_MS := 1000/FPS;
+  FPS := 1000/FRAME_MS;
   AUTOSAVETIME := Round(FPS * 30);
   FLASHINTERVAL := Max(2, Trunc(0.32*FPS));
   REPDEL := Max(5, Trunc((20/50)*FPS));
-  REPPER := Max(2, Trunc((2/50)*FPS));
+  REPPER := Max(1, Trunc((2/50)*FPS));
   FCM := Ceil(FPS/2);
   FC := FCM;
 
@@ -119,8 +119,6 @@ Begin
   End;
 
   Result := (NUMSPRITES > 0) or SP_NeedDisplayUpdate;
-  FrameElapsed := True;
-  Inc(AutoFrameCount);
 
 End;
 
@@ -251,139 +249,7 @@ Begin
   DisplaySection.Leave;
 
 End;
-{
-Procedure SP_Display_Cursor;
-Var
-  Fg, Bg: Byte;
-  WindowId, Font, PosX, PosY, Over: Integer;
-  Err: TSP_ErrorCode;
-Begin
 
-  // Repaints the cursor without repainting the whole edit line. Usually called
-  // when the flash state changes. Note that CPos is "1" - because this is a one
-  // character aString.
-
-  Over := T_OVER;
-  T_OVER := 0;
-
-  If FlashState = 1 Then Begin
-    Fg := CURSORFG; Bg := CURSORBG;
-  End Else Begin
-    Fg := CURSORBG; Bg := CURSORFG;
-  End;
-
-  PosX := PRPOSX; PosY := PRPOSY;
-
-  If CCOMMANDWINDOW Then Begin
-
-    WindowID := SCREENBANK;
-    Font := FONTBANKID;
-
-    SP_SetSystemFont(EDITORFONT, Err);
-    SP_SetDrawingWindow(COMMANDWINDOW);
-
-  End Else Begin
-
-    WindowID := 0;
-    Font := 0;
-
-  End;
-
-  SP_TEXTOUT(-1, CURSORX, CURSORY, EdSc + aChar(CURSORCHAR), Fg, Bg, True);
-
-  If CCOMMANDWINDOW Then Begin
-
-    SP_SetSystemFont(Font, Err);
-    SP_SetDrawingWindow(WindowID);
-
-  End;
-
-  PRPOSX := PosX;
-  PRPOSY := PosY;
-
-  T_OVER := Over;
-
-  SP_NeedDisplayUpdate := True;
-
-End;
-
-Procedure SP_LISTPROG(AutoList: Boolean; StartLine: Integer; var Error: TSP_ErrorCode);
-Var
-  Idx, cPos, CharWidth, LineNum, sLine, ProgLen: Integer;
-  Tokens, LineNumStr: aString;
-  Done: Boolean;
-Begin
-
-  // lists the current program in memory to the screen. If listing from a LIST command,
-  // it will display the program in its entirety, even if too large to show (uses the "Scroll?"
-  // message), but if it's an autolist, will stop at the bottom of the screen.
-
-  SP_CLS(CPAPER);
-
-  // First, find the line we want to list from.
-
-  If INCLUDEFROM = -1 Then
-    ProgLen := Length(SP_Program) -1
-  Else
-    ProgLen := INCLUDEFROM -1;
-
-  Idx := 0;
-  While (Idx <= ProgLen) And (pInteger(@SP_Program[Idx][2])^ < StartLine) Do
-    Inc(Idx);
-
-  cPos := -1;
-  CharWidth := SCREENWIDTH Div FONTWIDTH;
-  sLine := Idx;
-  If Idx <= ProgLen Then Begin
-    Done := False;
-    Repeat
-
-      Tokens := SP_Program[Idx];
-      LineNum := pLongWord(@Tokens[2])^;
-      LineNumStr := IntToString(LineNum);
-      Tokens := SP_DeTokenise(Tokens, cPos, False, False);
-
-      // Format the line number - pad with spaces until 5 spaces used.
-
-      For cPos := 1 to 5 - Length(LineNumStr) Do
-        Tokens := ' ' + Tokens;
-
-      If LineNum = PROGLINE Then
-        Tokens := Copy(Tokens, 1, 5)+'>'+Copy(Tokens, 7, Length(Tokens));
-
-      While Tokens <> '' Do Begin
-        SP_PRINT(-1, 0, PRPOSY, -1, Copy(Tokens, 1, CharWidth), CINK, CPAPER, Error);
-        Inc(PRPOSY, FONTHEIGHT);
-        If PRPOSY > SCREENHEIGHT - (((MAXLOWER +1)* FONTHEIGHT)+4) Then Begin
-          If AutoList Then Begin
-            If Idx <= SP_FindLine(PROGLINE, True) Then Begin
-              SP_Scroll(FONTHEIGHT);
-              Dec(PRPOSY, FONTHEIGHT);
-              Inc(sLine);
-              SHOWLINE := pLongWord(@SP_Program[sLine][2])^;
-            End Else Begin
-              Done := True;
-              Break;
-            End;
-          End Else Begin
-            // Scroll the screen, and loop round to display the line that didn't make it.
-            SP_TestScroll(FONTHEIGHT, Error);
-          End;
-        End;
-        Tokens := Copy(Tokens, CharWidth +1, Length(Tokens));
-      End;
-
-      Inc(Idx);
-      If Idx > ProgLen Then Done := True;
-
-    Until Done;
-
-    PRPOSX := 0;
-
-  End;
-
-End;
-}
 Function SP_TestScroll(Height: Integer; var Error: TSP_ErrorCode): Boolean;
 Var
   Key: pSP_KeyInfo;

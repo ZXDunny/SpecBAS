@@ -81,7 +81,7 @@ type
   Procedure YieldProc; inline;
   Procedure MsgProc; inline;
   Procedure GetKeyState;
-  Function  GetTicks: LongWord;
+  Function  GetTicks: aFloat;
   Procedure Quit;
   function  Sto_GetFmtFileVersion(const FileName: String = ''; const Fmt: String = '%d.%d'): String;
   Procedure LoadImage(Filename: aString; Var Error: TSP_ErrorCode);
@@ -172,14 +172,17 @@ Begin
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
   Priority := tpNormal;
-  StartTime := CB_GETTICKS;
+  StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
 
   While Not QUITMSG Do Begin
 
     FRAMES := Round((CB_GETTICKS - StartTime)/FRAME_MS);
-    If FRAMES <> LastFrames Then Begin
+    If FRAMES - LastFrames >= 1 Then Begin
+      FrameElapsed := True;
+      Inc(AutoFrameCount);
       LastFrames := FRAMES;
+
       If SP_FrameUpdate Then Begin
         If DisplaySection.TryEnter Then Begin
           If UpdateDisplay Then Begin
@@ -191,7 +194,9 @@ Begin
         UPDATENOW := False;
         CauseUpdate := False;
       End;
+
     End Else
+
       TThread.Sleep(1);
 
     GetCursorPos(p);
@@ -366,12 +371,12 @@ Begin
 
 End;
 
-Function GetTicks: LongWord;
+Function GetTicks: aFloat;
 Var
   t: Int64;
 Begin
   QueryPerformanceCounter(t);
-  Result := Round(t/TimerFreq * 1000);
+  Result := t/TimerFreq * 1000;
 End;
 
 Procedure SetScaling(Width, Height, sWidth, sHeight: Integer);
@@ -847,7 +852,7 @@ begin
   QueryPerformanceFrequency(TimerFreq);
   QueryPerformanceCounter(BaseTime);
 
-  InitTime := GetTicks;
+  InitTime := Round(GetTicks);
 
   BUILDSTR := aString(Sto_GetFmtFileVersion('', '%d.%d.%d.%d'));
   If IsDebuggerPresent Then UpdateLinuxBuildStr;

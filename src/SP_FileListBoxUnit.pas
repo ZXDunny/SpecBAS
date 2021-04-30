@@ -479,7 +479,7 @@ Begin
 
   End Else Begin
 
-    Time := CB_GETTICKS;
+    Time := Round(CB_GETTICKS);
     If Time - fLastKeyDownTime > 1000 Then
       fSearchStr := '';
 

@@ -10451,7 +10451,7 @@ End;
 Procedure SP_Interpret_PAUSE(Var Info: pSP_iInfo);
 Var
   Delay: Integer;
-  CurrentTicks, TargetTicks: LongWord;
+  CurrentTicks, TargetTicks: aFloat;
 Begin
 
   Delay := Round(SP_StackPtr^.Val);
@@ -10463,11 +10463,11 @@ Begin
   End Else
     If Delay > 0 Then Begin
       CurrentTicks := CB_GetTicks;
-      TargetTicks := CurrentTicks + Round(Delay * FRAME_MS);
-      While CB_GetTicks < longWord(TargetTicks) Do Begin
+      TargetTicks := CurrentTicks + (Delay * FRAME_MS);
+      While CB_GetTicks < TargetTicks Do Begin
         CB_Yield;
         If Length(ActiveKeys) <> 0 Then
-          If (CB_GetTicks >= longWord(CurrentTicks + FRAME_MS)) or QUITMSG Then
+          If (CB_GetTicks >= CurrentTicks + FRAME_MS) or QUITMSG Then
             Break;
       End;
     End;
@@ -14664,7 +14664,7 @@ Begin
     SCREENLOCK := False;
     CauseUpdate := True;
     SP_NeedDisplayUpdate := False;
-    CurrentTicks := CB_GetTicks;
+    CurrentTicks := Round(CB_GetTicks);
     TargetTicks := CurrentTicks - Delay;
     SP_WaitForSync;
     Repeat
@@ -14675,7 +14675,7 @@ Begin
     If Delay = 0 Then Begin // WAIT SCREEN - forces a display update
       SP_ForceScreenUpdate;
     End Else Begin // WAIT n
-      CurrentTicks := CB_GetTicks;
+      CurrentTicks := Round(CB_GetTicks);
       TargetTicks := CurrentTicks + LongWord(Delay);
       Repeat
         CB_YIELD;

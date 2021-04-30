@@ -284,8 +284,8 @@ Var
   DWTextLeft, DWTextWidth, DWClientLeft, DWClientTop, DWPaperLeft, DWPaperTop, DWPaperWidth, DWPaperHeight, DWSelP: Integer;
   FPEditorDefaultWindow: Integer;
   FPEditorDRPOSX, FPEditorDRPOSY, FPEditorSaveFPS: aFloat;
-  FPEditorPRPOSX, FPEditorPRPOSY: aFloat;
-  FPEditorOVER, FPEditorFRAME_MS: Integer;
+  FPEditorPRPOSX, FPEditorPRPOSY, FPEditorFRAME_MS: aFloat;
+  FPEditorOVER: Integer;
   FPEditorMouseStatus, DWCDragging: Boolean;
   FPClickTime: LongWord;
   // Compiler
@@ -3452,7 +3452,7 @@ Begin
   End Else Begin
     FPClickX := X;
     FPClickY := Y;
-    FPClickTime := CB_GETTICKS;
+    FPClickTime := Round(CB_GETTICKS);
     IsDouble := False;
   End;
 
@@ -4561,7 +4561,7 @@ Begin
   SP_GetWindowDetails(FPWindowID, ListWin, Error);
   SP_GetWindowDetails(DWWindowID, ComWin, Error);
 
-  t := CB_GETTICKS;
+  t := Round(CB_GETTICKS);
   DMove := CmdTargetY - ComWin^.Top;
   LMove := EditorTargetY - ListWin.Top;
   LSize := EditorTargetHeight - ListWin^.Height;
@@ -4570,7 +4570,7 @@ Begin
   LHeight := ListWin^.Height;
 
   Repeat
-    t3 := CB_GETTICKS;
+    t3 := Round(CB_GETTICKS);
     t2 := (t3 - t)/ANIMSPEED;
     DisplaySection.Enter;
     If MoveEditor Then Begin
@@ -7457,20 +7457,20 @@ Begin
         If SIGSAMPLEBANK >-1 Then Begin
           // Cyan border
           SP_FillRect(16, WinH - 32, WinW - 32, 16, 5);
-          TargetTicks := CB_GetTicks + LongWord(35);
+          TargetTicks := Round(CB_GetTicks + LongWord(35));
           SP_NeedDisplayUpdate := True;
           While CB_GetTicks < TargetTicks Do Begin
             SP_WaitForSync;
           End;
           // Red border
           SP_FillRect(16, WinH - 32, WinW - 32, 16, 2);
-          TargetTicks := CB_GetTicks + LongWord(65);
+          TargetTicks := Round(CB_GetTicks + LongWord(65));
           SP_NeedDisplayUpdate := True;
           While CB_GetTicks < TargetTicks Do Begin
             SP_WaitForSync;
           End;
           // Red/Cyan pilot tone
-          TargetTicks := CB_GetTicks + LongWord(500);
+          TargetTicks := Round(CB_GetTicks + LongWord(500));
           ofs := 65536; sz := 16;
           While CB_GetTicks < TargetTicks Do Begin
             For x := 16 To WinW -16 Do Begin
@@ -7482,7 +7482,7 @@ Begin
             SP_WaitForSync;
           End;
           // Yellow/Blue data burst
-          TargetTicks := CB_GetTicks + LongWord(160);
+          TargetTicks := Round(CB_GetTicks + LongWord(160));
           While CB_GetTicks < TargetTicks Do Begin
             x := 16; Sz := 0; Ofs := 0;
             While x < WinW - 16 Do Begin
@@ -7534,12 +7534,12 @@ Begin
       ErrWin^.Top := DISPLAYHEIGHT +1;
       SP_SetWindowVisible(ERRORWINDOW, True, Error);
 
-      t := CB_GetTicks;
+      t := Round(CB_GetTicks);
       EMove := WinY - ErrWin^.Top;
       ETop := ErrWin^.Top;
 
       Repeat
-        t3 := CB_GetTicks;
+        t3 := Round(CB_GetTicks);
         t2 := (t3 - t)/ANIMSPEED;
         DisplaySection.Enter;
         ErrWin^.Top := Trunc(ETop + (EMove * t2));
@@ -7570,13 +7570,13 @@ Begin
 
     If Not IsNew Then Begin
 
-      t := CB_GetTicks;
+      t := Round(CB_GetTicks);
       WinY := DisplayHeight +1;
       EMove := WinY - ErrWin^.Top;
       ETop := ErrWin^.Top;
 
       Repeat
-        t3 := CB_GetTicks;
+        t3 := Round(CB_GetTicks);
         t2 := (t3 - t)/ANIMSPEED;
         DisplaySection.Enter;
         ErrWin^.Top := Trunc(ETop + (EMove * t2));

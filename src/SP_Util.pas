@@ -181,7 +181,7 @@ Begin
     LogFile := TFileStream.Create('c:\temp\log.txt', fmCreate);
     LogFileAssigned := True;
   End;
-  Text := '['+IntToStr(CB_GETTICKS)+'] ' + Text + #13#10;
+  Text := '['+IntToStr(Round(CB_GETTICKS))+'] ' + Text + #13#10;
   LogFile.Write(Text[1], Length(Text));
   {$ENDIF}
 

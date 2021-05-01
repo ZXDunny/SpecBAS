@@ -542,8 +542,8 @@ Begin
   // Width - one pixel border, FONTWIDTH-1 pixels space, text, FONTWIDTH-1 pixels space one pixel border
   // Height - one pixel border, optional title + one pixel separator, 4 pixels space, text, 4 pixels space, one pixel border.
 
-  fW := FONTWIDTH;
-  fH := FONTHEIGHT;
+  fW := Round(FONTWIDTH * T_SCALEX);
+  fH := Round(FONTHEIGHT * T_SCALEY);
 
   bWidth := fW Div 2;
   bHeight := fH Div 2;
@@ -572,7 +572,7 @@ Begin
   cBlack := SP_Get_Nearest_Colour(0, 0, 0, -1);
   cRed := SP_Get_Nearest_Colour(255, 0, 0, -1);
   cGreen := SP_Get_Nearest_Colour(0, 255, 0, -1);
-  cCyan := SP_Get_Nearest_Colour(0, 255, 255, -1);
+  cCyan := SP_Get_Nearest_Colour(0, 192, 192, -1);
   cYellow := SP_Get_Nearest_Colour(255, 255, 0, -1);
   cWhite := SP_Get_Nearest_Colour(255, 255, 255, -1);
 
@@ -593,7 +593,7 @@ Begin
   If OptionList[0] <> '' Then Begin
 
     SP_FillRect(0, 0, WinW, fH + 2, cBlack);
-    SP_TextOut(-1, 1, 1, aString(OptionList[0]), 15, 0, True);
+    SP_TextOut(-1, bWidth +1, 1, aString(OptionList[0]), 15, 0, True);
     SP_DrawStripe(@SP_BankList[SP_FindBankID(SCREENBANK)]^.Memory[0], Win^.Width, fW, fH);
     yOff := bHeight + 2;
 

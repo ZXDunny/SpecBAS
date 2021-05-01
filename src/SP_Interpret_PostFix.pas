@@ -8255,6 +8255,7 @@ Begin
             End Else
               CurItem := aString(aFloatToStr(Val));
             prItem := PrItem + CurItem;
+            AddReturn := True;
             CurItem := '';
           End;
         SP_STRING:
@@ -8269,6 +8270,7 @@ Begin
             End Else
               CurItem := Str;
             prItem := PrItem + CurItem;
+            AddReturn := True;
             CurItem := '';
           End;
         SP_SYMBOL:

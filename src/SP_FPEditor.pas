@@ -7446,67 +7446,71 @@ Begin
 
       If ParamCount = 0 Then Begin
 
-        cnt := FRAMES;
-        Repeat
-          SP_WaitForSync;
-        Until (FRAMES - cnt) > 25;
-        SP_PlaySignature;
+        If SIGSAMPLEBANK = -1 Then Begin
 
-        // If the sample bank is playing, draw loading stripes
+          cnt := FRAMES;
+          Repeat
+            SP_WaitForSync;
+          Until (FRAMES - cnt) > 25;
+          SP_PlaySignature;
 
-        If SIGSAMPLEBANK >-1 Then Begin
-          // Cyan border
-          SP_FillRect(16, WinH - 32, WinW - 32, 16, 5);
-          TargetTicks := Round(CB_GetTicks + LongWord(35));
-          SP_NeedDisplayUpdate := True;
-          While CB_GetTicks < TargetTicks Do Begin
-            SP_WaitForSync;
-          End;
-          // Red border
-          SP_FillRect(16, WinH - 32, WinW - 32, 16, 2);
-          TargetTicks := Round(CB_GetTicks + LongWord(65));
-          SP_NeedDisplayUpdate := True;
-          While CB_GetTicks < TargetTicks Do Begin
-            SP_WaitForSync;
-          End;
-          // Red/Cyan pilot tone
-          TargetTicks := Round(CB_GetTicks + LongWord(500));
-          ofs := 65536; sz := 16;
-          While CB_GetTicks < TargetTicks Do Begin
-            For x := 16 To WinW -16 Do Begin
-              If (x+ofs) mod 16 < 8 + (Random(4) -2) Then T_INK := 5 Else T_Ink := 2;
-              SP_DrawLineEx(x, WinH - 32, x, WinH -16);
-              Dec(Ofs, 2);
-            End;
+          // If the sample bank is playing, then start drawing loading stripes
+
+          If SIGSAMPLEBANK > -1 Then Begin
+
+            // Cyan border
+            SP_FillRect(16, WinH - 32, WinW - 32, 16, 5);
+            TargetTicks := Round(CB_GetTicks + LongWord(35));
             SP_NeedDisplayUpdate := True;
-            SP_WaitForSync;
-          End;
-          // Yellow/Blue data burst
-          TargetTicks := Round(CB_GetTicks + LongWord(160));
-          While CB_GetTicks < TargetTicks Do Begin
-            x := 16; Sz := 0; Ofs := 0;
-            While x < WinW - 16 Do Begin
-              If Sz = 0 Then Begin
-                If Ofs = 0 Then Begin
-                  If Random(32)>16 Then
-                    Sz := 4
-                  Else
-                    Sz := 8;
-                  Inc(Sz, Random(4) -2);
-                  Cnt := Sz;
-                  Ofs := 1;
-                End Else Begin
-                  Ofs := 0;
-                  Sz := Cnt;
-                End;
+            While CB_GetTicks < TargetTicks Do Begin
+              SP_WaitForSync;
+            End;
+            // Red border
+            SP_FillRect(16, WinH - 32, WinW - 32, 16, 2);
+            TargetTicks := Round(CB_GetTicks + LongWord(65));
+            SP_NeedDisplayUpdate := True;
+            While CB_GetTicks < TargetTicks Do Begin
+              SP_WaitForSync;
+            End;
+            // Red/Cyan pilot tone
+            TargetTicks := Round(CB_GetTicks + LongWord(500));
+            ofs := 65536; sz := 16;
+            While CB_GetTicks < TargetTicks Do Begin
+              For x := 16 To WinW -16 Do Begin
+                If (x+ofs) mod 16 < 8 + (Random(4) -2) Then T_INK := 5 Else T_Ink := 2;
+                SP_DrawLineEx(x, WinH - 32, x, WinH -16);
+                Dec(Ofs, 2);
               End;
-              If Ofs = 0 Then T_INK := 1 Else T_INK := 6;
-              SP_DrawLineEx(x, WinH - 32, x, WinH -16);
-              Inc(x);
-              Dec(Sz);
+              SP_NeedDisplayUpdate := True;
+              SP_WaitForSync;
             End;
-            SP_NeedDisplayUpdate := True;
-            SP_WaitForSync;
+            // Yellow/Blue data burst
+            TargetTicks := Round(CB_GetTicks + LongWord(160));
+            While CB_GetTicks < TargetTicks Do Begin
+              x := 16; Sz := 0; Ofs := 0;
+              While x < WinW - 16 Do Begin
+                If Sz = 0 Then Begin
+                  If Ofs = 0 Then Begin
+                    If Random(32)>16 Then
+                      Sz := 4
+                    Else
+                      Sz := 8;
+                    Inc(Sz, Random(4) -2);
+                    Cnt := Sz;
+                    Ofs := 1;
+                  End Else Begin
+                    Ofs := 0;
+                    Sz := Cnt;
+                  End;
+                End;
+                If Ofs = 0 Then T_INK := 1 Else T_INK := 6;
+                SP_DrawLineEx(x, WinH - 32, x, WinH -16);
+                Inc(x);
+                Dec(Sz);
+              End;
+              SP_NeedDisplayUpdate := True;
+              SP_WaitForSync;
+            End;
           End;
         End;
         SP_FillRect(16, WinH - 32, WinW - 16, WinH - 16, 0);

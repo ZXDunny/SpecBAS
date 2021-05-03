@@ -8921,7 +8921,11 @@ Begin
         Inc(Idx);
   End;
 
-  SP_MarkWholeProgramDirty;
+  For Idx := 0 To Listing.Count -1 Do Begin
+    SP_FPApplyHighlighting(Idx);
+    SP_MarkAsDirty(Idx);
+  End;
+
   Listing.CompleteUndo;
   CompilerLock.Leave;
 

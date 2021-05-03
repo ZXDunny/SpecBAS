@@ -1051,7 +1051,6 @@ Begin
   lblLine.SetBounds(7 + Bh, y + 2, Length(LblLine.Caption) * FW, FH);
   edtLine.SetBounds(lblLine.Left + lblLine.Width + Bh, y, 10 * FW, FH);
   Inc(y, FH + Bh);
-  Height := 108;
 
   edtCondition.SetBounds(edtLine.Left, y, 29 * FW, FH);
   lblCondition.SetBounds(edtCondition.Left - Bh - (Length(lblCondition.Caption) * FW), y + 2, Length(lblCondition.Caption) * FW, FH);
@@ -1156,18 +1155,18 @@ Begin
 
     b := True;
 
-  // Condition
+  // Condition/Data value
 
-  b2 := True;
+  b2 := cmbType.ItemIndex <> 2;
   If edtCondition.Text <> '' Then Begin
     Error.Code := SP_ERR_OK;
     b2 := SP_FPCheckExpression(edtCondition.Text, Error) and (Error.ReturnType = SP_VALUE);
     BpCondition := edtCondition.Text;
-    If not b2 Then
-      lblCondition.FontClr := 2
-    else
-      lblCondition.FontClr := 0;
-  End Else
+  End;
+
+  If not b2 Then
+    lblCondition.FontClr := 2
+  else
     lblCondition.FontClr := 0;
 
   // Pass count
@@ -1219,7 +1218,7 @@ Begin
   If OkBtn.Enabled Then
     OkBtnClick(Sender);
 
-  End;
+End;
 
 Procedure SP_BreakpointWindow.Abort(Sender: SP_BaseComponent);
 Begin

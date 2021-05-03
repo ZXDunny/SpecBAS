@@ -1286,8 +1286,12 @@ Begin
 
   End Else Begin
 
-    If Assigned(fOnFocus) Then
-      fOnFocus(Self, b);
+    If fFocused <> b then Begin
+      fFocused := b;
+      Paint;
+      If b And Assigned(fOnFocus) then
+        fOnFocus(Self, b);
+    End;
 
   End;
 

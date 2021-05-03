@@ -786,8 +786,13 @@ Begin
 
   FPFw := Trunc(FONTWIDTH * EDFONTSCALEX);
   FPFh := Trunc(FONTHEIGHT * EDFONTSCALEY);
-  Fw := FONTWIDTH;
-  Fh := FONTHEIGHT;
+  If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then Begin
+    FW := Trunc(FONTWIDTH * EDFONTSCALEX);
+    FH := Trunc(FONTHEIGHT * EDFONTSCALEY);
+  End Else Begin
+    FH := FONTHEIGHT;
+    FW := FONTWIDTH;
+  End;
 
 End;
 
@@ -915,7 +920,7 @@ Begin
 
   If Width < 160 Then Exit;
 
-  X := Width - ((StripeWidth * 4)) - StripeHeight *2;
+  X := Width - ((StripeWidth * 4)) - StripeHeight;
   FPStripePos := X;
   oPtr := pByte(NativeUInt(Dst) + (Width * StripeHeight) + X);
 
@@ -2752,7 +2757,7 @@ Begin
           For i := -1 to 1 Do
             For j := -1 to 1 Do
               SP_TextOut(-1, llbpx +i, llbpy +j, #243, 2, -1, True);
-          SP_FillRect(llbpx +1, llbpy + (fH Div 2) -1, fW -2, 2, 15);
+          SP_FillRect(llbpx +1, llbpy + (FONTHEIGHT Div 2) -1, FONTWIDTH -2, 2, 15);
 
         End;
 
@@ -7742,11 +7747,13 @@ Begin
 
   Backup := SP_StackPtr;
   Error.Code := SP_ERR_OK;
+  Error.ReturnType := 0;
   SP_FPExecuteExpression(Expr, Error);
   If Error.Code = SP_ERR_OK Then
-    If SP_StackPtr^.OpType = SP_VALUE Then
+    If SP_StackPtr^.OpType = SP_VALUE Then Begin
+      Error.ReturnType := SP_VALUE;
       Result := SP_StackPtr^.Val
-    Else
+    End Else
       Error.Code := SP_ERR_SYNTAX_ERROR;
   SP_StackPtr := pSP_StackItem(Backup);
 

@@ -7470,7 +7470,8 @@ Begin
               SP_WaitForSync;
             End;
           End;
-        End;
+        End Else
+          SP_WaitForSync;
         SP_FillRect(16, WinH - 32, WinW - 16, WinH - 16, 0);
       End;
 

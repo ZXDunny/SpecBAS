@@ -27,7 +27,7 @@ interface
 
 Uses Forms, SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
      SP_Input, SP_BankManager, SP_BankFiling, SP_Streams, SP_Sound, SP_Package, Math, Classes, SysUtils, SP_Math,
-     {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_Strings, SP_Menu, SP_UITools, SP_AnsiStringlist;
+     {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_Strings, SP_Menu, SP_UITools, SP_AnsiStringlist, SP_Variables;
 
 Type
 
@@ -930,7 +930,8 @@ Var
 
   SP_CaseList: Array[0..1023] of TSP_CaseItem;
   SP_CaseListPtr: Integer;
-
+  SP_ProcsList: Array [0 .. 1023] of TSP_ProcItem;
+  SP_ProcsListPtr: Integer;
   SP_Stack: Array [0 .. 63] of SP_StackItem;
   SP_StackPtr, SP_StackStart: pSP_StackItem;
   SP_EveryItems: Array of TSP_EveryItem;
@@ -992,7 +993,7 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, SP_Variables;
+Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel;
 
 Procedure SP_AddWatch(Index: Integer; Expr: aString);
 Var

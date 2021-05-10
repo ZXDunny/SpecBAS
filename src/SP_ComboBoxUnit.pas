@@ -31,18 +31,19 @@ SP_ComboBox = Class(SP_BaseComponent)
     Procedure EditChange(Sender: SP_BaseComponent; Text: aString);
     Function  GetCaption(Index: Integer): aString;
     Procedure SetCaption(Index: Integer; s: aString);
-    Procedure PerformKeyDown(Var Handled: Boolean); Override;
-    Procedure PerformKeyup(Var Handled: Boolean); Override;
     Procedure LabMouseDown(X, Y, Btn: Integer);
     Procedure LabMouseUp(X, Y, Btn: Integer);
+
+  Public
+
+    Procedure PerformKeyDown(Var Handled: Boolean); Override;
+    Procedure PerformKeyUp(Var Handled: Boolean); Override;
     Procedure SetBackgroundClr(c: Byte); Override;
     Procedure SetFontClr(c: Byte); Override;
     Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetDisabledFontClr(c: Byte); Override;
     Procedure SetChainControl(c: SP_BaseComponent); Override;
     Procedure SetOnFocus(e: SP_FocusEvent); Override;
-
-  Public
 
     Procedure AddStrings(Strings: TStringlist);
     Procedure AddItem(Caption: aString);
@@ -394,7 +395,7 @@ end;
 
 Procedure SP_ComboBox.PerformKeyDown(Var Handled: Boolean);
 Var
-  i, j, k: Integer;
+  i: Integer;
   NewChar: Byte;
 Begin
 
@@ -412,6 +413,8 @@ Begin
             K_DOWN: i := Min(fItemIndex +1, Length(Menu.fItems) -1);
             K_HOME: i := 0;
             K_END: i := Length(Menu.fItems) -1;
+          Else
+            i := -1;
           End;
           ItemIndex := i;
           SP_PlaySystem(CLICKCHAN, CLICKBANK);

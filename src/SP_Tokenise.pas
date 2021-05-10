@@ -1248,10 +1248,9 @@ Function SP_TokeniseLine(Line: aString; IsExpression, AddLineNum: Boolean): aStr
 Var
   TempExtend: aFloat;
   Keyword, SpaceMod: Integer;
-  StoreVal, StoreLen, StatementCount,
-  TempVal, LineLen, Idx, tIdx, lIdx, cnt: Integer;
-  StoreText, Statements, tStore, tempStr, tStr: aString;
-  Done, FoundBase: Boolean;
+  StoreVal, StoreLen, TempVal, LineLen, Idx, tIdx, lIdx, cnt: Integer;
+  StoreText, tStore, tempStr, tStr: aString;
+  FoundBase: Boolean;
 Label
   Finish;
 Const
@@ -1324,7 +1323,6 @@ Begin
 
       tIdx := Idx;
       StoreText := '';
-      StoreLen := 0;
       FoundBase := False;
       While (tIdx <= LineLen) And (Line[tIdx] in [' ', 'A'..'Z', 'a'..'z', '0'..'9', '\']) Do Begin
         If Line[tIdx] = '\' Then Break;
@@ -1340,7 +1338,7 @@ Begin
           Inc(tIdx);
         End;
         If (StoreVal < 37) And (StoreVal > 1) Then Begin
-          tStr := '\'+IntToStr(StoreVal);
+          tStr := '\'+IntToString(StoreVal);
           StoreLen := Length(StoreText) + Length(tStr);
           FoundBase := DecodeBase(StoreText, StoreVal);
           If FoundBase Then Begin
@@ -1482,14 +1480,14 @@ Begin
 
               // A bit of a hack - if there's a space in this text, then test each word for a match with a reserved word.
               // Cut off at the first reserved word - this allows the CIRCLE command to work with a FILL command.
-              If (Pos(' ', string(StoreText)) <> 0) And (KeyWord = -1) Then Begin
+              If (Pos(' ', StoreText) <> 0) And (KeyWord = -1) Then Begin
                 If StoreText[Length(StoreText)] <> ' ' Then
                   StoreText := StoreText + ' ';
                 tStore := Upper(StoreText);
                 TempStr := '';
                 Dec(Idx, Length(StoreText));
-                While Pos(' ', string(tStore)) <> 0 Do Begin
-                  tStr := Copy(tStore, 1, Pos(' ', string(tStore)) -1);
+                While Pos(' ', tStore) <> 0 Do Begin
+                  tStr := Copy(tStore, 1, Pos(' ', tStore) -1);
                   If (SP_IsFunction(tStr) > -1) or (SP_IsKeyWord(tStr) > -1) Then Begin
                     If TempStr = '' Then Begin
                       TempStr := tStr;
@@ -1497,7 +1495,7 @@ Begin
                     End;
                     Break;
                   End Else Begin
-                    tStore := Copy(tStore, Pos(' ', string(tStore)), Length(tStore));
+                    tStore := Copy(tStore, Pos(' ', tStore), Length(tStore));
                     TempStr := TempStr + tStr;
                     While (tStore <> '') And (tStore[1] = ' ') Do Begin
                       TempStr := TempStr + ' ';
@@ -1895,7 +1893,7 @@ End;
 
 Function SP_Detokenise(Tokens: aString; Var cPos: Integer; Highlight, UseDoubles: Boolean): aString;
 Var
-  Idx, Idx2, cIdx, Token, LastToken, TokenStart, LabelLen, lC: Integer;
+  Idx, Idx2, cIdx, Token, LastToken, LabelLen, lC: Integer;
   NewWord, Str, strClr, remClr, kwClr, nClr, numClr, vClr, ConstClr, Clr, BreakCharPre, BreakCharPost, Txt: aString;
   KeyWordID, LongWordPtr: pLongWord;
   LastChar: aChar;
@@ -1922,7 +1920,6 @@ Begin
   End;
 
   Idx := 1;
-  TokenStart := 1;
   LastToken := -1;
   Result := '';
   BreakCharPre := '';
@@ -1964,7 +1961,6 @@ Begin
       FoundPos := True;
     End;
 
-    TokenStart := Length(Result) +1;
     Token := Ord(Tokens[Idx]);
 
     Case Token Of
@@ -2020,7 +2016,7 @@ Begin
           End;
           If Ord(Tokens[Idx -1]) = SP_KEYWORD Then Begin
             FirstChar := False;
-            If KeyWordID^ - SP_KEYWORD_BASE <= Length(SP_KEYWORDS_EXTRA) Then
+            If Integer(KeyWordID^) - SP_KEYWORD_BASE <= Length(SP_KEYWORDS_EXTRA) Then
               NewWord := SP_KEYWORDS_EXTRA[KeyWordID^ - SP_KEYWORD_BASE]
             Else
               NewWord := ' ';
@@ -2283,9 +2279,9 @@ End;
 Function SP_SyntaxHighlight(Const CodeLine, PrevSyntax: aString; HasNumber: Boolean; Var AddedChars: Integer): aString;
 Var
 
-  Idx, l, l1, l2, Idx2, sIdx: Integer;
+  Idx, l, l1, Idx2, sIdx: Integer;
   Wd, LastSyntax, NewSyntax, Tw: aString;
-  Done, Valid, AddSpace, IsREM, StringDone: Boolean;
+  Valid, AddSpace, IsREM, StringDone: Boolean;
   Ch, Ch1: aChar;
 
 Const
@@ -2314,6 +2310,8 @@ Begin
   LastSyntax := '';
   AddedChars := 0;
   IsREM := False;
+  StringDone := False;
+  AddSpace := False;
 
   // Highlight the line number.
 

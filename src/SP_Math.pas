@@ -17,7 +17,7 @@ Uses SP_Interpret_PostFix, SP_Variables;
 
 Function SP_Polyterm(x, p, q, r: aFloat; n: Integer): aFloat;
 Var
-  acc, mul, harm, zeta, corr: aFloat;
+  acc, mul, harm, zeta: aFloat;
   start: Integer;
 Begin
 
@@ -58,7 +58,7 @@ End;
 
 Function SP_CompSimpson(fn: aString; a, b: aFloat; n: Integer; Var Error: TSP_ErrorCode): aFloat;
 Var
-  h, x, S, F, FnVal: aFloat;
+  h, x, S, FnVal: aFloat;
   i, Idx, Idx2, VarOffsetN, ValPosition: Integer;
   ValTkn: paString;
   ParamName: aString;
@@ -93,6 +93,8 @@ Begin
   // Must be numeric, and contain one numeric parameter.
 
   Idx := 0;
+  Result := 0;
+
   While Idx < Length(SP_FnList) Do Begin
 
     If SP_FnList[Idx].Name = fn Then
@@ -258,6 +260,8 @@ Begin
     $D: Result := -y + z;
     $E: Result :=  y - x;
     $F: Result := -y - z;
+  Else
+    Result := 0;
   End;
 End;
 

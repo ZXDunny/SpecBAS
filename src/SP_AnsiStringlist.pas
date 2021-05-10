@@ -38,8 +38,6 @@ Type
     fUndoList, fRedoList: Array of TUndoEntry;
     fUndoInProgress, fRedoInProgress: Boolean;
     fCurGroupIndex, fCurRedoGroupIndex: Integer;
-    fUndoCursorPos, fUndoSelectionInfo,
-    fRedoCursorPos, fRedoSelectionInfo: TPoint;
     fBufferSize, fRedoBufferSize: Integer;
     fBufferPtr, fRedoBufferPtr: Integer;
     fCount: Integer;
@@ -520,7 +518,7 @@ End;
 
 Function TAnsiStringlist.PerformUndo: AnsiString;
 Var
-  i, l, l2, j, sl: Integer;
+  i, l2, j: Integer;
   CanUndo: Boolean;
   Ptr: pByte;
 
@@ -802,7 +800,7 @@ End;
 
 Function  TAnsiStringlist.PerformRedo: AnsiString;
 Var
-  i, l, l2, j, sl: Integer;
+  i, l2, j: Integer;
   CanRedo: Boolean;
   Ptr: pByte;
 

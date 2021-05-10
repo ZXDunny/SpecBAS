@@ -27,14 +27,11 @@ SP_Edit = Class(SP_BaseComponent)
     fValidText: Boolean;
     fGhostText: aString;
 
-    Procedure Draw; Override;
     Procedure SetText(s: aString);
     Procedure SetEditable(b: Boolean);
     Procedure FlashTimer(p: Pointer);
     Procedure SetCursorPos(v: Integer);
     Procedure DeleteWord(Backwards: Boolean);
-    Procedure PerformKeyDown(Var Handled: Boolean); Override;
-    Procedure PerformKeyUp(Var Handled: Boolean); Override;
     Procedure SetRightJustify(b: Boolean);
     Procedure PerformUndo;
     Procedure PerformRedo;
@@ -45,6 +42,9 @@ SP_Edit = Class(SP_BaseComponent)
 
   Public
 
+    Procedure Draw; Override;
+    Procedure PerformKeyDown(Var Handled: Boolean); Override;
+    Procedure PerformKeyUp(Var Handled: Boolean); Override;
     Procedure MouseDown(X, Y, Btn: Integer); Override;
     Procedure MouseUp(X, Y, Btn: Integer); Override;
     Procedure MouseMove(X, Y, Btn: Integer); Override;
@@ -161,7 +161,7 @@ End;
 
 Procedure SP_Edit.Draw;
 Var
-  tl, dx, ss, sc, t, p, Clr, fClr, bClr: Integer;
+  tl, ss, sc, p, Clr: Integer;
   c: aChar;
 Begin
 
@@ -200,15 +200,10 @@ Begin
       Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, Copy(fText, ss, sc), Clr, p, iSX, iSY, False, False);
     End;
 
-    fClr := fCursFG;
-    bClr := fCursBg;
     If Focused Then Begin
       If fGhostText <> '' Then
-        If fCursorPos <= Length(fGhostText) Then Begin
+        If fCursorPos <= Length(fGhostText) Then
           c := fGhostText[fCursorPos];
-          Dec(fClr, 8);
-          Dec(bClr, 8);
-        End;
 
       Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, c, fCursFg, fCursBg, iSX, iSY, False, False);
 
@@ -449,7 +444,10 @@ Begin
       Case aChar(NewChar) of
         'z':
           Begin
-            PerformUndo;
+            If KEYSTATE[K_ALT] = 0 Then
+              PerformUndo
+            Else
+              PerformRedo;
             Handled := True;
           End;
         'c':
@@ -586,24 +584,21 @@ Begin
       s := Copy(fText, SelS +1, (SelE - SelS));
   End;
 
-  Clipboard.AsText := s;
+  Clipboard.AsText := String(s);
 
 End;
 
 Procedure SP_Edit.PasteSelection;
 Var
   Strings: TStringList;
-  SelS, SelE: Integer;
 Begin
 
-  If fSelStart <> fCursorPos Then Begin
-    SelS := Min(fSelStart, fCursorPos);
-    SelE := Max(fSelStart, fCursorPos);
-    DeleteSelection;
-  End Else
+  If fSelStart <> fCursorPos Then
+    DeleteSelection
+  Else
     StoreUndo;
   Strings := TStringlist.Create;
-  Strings.Text := Clipboard.AsText;
+  Strings.Text := aString(Clipboard.AsText);
   If Strings.Count > 0 Then Begin
     fText := Copy(fText, 1, fCursorPos -1) + Strings[0] + Copy(fText, fCursorPos);
     Inc(fCursorPos, Length(Strings[0]));
@@ -646,8 +641,6 @@ Begin
 End;
 
 Procedure SP_Edit.MouseDown(X, Y, Btn: Integer);
-Var
-  b: Boolean;
 Begin
 
   if not fEnabled Then Exit;
@@ -657,7 +650,6 @@ Begin
     Dec(Y, 2);
   end;
 
-  b := Focused;
   fMouseIsDown := True;
   SetFocus(True);
   CursorPos := Min(Max((X Div iFW) +1, 0), Length(fText)+1);

@@ -523,10 +523,6 @@ Begin
 End;
 
 Procedure SP_ListBox.Sort(Index: Integer);
-Var
-  i, j, r: Integer;
-  s: aString;
-  b: Boolean;
 Begin
 
   If (Index >= 0) And (Index < fHCount) Then
@@ -691,7 +687,6 @@ Begin
       fVScroll.SetBounds(Width - fW - (Ord(fBorder) * 2), Ord(fBorder) * 2, fW, h + (iFH * Ord(fShowHeaders)) + (fH * Ord(fHScroll.Visible)));
       fVScroll.Visible := True;
       Dec(w, fW + 2);
-      ScrollBarsDone := True;
     End;
 
     ScrollBarsDone := fHScroll.Visible;
@@ -725,6 +720,7 @@ Var
   s, s2, pr: aString;
 Begin
 
+  sx2 := 0; sx1 := 0;
   If fVScroll.Visible Then
     yp := fVScroll.Pos
   Else
@@ -740,7 +736,6 @@ Begin
 
     If fShowHeaders And (fHCount > 0) Then Begin
 
-      ps := 1;
       hx := -fHScroll.Pos;
       s := fStrings[i] + #255;
       For j := 0 To fHCount -1 Do Begin
@@ -1089,6 +1084,8 @@ Begin
               K_NEXT: i := fVScroll.PageSize Div iFH;
               K_HOME: i := -fLastSelected;
               K_END: i := fCount;
+            Else
+              i := fSelectedIdx;
             End;
             If Not fSelected[fLastSelected] Then i := 0;
             For j := 0 To fCount -1 Do fSelected[j] := False;
@@ -1135,8 +1132,10 @@ Begin
     K_RETURN:
       Begin
         If fChosen Then Begin
-          If Assigned(OnChoose) Then
+          If Assigned(OnChoose) Then Begin
+            i := fSelectedIdx;
             OnChoose(Self, fLastSelected, Copy(fStrings[i], 1, Pos(#255, fStrings[i]) -1));
+          End;
           Handled := True;
         End;
       End;

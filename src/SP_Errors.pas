@@ -389,7 +389,7 @@ Var
   i: Integer;
 Begin
 
-  i := Pos('%v', s);
+  i := SP_Util.Pos('%v', s);
   If i > 0 Then Begin
     If Copy(s, i +2, 2) = '()' Then Begin
       s := Copy(s, 1, i +1) + Copy(s, i +4);

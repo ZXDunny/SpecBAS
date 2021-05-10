@@ -36,7 +36,9 @@ Function SP_CheckList.IsChecked(Index: Integer): Boolean;
 Begin
 
   If (Index >= 0) And (Index < Length(fItems)) Then
-    result := fItems[Index].fChecked;
+    result := fItems[Index].fChecked
+  Else
+    Result := False;
 
 End;
 

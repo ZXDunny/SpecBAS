@@ -2,7 +2,7 @@ unit SP_DebugPanel;
 
 interface
 
-uses Math, Classes, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUnit, SP_ControlMsgs, SP_ButtonUnit, SP_Input, SP_ContainerUnit;
+uses Math, Classes, System.SyncObjs, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUnit, SP_ControlMsgs, SP_ButtonUnit, SP_Input, SP_ContainerUnit;
 
 Type
 
@@ -134,7 +134,6 @@ Procedure SP_OpenDebugPanel;
 Var
   Error: TSP_ErrorCode;
   Win: pSP_Window_Info;
-  FW, FH: Integer;
 Begin
 
   DisplaySection.Enter;
@@ -146,8 +145,6 @@ Begin
     FPSizeGrabber := SP_Container.Create(Win^.Component);
   End;
   FPDebugPanelVisible := True;
-  FW := Trunc(EDFONTWIDTH * EDFONTSCALEX);
-  FH := Trunc(EDFONTHEIGHT * EDFONTSCALEY);
 
   With FPDebugCombo Do Begin
     BackgroundClr := debugCombo;
@@ -321,6 +318,7 @@ Const
     Else
       FPDebugPanel.Height := hMod + FPPaperHeight - (FPDebugCombo.Height + BSize);
     xPos := FPDebugPanel.Left + FPDebugPanel.Width + BSize;
+    Btn := nil;
     For i := 0 to 2 Do Begin
       Case i of
         0: Btn := FPDebugBPEdt;
@@ -665,7 +663,6 @@ Begin
       End;
     4: // Procs and FNs - highlight all usages. Find "Fn x" and "Proc x", "DEF FN x" and "DEF PROC x" as well as "CALL x".
       Begin
-        i := 1;
         s := FPPoIList[Index].Name;
         if Pos('(', s) > 0 Then
           s := Copy(s, 1, Pos('(', s) -1);
@@ -846,10 +843,9 @@ Begin
       If (i < Listing.Count -2) And (SP_LineHasNumber(i + 1) = 0) Then
         s := s + Lower(Listing[i + 1]);
     Again:
-      j := 1;
       lbl := '';
       InString := False; InClr := False; InREM := False;
-      ps := Pos('label', s); // Label search
+      ps := SP_Util.Pos('label', s); // Label search
       if ps > 0 Then Begin
         ScanForStatements(Copy(s, 1, ps -1), St, InString, InREM, InClr);
         If not InString then Begin
@@ -868,9 +864,9 @@ Begin
           Goto Again;
         End;
       End Else Begin
-        ps := Pos('def proc', s); ofs := 8; // Procedure search
+        ps := SP_Util.Pos('def proc', s); ofs := 8; // Procedure search
         If ps = 0 then begin
-          ps := Pos('def fn', s); ofs := 6;// Look for a function if no procedures found
+          ps := SP_Util.Pos('def fn', s); ofs := 6;// Look for a function if no procedures found
         end;
         if ps > 0 Then Begin
           ScanForStatements(Copy(s, 1, ps -1), St, InString, InREM, InClr);

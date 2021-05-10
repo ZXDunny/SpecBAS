@@ -256,15 +256,14 @@ Var
   sPtr, dPtr: pByte;
   Idx: Integer;
   Val, oVal: Byte;
-  x: aChar;
 Begin
 
   If SIGSAMPLEBANK = -1 Then Begin
     SIGSAMPLEBANK := SP_Sample_Create(44100, 8, 0, Length(LoadingTones) Div 2, Error);
     dPtr := @SP_BankList[SP_FindBankID(SIGSAMPLEBANK)]^.Memory[0];
     sPtr := @LoadingTones[1];
+    oVal := 0;
     For Idx := 1 To Length(LoadingTones) Div 2 Do Begin
-      Val := 0;
       If sPtr^ in [48..57] Then
         Val := sPtr^ - 48
       Else
@@ -1147,6 +1146,7 @@ Var
   Position: Int64;
 Begin
 
+  Result := 0;
   If MUSICHANDLE <> 0 Then Begin
 
     Position := BASS_ChannelGetPosition(MUSICHANDLE, BASS_POS_BYTE);
@@ -1164,6 +1164,7 @@ Var
   Position: Int64;
 Begin
 
+  Result := 0;
   If MUSICHANDLE <> 0 Then Begin
 
     Position := BASS_ChannelGetLength(MUSICHANDLE, BASS_POS_BYTE);

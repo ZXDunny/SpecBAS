@@ -561,7 +561,7 @@ End;
 
 Procedure SP_WaitForSync;
 Var
-  CurrentTicks, TargetTicks, CFRAMES: NativeInt;
+  CFRAMES: NativeInt;
 Begin
 
   If SP_NeedDisplayUpdate Then Begin
@@ -715,7 +715,7 @@ ENd;
 
 Procedure SP_InitialGfxSetup(W, H: Integer; IsNEW: Boolean);
 Var
-  ID, Idx, BlockIdx, Offset: Integer;
+  ID: Integer;
   Error: TSP_ErrorCode;
 Begin
 
@@ -874,7 +874,7 @@ End;
 
 Procedure SP_SetDrawingWindow(WindowID: Integer);
 Var
-  Idx, WindowIdx: Integer;
+  Idx: Integer;
   Bank: pSP_Bank;
   Gfx: pSP_Graphic_Info;
   Window: pSP_Window_Info;
@@ -932,7 +932,7 @@ Begin
       CSCALEX := Window^.scalex;
       CSCALEY := Window^.scaley;
       If FONTWIDTH > 0 Then
-        TABSIZE := integer(Window^.Width Div 2) Div FONTWIDTH;
+        TABSIZE := (Window^.Width Div 2) Div Integer(FONTWIDTH);
       SP_Reset_Temp_Colours;
 
     End Else
@@ -981,7 +981,7 @@ Begin
         CCLIPX2 := Gfx^.clipx2;
         CCLIPY2 := Gfx^.clipy2;
         If FONTWIDTH > 0 Then
-          TABSIZE := integer(Window^.Width Div 2) Div FONTWIDTH;
+          TABSIZE := (Window^.Width Div 2) Div Integer(FONTWIDTH);
         SP_Reset_Temp_Colours;
 
       End;
@@ -994,7 +994,6 @@ Procedure SP_DeleteAllWindows;
 Var
   Idx, Idx2, w, h, b: Integer;
   Bank: pSP_Bank;
-  Screen: pSP_Bank_Screen;
   Error: TSP_ErrorCode;
 Begin
 
@@ -1071,7 +1070,7 @@ End;
 
 Procedure SP_GetWindowDetails(WindowID: Integer; Var Window: pSP_Window_Info; Var Error: TSP_ErrorCode);// Inline;
 Var
-  BankIdx, WindowIdx: Integer;
+  BankIdx: Integer;
   Gfx: pSP_Graphic_Info;
 Begin
 
@@ -1173,11 +1172,9 @@ End;
 
 Procedure SP_ResizeWindow(WindowID, W, H, Depth: Integer; FullScreen: Boolean; Var Error: TSP_ErrorCode);
 Var
-  BankIdx, WindowIdx, Idx, Idx2, Offset, WindowOffset,
-  NumWindows, NewSize, OldSize, Delta, Bits, NewBits: Integer;
+  BankIdx, Idx, Bits, NewBits: Integer;
   Bank: pSP_Bank;
   Window: pSP_Window_Info;
-  Window_Offsets, Window_Sizes: Array of LongWord;
   OldMem: Array of Byte;
   dPtr: pLongWord;
   sPtr: pByte;
@@ -1284,7 +1281,7 @@ End;
 
 Procedure SP_MoveWindow(WindowID, X, Y: Integer; Var Error: TSP_ErrorCode);
 Var
-  BankIdx, WindowIdx: Integer;
+  BankIdx: Integer;
   Bank: pSP_Bank;
   Window: pSP_Window_Info;
 Begin
@@ -1314,7 +1311,7 @@ End;
 
 Procedure SP_DeleteWindow(WindowID: Integer; Var Error: TSP_ErrorCode);
 Var
-  BankIdx, WindowIdx, Idx, Ns: Integer;
+  BankIdx, Idx, Ns: Integer;
   Bank: pSP_Bank;
   Window: pSP_Window_Info;
   SpritesToDelete: Array of Integer;
@@ -1549,9 +1546,7 @@ End;
 
 Procedure SP_SetPalette(Index: Integer; Colours: Array of TP_Colour);
 Var
-  Idx, BankID: Integer;
-  Bank: pSP_Bank;
-  BankScreen: pSP_Bank_Screen;
+  Idx: Integer;
 Begin
 
   For Idx := Index To Index + High(Colours) Do
@@ -1646,7 +1641,7 @@ Begin
   PRPOSY := 0;
   DRPOSX := 0;
   DRPOSY := 0;
-  SCROLLCNT := (SCREENHEIGHT Div FONTHEIGHT);
+  SCROLLCNT := (SCREENHEIGHT Div Integer(FONTHEIGHT));
   bOver := T_OVER;
   T_OVER := 0;
   SP_FillRect(0, 0, SCREENWIDTH, SCREENHEIGHT, Paper);
@@ -1866,7 +1861,7 @@ Begin
 
   // Clears the lower screen prior to an error or an INPUT sequence.
 
-  LowerLines := (SCREENHEIGHT - (Max(MAXLOWER, 2) * FONTHEIGHT) -4);
+  LowerLines := (SCREENHEIGHT - (Max(MAXLOWER, 2) * Integer(FONTHEIGHT)) -4);
   SetLength(LOWERSAVE, LowerLines * SCREENSTRIDE);
 
   Coord := SCREENPOINTER;
@@ -1874,7 +1869,7 @@ Begin
 
   CopyMem(@LOWERSAVE[1], Coord, LowerLines * SCREENSTRIDE);
 
-  SP_FillRect(0, SCREENHEIGHT - (Max(MAXLOWER, 2) * FONTHEIGHT) -4, SCREENWIDTH, SCREENHEIGHT, Paper);
+  SP_FillRect(0, SCREENHEIGHT - (Max(MAXLOWER, 2) * Integer(FONTHEIGHT)) -4, SCREENWIDTH, SCREENHEIGHT, Paper);
   SP_NeedDisplayUpdate := True;
 
 End;
@@ -1885,7 +1880,7 @@ Var
   Coord: pByte;
 Begin
 
-  LowerLines := (SCREENHEIGHT - (Max(MAXLOWER, 2) * FONTHEIGHT) -4);
+  LowerLines := (SCREENHEIGHT - (Max(MAXLOWER, 2) * Integer(FONTHEIGHT)) -4);
   Coord := SCREENPOINTER;
   Inc(Coord, LongWord(SCREENHEIGHT - LowerLines) * LongWord(SCREENSTRIDE));
   CopyMem(Coord, @LOWERSAVE[1], LowerLines * SCREENSTRIDE);
@@ -1965,17 +1960,15 @@ End;
 
 Function SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Visible: Boolean): Integer;
 Var
-  CharW, CharH, Idx, Val, cCount, OVER, ItalicOffset, DefInk, DefPaper, nx: Integer;
-  sx, sy, Cw, Ch, yp, xp, TC, t: LongWord;
+  CharW, CharH, Idx, cCount, OVER, ItalicOffset, DefPaper, nx: Integer;
+  sx, sy, Cw, Ch, yp, xp, TC, t: Integer;
   Transparent: Boolean;
   FontBank: pSP_Font_Info;
   Bank: pSP_Bank;
-  Coord, Char, pIdx, lIdx, c: pByte;
+  Coord, Char, pIdx, lIdx: pByte;
   IsScaled, SkipNextPaper: Boolean;
-  dX, dY, ScaleX, ScaleY: aFloat;
+  ScaleX, ScaleY: aFloat;
 Begin
-
-  IsScaled := False;
 
   If T_INVERSE <> 0 Then Begin
     Idx := Ink;
@@ -1986,7 +1979,6 @@ Begin
   ScaleX := T_SCALEX;
   ScaleY := T_SCALEY;
 
-  DefInk := Ink;
   DefPaper := Paper;
 
   If BankID = -1 Then // Use the system font?
@@ -2005,8 +1997,10 @@ Begin
     If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
       Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
       TC := FontBank^.Transparent And $FF;
-    End Else
+    End Else Begin
       Transparent := T_TRANSPARENT or (Paper = -1);
+      TC := 0;
+    End;
 
     Coord := SCREENPOINTER;
     Inc(Coord, (SCREENSTRIDE * Y) + X);
@@ -2028,14 +2022,14 @@ Begin
 
         If IsScaled Then Begin
           // Scaled character
-          sx := (FONTWIDTH Shl 16) Div CharW;
-          sy := (FONTHEIGHT Shl 16) Div CharH;
+          sx := Integer(FONTWIDTH Shl 16) Div CharW;
+          sy := Integer(FONTHEIGHT Shl 16) Div CharH;
           yp := 0;
           While CharH > 0 Do Begin
             pIdx := Char;
             xp := 0;
             SkipNextPaper := False;
-            Inc(pIdx, FONTWIDTH * (yp Shr 16));
+            Inc(pIdx, Integer(FONTWIDTH) * (yp Shr 16));
             While CharW > 0 Do Begin
               If (X >= T_CLIPX1) And (Y >= T_CLIPY1) And (X < T_CLIPX2) And (Y < T_CLIPY2) Then
                 If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
@@ -2250,9 +2244,9 @@ Begin
             Begin // AT control
               X := 0; Y := 0;
               SP_ConvertToOrigin_i(X, Y);
-              Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+              Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer));
-              Inc(X, pInteger(@Text[Idx+1])^ * LongWord(Cw));
+              Inc(X, pInteger(@Text[Idx+1])^ * Cw);
               Inc(Idx, SizeOf(Integer));
             End;
          23:
@@ -2269,7 +2263,7 @@ Begin
             Begin // CENTRE control
               Y := 0;
               SP_ConvertToOrigin_i_y(Y);
-              Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+              Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer) +1);
               pIdx := pByte(@Text[Idx]);
               lIdx := pIdx + Length(Text) - Idx;
@@ -2389,6 +2383,7 @@ Begin
   OutCode0 := CompOutCode(x1, y1);
   OutCode1 := CompOutCode(x2, y2);
   Result := False;
+  x := 0; y := 0;
 
   While (OutCode0 <> 0) Or (OutCode1 <> 0) Do Begin
     If (OutCode0 And OutCode1) <> 0 Then Exit Else Begin
@@ -2875,9 +2870,8 @@ End;
 
 Procedure SP_DrawEllipse(CX, CY, Rx, Ry: Integer);
 var
-  Rx2, Ry2, twoRx2, twoRy2, p,x,y,Xn,Yn, px,py: Integer;
+  Rx2, Ry2, twoRx2, twoRy2, p, x, y, px, py: Integer;
   cxpx, cypy, cxmx, cymy: Integer;
-  SnapX, SnapY: Boolean;
 begin
 
   If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
@@ -2962,7 +2956,7 @@ Procedure SP_DrawTexEllipse(CX, CY, Rx, Ry: Integer; const TextureStr: aString; 
 var
   Trans: Word;
   DstA, TexBase: pByte;
-  Ink, tClr, Clr: Byte;
+  tClr, Clr: Byte;
   Graphic: pSP_Graphic_Info;
   x, y, r, rx2, xmn, xmx, ymn, ymx, w: Integer;
 begin
@@ -2988,11 +2982,6 @@ begin
     End;
     If Trans <> $FFFF Then
       tClr := Trans And $FF;
-
-    If T_INVERSE = 0 Then
-      Ink := T_INK
-    Else
-      Ink := T_PAPER;
 
     r := Round((Rx+0.5)*Ry*Rx*rY);
     xmn := Max(T_CLIPX1,    Cx - rX) - cX;
@@ -3287,10 +3276,7 @@ End;
 Procedure SP_DrawSolidRectangle(X1, Y1, X2, Y2: Integer);
 Var
   T, W: Integer;
-  Dst, TexBase: pByte;
-  Graphic: pSP_Graphic_Info;
-  Trans: Word;
-  tClr, Clr: Byte;
+  Dst: pByte;
 Begin
 
   If X1 > X2 Then Begin T := X1; X1 := X2; X2 := T; End;
@@ -3305,7 +3291,6 @@ Begin
 
   If SCREENBPP = 8 Then Begin
 
-    tClr := 0;
     Dst := pByte(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * Y1) + X1);
 
     If T_OVER = 0 Then Begin
@@ -3677,9 +3662,9 @@ Begin
 
     Bits32 := pSP_Font_Info(@SP_BankList[FONTBANKID]^.Info[0])^.FontType = SP_FONT_TYPE_32BIT;
     If Bits32 Then
-      SetLength(Surface, Round(Width * FONTWIDTH * FONTHEIGHT * Height * T_SCALEX * T_SCALEY * SizeOf(RGBA)))
+      SetLength(Surface, Round(Width * Integer(FONTWIDTH * FONTHEIGHT) * Height * T_SCALEX * T_SCALEY * SizeOf(RGBA)))
     Else
-      SetLength(Surface, Round(Width * FONTWIDTH * FONTHEIGHT * Height * T_SCALEX * T_SCALEY));
+      SetLength(Surface, Round(Width * Integer(FONTWIDTH * FONTHEIGHT) * Height * T_SCALEX * T_SCALEY));
 
     SP := SCREENPOINTER;
     SW := SCREENWIDTH;
@@ -3687,12 +3672,12 @@ Begin
     SH := SCREENHEIGHT;
 
     SCREENPOINTER := @Surface[1];
-    SCREENWIDTH := Round(Width * FONTWIDTH * T_SCALEX);
+    SCREENWIDTH := Round(Width * Integer(FONTWIDTH) * T_SCALEX);
     If Bits32 Then
-      SCREENSTRIDE := Round(Width * FONTWIDTH * SizeOf(RGBA) * T_SCALEX)
+      SCREENSTRIDE := Round(Width * Integer(FONTWIDTH) * SizeOf(RGBA) * T_SCALEX)
     Else
-      SCREENSTRIDE := Round(Width * FONTWIDTH * T_SCALEX);
-    SCREENHEIGHT := Round(FONTHEIGHT * Height * T_SCALEY);
+      SCREENSTRIDE := Round(Width * Integer(FONTWIDTH) * T_SCALEX);
+    SCREENHEIGHT := Round(Integer(FONTHEIGHT) * Height * T_SCALEY);
 
     T_CLIPX1 := 0; T_CLIPY1 := 0; T_CLIPX2 := SCREENWIDTH; T_CLIPY2 := SCREENHEIGHT;
 
@@ -3709,9 +3694,9 @@ Begin
 
     If Surface <> '' Then Begin
       If Bits32 Then
-        Result := LongWordToString(Round(Width * FONTWIDTH * T_SCALEX)) + LongWordToString(Round(Height * FONTHEIGHT * T_SCALEY)) + #255 + #32 + Surface
+        Result := LongWordToString(Round(Width * Integer(FONTWIDTH) * T_SCALEX)) + LongWordToString(Round(Height * Integer(FONTHEIGHT) * T_SCALEY)) + #255 + #32 + Surface
       Else
-        Result := LongWordToString(Round(Width * FONTWIDTH * T_SCALEX)) + LongWordToString(Round(Height * FONTHEIGHT * T_SCALEY)) + #255 + #255 + Surface;
+        Result := LongWordToString(Round(Width * Integer(FONTWIDTH) * T_SCALEX)) + LongWordToString(Round(Height * Integer(FONTHEIGHT) * T_SCALEY)) + #255 + #255 + Surface;
     End Else
       Result := '';
 
@@ -4226,15 +4211,11 @@ End;
 Procedure SP_PolygonSolidFill(Var Points: Array of TSP_Point);
 Var
   MinY, MaxY, MinX, MaxX: Integer;
-  Idx, I, J, Nodes, NumPoints, Swap, PixelY, X, Y: Integer;
+  Idx, I, J, Nodes, NumPoints, Swap, PixelY: Integer;
   NodeX: Array of Integer;
-  Ptr, TexBase: pByte;
-  Ink, tClr: Byte;
-  Trans: Word;
-  Graphic: pSP_Graphic_Info;
+  Ptr: pByte;
+  Ink: Byte;
 Begin
-
-  tClr := 0;
 
   If T_INVERSE = 1 Then
     Ink := T_PAPER
@@ -4606,9 +4587,7 @@ End;
 
 Procedure SP_SavePalette(const Filename: aString; Var Error: TSP_ErrorCode);
 Var
-  FileID, BankID: Integer;
-  Bank: pSP_Bank;
-  BankScreen: pSP_Window_Info;
+  FileID: Integer;
 Const
   BankIDStr: aString = 'ZXPALETTE';
 Begin
@@ -4627,9 +4606,7 @@ End;
 
 Procedure SP_LoadPalette(const Filename: aString; Var Error: TSP_ErrorCode);
 Var
-  Idx, FileID, BankID: Integer;
-  Bank: pSP_Bank;
-  BankScreen: pSP_Window_Info;
+  Idx, FileID: Integer;
   tBuf: aString;
   Magic: Array of Byte;
 Begin
@@ -4647,7 +4624,7 @@ Begin
 
       SP_FileRead(FileID, @pSP_Window_Info(WINDOWPOINTER)^.Palette[0], 256 * SizeOf(TP_Colour), Error);
       SP_FileClose(FileID, Error);
-      SP_SetPalette(0, BankScreen^.Palette);
+      SP_SetPalette(0, pSP_Window_Info(WINDOWPOINTER)^.Palette);
 
     End Else Begin
 
@@ -4664,23 +4641,20 @@ End;
 
 Function SP_PRINT(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: Integer; var Error: TSP_ErrorCode): Integer;
 Var
-  CharW, CharH, Idx, Scrolls, cCount, OVER, StreamIdx, sx, sy, TInk, TPaper, ItalicOffset, nx: Integer;
-  yp, xp, Cw, Ch, TC, t: LongWord;
+  CharW, CharH, Idx, Scrolls, cCount, OVER, sx, sy, TInk, TPaper, ItalicOffset, nx: Integer;
+  yp, xp, Cw, Ch, TC, t: Integer;
   Transparent: Boolean;
   FontBank: pSP_Font_info;
   Bank: pSP_Bank;
   Coord, Char, pIdx, lIdx: pByte;
   IsScaled, SkipNextPaper, SwapBack: Boolean;
-  Tokens: paString;
   ScaleX, ScaleY: aFloat;
   Info: TSP_iInfo;
   pInfo: pSP_iInfo;
 Begin
 
-
   Result := 0;
   Scrolls := 0;
-  IsScaled := False;
   SwapBack := False;
 
   If OUTSET Then Begin
@@ -4697,6 +4671,7 @@ Begin
       Ink := Paper;
       Paper := Idx;
     End;
+    TInk := Ink; TPaper := Paper;
     OVER := T_OVER;
     ScaleX := T_SCALEX;
     ScaleY := T_SCALEY;
@@ -4717,8 +4692,10 @@ Begin
       If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
         Transparent := (FontBank^.Transparent <> $FFFF);
         TC := FontBank^.Transparent And $FF;
-      End Else
+      End Else Begin
         Transparent := T_TRANSPARENT;
+        TC := 0;
+      End;
 
       Idx := 1;
       Scrolls := 0;
@@ -4997,15 +4974,15 @@ Begin
               Begin // AT control
                 X := 0; Y := 0;
                 SP_ConvertToOrigin_i(X, Y);
-                Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+                Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer));
-                Inc(X, pInteger(@Text[Idx+1])^ * LongWord(Cw));
+                Inc(X, pInteger(@Text[Idx+1])^ * Cw);
                 Inc(Idx, SizeOf(Integer));
               End;
            23:
               Begin // TAB control
                 nx := X Div Cw;
-                tc := pLongWord(@Text[Idx+1])^ mod (SCREENWIDTH Div Cw);
+                tc := pInteger(@Text[Idx+1])^ mod (SCREENWIDTH Div Cw);
                 If tc < nx Then Inc(tc, SCREENWIDTH Div Cw);
                 SP_PRINT(-1, X, Y, -1, StringOfChar(aChar(' '), tc - nx), Ink, Paper, Error);
                 X := Round(PRPOSX);
@@ -5016,7 +4993,7 @@ Begin
               Begin // CENTRE control
                 Y := 0;
                 SP_ConvertToOrigin_i_y(Y);
-                Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+                Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer) +1);
                 pIdx := pByte(@Text[Idx]);
                 lIdx := pIdx + Length(Text) - Idx;
@@ -5119,10 +5096,9 @@ End;
 Procedure SP_RotateSize(Src: pByte; sW, sH: Integer; Dst: pByte; dX, dY, dW, dH: Integer; Trans: Word; Rot, Scale: aFloat; cX1, cY1, cX2, cY2: Integer);
 Var
   ndW, ndH, cX, cY, iSin, iCos,
-  xd, yd, aX, aY, X, Y, sdX, sdY, TLX, TLY, BRX, BRY,
-  odX, ndX, odY, ndY, dXx, dYy: Integer;
+  xd, yd, aX, aY, X, Y, sdX, sdY, TLX, TLY, BRX, BRY: Integer;
   tW, tH: aFloat;
-  sPtr, dPtr: pByte;
+  dPtr: pByte;
   TC, sCl: Byte;
 Begin
 
@@ -5266,10 +5242,9 @@ End;
 Procedure SP_RotateSizeXY(Src: pByte; sW, sH: Integer; Dst: pByte; dX, dY, dW, dH: Integer; Trans: Word; Rot, ScaleX, ScaleY: aFloat; cX1, cY1, cX2, cY2: Integer);
 Var
   ndW, ndH, cX, cY, iSin, iCos,
-  xd, yd, aX, aY, X, Y, sdX, sdY, TLX, TLY, BRX, BRY,
-  odX, ndX, odY, ndY, dXx, dYy: Integer;
+  xd, yd, aX, aY, X, Y, sdX, sdY, TLX, TLY, BRX, BRY: Integer;
   tW, tH: aFloat;
-  sPtr, dPtr: pByte;
+  dPtr: pByte;
   TC, sCl: Byte;
 Begin
 
@@ -5439,7 +5414,7 @@ End;
 Procedure SP_RotAndScaleGfx(Var SrcPtr: pByte; Var DstGfx: aString; Rot, Scale: aFloat; Var sW, sH: LongWord; sT: Word; Error: TSP_ErrorCode);
 Var
   tW, tH: LongWord;
-  cX1, cX2, cY1, cY2, Over, dX, dY: Integer;
+  cX1, cX2, cY1, cY2, Over: Integer;
 Begin
 
   // Calculate the size of the new bitmap
@@ -5476,7 +5451,7 @@ End;
 Procedure SP_RotAndScaleGfxXY(Var SrcPtr: pByte; Var DstGfx: aString; Rot, ScaleX, ScaleY: aFloat; Var sW, sH: LongWord; sT: Word; Error: TSP_ErrorCode);
 Var
   tW, tH: LongWord;
-  cX1, cX2, cY1, cY2, Over, dX, dY: Integer;
+  cX1, cX2, cY1, cY2, Over: Integer;
 Begin
 
   // Calculate the size of the new bitmap
@@ -5645,7 +5620,7 @@ Var
   ConvArrayRGB: Array[0..255, 0..1] of TP_Colour;
   ConvArray: Array[0..255, 0..1] of Byte;
   d1, d2, dR, dG, dB: aFloat;
-  Idx, X, Y, Val, Idx2: Integer;
+  Idx, X, Y, Val, Idx2: LongWord;
   Clr: TP_Colour;
   Ptr: pByte; Closest: Byte;
   dImage: Array of TP_Colour;
@@ -5849,7 +5824,7 @@ Begin
           Inc(Ptr);
           Dec(Idx);
           Inc(X);
-          If X = integer(Gfx^.Width) Then Begin
+          If X = Gfx^.Width Then Begin
             X := 0;
             Inc(Y);
           End;
@@ -5881,9 +5856,9 @@ Begin
                   Closest := SP_Get_Nearest_Colour_Fast(dClr^.R, dClr^.G, dClr^.B);
                   pCl := SP_GetPalette(Closest);
 
-                  R_Error := (Integer(dClr^.R) - ((pCl Shr 24) And $FF))/16;
-                  G_Error := (Integer(dClr^.G) - ((pCl Shr 16) And $FF))/16;
-                  B_Error := (Integer(dClr^.B) - ((pCl Shr 8) And $FF))/16;
+                  R_Error := ((dClr^.R) - ((pCl Shr 24) And $FF))/16;
+                  G_Error := ((dClr^.G) - ((pCl Shr 16) And $FF))/16;
+                  B_Error := ((dClr^.B) - ((pCl Shr 8) And $FF))/16;
                   Ptr^ := Closest;
 
                   If X < Gfx^.Width -1 Then Begin
@@ -5935,9 +5910,9 @@ Begin
                   Closest := SP_Get_Nearest_Colour_Fast(dClr^.R, dClr^.G, dClr^.B);
                   pCl := SP_GetPalette(Closest);
 
-                  R_Error := (Integer(dClr^.R) - ((pCl Shr 24) And $FF))/48;
-                  G_Error := (Integer(dClr^.G) - ((pCl Shr 16) And $FF))/48;
-                  B_Error := (Integer(dClr^.B) - ((pCl Shr 8) And $FF))/48;
+                  R_Error := ((dClr^.R) - ((pCl Shr 24) And $FF))/48;
+                  G_Error := ((dClr^.G) - ((pCl Shr 16) And $FF))/48;
+                  B_Error := ((dClr^.B) - ((pCl Shr 8) And $FF))/48;
                   Ptr^ := Closest;
 
                   If X < Gfx^.Width -1 Then Begin
@@ -6045,9 +6020,9 @@ Begin
                   Closest := SP_Get_Nearest_Colour_Fast(dClr^.R, dClr^.G, dClr^.B);
                   pCl := SP_GetPalette(Closest);
 
-                  R_Error := (Integer(dClr^.R) - ((pCl Shr 24) And $FF))/42;
-                  G_Error := (Integer(dClr^.G) - ((pCl Shr 16) And $FF))/42;
-                  B_Error := (Integer(dClr^.B) - ((pCl Shr 8) And $FF))/42;
+                  R_Error := ((dClr^.R) - ((pCl Shr 24) And $FF))/42;
+                  G_Error := ((dClr^.G) - ((pCl Shr 16) And $FF))/42;
+                  B_Error := ((dClr^.B) - ((pCl Shr 8) And $FF))/42;
                   Ptr^ := Closest;
 
                   If X < Gfx^.Width -1 Then Begin
@@ -6154,9 +6129,9 @@ Begin
                   Closest := SP_Get_Nearest_Colour_Fast(dClr^.R, dClr^.G, dClr^.B);
                   pCl := SP_GetPalette(Closest);
 
-                  R_Error := (Integer(dClr^.R) - ((pCl Shr 24) And $FF))/32;
-                  G_Error := (Integer(dClr^.G) - ((pCl Shr 16) And $FF))/32;
-                  B_Error := (Integer(dClr^.B) - ((pCl Shr 8) And $FF))/32;
+                  R_Error := ((dClr^.R) - ((pCl Shr 24) And $FF))/32;
+                  G_Error := ((dClr^.G) - ((pCl Shr 16) And $FF))/32;
+                  B_Error := ((dClr^.B) - ((pCl Shr 8) And $FF))/32;
                   Ptr^ := Closest;
 
                   If X < Gfx^.Width -1 Then Begin
@@ -6228,9 +6203,9 @@ Begin
                   Closest := SP_Get_Nearest_Colour_Fast(dClr^.R, dClr^.G, dClr^.B);
                   pCl := SP_GetPalette(Closest);
 
-                  R_Error := (Integer(dClr^.R) - ((pCl Shr 24) And $FF))/32;
-                  G_Error := (Integer(dClr^.G) - ((pCl Shr 16) And $FF))/32;
-                  B_Error := (Integer(dClr^.B) - ((pCl Shr 8) And $FF))/32;
+                  R_Error := ((dClr^.R) - ((pCl Shr 24) And $FF))/32;
+                  G_Error := ((dClr^.G) - ((pCl Shr 16) And $FF))/32;
+                  B_Error := ((dClr^.B) - ((pCl Shr 8) And $FF))/32;
                   Ptr^ := Closest;
 
                   If X < Gfx^.Width Then Begin
@@ -6323,9 +6298,9 @@ Begin
                   Closest := SP_Get_Nearest_Colour_Fast(dClr^.R, dClr^.G, dClr^.B);
                   pCl := SP_GetPalette(Closest);
 
-                  R_Error := (Integer(dClr^.R) - ((pCl Shr 24) And $FF))/16;
-                  G_Error := (Integer(dClr^.G) - ((pCl Shr 16) And $FF))/16;
-                  B_Error := (Integer(dClr^.B) - ((pCl Shr 8) And $FF))/16;
+                  R_Error := (dClr^.R - ((pCl Shr 24) And $FF))/16;
+                  G_Error := (dClr^.G - ((pCl Shr 16) And $FF))/16;
+                  B_Error := (dClr^.B - ((pCl Shr 8) And $FF))/16;
                   Ptr^ := Closest;
 
                   If X < Gfx^.Width -1 Then Begin
@@ -6397,9 +6372,9 @@ Begin
                   Closest := SP_Get_Nearest_Colour_Fast(dClr^.R, dClr^.G, dClr^.B);
                   pCl := SP_GetPalette(Closest);
 
-                  R_Error := (Integer(dClr^.R) - ((pCl Shr 24) And $FF))/4;
-                  G_Error := (Integer(dClr^.G) - ((pCl Shr 16) And $FF))/4;
-                  B_Error := (Integer(dClr^.B) - ((pCl Shr 8) And $FF))/4;
+                  R_Error := (dClr^.R - ((pCl Shr 24) And $FF))/4;
+                  G_Error := (dClr^.G - ((pCl Shr 16) And $FF))/4;
+                  B_Error := (dClr^.B - ((pCl Shr 8) And $FF))/4;
                   Ptr^ := Closest;
 
                   If X < Gfx^.Width -1 Then Begin
@@ -6443,9 +6418,9 @@ Begin
                   Closest := SP_Get_Nearest_Colour_Fast(dClr^.R, dClr^.G, dClr^.B);
                   pCl := SP_GetPalette(Closest);
 
-                  R_Error := (Integer(dClr^.R) - ((pCl Shr 24) And $FF))/8;
-                  G_Error := (Integer(dClr^.G) - ((pCl Shr 16) And $FF))/8;
-                  B_Error := (Integer(dClr^.B) - ((pCl Shr 8) And $FF))/8;
+                  R_Error := (dClr^.R - ((pCl Shr 24) And $FF))/8;
+                  G_Error := (dClr^.G - ((pCl Shr 16) And $FF))/8;
+                  B_Error := (dClr^.B - ((pCl Shr 8) And $FF))/8;
                   Ptr^ := Closest;
 
                   If X < Gfx^.Width -1 Then Begin
@@ -6510,9 +6485,9 @@ Begin
                   Closest := SP_Get_Nearest_Colour_Fast(dClr^.R, dClr^.G, dClr^.B);
                   pCl := SP_GetPalette(Closest);
 
-                  R_Error := (Integer(dClr^.R) - ((pCl Shr 24) And $FF))/200;
-                  G_Error := (Integer(dClr^.G) - ((pCl Shr 16) And $FF))/200;
-                  B_Error := (Integer(dClr^.B) - ((pCl Shr 8) And $FF))/200;
+                  R_Error := (dClr^.R - ((pCl Shr 24) And $FF))/200;
+                  G_Error := (dClr^.G - ((pCl Shr 16) And $FF))/200;
+                  B_Error := (dClr^.B - ((pCl Shr 8) And $FF))/200;
                   Ptr^ := Closest;
 
                   If X < Gfx^.Width -2 Then Begin

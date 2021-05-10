@@ -43,7 +43,7 @@ Type
     FileSize: LongWord;     // Size in bytes
     FileDate: Integer;      // Date last modified
     NumChunks: LongWord;    // Number of chunks used
-    LastChunk: LongWord;    // The last chunk in the file
+    LastChunk: Integer;    // The last chunk in the file
     DirectoryID: Integer;   // Directory index number
     FirstChunk: Integer;    // Offset in chunk array of first chunk.
     CurrentChunk: Integer;  // For read/write access - the current chunk pointed to by the SEEK param
@@ -219,7 +219,7 @@ Begin
 
     // Now truncate the file to the size of the chunktable.
 
-    AssignFile(tFile, PackageNativeName);
+    AssignFile(tFile, String(PackageNativeName));
     Reset(tFile);
     FileMode := 2;
     Seek(tFile, SizeOf(SP_FileTable) + (Length(SP_ChunkMap) * SizeOf(SP_FileChunk)));
@@ -401,7 +401,7 @@ Begin
       CurDir := -1;
       Repeat
 
-        SepPos := Pos('/', String(DirPart));
+        SepPos := Pos('/', DirPart);
         If SepPos > 0 Then Begin
           DirFragment := Copy(DirPart, 1, SepPos -1);
           DirPart := Copy(DirPart, SepPos +1, Length(DirPart));
@@ -507,7 +507,7 @@ Begin
       // Pull in the current chunk - might be in the middle of the file. Who knows?
 
       PackagePos := (NewFile.CurrentChunk * SizeOf(SP_FileChunk)) + SizeOf(SP_FileTable);
-      Package.Seek(PackagePos, soFromBeginning);
+      Package.Seek(PackagePos, soBeginning);
       Package.Read(Chunk, SizeOf(SP_FileChunk));
 
       // First check - are we at the final chunk, with a seekpos >= maximum chunksize?
@@ -518,10 +518,10 @@ Begin
         NewFile.CurrentChunk := SP_GetNextChunk;
         NewFile.SEEKPos := 0;
         Chunk.NextChunk := NewFile.CurrentChunk;
-        Package.Seek(PackagePos, soFromBeginning);
+        Package.Seek(PackagePos, soBeginning);
         Package.Write(Chunk, SizeOf(SP_FileChunk));
         PackagePos := (NewFile.CurrentChunk * SizeOf(SP_FileChunk)) + SizeOf(SP_FileTable);
-        Package.Seek(PackagePos, soFromBeginning);
+        Package.Seek(PackagePos, soBeginning);
         Package.Read(Chunk, SizeOf(SP_FileChunk));
         Inc(NewFile.NumChunks);
         NewFile.LastChunk := NewFile.CurrentChunk;
@@ -539,7 +539,7 @@ Begin
       // Are we writing to the last chunk?
       // If so, we might be extending the file.
 
-      If NewFile.LastChunk = longword(NewFile.CurrentChunk) Then
+      If NewFile.LastChunk = NewFile.CurrentChunk Then
         If NewFile.SEEKPos >= Chunk.ChunkSize Then
           NewFile.FileSize := (NewFile.NumChunks * SP_ChunkSize) + NewFile.SEEKPos + BytesWritten;
 
@@ -555,7 +555,7 @@ Begin
         // If we're at the last chunk in the file, then update the last chunk pointer
         // to this new chunk.
 
-        If NewFile.LastChunk = longword(NewFile.CurrentChunk) Then Begin
+        If NewFile.LastChunk = NewFile.CurrentChunk Then Begin
           Inc(NewFile.NumChunks);
           NewFile.LastChunk := NewChunkID;
         End;
@@ -568,7 +568,7 @@ Begin
       End Else Begin
 
         Inc(NewFile.SEEKPos, BytesWritten);
-        If NewFile.LastChunk = longword(NewFile.CurrentChunk) Then
+        If NewFile.LastChunk = NewFile.CurrentChunk Then
           If Chunk.ChunkSize < NewFile.SEEKPos Then
             Chunk.ChunkSize := NewFile.SEEKPos;
 
@@ -576,7 +576,7 @@ Begin
 
       // Write out the completed chunk.
 
-      Package.Seek(PackagePos, soFromBeginning);
+      Package.Seek(PackagePos, soBeginning);
       Package.Write(Chunk, SizeOf(SP_FileChunk));
 
     End;
@@ -621,7 +621,7 @@ Begin
       // Pull in the current chunk - might be in the middle of the file. Who knows?
 
       PackagePos := (NewFile.CurrentChunk * SizeOf(SP_FileChunk)) + SizeOf(SP_FileTable);
-      Package.Seek(PackagePos, soFromBeginning);
+      Package.Seek(PackagePos, soBeginning);
       Package.Read(Chunk, SizeOf(SP_FileChunk));
 
       // And write at most a chunk's worth of data.
@@ -892,9 +892,9 @@ Begin
 
     While Directory <> '' Do Begin
 
-      If Pos('/', String(Directory)) <> 0 Then Begin
-        DirPart := Lower(Copy(Directory, 1, Pos('/', String(Directory)) -1));
-        Directory := Copy(Directory, Pos('/', String(Directory)) +1, Length(Directory));
+      If Pos('/', Directory) <> 0 Then Begin
+        DirPart := Lower(Copy(Directory, 1, Pos('/', Directory) -1));
+        Directory := Copy(Directory, Pos('/', Directory) +1, Length(Directory));
       End Else Begin
         DirPart := Lower(Directory);
         Directory := '';
@@ -960,9 +960,9 @@ Begin
 
     While Path <> '' Do Begin
 
-      If Pos('/', String(Path)) <> 0 Then Begin
-        DirPart := Lower(Copy(Path, 1, Pos('/', String(Path)) -1));
-        Path := Copy(Path, Pos('/', String(Path)) +1, Length(Path));
+      If Pos('/', Path) <> 0 Then Begin
+        DirPart := Lower(Copy(Path, 1, Pos('/', Path) -1));
+        Path := Copy(Path, Pos('/', Path) +1, Length(Path));
       End Else Begin
         Break;
         Path := '';
@@ -1015,7 +1015,7 @@ Begin
 
       If CurrentPackage.Directories[Idx].ParentDirectoryID = Dir then Begin
 
-        Idx2 := List.Add(String(SP_PackageGetName(@CurrentPackage.Directories[Idx].DirName[0])));
+        Idx2 := List.Add(SP_PackageGetName(@CurrentPackage.Directories[Idx].DirName[0]));
         List.Objects[Idx2] := Pointer(1);
 
       End;
@@ -1027,7 +1027,7 @@ Begin
 
       If CurrentPackage.Files[Idx].DirectoryID = Dir then Begin
 
-        Idx2 := List.Add(String(SP_PackageGetName(@CurrentPackage.Files[Idx].Filename[0])));
+        Idx2 := List.Add(SP_PackageGetName(@CurrentPackage.Files[Idx].Filename[0]));
         List.Objects[Idx2] := Pointer(0);
 
         Size := aString(IntToStr(CurrentPackage.Files[Idx].FileSize));
@@ -1054,9 +1054,9 @@ Begin
           If Length(AgeStr) < 10 Then
             AgeStr := Copy(AgeStr, 1, 3) + '0' + Copy(AgeStr, 4, Length(AgeStr));
           AgeStr := Copy(AgeStr, 4, 2) + '/' + Copy(AgeStr, 1, 2) + '/' + Copy(AgeStr, 7, 4);
-          sIdx := Sizes.Add(String(Size2 + ' ' + aString(StringOfChar(' ', 10 - Length(AgeStr))) + AgeStr));
+          sIdx := Sizes.Add(Size2 + ' ' + aString(StringOfChar(' ', 10 - Length(AgeStr))) + AgeStr);
         End Else
-          sIdx := Sizes.Add(String(Size2 + '            '));
+          sIdx := Sizes.Add(Size2 + '            ');
         Sizes.Objects[sIdx] := Pointer(StringToLong(Size));
 
       End;
@@ -1086,9 +1086,9 @@ Begin
 
     While Path <> '' Do Begin
 
-      If Pos('/', String(Path)) <> 0 Then Begin
-        DirPart := Lower(Copy(Path, 1, Pos('/', String(Path)) -1));
-        Path := Copy(Path, Pos('/', String(Path)) +1, Length(Path));
+      If Pos('/', Path) <> 0 Then Begin
+        DirPart := Lower(Copy(Path, 1, Pos('/', Path) -1));
+        Path := Copy(Path, Pos('/', Path) +1, Length(Path));
       End;
 
       If DirPart <> '.' Then Begin
@@ -1133,7 +1133,7 @@ Begin
   // Finds a file in the package if it's open, and extracts it to the TEMPDIR folder,
   // then modifies the filename so the calling proc opens the newly unpacked file.
 
-  If PackageIsOpen And (Pos(':', String(Filename)) = 0) Then Begin
+  If PackageIsOpen And (Pos(':', Filename) = 0) Then Begin
 
     If SP_FileExists(Filename) Then
       SP_PackageUnpackFile(Filename, Error);
@@ -1219,9 +1219,9 @@ Begin
 
   While Path <> '' Do Begin
 
-    If Pos('/', String(Path)) <> 0 Then Begin
-      DirPart := Lower(Copy(Path, 1, Pos('/', String(Path)) -1));
-      Path := Copy(Path, Pos('/', String(Path)) +1, Length(Path));
+    If Pos('/', Path) <> 0 Then Begin
+      DirPart := Lower(Copy(Path, 1, Pos('/', Path) -1));
+      Path := Copy(Path, Pos('/', Path) +1, Length(Path));
     End Else Begin
       Break;
       Path := '';
@@ -1490,7 +1490,6 @@ Procedure SP_CleanPackage;
 Var
   Idx, Idx2, chStart, chEnd, chModify, Dest: Integer;
   NewChunk: SP_FileChunk;
-  ChunkUpdated: Boolean;
 Begin
 
   // Runs through the package and removes unused chunks.
@@ -1522,7 +1521,6 @@ Begin
       While Idx2 <= Length(SP_ChunkMap) Do Begin
         Package.Seek(SizeOf(SP_FileTable) + (Idx2 * SizeOf(SP_FileChunk)), soFromBeginning);
         Package.Read(NewChunk, SizeOf(SP_FileChunk));
-        ChunkUpdated := False;
         If NewChunk.Allocated Then Begin
           If NewChunk.PrevChunk > chEnd Then Dec(NewChunk.PrevChunk, chModify);
           If NewChunk.NextChunk > chEnd Then Dec(NewChunk.NextChunk, chModify);

@@ -50,10 +50,13 @@ Type
   aFloat = Extended;
   paFloat = ^aFloat;
 
+Function  Pos(Const SubStr, s: aString): Integer; Overload;
+Function  Pos(Const SubStr: aChar; s: aString): Integer; Overload;
 Function  ReadLinuxFile(Filename: aString): aString;
 Procedure WriteLinuxFile(Filename, Value: aString);
 Function  GetCRC32FromString(Str: aString): LongWord;
-Function  SP_Copy(Const Src: aString; Start, Len: Integer): aString; inline;
+Function  SP_Copy(Const Src: aString; Start, Len: Integer): aString; overload; inline;
+Function  SP_Copy(Const Src: aString; Start: Integer): aString; overload; inline;
 Function  StringCopy(Str: paString; Start, Len: Integer): aString; inline;
 Function  StringFromPtr(Ptr: pByte; Len: Integer): aString; inline;
 Function  StringFromPtrB(Ptr: pByte; Len: Integer): aString; inline;
@@ -69,7 +72,9 @@ Function  Lower(const Text: aString): aString; inline;
 Function  LowerNoFormatting(const Text: aString): aString; inline;
 Function  LowerNoSpaces(const Text: aString): aString; inline;
 Function  StringToLong(Str: aString): LongWord; inline;
+Function  StringToInt(Str: aString; Default: Integer = 0): Integer; inline;
 Function  IntToString(Value: Integer): aString; inline;
+Function  SP_StringOfChar(ch: aChar; Count: Integer): aString;
 Function  StripSpaces(const Text: aString): aString; inline;
 Function  StringHasContent(const Text: aString): Boolean; Inline;
 Function  StripLeadingSpaces(const Text: aString): aString; inline;
@@ -92,6 +97,7 @@ Function  GetMillisecond(T: Afloat): Integer; Inline;
 Function  HexDump(ptr: pByte; Size, MaxWidth: Integer): aString;
 Function  RawHexDump(ptr: pByte; Size: Integer): aString;
 Function  ReadRawHex(Var Src: aString): aString;
+Function  IntToHex(Value, Digits: Integer): aString;
 Function  IntToFrac(Value: Integer): aFloat; inline;
 Function  CopyFile(sSource, sDest: string): boolean;
 Procedure CopyDir(sSource, sDest: string);
@@ -167,7 +173,7 @@ Const
 
 implementation
 
-Uses SP_SysVars, SP_Main;
+Uses SP_Main;
 
 Procedure Log(Text: aString);
 Begin
@@ -181,7 +187,7 @@ Begin
     LogFile := TFileStream.Create('c:\temp\log.txt', fmCreate);
     LogFileAssigned := True;
   End;
-  Text := '['+IntToStr(Round(CB_GETTICKS))+'] ' + Text + #13#10;
+  Text := '['+IntToString(Round(CB_GETTICKS))+'] ' + Text + #13#10;
   LogFile.Write(Text[1], Length(Text));
   {$ENDIF}
 
@@ -311,7 +317,7 @@ Begin
   Result := pByte(pNativeUInt(Str)^) + Position -1;
 End;
 
-Function SP_Copy(Const Src: aString; Start, Len: Integer): aString; inline;
+Function SP_Copy(Const Src: aString; Start, Len: Integer): aString; overload; inline;
 Var
   pSrc, pDst: pByte;
 Begin
@@ -328,39 +334,42 @@ Begin
     pDst := pByte(pNativeUInt(@Result)^);
 
     Move(pSrc^, pDst^, Len);
-{
-    While Len > SizeOf(LongWord) Do Begin
 
-      pLongWord(pDst)^ := pLongWord(pSrc)^;
-      Inc(pDst, SizeOf(LongWord));
-      Inc(pSrc, SizeOf(LongWord));
-      Dec(Len, SizeOf(LongWord));
-
-    End;
-
-    If Len = SizeOf(LongWord) Then Begin
-
-      pLongWord(pDst)^ := pLongWord(pSrc)^;
-      Exit;
-
-    End;
-
-    While Len > 0 Do Begin
-      pDst^ := pSrc^;
-      Inc(pDst);
-      Inc(pSrc);
-      Dec(Len);
-    End;
-}
   End Else
 
     Result := '';
 
 End;
 
+Function SP_Copy(Const Src: aString; Start: Integer): aString; overload; inline;
+Var
+  pSrc, pDst: pByte;
+  Len: Integer;
+Begin
+
+  Len := Length(Src);
+  If Len > 0 Then Begin
+
+    If Start + Len -1 > Length(Src) Then Begin
+      SetLength(Result, (Length(Src) - Start) +1);
+      Len := Length(Result);
+    End Else
+      SetLength(Result, Len);
+
+    pSrc := pByte(pNativeUInt(@Src)^) + Start -1;
+    pDst := pByte(pNativeUInt(@Result)^);
+
+    Move(pSrc^, pDst^, Len);
+
+  End Else
+
+    Result := '';
+
+End;
+
+
 Function StringCopy(Str: paString; Start, Len: Integer): aString; inline;
 Var
-  Idx: Integer;
   Src, Dst: pByte;
 Begin
 
@@ -443,7 +452,7 @@ End;
 
 Procedure StringFromPtrD(Const Src: aString; Var Dest: aString); inline;
 Var
-  Len, Idx: Integer;
+  Len: Integer;
   dPtr, sPtr: pByte;
 Begin
 
@@ -880,11 +889,43 @@ Var
   Cnt: Integer;
 Begin
 
+  {$WARNINGS Off}
   Result := 0;
   p := pByte(pNativeUInt(@Str)^);
   For Cnt := 1 To Length(Str) Do Begin
-    Result := Result * 10 + (p^ - 48);
+    Result := Result * 10 + (p^ - 48); // warning here. Unavoidable?
     Inc(p);
+  End;
+  {$WARNINGS On}
+
+End;
+
+Function StringToInt(Str: aString; Default: Integer): Integer; inline;
+Var
+  p: pByte;
+  Cnt, Neg: Integer;
+Begin
+
+  If Str = '' Then
+    Result := Default
+  Else Begin
+    Neg := 0;
+    Result := 0;
+    p := pByte(pNativeUInt(@Str)^);
+    For Cnt := 1 To Length(Str) Do Begin
+      If (aChar(p^) = '-') And (Result = 0) Then
+        Neg := 1 - Neg
+      Else
+        If (p^ >= 48) and (p^ <= 57) Then
+          Result := Result * 10 + (p^ - 48)
+        Else Begin
+          Result := Default;
+          Exit;
+        End;
+      Inc(p);
+    End;
+    If Neg > 0 Then
+      Result := -Result;
   End;
 
 End;
@@ -932,6 +973,21 @@ Begin
     End;
     If NegFlag then cPtr^ := 45;
 
+  End;
+
+End;
+
+Function SP_StringOfChar(ch: aChar; Count: Integer): aString;
+Var
+  ptr: pByte;
+Begin
+
+  SetLength(Result, Count);
+  ptr := pByte(pNativeUInt(@Result)^);
+  While Count > 0 Do Begin
+    ptr^ := Ord(ch);
+    Inc(ptr);
+    Dec(Count);
   End;
 
 End;
@@ -986,7 +1042,7 @@ Begin
       Value := Value - m
     Else
       Value := Value + m;
-  Result := FormatFloat('0.##############', Value);
+  Result := aString(FormatFloat('0.##############', Value));
 End;
 
 Function SP_Power(Base, Exponent: aFloat): aFloat; inline;
@@ -1078,6 +1134,15 @@ Begin
   While (Position <= Length(Line)) And (Line[Position] <= ' ') Do
     Inc(Position);
 
+End;
+
+Function IntToHex(Value, Digits: Integer): aString;
+Begin
+  Result := '';
+  If Value < 16 Then
+    Result := Result + aChar('0') + aString('0123456789ABCDEF')[Value + 1]
+  Else
+    Result := Result + aString('0123456789ABCDEF')[(Value Shr 4)+ 1] + aString('0123456789ABCDEF')[(Value And $F) + 1];
 End;
 
 Function HexDump(ptr: pByte; Size, MaxWidth: Integer): aString;
@@ -1239,6 +1304,7 @@ Var
   Idx, Value, txLen, v: Integer;
 Begin
 
+  v := 0;
   Idx := 1;
   Value := 0;
   Result := False;
@@ -1365,7 +1431,7 @@ End;
 
 Function SP_PartialMatch(const s1, s2: aString): Boolean;
 Var
-  i, l: Integer;
+  l: Integer;
   ps, pd: pByte;
 Begin
 
@@ -1406,6 +1472,68 @@ Begin
     Result := A
   Else
     Result := B;
+End;
+
+Function Pos(Const SubStr, s: aString): Integer;
+Var
+  l, l1, l2: Integer;
+  ps, pd, pdb, psb: pByte;
+Begin
+
+  Result := 1;
+  pd := pByte(pNativeUInt(@SubStr)^);
+  ps := pByte(pNativeUInt(@s)^);
+  pdb := pd;
+
+  l1 := Length(s);
+  l2 := Length(SubStr);
+  l := NativeUInt(ps) + l1;
+
+  If l2 > l1 Then Begin
+    Result := 0;
+    Exit;
+  End Else
+    While NativeUint(ps) <= l Do Begin
+      If ps^ = pd^ Then Begin
+        psb := ps;
+        While (NativeUInt(psb) <= l) and (psb^ = pd^) Do Begin
+          Inc(psb);
+          Inc(pd);
+          If NativeUInt(pd) = NativeUInt(pdb) + l2 Then
+            Exit;
+        End;
+        pd := pdb;
+      End;
+      Inc(ps);
+      Inc(Result);
+    End;
+
+  If NativeUInt(ps) >= l Then
+    Result := 0;
+
+End;
+
+Function Pos(Const SubStr: aChar; s: aString): Integer;
+Var
+  ps: pByte;
+  pss: NativeUInt;
+  l: Integer;
+Begin
+
+  Result := 0;
+  If s = '' Then Exit;
+
+  ps := pByte(pNativeUInt(@s)^);
+  l := NativeUInt(ps) + Length(s);
+  pss := NativeUInt(ps);
+
+  While NativeUint(ps) <= l Do
+    if ps^ = Ord(SubStr) Then Begin
+      Result := (NativeUint(ps) - pss) +1;
+      Exit;
+    End Else
+      Inc(ps);
+
 End;
 
 Initialization

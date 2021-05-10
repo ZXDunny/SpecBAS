@@ -155,7 +155,7 @@ SP_BaseComponent = Class
     Procedure DoResize(WidthChange, HeightChange: Integer);
 
     Procedure Paint; Virtual;
-    Procedure Render(Dst: pByte; dW, dH: LongWord);
+    Procedure Render(Dst: pByte; dW, dH: Integer);
     Procedure BringToFront;
     Procedure SetBounds(x, y, w, h: Integer); Virtual;
     Procedure SetPosition(x, y: Integer); Virtual;
@@ -397,18 +397,16 @@ End;
 
 Procedure SP_BaseComponent.Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold: Boolean);
 Var
-  BankID, CharW, CharH, Idx, Val, cCount, OVER, ItalicOffset: Integer;
-  sx, sy, Cw, Ch, yp, xp, TC, t: LongWord;
+  BankID, CharW, CharH, Idx, cCount, ItalicOffset: Integer;
+  sx, sy, Cw, Ch, yp, xp, TC, t: Integer;
   Transparent: Boolean;
   FontBank: pSP_Font_Info;
   Bank: pSP_Bank;
-  Dst, Coord, Char, pIdx, lIdx, c: pByte;
+  Dst, Coord, Char, pIdx, lIdx: pByte;
   IsScaled, SkipNextPaper: Boolean;
-  dX, dY: aFloat;
 Begin
 
   Dst := @fCanvas[0];
-  IsScaled := False;
   BankID := SP_FindBankID(Font);
   If BankID <> SP_ERR_BANK_ID_NOT_FOUND Then Begin
 
@@ -422,8 +420,10 @@ Begin
     If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
       Transparent := FontBank^.Transparent <> $FFFF;
       TC := FontBank^.Transparent And $FF;
-    End Else
+    End Else Begin
       Transparent := Paper = -1;
+      TC := 0;
+    End;
 
     Idx := 1;
     While Idx <= Length(Text) Do Begin
@@ -486,8 +486,6 @@ Begin
           End;
           CharH := Ch;
           Dec(Y, Ch);
-          Dec(Coord, SCREENSTRIDE * CharH);
-          Inc(Coord, CharW);
           Inc(X, CharW);
         End Else Begin
           While CharH > 0 Do Begin
@@ -527,8 +525,6 @@ Begin
           End;
           CharH := FontBank^.Height;
           Dec(Y, CharH);
-          Dec(Coord, fWidth * CharH);
-          Inc(Coord, CharW);
           Inc(X, CharW);
         End;
 
@@ -589,19 +585,19 @@ Begin
             End;
          22:
             Begin // AT control
-              Y := pInteger(@Text[Idx+1])^ * LongWord(Ch);
+              Y := pInteger(@Text[Idx+1])^ * Ch;
               Inc(Idx, SizeOf(Integer));
-              X := pInteger(@Text[Idx+1])^ * LongWord(Cw);
+              X := pInteger(@Text[Idx+1])^ * Cw;
               Inc(Idx, SizeOf(Integer));
             End;
          23:
             Begin // TAB control
-              X := (pInteger(@Text[Idx+1])^ Mod LongWord(fWidth Div Cw)) * LongWord(Ch);
+              X := (pInteger(@Text[Idx+1])^ Mod fWidth Div Cw) * Ch;
               Inc(Idx, SizeOf(Integer));
             End;
          24:
             Begin // CENTRE control
-              Y := pInteger(@Text[Idx+1])^ * LongWord(Ch);
+              Y := pInteger(@Text[Idx+1])^ * Ch;
               Inc(Idx, SizeOf(Integer) +1);
               pIdx := pByte(@Text[Idx]);
               lIdx := pIdx + Length(Text) - Idx;
@@ -667,8 +663,6 @@ Begin
             Inc(Idx, SizeOf(LongWord));
           End;
         End;
-        Coord := Dst;
-        Inc(Coord, (fWidth * Y) + X);
       End;
       Inc(Idx);
     End;
@@ -943,10 +937,7 @@ End;
 
 Constructor SP_BaseComponent.Create(Owner: SP_BaseComponent);
 Var
-  win: pSP_Window_Info;
-  Error: TSP_ErrorCode;
   l: Integer;
-  cp: SP_BaseComponent;
 Begin
 
   ChangeFont;
@@ -1299,10 +1290,7 @@ End;
 
 Procedure SP_BaseComponent.Paint;
 Var
-  Win: pSP_Window_Info;
-  Idx: Integer;
   p: TPoint;
-  Error: TSP_ErrorCode;
 Begin
 
   If fValidCanvas And (fLockCount <= 0) Then Begin
@@ -1399,7 +1387,6 @@ End;
 
 Procedure SP_BaseComponent.SetWidth(w: Integer);
 Var
-  Error: TSP_ErrorCode;
   OldWidth: Integer;
 Begin
 
@@ -1431,7 +1418,6 @@ End;
 
 Procedure SP_BaseComponent.SetHeight(h: Integer);
 Var
-  Error: TSP_ErrorCode;
   OldHeight: Integer;
 Begin
 
@@ -1462,8 +1448,6 @@ Begin
 End;
 
 Procedure SP_BaseComponent.SetLeft(X: Integer);
-Var
-  Error: TSP_ErrorCode;
 Begin
 
   If aRight in fAnchors Then Begin
@@ -1478,8 +1462,6 @@ Begin
 End;
 
 Procedure SP_BaseComponent.SetTop(Y: Integer);
-Var
-  Error: TSP_ErrorCode;
 Begin
 
   If aTop in fAnchors Then Begin
@@ -1551,8 +1533,6 @@ begin
 end;
 
 Procedure SP_BaseComponent.DoErase;
-Var
-  Error: TSP_ErrorCode;
 Begin
 
   If fValidCanvas Then
@@ -1597,12 +1577,14 @@ Begin
 
 End;
 
-Procedure SP_BaseComponent.Render(Dst: pByte; dW, dH: LongWord);
+Procedure SP_BaseComponent.Render(Dst: pByte; dW, dH: Integer);
 Var
-  dX, dY, W, W2, H, SrcX, SrcY, SrcW, SrcH, Idx: LongWord;
+  dX, dY, W, W2, SrcX, SrcY, SrcW, SrcH, Idx: Integer;
   Src: pByte;
   TC: Byte;
 Begin
+
+  W := fWidth;
 
   If Not Assigned(fParentControl) Then Begin
 
@@ -1625,13 +1607,13 @@ Begin
     If (dX > dW) or (dX <= -Width) Then Exit;
     If (dY > dH) or (dY <= -Height) Then Exit;
     If dX < 0 Then Begin SrcX := -dX; Dec(W2, SrcX); dX := 0; End Else SrcX := 0;
-    If dY < 0 Then Begin SrcY := -dY; Dec(H, SrcY); dY := 0; End Else SrcY := 0;
+    If dY < 0 Then Begin SrcY := -dY; dY := 0; End Else SrcY := 0;
     If dX + W2 >= dW Then SrcW := dW - dX Else SrcW := Min(W2, dW);
     If dY + Height >= dH Then SrcH := dH - dY Else SrcH := Min(Height, dH);
 
     Src := @fTempCanvas[0];
     Inc(Src, (W * SrcY) + SrcX);
-    Inc(Dst, (Integer(dW) * dY) + dX);
+    Inc(Dst, (dW * dY) + dX);
     If fTransparentClr <> $FFFF Then Begin
       TC := fTransparentClr And $FF;
       While SrcH > 0 Do Begin
@@ -1708,7 +1690,6 @@ end;
 
 Procedure SP_BaseComponent.SetBounds(x, y, w, h: Integer);
 Var
-  Error: TSP_ErrorCode;
   OldWidth, OldHeight: Integer;
 Begin
 
@@ -1756,8 +1737,6 @@ Begin
 End;
 
 Procedure SP_BaseComponent.KeyDown(Key: Integer; Var Handled: Boolean);
-Var
-  b: Boolean;
 Begin
 
   fLastKeyChar := cLastKeyChar;
@@ -1991,7 +1970,6 @@ End;
 Procedure SP_BaseComponent.SetVisible(Value: Boolean);
 Var
   p: TPoint;
-  Error: TSP_ErrorCode;
 Begin
 
   If fVisible <> Value Then Begin

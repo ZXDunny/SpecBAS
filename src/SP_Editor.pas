@@ -47,7 +47,7 @@ Uses SP_Main, SP_Menu, SP_FPEditor;
 Procedure SP_DrawStripe(Dst: pByte; Width, StripeWidth, StripeHeight: Integer);
 Var
   X, Y, X2: Integer;
-  Ptr, oPtr: pByte;
+  oPtr: pByte;
 Const
   Clrs: Array[0..3] of Byte = (10, 14, 12, 13);
 Begin
@@ -68,9 +68,7 @@ End;
 Procedure SP_EditLoop(Var Error: TSP_ErrorCode);
 Var
   aSave: Boolean;
-  TokensStr, Expr: aString;
-  Tokens: paString;
-  PreParseErrorCode, PreParseErrorLine, PreParseErrorStatement, CurLine, Idx, LocalFlashState: Integer;
+  CurLine: Integer;
   pInfo: pSP_iInfo;
   Info: TSP_iInfo;
 Label
@@ -122,7 +120,7 @@ Begin
     SP_LoadProgram(aString(PARAMS[1]), False, True, nil, Error);
     If Error.Code = SP_ERR_OK Then Begin
       If ParamCount > 1 Then
-        CurLine := StrToIntDef(PARAMS[2], -1)
+        CurLine := StringToInt(PARAMS[2], -1)
       Else
         CurLine := NXTLINE;
       If CurLine = -1 Then CurLine := 0;
@@ -154,7 +152,8 @@ Begin
       SP_PreParse(True, Error);
     End;
 
-    If Not FILENAMED Then SP_SetCurrentDir('/', Error);
+    If Not FILENAMED Then
+      SP_SetCurrentDir('/', Error);
 
     Error.Line := -2;
     Error.Statement := 0;
@@ -179,12 +178,12 @@ Function SP_GetInput(Var Error: TSP_ErrorCode): Boolean;
 Var
   Finished, Changed: Boolean;
   KeyInfo: pSP_KeyInfo;
-  RepeatLen: LongWord;
-  LocalFlashState, Scrolls, Fg, Bg, dCnt: Integer;
-  X, Y, PosX, PosY, Top: aFloat;
+  LocalFlashState, Scrolls, Fg, Bg: Integer;
+  X, Y, PosX, PosY: aFloat;
   EL_Text, TempStr: aString;
 Begin
 
+  LocalFlashState := FLASHSTATE;
   EditorSaveFPS := FPS;
   SP_SetFPS(EditorFPS);
 
@@ -203,8 +202,6 @@ Begin
   SYSTEMSTATE := SS_INPUT;
   Finished := False;
   Changed := True;
-  RepeatLen := REPDEL;
-  Top := Round(PRPOSY);
 
   While Not Finished Do Begin
 
@@ -236,7 +233,6 @@ Begin
       End;
       SP_SetDirtyRect(0, 0, DISPLAYWIDTH, DISPLAYHEIGHT);
       PRPOSX := X; PRPOSY := Y;
-      Changed := False;
 
     End;
 
@@ -299,8 +295,6 @@ End;
 
 Procedure SP_PerformINPUT(Key: SP_KeyInfo);
 Var
-  LineIdx, Idx, Cnt, LineNum, Statement, PosM, PosT: Integer;
-  Error: TSP_ErrorCode;
   nChar: aChar;
 Begin
 
@@ -506,9 +500,9 @@ End;
 Function  SP_ShowMenu(Var Options: aString; cX, cY: Integer): Integer;
 Var
   NumOptions, MaxWidth, WinX, WinY, WinW, WinH, Offset, Idx, StrLen,
-  Window, WindowID, yOff, CurOption, RepeatLen, bWidth, bHeight, fW, fH: Integer;
+  Window, WindowID, yOff, CurOption, bWidth, bHeight, fW, fH: Integer;
   OptionList: TAnsiStringList;
-  cBlack, cWhite, cRed, cGreen, cCyan, cYellow, KeyChar: Byte;
+  cBlack, cWhite, cCyan: Byte;
   Err: TSP_ErrorCode;
   Win: pSP_Window_Info;
   Done: Boolean;
@@ -518,8 +512,6 @@ Begin
   EditorSaveFPS := FPS;
   SP_SetFPS(EditorFPS);
 
-  KeyChar := 0;
-  RepeatLen := 0;
   Result := -1;
 
   // Options in the string, in format length,string...
@@ -532,7 +524,7 @@ Begin
   Offset := SizeOf(LongWord) +1;
   For Idx := 1 To NumOptions Do Begin
     StrLen := pLongWord(@Options[Offset])^;
-    OptionList.Add(Copy(String(Options), Offset + SizeOf(LongWord), StrLen));
+    OptionList.Add(Copy(Options, Offset + SizeOf(LongWord), StrLen));
     Inc(Offset, SizeOf(LongWord) + StrLen);
     If StrLen > MaxWidth Then
       MaxWidth := StrLen;
@@ -570,10 +562,7 @@ Begin
   // appropriate palette entries for this.
 
   cBlack := SP_Get_Nearest_Colour(0, 0, 0, -1);
-  cRed := SP_Get_Nearest_Colour(255, 0, 0, -1);
-  cGreen := SP_Get_Nearest_Colour(0, 255, 0, -1);
   cCyan := SP_Get_Nearest_Colour(0, 192, 192, -1);
-  cYellow := SP_Get_Nearest_Colour(255, 255, 0, -1);
   cWhite := SP_Get_Nearest_Colour(255, 255, 255, -1);
 
   // Now create the window
@@ -619,7 +608,6 @@ Begin
       End;
     End;
 
-    Key := nil;
     Repeat
       CB_Yield;
       Key := SP_GetNextKey(FRAMES);

@@ -25,8 +25,8 @@ Unit SP_Interpret_PostFix;
 
 interface
 
-Uses Forms, SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_Variables, SP_FileIO,
-     SP_Input, SP_BankManager, SP_BankFiling, SP_Streams, SP_Sound, SP_VM_Emu, SP_Package, Math, Classes, SysUtils, SP_Math,
+Uses Forms, SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
+     SP_Input, SP_BankManager, SP_BankFiling, SP_Streams, SP_Sound, SP_Package, Math, Classes, SysUtils, SP_Math,
      {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_Strings, SP_Menu, SP_UITools, SP_AnsiStringlist;
 
 Type
@@ -60,10 +60,6 @@ Type
   End;
   pSP_StackItem = ^SP_StackItem;
 
-  TSP_GOSUB_Item = Packed Record
-    Line, Statement, St, Source, Count: Integer;
-  End;
-
   TSP_Label = Packed Record
     Name: aString;
     Dline, DStatement, DSt: Integer;
@@ -83,19 +79,6 @@ Type
     Line, Statement: Integer;
     Completed: Boolean;
     AllFlag: Boolean;
-  End;
-
-  TSP_ProcItem = Packed Record
-    Name: aString;
-    NumVars: Integer;
-    VarList: aString;
-    VarTypes: aString;
-    Line, Statement, St: Integer;
-    EP_Line, EP_Statement, EP_St: Integer;
-  End;
-
-  TSP_ProcStackItem = Packed Record
-    ProcIndex, NumVars, VarPosN, VarPosS, VarPosNA, VarPosSA, CALLType: Integer;
   End;
 
   TSP_WatchInfo = Packed Record
@@ -945,15 +928,9 @@ Procedure SP_Interpret_SP_RESTORECOLOURS(Var Info: pSP_iInfo);
 
 Var
 
-  SP_DATA_Line: TSP_GOSUB_Item;
-  SP_DATA_Tokens: paString;
-  ProcListAvailable: Boolean;
   SP_CaseList: Array[0..1023] of TSP_CaseItem;
   SP_CaseListPtr: Integer;
-  SP_ProcsList: Array [0 .. 1023] of TSP_ProcItem;
-  SP_ProcsListPtr: Integer;
-  SP_ProcStack: Array [0 .. 1023] of TSP_ProcStackItem;
-  SP_ProcStackPtr: Integer;
+
   SP_Stack: Array [0 .. 63] of SP_StackItem;
   SP_StackPtr, SP_StackStart: pSP_StackItem;
   SP_EveryItems: Array of TSP_EveryItem;
@@ -1015,7 +992,7 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel;
+Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, SP_Variables;
 
 Procedure SP_AddWatch(Index: Integer; Expr: aString);
 Var
@@ -1134,7 +1111,7 @@ End;
 
 Procedure SP_AddConditionalBreakpoint(BpIndex, Passes: Integer; Condition: aString; IsData: Boolean);
 Var
-  l, i: Integer;
+  l: Integer;
   s: aString;
   Error: TSP_ErrorCode;
 Begin
@@ -1666,8 +1643,6 @@ Begin
 End;
 
 Procedure SP_Interpret_SP_SYMBOL(Var iInfo: pSP_iInfo);
-Var
-  Idx: Integer;
 Begin
   With iInfo^ Do Begin
     Inc(SP_StackPtr);
@@ -1846,7 +1821,7 @@ Begin
       Idx := Round(SP_StackPtr^.Val);
       If (Idx = 0) And (SP_StackPtr^.OpType <> SP_STRING) Then Begin
         // A Slicer attached to an array assign will have no name length, so test for that now
-        If (Length(SP_StackPtr^.Str) - SizeOf(LongWord)) <> pLongWord(@SP_StackPtr^.Str[1])^ Then
+        If (Length(SP_StackPtr^.Str) - SizeOf(LongWord)) <> pInteger(@SP_StackPtr^.Str[1])^ Then
           Idx := SP_FindStrArray(SP_StackPtr^.Str)
         Else
           Idx := SP_FindStrArray(StringFromPtrB(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
@@ -2091,7 +2066,6 @@ End;
 Procedure SP_Interpret_SP_IJMP(Var iInfo: pSP_iInfo);
 Var
   c, n: Integer;
-  d: Longword;
 Begin
   With iInfo^ Do Begin
     // Read count
@@ -2998,7 +2972,7 @@ End;
 
 Procedure SP_Interpret_SP_CHAR_EXCLAIM(Var Info: pSP_iInfo);
 Var
-  Idx: Integer;
+  Idx: LongWord;
 Begin
   With Info^ Do Begin
     If SP_StackPtr^.Val > 0 Then Begin
@@ -3022,7 +2996,7 @@ Procedure SP_Interpret_SP_CHAR_INCVAR(Var Info: pSP_iInfo);
 Var
   vl: NativeUInt;
   Idx: Integer;
-  n, v: aFloat;
+  n: aFloat;
 Begin
 
   n := SP_StackPtr^.Val;
@@ -3057,7 +3031,7 @@ Procedure SP_Interpret_SP_CHAR_DECVAR(Var Info: pSP_iInfo);
 Var
   vl: NativeUInt;
   Idx: Integer;
-  n, v: aFloat;
+  n: aFloat;
 Begin
 
   n := SP_StackPtr^.Val;
@@ -3092,7 +3066,7 @@ Procedure SP_Interpret_SP_CHAR_MULVAR(Var Info: pSP_iInfo);
 Var
   vl: NativeUInt;
   Idx: Integer;
-  n, v: aFloat;
+  n: aFloat;
 Begin
 
   n := SP_StackPtr^.Val;
@@ -3127,7 +3101,7 @@ Procedure SP_Interpret_SP_CHAR_DIVVAR(Var Info: pSP_iInfo);
 Var
   vl: NativeUInt;
   Idx: Integer;
-  n, v: aFloat;
+  n: aFloat;
 Begin
 
   n := SP_StackPtr^.Val;
@@ -3166,7 +3140,7 @@ Procedure SP_Interpret_SP_CHAR_POWVAR(Var Info: pSP_iInfo);
 Var
   vl: NativeUInt;
   Idx: Integer;
-  n, v: aFloat;
+  n: aFloat;
 Begin
 
   n := SP_StackPtr^.Val;
@@ -3201,7 +3175,6 @@ Procedure SP_Interpret_SP_CHAR_MODVAR(Var Info: pSP_iInfo);
 Var
   vl, val, n: NativeUInt;
   Idx: Integer;
-  v: aFloat;
 Begin
 
   n := Round(SP_StackPtr^.Val);
@@ -3241,7 +3214,7 @@ Procedure SP_Interpret_SP_CHAR_ANDVAR(Var Info: pSP_iInfo);
 Var
   vl: NativeUInt;
   Idx: Integer;
-  n, v: aFloat;
+  n: aFloat;
 Begin
 
   n := SP_StackPtr^.Val;
@@ -3276,7 +3249,7 @@ Procedure SP_Interpret_SP_CHAR_XORVAR(Var Info: pSP_iInfo);
 Var
   vl: NativeUInt;
   Idx: Integer;
-  n, v: aFloat;
+  n: aFloat;
 Begin
 
   n := SP_StackPtr^.Val;
@@ -3311,7 +3284,7 @@ Procedure SP_Interpret_SP_CHAR_ORVAR(Var Info: pSP_iInfo);
 Var
   vl: NativeUInt;
   Idx: Integer;
-  n, v: aFloat;
+  n: aFloat;
 Begin
 
   n := SP_StackPtr^.Val;
@@ -3445,7 +3418,7 @@ End;
 
 Procedure SP_Interpret(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
 Var
-  Idx, Idx2, CurST, OldST, OldEC: Integer;
+  Idx, CurST, OldST, OldEC: Integer;
   Info: TSP_iInfo;
   pInfo: pSP_iInfo;
   BreakNow: Boolean;
@@ -4298,7 +4271,7 @@ End;
 
 Procedure SP_Interpret_FN_MANDEL(Var Info: pSP_iInfo);
 Var
-  X, Y: aFloat;
+  Y: aFloat;
   MaxIters: Integer;
 Begin
 
@@ -4513,7 +4486,7 @@ End;
 
 Procedure SP_Interpret_FN_INZONE(Var Info: pSP_iInfo);
 Var
-  x, y: Integer;
+  y: Integer;
 Begin
 
   y := Round(SP_StackPtr^.Val);
@@ -4583,9 +4556,12 @@ Begin
   isValue := False;
   If SP_StackPtr^.OpType = SP_VALUE Then Begin
     TermVal := SP_StackPtr^.Val;
+    TermStr := '';
     isValue := True;
-  End Else
+  End Else Begin
+    TermVal := 0;
     TermStr := SP_StackPtr^.Str;
+  End;
 
   Dec(SP_StackPtr);
 
@@ -4714,7 +4690,6 @@ End;
 Procedure SP_Interpret_FN_DECIMAL(Var Info: pSP_iInfo);
 Var
   Value: Integer;
-  tString: aString;
 Begin
 
   Value := Round(SP_StackPtr^.Val);
@@ -5093,7 +5068,7 @@ End;
 
 Function SP_TestRanges(CheckVal: aFloat; Const CheckStr: aString; IsValue: Boolean; Var Error: TSP_ErrorCode): Boolean;
 Var
-  NumTerms, Idx: Integer;
+  NumTerms: Integer;
   rMinNum, rMaxNum: aFloat;
   rMinStr, rMaxStr: aString;
   sPtr: pSP_StackItem;
@@ -5255,8 +5230,8 @@ Procedure SP_Interpret_FN_IN(Var Info: pSP_iInfo);
 Var
   isValue: Boolean;
   NumTerms: Integer;
-  rMinNum, rMaxNum, CheckVal: aFloat;
-  rMinStr, rMaxStr, CheckStr: aString;
+  CheckVal: aFloat;
+  CheckStr: aString;
   Spn: pSP_StackItem;
 Begin
 
@@ -5833,7 +5808,7 @@ Begin
             If Tmp < 10 Then
               ResultStr := ResultStr + '0' + IntToString(Tmp)
             Else
-              ResultStr := ResultStr + IntToStr(Tmp);
+              ResultStr := ResultStr + IntToString(Tmp);
           End Else
             If Lower(Copy(FormatStr, Idx, 2)) = 'sf' Then Begin
               Inc(Idx, 2);
@@ -5886,7 +5861,7 @@ Begin
                     Inc(Idx, 2);
                     Tmp := GetMonth(CurTime);
                     If Tmp < 10 Then ResultStr := ResultStr + '0';
-                    ResultStr := ResultStr + IntToStr(Tmp);
+                    ResultStr := ResultStr + IntToString(Tmp);
                   End Else
                     If Lower(Copy(FormatStr, Idx, 2)) = 'm$' Then Begin
                       Inc(Idx, 2);
@@ -5937,7 +5912,7 @@ Procedure SP_Interpret_FN_TIMES(Var Info: pSP_iInfo);
 Var
   CurTime: TDateTime;
   Idx, Tmp: Integer;
-  FormatStr, ResultStr, TmpStr: aString;
+  FormatStr, ResultStr: aString;
 Begin
 
   // hh - two-number hour (24-hour clock).
@@ -6465,8 +6440,6 @@ Begin
 End;
 
 Procedure SP_Interpret_FN_INKEYS(Var Info: pSP_iInfo);
-Var
-  Shifted: Boolean;
 Begin
   Inc(SP_StackPtr);
   // Important - yield CPU if necessary to ensure that
@@ -6696,7 +6669,6 @@ Procedure SP_Interpret_FN_VAL(Var Info: pSP_iInfo);
 Var
   ValPosition: Integer;
   ValTkn: paString;
-  CC: Boolean;
 Label
   RunIt;
 Begin
@@ -6948,7 +6920,7 @@ End;
 
 Procedure SP_Interpret_FN_PEEKS(Var Info: pSP_iInfo);
 Var
-  Val1, Val2, Idx, Offset, BankIdx: Integer;
+  Val1, Offset, BankIdx: Integer;
   Bank: pSP_Bank;
 Begin
   Val1 := Round(SP_StackPtr^.Val);
@@ -7410,7 +7382,7 @@ End;
 
 Procedure SP_Interpret_FN_NOISE(Var Info: pSP_iInfo);
 Var
-  x, y, z, o: aFloat;
+  x, y, z: aFloat;
 Begin
   z := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
@@ -7562,12 +7534,11 @@ End;
 
 Procedure SP_Interpret_FN_TOKENS(Var Info: pSP_iInfo);
 Var
-  Val1, KeyWordID, oPs: Integer;
+  KeyWordID: Integer;
   nError: TSP_ErrorCode;
 Begin
   With Info^ Do Begin
     With SP_StackPtr^ Do Begin
-      Val1 := Error.Position;
       nError.Position := 1;
       nError.Code := SP_ERR_OK;
       If Str <> '' Then Begin
@@ -7927,8 +7898,6 @@ Begin
 End;
 
 Procedure SP_Interpret_PR_MOVE(Var Info: pSP_iInfo);
-Var
-  X, Y: Integer;
 Begin
 
   // MOVE numexpr,numexpr
@@ -8050,8 +8019,6 @@ Begin
 End;
 
 Procedure SP_Interpret_PR_SCALE(Var Info: pSP_iInfo);
-Var
-  ScaleX, ScaleY: aFloat;
 Begin
 
   // SCALE w,h - scalar values (1.0 being 1:1 size)
@@ -8128,7 +8095,7 @@ Begin
 
     PRPOSY := 0;
     SP_ConvertToOrigin_d_y(PRPOSY);
-    PRPOSY := PRPOSY + T_CENTRE_Y * LongWord(FONTHEIGHT);
+    PRPOSY := PRPOSY + T_CENTRE_Y * FONTHEIGHT;
 
     pIdx := pByte(@T_CENTRETEXT[1]);
     lIdx := pIdx + Length(T_CENTRETEXT) -1;
@@ -8358,7 +8325,7 @@ Var
   PrItem, CurItem: aString;
   UsingPos: Integer;
   Item: TUsingItem;
-  AddReturn, StopInString: Boolean;
+  AddReturn: Boolean;
 Begin
 
   PrItem := '';
@@ -8805,8 +8772,8 @@ End;
 Procedure SP_Interpret_LET(Var Info: pSP_iInfo);
 Var
   SliceFlags: Byte;
-  Indices, Content, sName, vName: aString;
-  Idx, SliceFrom, SliceTo, SliceStart, NumIndices: Integer;
+  Content, sName: aString;
+  Idx, SliceFrom, SliceTo, NumIndices: Integer;
   StrPtr: pSP_StrVarContent;
   Sp1, Sp2: pSP_StackItem;
 Begin
@@ -9043,7 +9010,7 @@ End;
 
 Procedure SP_Interpret_CLS(Var Info: pSP_iInfo);
 Var
-  Val: LongWord;
+  Val: Integer;
 Begin
 
   Val := CPAPER;
@@ -9190,6 +9157,7 @@ Label
   SplitDone, SplitDone2;
 Begin
 
+  SplitterLen := 0;
   VarType := SP_StackPtr^.OpType;
   VarName := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
@@ -9206,7 +9174,8 @@ Begin
   If VarType = SP_STRVAR Then Begin
     DLen := Round(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
-  End;
+  End Else
+    DLen := 0;
 
   SplitNOT := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
@@ -9296,9 +9265,8 @@ End;
 
 Procedure SP_Interpret_AUTODIM(Var Info: pSP_iInfo);
 Var
-  StrPtr: pSP_StrVarContent;
   Idx, aIdx, ArrIdx, NumIndices, DLen, DIMBase, VarType: Integer;
-  Indices, Content, VarName, Key: aString;
+  Indices, VarName, Key: aString;
 Begin
 
   // Stack order for auto-array: var, base, [len, ] numindices, index1, elements...
@@ -9319,7 +9287,8 @@ Begin
   If VarType = SP_STRVAR Then Begin
     DLen := Round(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
-  End;
+  End Else
+    DLen := 0;
 
   Indices := '';
   NumIndices := Round(SP_StackPtr^.Val);
@@ -9357,6 +9326,8 @@ Begin
     Case VarType of
       SP_NumVar: arrIdx := SP_FindNumArray(VarName) +1;
       SP_StrVar: arrIdx := SP_FindStrArray(VarName) +1;
+    Else
+      arrIdx := 0;
     End;
 
     Key := '';
@@ -9996,7 +9967,7 @@ End;
 Procedure SP_Interpret_IF(Var Info: pSP_iInfo);
 Var
   Tkn: pToken;
-  IF_Counter, Position: LongWord;
+  IF_Counter: LongWord;
   Offset: LongWord;
   PtrSave: pByte;
 Begin
@@ -10068,7 +10039,7 @@ End;
 Procedure SP_Interpret_ELSE(Var Info: pSP_iInfo);
 Var
   Tkn: pToken;
-  Offset, Position, IF_Counter: LongWord;
+  Offset, IF_Counter: LongWord;
   PtrSave: pByte;
 Begin
 
@@ -10624,7 +10595,6 @@ End;
 
 Procedure SP_Interpret_MULTIDRAW(Var Info: pSP_iInfo);
 Var
-  YPos, XPos: Integer;
   VarName: aString;
   dX, dY, dZ: aFloat;
   Idx, iSize, vIdx, pIdx: Integer;
@@ -11978,7 +11948,7 @@ Var
   LinePtr, StatementPtr, StPtr: pInteger;
   LineItem: TSP_GOSUB_Item;
   Tkns: aString;
-  WhileCount, Position, Line: Integer;
+  WhileCount, Line: Integer;
   Tkn: pToken;
 Label
   Jump;
@@ -12130,7 +12100,7 @@ Procedure SP_Interpret_EXIT(Var Info: pSP_iInfo);
 Var
   LineItem: TSP_GOSUB_Item;
   Tkns: aString;
-  WhileCount, Position: Integer;
+  WhileCount: Integer;
   Lne, Line: Integer;
   St, Statement: LongWord;
   Tkn: pToken;
@@ -12179,10 +12149,10 @@ Begin
                   If Lne >= 0 Then Begin
                     LineItem := SP_ConvertLineStatement(LineItem.Line, LineItem.St + 1);
                     If LineItem.St > 1 Then
-                      LineItem.Statement := Position + Tkn^.TokenLen;
+                      LineItem.Statement := Position + Integer(Tkn^.TokenLen);
                   End Else Begin
                     LineItem.Line := -2;
-                    LineItem.Statement := Position + Tkn^.TokenLen;
+                    LineItem.Statement := Position + Integer(Tkn^.TokenLen);
                     LineItem.St := LineItem.St + 1;
                   End;
                   Line := LineItem.Line;
@@ -12622,8 +12592,10 @@ Begin
     End;
     i := SP_FindBankID(i);
     Graphic := @SP_BankList[i]^.Info[0];
-  End Else
+  End Else Begin
     i := -1;
+    Graphic := nil;
+  End;
 
   If (Width = 0) And (i <> -1) Then
     Width := Graphic^.Width;
@@ -12787,12 +12759,10 @@ End;
 
 Procedure SP_Interpret_WIN_MERGEALL(Var Info: pSP_iInfo);
 Var
-  Idx, ScreenIdx, Window, CX1, CX2, CY1, CY2: Integer;
+  Idx, CX1, CX2, CY1, CY2: Integer;
   nfo, Screen: pSP_Window_Info;
   TempStr: aString;
 Begin
-
-  ScreenIdx := SP_FindBankID(ScreenBank);
 
   With Info^ Do Begin
     Idx := 1;
@@ -12817,7 +12787,7 @@ End;
 
 Procedure SP_Interpret_WIN_SHOW(Var Info: pSP_iInfo);
 Var
-  WindowID, WindowIdx, BankIdx: Integer;
+  WindowID, BankIdx: Integer;
   Window: pSP_Window_Info;
 Begin
 
@@ -12844,7 +12814,7 @@ End;
 
 Procedure SP_Interpret_WIN_HIDE(Var Info: pSP_iInfo);
 Var
-  WindowID, WindowIdx, BankIdx: Integer;
+  WindowID, BankIdx: Integer;
   Window: pSP_Window_Info;
 Begin
 
@@ -12874,7 +12844,6 @@ Var
   WindowID: Integer;
   WindowIdx: Integer;
   MinBank: Integer;
-  Window: SP_Window_Info;
   Bank: pSP_Bank;
 Begin
 
@@ -12908,7 +12877,6 @@ Procedure SP_Interpret_WIN_BACK(Var Info: pSP_iInfo);
 Var
   WindowID: Integer;
   WindowIdx: Integer;
-  Window: SP_Window_Info;
   Bank: pSP_Bank;
 Begin
 
@@ -12935,7 +12903,7 @@ End;
 Procedure SP_Interpret_WINDOW(Var Info: pSP_iInfo);
 Var
   WindowID: Integer;
-  BankIdx, WindowIdx: Integer;
+  BankIdx: Integer;
   Locked: Boolean;
 Begin
 
@@ -14110,7 +14078,7 @@ End;
 Procedure SP_Interpret_POLYLINE(Var Info: pSP_iInfo);
 Var
   pX, pY, dX, dY: aFloat;
-  NumPoints, iSize, Idx, pIdx, vIdx, Clr: Integer;
+  NumPoints, iSize, Idx, pIdx, vIdx: Integer;
   VarName: aString;
   Points: Array of TSP_Point;
   IsOpen: Boolean;
@@ -14326,10 +14294,9 @@ End;
 
 Procedure SP_Interpret_SCRCOPY(Var Info: pSP_iInfo);
 Var
-  SrcX, SrcY, DstX, DstY, Dws, Dhs: aFloat;
-  SrcIdx, SrcW, SrcH, DstIdx, DstW, DstH, cx1, cy1, cx2, cy2: Integer;
+  SrcX, SrcY, DstX, DstY: aFloat;
+  SrcIdx, SrcW, SrcH, DstIdx, DstW, DstH: Integer;
   SrcWindow, DstWindow: pSP_Window_Info;
-  Bank: pSP_Bank;
 Begin
 
   // All coords in window space, width and height in pixels
@@ -14464,8 +14431,8 @@ End;
 
 Procedure SP_Interpret_FONT_NEW(Var Info: pSP_iInfo);
 Var
-  Width, Height, Mode, Trans, WChars, HCHars, xc, yc: Integer;
-  i, j, c, MinChar, cX1, cX2, cY1, cY2: Integer;
+  Width, Height, Mode, Trans, WChars, xc, yc: Integer;
+  i, j, c, MinChar: Integer;
   Graphic: pSP_Graphic_Info;
   Window: pSP_Window_Info;
   Font: pSP_Font_Info;
@@ -14496,22 +14463,23 @@ Begin
     End;
     i := SP_FindBankID(i);
     Graphic := @SP_BankList[i]^.Info[0];
-  End Else
+  End Else Begin
+    Graphic := nil;
     i := -1;
+  End;
 
   SP_StackPtr^.Val := SP_Font_Bank_Create(Mode, Width, Height, Trans);
 
   If i <> -1 Then Begin
 
-    WChars := Graphic^.Width div Width;
-    HChars := Graphic^.Height Div Height;
+    WChars := Integer(Graphic^.Width) div Width;
     Bank := SP_BankList[SP_FindBankID(Round(SP_StackPtr^.Val))];
     Font := @Bank^.Info[0];
     For c := MinChar to 127 Do Begin
       j := c - MinChar;
       xc := (j Mod WChars) * Width;
       yc := (j Div WChars) * Height;
-      If yc + Height > Graphic^.Height Then
+      If yc + Height > Integer(Graphic^.Height) Then
         Break
       Else Begin
         sPtr := Graphic^.Data;
@@ -14639,7 +14607,6 @@ End;
 Procedure SP_Interpret_NEW_BANK(Var Info: pSP_iInfo);
 Var
   Filename: aString;
-  BankNum: Integer;
 Begin
 
   Filename := SP_StackPtr^.Str;
@@ -14652,7 +14619,7 @@ End;
 Procedure SP_Interpret_WAIT(Var Info: pSP_iInfo);
 Var
   Delay: Integer;
-  TargetTicks, CurrentTicks: LongWord;
+  TargetTicks, CurrentTicks: Integer;
   OldScreenLock: Boolean;
 Begin
 
@@ -14678,7 +14645,7 @@ Begin
       SP_ForceScreenUpdate;
     End Else Begin // WAIT n
       CurrentTicks := Round(CB_GetTicks);
-      TargetTicks := CurrentTicks + LongWord(Delay);
+      TargetTicks := CurrentTicks + Delay;
       Repeat
         CB_YIELD;
       Until (CB_GetTicks >= TargetTicks) or (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL or QUITMSG;
@@ -15615,12 +15582,12 @@ Type
   End;
   pProcVar = ^TProcVar;
 Var
-  ProcName, VarList, VarName, Indices: aString;
+  ProcName, VarList, VarName: aString;
   Idx, Idx2, Idx3, vIdx, VarOffsetN, VarOffsetS, ParamCount,
   VarOffsetNA, VarOffsetSA, NumParams, NumIndices: Integer;
   TempLine: TSP_GOSUB_Item;
   SliceFlags: Byte;
-  SliceStart, SliceFrom, SliceTo: Integer;
+  SliceFrom, SliceTo: Integer;
   nVar: pProcVar;
   Reference: Boolean;
   nPtr: pSP_NumVarContent;
@@ -15940,8 +15907,6 @@ FoundIt:
 End;
 
 Procedure SP_Interpret_END_PROC(Var Info: pSP_iInfo);
-Var
-  Idx: Integer;
 Begin
 
   // Get the last procedure from the stack, and remove the variables it created.
@@ -15971,8 +15936,6 @@ Begin
 End;
 
 Procedure SP_Interpret_EXIT_PROC(Var Info: pSP_iInfo);
-Var
-  Idx: Integer;
 Begin
 
   // Get the last procedure from the stack, and remove the variables it created.
@@ -16378,9 +16341,9 @@ End;
 
 Procedure SP_Interpret_CAT(Var Info: pSP_iInfo);
 Var
-  DirString, PathStr, FileSpec, ResultStr, PadStr, Size, Size2, Mask, tStr: aString;
-  Idx, FileCount, MinPos, MQ, MS, DirIns, DirCount, MaxSize, MaxLen, SizeCount, Cnt, rLen, dLen: Integer;
-  WantEXP, HostPath, Recurse: Boolean;
+  DirString, PathStr, ResultStr, PadStr, Size, Size2, Mask, tStr: aString;
+  Idx, FileCount, DirIns, DirCount, MaxSize, MaxLen, SizeCount, Cnt, rLen, dLen: Integer;
+  WantEXP, Recurse: Boolean;
   Files, FileSizes: TAnsiStringList;
 Begin
 
@@ -16451,7 +16414,7 @@ Begin
             DirString := DirString + PadStr + aString(Files[Idx])+'/'+#13;
             Inc(DirCount);
           End Else Begin
-            ResultStr := ResultStr + aString(StringOfChar(' ', MaxSize - Length(FileSizes[Idx])) + FileSizes[Idx] + ' ' + Files[Idx])+#13;
+            ResultStr := ResultStr + aString(SP_StringOfChar(' ', MaxSize - Length(FileSizes[Idx])) + FileSizes[Idx] + ' ' + Files[Idx])+#13;
             Inc(FileCount);
           End;
         End;
@@ -17312,7 +17275,7 @@ End;
 
 Procedure SP_Interpret_SPRITE_FRONT(Var Info: pSP_iInfo);
 Var
-  Id, Over: Integer;
+  Id: Integer;
 Begin
 
   Id := Round(SP_StackPtr^.Val);
@@ -17339,7 +17302,7 @@ End;
 
 Procedure SP_Interpret_SPRITE_BACK(Var Info: pSP_iInfo);
 Var
-  Id, Over: Integer;
+  Id: Integer;
 Begin
 
   Id := Round(SP_StackPtr^.Val);
@@ -17809,10 +17772,11 @@ Procedure SP_Interpret_GFX_FLIP_STR(Var Info: pSP_iInfo);
 Var
   Str: aString;
   Src: pByte;
-  W, H, SrcLen: Integer;
+  W, H: Integer;
   Valid: Boolean;
 Begin
 
+  W := 0; H := 0;
   Str := SP_StackPtr^.Str;
   Src := StrPosPtr(@Str, 11);
 
@@ -17871,10 +17835,11 @@ Procedure SP_Interpret_GFX_MIRROR_STR(Var Info: pSP_iInfo);
 Var
   Str: aString;
   Src: pByte;
-  W, H, SrcLen: Integer;
+  W, H: Integer;
   Valid: Boolean;
 Begin
 
+  W := 0; H := 0;
   Str := SP_StackPtr^.Str;
   Src := StrPosPtr(@Str, 11);
 
@@ -18165,8 +18130,11 @@ Begin
       DestObjectType := SP_GRAPHIC_BANK;
     DestObject := Abs(DestObject);
     Dec(SP_StackPtr);
-  End Else
+  End Else Begin
+    DestObject := SCREENBANK;
+    DestObjectType := SP_WINDOW_BANK;
     Dec(SP_StackPtr);
+  End;
 
   Dest := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
@@ -18330,16 +18298,13 @@ Var
   Output, SizeStr, HexStr, AsciiStr: aString;
   Bank: pSP_Bank;
   TextList: TAnsiStringList;
-  BankID, Idx, Size, LineW, CurLineW, gW, gH, gBank, nBank, NewWidth, NewHeight, x, y, OldFont: Integer;
+  BankID, Idx, Size, LineW, CurLineW, gW, gH, gBank, nBank, x, y, OldFont: Integer;
   Window_Info: pSP_Window_Info;
   Sprite_Info: pSP_Sprite_Info;
-  Gfx: pSP_Graphic_Info;
-  Scale: aFloat;
   Tilemap_Info: pSP_Tilemap_Info;
   Font_Info: pSP_Font_Info;
   Screen_Info: pSP_Bank_Screen;
   Sample_Info: pSP_Sample_Info;
-  nByte: Byte;
   ptr: pByte;
 Begin
 
@@ -18615,7 +18580,7 @@ Begin
               Output := Output + IntToString(Window_Info^.SpriteCount)+ ' sprites.'+#13
             Else
               Output := Output + 'no sprites.'+#13;
-            If Window_Info^.Transparent = -1 Then
+            If Window_Info^.Transparent = Word(-1) Then
               Output := output + AsciiStr + 'Non-transparent, '
             Else
               Output := output + AsciiStr + 'Transparent '+IntToString(Window_Info^.Transparent And $FF)+', ';
@@ -18675,7 +18640,7 @@ Begin
           While Length(AsciiStr) < CurLineW Do AsciiStr := AsciiStr + ' ';
           Sprite_Info := @Bank.Info[0];
           Output := Output + 'Sprite ' + IntToString(Sprite_Info^.ID) + SizeStr + #13 + AsciiStr;
-          Output := Output + 'Associated with Window ' + IntToString(Sprite_Info^.Window^.ID) + ' at ' + aString(aFloatToStr(Sprite_Info^.X)+','+aFloatToStr(Y)) + #13 + AsciiStr;
+          Output := Output + 'Associated with Window ' + IntToString(Sprite_Info^.Window^.ID) + ' at ' + aString(aFloatToStr(Sprite_Info^.X)+','+aFloatToStr(Sprite_Info^.Y)) + #13 + AsciiStr;
           If Sprite_Info^.Enabled Then
             Output := Output + 'Sprite is showing, '
           Else
@@ -18784,7 +18749,7 @@ Begin
             Output := Output + IntToString(Window_Info^.SpriteCount)+ ' sprites.'+#13
           Else
             Output := Output + 'no sprites.'+#13;
-          If Window_Info^.Transparent = -1 Then
+          If Window_Info^.Transparent = Word(-1) Then
             Output := output + AsciiStr + 'Non-transparent, '
           Else
             Output := output + AsciiStr + 'Transparent '+IntToString(Window_Info^.Transparent And $FF)+', ';
@@ -20035,7 +20000,7 @@ Begin
     nOutput := '';
 
     Ps := NativeUInt(StrPtr) - NativeUInt(StrStart) + IntStatement;
-    PosStr := IntToStr(Ps);
+    PosStr := IntToString(Ps);
     While Length(PosStr) < 8 Do
       PosStr := PosStr + ' ';
 
@@ -20049,13 +20014,13 @@ Begin
 
       SP_JZ:
         Begin
-          nOutput := 'JUMP IF ZERO ['+aString(IntToString(pLongWord(StrPtr)^))+' ('+aString(IntToString(Ps + SizeOf(TToken) + pLongWord(StrPtr)^))+') ]';
+          nOutput := 'JUMP IF ZERO ['+aString(IntToString(pLongWord(StrPtr)^))+' ('+aString(IntToString(Ps + SizeOf(TToken) + Integer(pLongWord(StrPtr)^)))+') ]';
           Inc(StrPtr, Token^.TokenLen);
         End;
 
       SP_JNZ:
         Begin
-          nOutput := 'JUMP IF NON-ZERO ['+aString(IntToString(pLongWord(StrPtr)^))+' ('+aString(IntToString(Ps + SizeOf(TToken) + pLongWord(StrPtr)^))+') ]';
+          nOutput := 'JUMP IF NON-ZERO ['+aString(IntToString(pLongWord(StrPtr)^))+' ('+aString(IntToString(Ps + SizeOf(TToken) + Integer(pLongWord(StrPtr)^)))+') ]';
           Inc(StrPtr, Token^.TokenLen);
         End;
 
@@ -20115,7 +20080,7 @@ Begin
 
       SP_JUMP:
         Begin
-          nOutput := 'JUMP ['+aString(IntToString(ps + Token^.TokenLen + SizeOf(TToken) + pLongWord(StrPtr)^))+']';
+          nOutput := 'JUMP ['+aString(IntToString(ps + Integer(Token^.TokenLen) + SizeOf(TToken) + Integer(pLongWord(StrPtr)^)))+']';
           Inc(StrPtr, Token^.TokenLen);
         End;
 
@@ -20244,7 +20209,7 @@ Begin
       SP_STRCONST:
         Begin
           Idx2 := pLongWord(NativeUInt(StrPtr) - (SizeOf(LongWord) * 2))^;
-          nOutput := 'CONST$ ['+ StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart) + Idx2), Token^.TokenLen - Idx2) + ':"' + StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)), Idx2)+'"]';
+          nOutput := 'CONST$ ['+ StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart) + Idx2), Integer(Token^.TokenLen) - Idx2) + ':"' + StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)), Idx2)+'"]';
           Inc(StrPtr, Token^.TokenLen);
         End;
 
@@ -20256,7 +20221,7 @@ Begin
           If (nToken^.Token = SP_KEYWORD) And (pLongWord(NativeUInt(nToken)+SizeOf(TToken))^ = SP_KW_DEF_FN) Then Begin
             s := StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)), Token^.TokenLen);
             nOutput := 'STRING [FUNCTION]';
-            Idx := Pos('[', String(nOutput));
+            Idx := Pos('[', nOutput);
             If Idx <> 0 Then
               If Idx < 21 Then
                 For Idx2 := 1 to 21-Idx Do
@@ -20267,7 +20232,7 @@ Begin
             PosStr := '';
           End Else Begin
             nOutput := 'STRING ["'+s+'"';
-            If Idx <> Token^.TokenLen Then nOutput := nOutput + '...';
+            If Idx <> Integer(Token^.TokenLen) Then nOutput := nOutput + '...';
             nOutput := nOutput + ']';
           End;
           Inc(StrPtr, Token^.TokenLen);
@@ -20634,7 +20599,7 @@ Begin
           If pLongWord(StrPtr)^ < 4000 Then
             nOutput := 'KEYWORD ['+SP_Keywords[pLongWord(StrPtr)^ - 1000]+']'
           Else
-            If (pLongWord(StrPtr)^ - 4051) > Length(SP_KeyWord_Names) Then Begin
+            If Integer(pLongWord(StrPtr)^ - 4051) > Length(SP_KeyWord_Names) Then Begin
               nOutput := 'INVALID KEYWORD';
               Done := True;
             End Else
@@ -20663,7 +20628,7 @@ Begin
 
     End;
 
-    Idx := Pos('[', String(nOutput));
+    Idx := Pos('[', nOutput);
     If Idx <> 0 Then
       If Idx < 21 Then
         For Idx2 := 1 to 21-Idx Do
@@ -20677,12 +20642,10 @@ End;
 
 Procedure SP_Interpret_DEBUG(Var Info: pSP_iInfo);
 Var
-  LineNum, StatementNum, Idx, Idx2, StCount, StStart, StEnd, intLine, intStatement, nxtStatement, MinStatement, MaxStatement, ps: Integer;
-  Output, nOutput,LineText, Tokens, PosStr, s: aString;
-  StatementSpecified, Done: Boolean;
+  LineNum, StatementNum, Idx, StCount, StStart, intLine, intStatement, nxtStatement, MinStatement, MaxStatement: Integer;
+  Output, LineText, Tokens: aString;
+  StatementSpecified: Boolean;
   Statements: TAnsiStringlist;
-  StrStart, StrPtr: pByte;
-  Token: pToken;
 Label
   NextStatement;
 Begin
@@ -20691,7 +20654,6 @@ Begin
 
   // Get the line and optional statement number
 
-  StStart := 1;
   Statements := TAnsiStringlist.Create;
   StatementSpecified := False;
   LineNum := Round(SP_StackPtr^.Val);
@@ -20735,7 +20697,6 @@ Begin
 
         Idx := 1;
         StCount := 1;
-        StEnd := Length(LineText) +1;
 
         If StatementNum > 1 Then Begin
           While Idx < Length(LineText) Do Begin
@@ -20750,15 +20711,12 @@ Begin
             End;
             Inc(Idx);
           End;
-        End Else
-          StStart := 1;
+        End;
 
         Inc(Idx);
         While Idx < Length(LineText) Do Begin
-          If LineText[Idx] = ':' Then Begin
-            StEnd := Idx;
+          If LineText[Idx] = ':' Then
             Break;
-          End;
           Inc(Idx);
         End;
 
@@ -21000,6 +20958,7 @@ Begin
   // Get Source array. Must be suitable.
 
   sIdx := -1;
+  valCount := 0;
   VarName := Lower(SP_StackPtr^.Str);
   ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
@@ -21156,6 +21115,7 @@ Begin
   // Get Source array. Must be suitable.
 
   sIdx := -1;
+  ValCount := 0;
   VarName := Lower(SP_StackPtr^.Str);
   ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
@@ -22908,7 +22868,6 @@ Begin
   // Matrix addition. C, then B, then A.
   // A() = S1() + S2()
 
-  dIdx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
   ERRStr := SP_StackPtr^.Str;
   s2Idx := SP_FindNumArray(ERRStr);
@@ -22966,7 +22925,6 @@ Begin
   // Matrix addition. C, then B, then A.
   // A() = S1() - S2()
 
-  dIdx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
   s2Idx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
@@ -23026,7 +22984,6 @@ Begin
 
   // D() = S1() * S2()
 
-  dIdx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
   ERRStr := SP_StackPtr^.Str;
   s1Idx := SP_FindNumArray(ERRStr);
@@ -23090,7 +23047,6 @@ Begin
   // Matrix multiplied by a scalar.
   // A() = S1() * SCL
 
-  dIdx := SP_FindNumArray(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
   ERRStr := SP_StackPtr^.Str;
   sIdx := SP_FindNumArray(ERRStr);
@@ -23146,8 +23102,6 @@ Begin
   Dec(SP_StackPtr);
 
   Option := -1;
-  aStart := -1;
-  aEnd := -1;
 
   If NativeUInt(SP_StackPtr) > NativeUInt(SP_StackStart) + SizeOf(SP_StackItem) Then Begin
 
@@ -23637,7 +23591,7 @@ Begin
         tW := pLongWord(@TextureStr[1])^;
         tH := pLongWord(@TextureStr[5])^;
       End;
-// alpha      SP_DrawTexEllipse32Alpha(Trunc(dX), Trunc(dY), Radius1, Radius2, TextureStr, tW, tH);
+      SP_DrawTexEllipse32Alpha(Trunc(dX), Trunc(dY), Radius1, Radius2, TextureStr, tW, tH);
     End;
   End;
 
@@ -23715,7 +23669,7 @@ Begin
         tW := pLongWord(@TextureStr[1])^;
         tH := pLongWord(@TextureStr[5])^;
       End;
-// alpha      SP_DrawTexEllipse32Alpha(Trunc(dX), Trunc(dY), RadiusX, RadiusY, TextureStr, tW, tH);
+      SP_DrawTexEllipse32Alpha(Trunc(dX), Trunc(dY), RadiusX, RadiusY, TextureStr, tW, tH);
     End;
   End;
 
@@ -23792,7 +23746,7 @@ Begin
         tW := pLongWord(@TextureStr[1])^;
         tH := pLongWord(@TextureStr[5])^;
       End;
-// alpha      SP_DrawTexRectangle32Alpha(Trunc(X1), Trunc(Y1), Trunc(X2), Trunc(Y2), TextureStr, tW, tH);
+      SP_DrawTexRectangle32Alpha(Trunc(X1), Trunc(Y1), Trunc(X2), Trunc(Y2), TextureStr, tW, tH);
     End;
   End;
 
@@ -23895,7 +23849,7 @@ Begin
         tW := pLongWord(@TextureStr[1])^;
         tH := pLongWord(@TextureStr[5])^;
       End;
-// alpha      SP_DrawTexRectangle32Alpha(Trunc(X1), Trunc(Y1), Trunc(X2), Trunc(Y2), TextureStr, tW, tH);
+      SP_DrawTexRectangle32Alpha(Trunc(X1), Trunc(Y1), Trunc(X2), Trunc(Y2), TextureStr, tW, tH);
     End;
   End;
 
@@ -24106,7 +24060,7 @@ Begin
           tW := pLongWord(@TextureStr[1])^;
           tH := pLongWord(@TextureStr[5])^;
         End;
-// alpha        SP_PolygonFill32Alpha(Points, TextureStr, tW, tH);
+        SP_PolygonFill32Alpha(Points, TextureStr, tW, tH);
       End;
     End;
     SP_NeedDisplayUpdate := True;
@@ -24573,7 +24527,7 @@ Var
   PrItem, CurItem: aString;
   UsingPos: Integer;
   Item: TUsingItem;
-  AddReturn, StopInString: Boolean;
+  AddReturn: Boolean;
 Begin
 
   PrItem := '';
@@ -24877,7 +24831,8 @@ Begin
 
         Value := NumArrays[Idx].Values[Idx2]^.Value;
 
-        For Idx3 := 0 To NumRangeItems -1 Do
+        Remove := False;
+        For Idx3 := 0 To NumRangeItems -1 Do Begin
           With Ranges[Idx3] Do Begin
             Case RType Of
               SP_RANGE:
@@ -24899,6 +24854,7 @@ Begin
             End;
             If Remove Then Break;
           End;
+        End;
 
         If Include = 0 Then Remove := Not Remove;
 

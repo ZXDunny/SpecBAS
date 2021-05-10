@@ -2,7 +2,7 @@ unit SP_MenuActions;
 
 interface
 
-Uses SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_LabelUnit, SP_Interpret_PostFix;
+Uses System.SyncObjs, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_LabelUnit, SP_Interpret_PostFix;
 
 Type
 
@@ -71,7 +71,8 @@ Var
 implementation
 
 Uses SP_BankManager, SP_BankFiling, SP_Errors, SP_Graphics, SP_FileIO, SP_Input,
-     SP_FPEditor, SP_SysVars, SP_Util, SP_ControlMsgs, SP_DebugPanel, SP_Main;
+     SP_FPEditor, SP_SysVars, SP_Util, SP_ControlMsgs, SP_DebugPanel, SP_Main,
+     SP_Variables;
 
 Var
 
@@ -228,7 +229,7 @@ Begin
   FPHelpMenu.AddItem(CreateItem('About', False, True, False, False, Nil, Nil));
 
   FPEditorStatusLabel := SP_Label.Create(FPMenu);
-  FPEditorStatusLabel.SetBounds(FPMenu.Width - BSize, 3, 0, 0);
+  FPEditorStatusLabel.SetBounds(FPMenu.Width - Integer(BSize), 3, 0, 0);
   FPEditorStatusLabel.Anchors := [aTop, aRight];
   FPEditorStatusLabel.AutoSize := True;
   FPEditorStatusLabel.TextAlign := 0;
@@ -418,8 +419,6 @@ Begin
 End;
 
 Class Procedure SP_MenuActionProcs.FPMenu_SetMarker(Sender: SP_BaseComponent);
-Var
-  i: Integer;
 Begin
   SP_ToggleEditorMark(SP_MenuItem(Sender).Tag);
   SP_DisplayFPListing(-1);

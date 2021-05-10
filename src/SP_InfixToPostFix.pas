@@ -415,7 +415,7 @@ Begin
               If Idx >= NextStatement Then Begin
                 Inc(Statement);
                 Inc(stIdx, SizeOf(LongWord));
-                If stIdx > Length(stList) Then
+                If Integer(stIdx) > Length(stList) Then
                   nextStatement := Length(Tokens) +1
                 Else
                   NextStatement := pLongWord(@StList[stIdx])^;
@@ -500,6 +500,8 @@ Begin
 
   Idx := Position;
   TestFlag := False;
+  PosTkn := Position;
+  Token := @Tokens[Position];
   While Tokens[Idx] = SP_TERMINAL_CHAR Do Inc(Idx);
 
   While (Idx < Length(Tokens)) And (Tokens[Idx] <> SP_TERMINAL_CHAR) Do Begin
@@ -529,8 +531,7 @@ End;
 
 Function SP_Convert_KeyWord(Var Tokens: aString; Var Position: Integer; Var KeyWordID: LongWord; Var Error: TSP_ErrorCode; Var StList: aString): aString;
 Var
-  Idx, ListLen, i: Integer;
-  Token: pToken;
+  i: Integer;
   KeyWordPos, InitialKW: LongWord;
 Label
   NextKeyword;
@@ -543,7 +544,6 @@ Begin
   // Add a statement entry to the statement list
 
   StList := StList + LongWordToString(Length(Tokens) +1);
-  ListLen := Length(StList);
 
   // And now decode the keyword.
 
@@ -716,7 +716,6 @@ Begin
 
   // Returns the priority (BODMAS) of an operator.
 
-  Result := 0;
   Case Symbol Of
     '(':
       Result := 14;
@@ -757,7 +756,7 @@ Function SP_Test_Expr(Var Tokens: aString; Var Position: Integer; Var Error: TSP
 Var
   Symbol: aChar;
   SliceFlags: Byte;
-  Idx, NumIndices, nIdx, NumParams, FnToken, tPs: LongWord;
+  Idx, NumIndices, nIdx, NumParams, FnToken: LongWord;
   Stack: Array [0..1024] of Integer;
   StackPtr, FnType, NumTerms, tIdx, INType: Integer;
   PrevStruct: Boolean;
@@ -919,7 +918,7 @@ Begin
             If Stack[StackPtr] = SP_NUMVAR Then
               Stack[StackPtr] := SP_VALUE
             Else
-              If (Idx + Token^.TokenLen > Length(Tokens)) or (Not (pToken(@Tokens[Idx + Token^.TokenLen])^.Token in [SP_STRUCT_MEMBER_N, SP_STRUCT_MEMBER_S])) Then
+              If (Integer(Idx + Token^.TokenLen) > Length(Tokens)) or (Not (pToken(@Tokens[Idx + Token^.TokenLen])^.Token in [SP_STRUCT_MEMBER_N, SP_STRUCT_MEMBER_S])) Then
                 Stack[StackPtr] := SP_STRING;
         End;
 
@@ -2289,8 +2288,8 @@ Function SP_ExtractArray(Var Tokens: aString; Var Position: Integer; Preserve: B
 Var
   NumIndices, PosBeforeSlice: Integer;
   SlicerFlags: Byte;
-  FnResult, tStr: aString;
-  FirstRun, IsArray, IsSlicer, FirstParam, HasKey: Boolean;
+  FnResult: aString;
+  FirstRun, IsArray, IsSlicer, FirstParam: Boolean;
 Label
   Slicer, Again;
 Begin
@@ -2304,6 +2303,7 @@ Begin
   IsSlicer := False;
   FirstParam := True;
   FirstRun := True;
+  SlicerFlags := 0;
 
   While True Do Begin
 
@@ -2318,7 +2318,6 @@ Begin
     FnResult := SP_Convert_Expr(Tokens, Position, Error, -1);
     If Error.Code <> SP_ERR_OK Then Exit;
     If FirstParam And (Error.ReturnType = SP_STRING) Then Begin
-      HasKey := True;
       FirstParam := False;
 
       // Either a comma (only on first run) or a close-brace here. If comma, jump to the slicer processing section.
@@ -2511,6 +2510,7 @@ Begin
     // but store the info for later.
 
     Idx := 1;
+    Idx2 := 1;
     While Idx <= Length(FnResult) Do Begin
       Tkn := @FnResult[Idx];
       Idx2 := Idx;
@@ -2666,13 +2666,13 @@ End;
 Function  SP_Convert_Expr(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode; StartPri: Integer): aString;
 Var
   Symbol, FnType: aChar;
-  FnResult, FnName, Expr, Name, VarList, tExpr, fExpr, VarName: aString;
-  SlicerFlags, Token: Byte;
+  FnResult, Expr, Name, VarList, tExpr, fExpr, VarName: aString;
+  Token: Byte;
   ExpectOperand, CanOptimise, Done: Boolean;
-  OpPriority, Idx, fType, ExprType, FunctionId, NumIndices, LabelLen, ParamCount: Integer;
+  OpPriority, Idx, fType, FunctionId, NumIndices, LabelLen, ParamCount: Integer;
   SP_OperatorMin, SP_OperandMin, BraceLevel, NameLen, NamePos, MaxOperand,
   VarType, VarPos, VarSize, VarIdx, l, m: Integer;
-  oPosition, numTerms, TermPos, ReturnType: Integer;
+  oPosition, numTerms, ReturnType: Integer;
   Tkn: pToken;
 Label
   Finish;
@@ -3784,6 +3784,7 @@ Begin
 
             SP_FN_IIF, SP_FN_IIFS:
               Begin
+                fType := 0;
                 Case FunctionID of
                   SP_FN_IIF:
                     fType := SP_VALUE;
@@ -5243,7 +5244,7 @@ End;
 Procedure SP_PeepholeOptimiser(Var Tokens: aString; Var tPos: Integer; Var Error: TSP_ErrorCode);
 Var
   TypeString, SearchString, TestTokens, VarTokens, NumTokens, Var1, Var2: aString;
-  Idx, Idx2, Idx3, tStart, tLen, tIdx, szValueToken, szSymbolToken, szKeyWordToken, Count, i, j, FnID: Integer;
+  Idx, Idx2, Idx3, tStart, tLen, tIdx, szValueToken, szSymbolToken, Count, i, j, FnID: Integer;
   Done, CanOptimise, Replaced: Boolean;
   StrPtr, StrStart, StrEnd: pByte;
   s: LongWord;
@@ -5276,7 +5277,6 @@ Begin
 
   szValueToken := SizeOf(TToken) + SizeOf(aFloat);
   szSymbolToken := SizeOf(TToken) + 1;
-  szKeyWordToken := SizeOf(TToken) + SizeOf(LongWord);
 
   Repeat
 
@@ -5329,7 +5329,6 @@ Begin
           TestTokens[szValueToken + szSymbolToken] := '*';
 
           Tokens := Copy(Tokens, 1, tStart -1) + TestTokens + Copy(Tokens, tStart + tLen, Length(Tokens));
-          Replaced := True;
           Goto Start;
 
         End;
@@ -5370,7 +5369,6 @@ Begin
           TestTokens := Copy(TestTokens, szValueToken +1, SizeOf(TToken)) + LongWordToString(Idx2) + LongWordToString($80808080) + LongWordToString(Idx3);
           pToken(@TestTokens[1])^.TokenLen := (SizeOf(LongWord) * 3);
           Tokens := Copy(Tokens, 1, tStart -1) + TestTokens + Copy(Tokens, tStart + tLen, Length(Tokens));
-          Replaced := True;
           Goto Start;
         End;
 
@@ -5389,8 +5387,6 @@ Begin
     While Idx < Length(TypeString) -1 Do Begin
 
       If (Ord(TypeString[Idx]) in [SP_VALUE, SP_NUMVAR_EVAL]) And (TypeString[Idx +1] = aChar(SP_SYMBOL)) Then Begin
-
-        Idx2 := Idx;
 
         tStart := Idx -1;
         tLen := pLongWord(@TypePositions[tStart][5])^ + pLongWord(@TypePositions[tStart +1][5])^;
@@ -6291,6 +6287,7 @@ Begin
 
 Next_Assign:
 
+  EquateType := #0;
   sPos := Position;
   If Not (Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR]) Then Begin
     Error.Code := SP_ERR_MISSING_VAR;
@@ -6605,6 +6602,7 @@ Next_DIM:
 
   NumIndices := 0;
   IsSplit := False;
+  SplitNOT := False;
   AutoArray := False;
   IsDynamic := False;
   If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
@@ -6629,7 +6627,6 @@ Next_DIM:
           End;
         If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ',') Then Begin
           Inc(Position, 2);
-          SplitNOT := False;
           If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = SP_CHAR_NOT) Then begin
             Inc(Position, 2);
             SplitNOT := True;
@@ -6894,8 +6891,6 @@ Begin
 End;
 
 Function SP_Convert_GO(Var KeyWordID, InitialKWID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
-var
-  b: Boolean;
 Begin
 
   // GO <TO|SUB> <numexpr|Label>
@@ -6974,6 +6969,7 @@ Begin
   // FOR EACH num/strvar IN {array()|[sequence]}
 
   Result := '';
+  EachType := -1;
 
   If Byte(Tokens[Position]) = SP_NUMVAR Then Begin
 
@@ -7687,7 +7683,7 @@ End;
 
 Function SP_Convert_FORCE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
-  Expr, FrExpr, GrExpr: aString;
+  Expr: aString;
   VarPos, VarSize: Integer;
   VarType: aChar;
   VarName: aString;
@@ -9105,7 +9101,7 @@ Begin
 
     End;
 
-    If (lPos <= Length(VarResult)) And Not (pToken(@VarResult[lPos])^.Token in [SP_NUMVAR_LET_VALID, SP_STRVAR_LET_VALID]) Then
+    If (Integer(lPos) <= Length(VarResult)) And Not (pToken(@VarResult[lPos])^.Token in [SP_NUMVAR_LET_VALID, SP_STRVAR_LET_VALID]) Then
       Result := Result + VarResult + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_LET)
     Else
       Result := Result + VarResult;
@@ -9731,7 +9727,8 @@ Begin
     If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GRAPHIC) Then Begin
       Inc(Position, 1 + SizeOf(LongWord));
       IsGraphic := True;
-    End;
+    End Else
+      IsGraphic := False;
 
     Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Index
     If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
@@ -10180,8 +10177,7 @@ Var
   Condition, Every, FnResult, GotoExpr: aString;
   Condition_Pos, KeyWord, KeyWordPos: LongWord;
   GotCondition, OffFlag, b: Boolean;
-  n, i, j, k, overallLen, JumpOffset, KW, ot: Integer;
-  Token: pToken;
+  n, i, j, KW, ot: Integer;
 Begin
 
   // ON <[numexpr|EVERY numexpr] statement[:statement...]]|OFF|numexpr GOTO numexpr,numexpr...>
@@ -10199,7 +10195,6 @@ Begin
   // statement number.
 
   Result := '';
-  KeyWordPos := 0;
 
   If (Byte(Tokens[Position]) = SP_KEYWORD) And
      ((pLongWord(@Tokens[Position +1])^ = SP_KW_ERROR) or
@@ -10315,7 +10310,7 @@ Begin
     KeyWordPos := Position;
     GotCondition := False;
     If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_EVERY) Then
-      Condition := CreateToken(SP_STRING, Condition_Pos, 0)
+      Condition := CreateToken(SP_STRING, Position, 0)
     Else Begin
       Condition_Pos := Position;
       Condition := SP_Convert_Expr(Tokens, Position, Error, -1);
@@ -12215,7 +12210,6 @@ Begin
   // DEF STRUCT name(param1[=value],param2,param3$[length]=value$) etc
 
   Result := '';
-  LastType := 0;
 
   If Byte(Tokens[Position]) = SP_NUMVAR Then Begin
 
@@ -13840,6 +13834,7 @@ Begin
 
               If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_FLIP) Then Begin
 
+                KeyWordPos := Position;
                 Inc(Position, SizeOf(LongWord) +1);
                 If Byte(Tokens[Position]) = SP_STRVAR Then Begin
                   PosSave := Position;
@@ -13879,7 +13874,7 @@ Begin
                     Position := PosSave;
                     VarResult := SP_Convert_Var_Assign(Tokens, Position, Error);
                     If Error.Code = SP_ERR_OK Then Begin
-                      Result := Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_GFX_MIRROR_STR) + VarResult;
+                      Result := Expr + CreateToken(SP_KEYWORD, PosSave, SizeOf(LongWord)) + LongWordToString(SP_KW_GFX_MIRROR_STR) + VarResult;
                       If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
                     End Else
                       Exit;
@@ -16767,7 +16762,7 @@ Function SP_Convert_KEY(Var KeyWordID: LongWord; Var Tokens: aString; Var Positi
 Var
   VarType: Byte;
   VarPos, Idx, NumIndices: Integer;
-  VarIdx, VarSize: LongWord;
+  VarSize: LongWord;
   VarName, VarExpr, IndexExpr: aString;
 Begin
 
@@ -16786,7 +16781,6 @@ Begin
   VarType := Byte(Tokens[Position]);
   Inc(Position);
   VarPos := Position;
-  VarIdx := pLongWord(@Tokens[Position])^;
   Inc(Position, SizeOf(LongWord));
   VarSize := pLongWord(@Tokens[Position])^;
   Inc(Position, SizeOf(LongWord));
@@ -17115,7 +17109,7 @@ Function  SP_Convert_CONST(Var KeyWordID: LongWord; Var Tokens: aString; Var Pos
 Var
   VarType: Byte;
   VarPos, Idx, vIdx, LastType: Integer;
-  VarIdx, VarSize: LongWord;
+  VarSize: LongWord;
   VarName, Expr, tResult: aString;
   VarExpr: Array of aString;
   Token: pToken;
@@ -17151,7 +17145,6 @@ Next_Const:
       End;
 
     VarPos := Position;
-    VarIdx := pLongWord(@Tokens[Position])^;
     Inc(Position, SizeOf(LongWord));
     VarSize := pLongWord(@Tokens[Position])^;
     Inc(Position, SizeOf(LongWord));

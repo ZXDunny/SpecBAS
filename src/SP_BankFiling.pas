@@ -134,21 +134,21 @@ Type
     MoveX, MoveY,           // The position the current move started from
     DstX, DstY: aFloat;     // Destination of the current move
     MoveDuration,           // The intended duration (in frames) of the move.
-    MoveStart: LongWord;    // The frame number the move started on
-    DstTime: LongWord;      // Number of frames left to reach dstx,dsty
+    MoveStart: Integer;     // The frame number the move started on
+    DstTime: Integer;      // Number of frames left to reach dstx,dsty
     Angle: aFloat;          // Rotation angle
     DstAngle: aFloat;       // Destination Angle
-    AngleTime: LongWord;    // Number of frames left to reach angle
+    AngleTime: Integer;     // Number of frames left to reach angle
     AngleDir: Integer;      // -1 or 1 to indicate direction of current timed turn
     Scale: aFloat;          // The scaling value the sprite will be drawn with
     DstScale: aFloat;       // The destination scaling value
-    ScaleTime: LongWord;    // The number of frames to scale over
+    ScaleTime: Integer;     // The number of frames to scale over
     AnimStart: Integer;     // First frame of animation
     AnimEnd: Integer;       // Last frame of animation
     AnimMode: LongWord;     // Type of animation
     AnimDelta: Integer;     // Direction of animation flow
     ResumeDelta: Integer;   // Backup of the animation flow direction for when paused
-    NumFrames: LongWord;    // Number of animation frames
+    NumFrames: Integer;     // Number of animation frames
     CurFrame: Integer;      // The current frame
     FrameCounter: LongWord; // Count-down to the next frame
     Window: pSP_Window_Info;// The window ID number this sprite is associated with
@@ -229,11 +229,8 @@ Begin
 End;
 
 Function INIFindEntry(Var INI: TAnsiStringlist; Section, Entry: AnsiString): Integer;
-Var
-  SavedPosition: Integer;
 Begin
   Result := INIFindSection(INI, Section) +1;
-  SavedPosition := Result;
   While Result < INI.Count Do Begin
      If Copy(INI[Result], 1, 1) <> '[' Then Begin
         If Lower(Copy(INI[Result], 1, Length(Entry)+1)) = Lower(Entry+'=') Then
@@ -265,6 +262,7 @@ Var
   EntryPos: Integer;
   Value: AnsiString;
 Begin
+  Result := Default;
   EntryPos := INIFindEntry(INI, Section, Entry);
   Value := Copy(INI[EntryPos], Length(Entry)+2, 999999);
   If Value = '1' Then Result := True;
@@ -305,7 +303,7 @@ Begin
       If Not (Value[Idx] in ['0'..'9', '-']) Then
         Value[Idx] := '.';
      INI[EntryPos] := INI[EntryPos] + Value;
-  End Else Result := StrToFloat(Value);
+  End Else Result := StrToFloat(String(Value));
 End;
 
 Function INIReadInt(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: Integer): Integer;
@@ -319,7 +317,7 @@ Begin
      Result := Default;
      INI[EntryPos] := INI[EntryPos] + IntToString(Default);
   End Else
-    Result := StrToIntDef(Value, Default);
+    Result := StringToInt(Value, Default);
 End;
 
 Function INIReadLong(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: LongWord): LongWord;
@@ -332,7 +330,7 @@ Begin
   If Value = '' Then Begin
      Result := Default;
      INI[EntryPos] := INI[EntryPos] + IntToString(Default);
-  End Else Result := StrToIntDef(Value, Default);
+  End Else Result := StringToInt(Value, Default);
 End;
 
 Function INIReadWord(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Default: Word): Word;
@@ -345,7 +343,7 @@ Begin
   If Value = '' Then Begin
      Result := Default;
      INI[EntryPos] := INI[EntryPos] + IntToString(Default);
-  End Else Result := StrToIntDef(Value, Default);
+  End Else Result := StringToInt(Value, Default);
 End;
 
 Procedure INIWriteBool(Var INI: TAnsiStringlist; Section, Entry: AnsiString; Value: Boolean);
@@ -414,7 +412,7 @@ End;
 
 Function SP_LoadBankFromText(Filename: aString; BankNum: Integer; Var Error: TSP_ErrorCode): Integer;
 Var
-  BankID, FileID, OriginalID, DataSize, InfoSize, Idx, Ps, eIdx, Idx2, Fw, Fh, Fd, Ft: Integer;
+  BankID, FileID, DataSize, Idx, Ps, eIdx, Idx2, Fw, Fh, Fd, Ft: Integer;
   INI: TAnsiStringList;
   Buffer, BankType, Data, TempStr, TempStr2: aString;
   Bank: pSP_Bank;
@@ -490,6 +488,7 @@ Begin
         If Lower(StringFromPtr(@Buffer[1], 11)) = '[bank info]' Then
           IsBinary := False;
 
+      Idx := 0;
       If Not IsBinary Then Begin
         INI.StrictDelimiter := True;
         INI.Delimiter := #13;
@@ -500,12 +499,15 @@ Begin
             For Idx := 0 To INI.Count -1 Do
               If INI[Idx][1] = #10 Then
                 INI[Idx] := Copy(INI[Idx], 2);
+        Idx := 0;
       End;
 
       SP_FileClose(FileID, Error);
 
       Bank := @NewBank;
-      If IsBinary Then BankType := '' Else Begin
+      If IsBinary Then
+        BankType := ''
+      Else Begin
         BankType := INIReadString(INI, 'Bank Info', 'Bank Type', '');
         Bank^.Protection := INIReadBool(INI, 'Bank Info', 'Protection', False);
         Bank^.ID := INIReadInt(INI, 'Bank Info', 'OriginalID', 0);
@@ -517,7 +519,7 @@ Begin
         If BankType = 'Object Bank' Then Begin
 
           Bank^.DataType := SP_OBJECT_BANK;
-          Bank^.InfoLength := 0;
+          Bank^.InfoLength := Idx;
           SetLength(Bank^.Info, 0);
           GetData;
 
@@ -639,7 +641,7 @@ Begin
                 Window^.AlphaEnabled := INIReadBool(INI, 'Info', 'AlphaEnabled', False);
                 Window^.FontTrans := INIReadBool(INI, 'Info', 'FontTrans', False);
                 Window^.System := INIReadBool(INI, 'Info', 'System', False);
-                Window^.Offset := INIReadLong(INI, 'Info', 'Offset', eIdx);
+                Window^.Offset := INIReadLong(INI, 'Info', 'Offset', 0);
                 Window^.Transparent := INIReadWord(INI, 'Info', 'Transparent', $FFFF);
                 Window^.Ink := INIReadLong(INI, 'Info', 'Ink', 0);
                 Window^.Paper := INIReadLong(INI, 'Info', 'Paper', 8);
@@ -734,18 +736,18 @@ Begin
 
                       If Sprite^.NumClones > 0 Then
                         For Idx := 0 To Sprite^.NumClones -1 Do Begin
-                          Sprite^.Clones[Idx].X := INIReadFloat(INI, 'Clone'+IntToStr(Idx), 'X', 0.0);
-                          Sprite^.Clones[Idx].Y := INIReadFloat(INI, 'Clone'+IntToStr(Idx), 'Y', 0.0);
+                          Sprite^.Clones[Idx].X := INIReadFloat(INI, 'Clone'+IntToString(Idx), 'X', 0.0);
+                          Sprite^.Clones[Idx].Y := INIReadFloat(INI, 'Clone'+IntToString(Idx), 'Y', 0.0);
                         End;
 
                       For Idx := 0 To Sprite^.NumFrames -1 Do Begin
-                        TempStr2 := INIReadString(INI, 'Frame '+IntToStr(Idx), 'FrameData', '');
+                        TempStr2 := INIReadString(INI, 'Frame '+IntToString(Idx), 'FrameData', '');
                         Buffer := ReadRawHex(TempStr2);
 
-                        Fw := INIReadInt(INI, 'Frame '+IntToStr(Idx), 'Width', 0);
-                        Fh := INIReadInt(INI, 'Frame '+IntToStr(Idx), 'Height', 0);
-                        Fd := INIReadInt(INI, 'Frame '+IntToStr(Idx), 'Delay', 1);
-                        Ft := INIReadInt(INI, 'Frame '+IntToStr(Idx), 'Transparency', $FFFF);
+                        Fw := INIReadInt(INI, 'Frame '+IntToString(Idx), 'Width', 0);
+                        Fh := INIReadInt(INI, 'Frame '+IntToString(Idx), 'Height', 0);
+                        Fd := INIReadInt(INI, 'Frame '+IntToString(Idx), 'Delay', 1);
+                        Ft := INIReadInt(INI, 'Frame '+IntToString(Idx), 'Transparency', $FFFF);
                         Ps := (Fw * Fh) + (SizeOf(LongWord) * 3) + SizeOf(Word);
 
                         eIdx := Length(Bank^.Memory);
@@ -788,6 +790,8 @@ Begin
   // If the user specified a number >= 0 Then load into that bank if it exists (and is not protected).
   // If the bank has not been created yet then create that bank with that ID.
   // If the number is -1 then a new bank will be created and the data put in there.
+
+  Result := -1;
 
   If Error.Code = SP_ERR_OK Then Begin
 
@@ -872,8 +876,7 @@ End;
 
 Procedure SP_SaveBankAsText(Filename: aString; BankNum: LongWord; Var Error: TSP_ErrorCode);
 Var
-  FileID, BankID, Idx, cIdx, dIdx, eIdx, Width, Height, Transparency, Delay, sDataLen: Integer;
-  DataLen: LongWord;
+  FileID, BankID, Idx, cIdx, eIdx, Width, Height, Transparency, Delay, sDataLen: Integer;
   Bank: pSP_Bank;
   INI: TAnsiStringlist;
   TempStr: aString;
@@ -1004,7 +1007,7 @@ Begin
             INIWriteLong(INI, 'Info', 'Ink', Window^.ink);
             INIWriteLong(INI, 'Info', 'Paper', Window^.paper);
             INIWriteInt(INI, 'Info', 'CaptionHeight', Window^.CaptionHeight);
-            INIWriteString(INI, 'Info', 'Content', RawHexDump(@Bank^.Memory[dIdx], Window^.Width * Window^.Height * (Window^.Bpp Div 8)));
+            INIWriteString(INI, 'Info', 'Content', RawHexDump(@Bank^.Memory[0], Window^.Width * Window^.Height * (Window^.Bpp Div 8)));
             TempStr := '';
             For eIdx := 0 To 255 Do
               TempStr := TempStr + 'R:' + IntToHex(Window^.Palette[eIdx].r, 2) + ',G:' + IntToHex(Window^.Palette[eIdx].g, 2) +
@@ -1021,7 +1024,7 @@ Begin
             For Idx := 0 To Prog^.NumLines -1 Do Begin
               Line := pSP_LineInfo(@Bank^.Memory[SizeOf(SP_Program_Info)+(Idx * SizeOf(SP_LineInfo))]);
               TempStr := StringFromPtr(@Bank^.Memory[Line^.Offset], Line^.LineLen);
-              INIWriteString(INI, 'Program Lines', 'Line ' + IntToStr(Idx +1), SP_Detokenise(TempStr, cIdx, False, False));
+              INIWriteString(INI, 'Program Lines', 'Line ' + IntToString(Idx +1), SP_Detokenise(TempStr, cIdx, False, False));
             End;
           End;
         SP_SAMPLE_BANK:
@@ -1074,8 +1077,8 @@ Begin
             INIWriteInt(INI, 'Info', 'HotY', Sprite^.HotY);
             INIWriteInt(INI, 'Info', 'WrapMode', Sprite^.WrapMode);
             For Idx := 0 To Sprite^.NumClones -1 Do Begin
-              INIWriteFloat(INI, 'Clone'+IntToStr(Idx), 'X', Sprite^.Clones[Idx].X);
-              INIWriteFloat(INI, 'Clone'+IntToStr(Idx), 'Y', Sprite^.Clones[Idx].Y);
+              INIWriteFloat(INI, 'Clone'+IntToString(Idx), 'X', Sprite^.Clones[Idx].X);
+              INIWriteFloat(INI, 'Clone'+IntToString(Idx), 'Y', Sprite^.Clones[Idx].Y);
             End;
             For Idx := 0 To Sprite^.NumFrames -1 Do Begin
               SP_GetFrameData(Sprite, sPtr, sDataLen, Idx);
@@ -1088,11 +1091,11 @@ Begin
               Transparency := pWord(sPtr)^;
               Inc(pWord(sPtr));
               TempStr := RawHexDump(sPtr, sDataLen - (SizeOf(LongWord) * 3) - SizeOf(Word));
-              INIWriteInt(INI, 'Frame '+IntToStr(Idx), 'Width', Width);
-              INIWriteInt(INI, 'Frame '+IntToStr(Idx), 'Height', Height);
-              INIWriteInt(INI, 'Frame '+IntToStr(Idx), 'Delay', Delay);
-              INIWriteInt(INI, 'Frame '+IntToStr(Idx), 'Transparency', Transparency);
-              INIWriteString(INI, 'Frame '+IntToStr(Idx), 'FrameData', TempStr);
+              INIWriteInt(INI, 'Frame '+IntToString(Idx), 'Width', Width);
+              INIWriteInt(INI, 'Frame '+IntToString(Idx), 'Height', Height);
+              INIWriteInt(INI, 'Frame '+IntToString(Idx), 'Delay', Delay);
+              INIWriteInt(INI, 'Frame '+IntToString(Idx), 'Transparency', Transparency);
+              INIWriteString(INI, 'Frame '+IntToString(Idx), 'FrameData', TempStr);
             End;
           End;
         SP_TILEMAP_BANK:

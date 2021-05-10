@@ -21,10 +21,6 @@ SP_FileListBox = Class(SP_ListBox)
     Procedure SetDirectory(s: aString);
     Function  SortProc(Val1, Val2: aString): Integer;
     Function  TextPrep(s: aString; c, i: Integer): aString;
-    Function  GetString(Index: Integer): aString; Override;
-    Procedure Select(Index: Integer); Override;
-    Procedure PerformKeyDown(Var Handled: Boolean); Override;
-    Procedure PerformKeyUp(Var Handled: Boolean); Override;
     Function  GetFilters: aString;
     Procedure SetFilters(s: aString);
 
@@ -32,6 +28,10 @@ SP_FileListBox = Class(SP_ListBox)
 
     Procedure Find(Filename: aString);
     Procedure GoParent;
+    Function  GetString(Index: Integer): aString; Override;
+    Procedure Select(Index: Integer); Override;
+    Procedure PerformKeyDown(Var Handled: Boolean); Override;
+    Procedure PerformKeyUp(Var Handled: Boolean); Override;
     Property  Directory: aString read fDirectory write SetDirectory;
     Property  OnChooseFile: SP_FLBSelectEvent read fOnChooseFile write fOnChooseFile;
     Property  OnChooseDir: SP_FLBSelectEvent read fOnChooseDir write fOnChooseDir;
@@ -139,6 +139,7 @@ Var
 Begin
 
   Lock;
+  Match := False;
   s := fDirectory;
   Error.Code := SP_ERR_OK;
   Files := TStringlist.Create;
@@ -313,8 +314,8 @@ Begin
       End;
     1: // File size
       Begin
-        v1 := StrToInt(s1);
-        v2 := StrToInt(s2);
+        v1 := StringToInt(s1);
+        v2 := StringToInt(s2);
         If v1 > v2 Then
           Result := 1
         Else
@@ -331,8 +332,8 @@ Begin
       End;
     2: // File date
       Begin
-        y1 := StrToInt(Copy(s1, 7, 4)); m1 := StrToInt(Copy(s1, 4, 2)); d1 := StrToInt(Copy(s1, 1, 2));
-        y2 := StrToInt(Copy(s2, 7, 4)); m2 := StrToInt(Copy(s2, 4, 2)); d2 := StrToInt(Copy(s2, 1, 2));
+        y1 := StringToInt(Copy(s1, 7, 4)); m1 := StringToInt(Copy(s1, 4, 2)); d1 := StringToInt(Copy(s1, 1, 2));
+        y2 := StringToInt(Copy(s2, 7, 4)); m2 := StringToInt(Copy(s2, 4, 2)); d2 := StringToInt(Copy(s2, 1, 2));
         If y1 > y2 Then
           Result := 1
         Else

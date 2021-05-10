@@ -120,19 +120,19 @@ Begin
          DestName := IncludeTrailingPathDelimiter(outDir) + s.Name;
          SrcName := IncludeTrailingPathDelimiter(inDir) + s.Name;
          If FileExists(DestName) Then Begin
-           sTime := FileAge(SrcName);
-           dTime := FileAge(DestName);
+           FileAge(SrcName, sTime);
+           FileAge(DestName, dTime);
            cpy := sTime > dTime;
          end;
        End;
        SCROLLCNT := 0;
        If cpy Then Begin
-         SP_PRINT(-1, Round(PRPOSX), Round(PRPOSY), -1, 'Copying '+DestName, 0, 8, Err);
+         SP_PRINT(-1, Round(PRPOSX), Round(PRPOSY), -1, 'Copying '+ aString(DestName), 0, 8, Err);
          {$IFDEF FPC}
          FileUtil.CopyFile(SrcName, DestName, True);
          {$ENDIF}
        End Else
-         SP_PRINT(-1, Round(PRPOSX), Round(PRPOSY), -1, 'Skipped '+DestName, 2, 8, Err);
+         SP_PRINT(-1, Round(PRPOSX), Round(PRPOSY), -1, 'Skipped '+ aString(DestName), 2, 8, Err);
        PRPOSX := 0;
        PRPOSY := PRPOSY + FONTHEIGHT;
      Until SysUtils.FindNext(s) <> 0;
@@ -173,24 +173,24 @@ Var
   EOFound: Boolean;
   Idx, Cnt, nIdx, sIdx: Integer;
   Size, Size2, AgeStr: aString;
-  Age: Integer;
+  Age: TDateTime;
   Error: TSP_ErrorCode;
 Begin
 
-  If PackageIsOpen And (Pos(':', String(Path)) = 0) Then Begin
+  If PackageIsOpen And (Pos(':', Path) = 0) Then Begin
 
     SP_PackageFindAll(Path, List, Sizes, Error);
 
   End Else Begin
 
-    If Pos(':', String(Path)) <> 0 Then
+    If Pos(':', Path) <> 0 Then
       Path := SP_ConvertFilenameToHost(Path, Error);
     EOFound:= False;
     If FindFirst(String(Path), faAnyFile, Res) < 0 Then
       Exit
     Else
       While Not EOFound Do Begin
-        Idx := List.Add(Res.Name);
+        Idx := List.Add(aString(Res.Name));
         If Res.Attr And faDirectory > 0 Then
           List.Objects[Idx] := Pointer(1)
         Else
@@ -207,9 +207,9 @@ Begin
           End;
           Dec(nIdx);
         End;
-        Age := Res.Time;
+        Age := Res.TimeStamp;
         If Age > -1 Then Begin
-          AgeStr := aString(DateToStr(FileDateToDateTime(Age)));
+          AgeStr := aString(DateToStr(Age));
           If Length(AgeStr) < 10 Then
             If AgeStr[2] = '/' Then
               AgeStr := '0' + AgeStr
@@ -218,9 +218,9 @@ Begin
           If Length(AgeStr) < 10 Then
             AgeStr := Copy(AgeStr, 1, 3) + '0' + Copy(AgeStr, 4, Length(AgeStr));
           AgeStr := Copy(AgeStr, 1, 2) + '/' + Copy(AgeStr, 4, 2) + '/' + Copy(AgeStr, 7, 4);
-          sIdx := Sizes.Add(String(Size2 + ' ' + aString(StringOfChar(' ', 10 - Length(AgeStr))) + AgeStr));
+          sIdx := Sizes.Add(Size2 + ' ' + SP_StringOfChar(' ', 10 - Length(AgeStr)) + AgeStr);
         End Else
-          sIdx := Sizes.Add(String(Size2 + '            '));
+          sIdx := Sizes.Add(Size2 + '            ');
         Sizes.Objects[sIdx] := Pointer(StringToLong(Size));
         EOFound:= SysUtils.FindNext(Res) <> 0;
       End;
@@ -277,9 +277,9 @@ Begin
   // Converts a specbas file/folder to the host architecture's file/folder
 
   ERRStr := SP_ExtractFileDir(Filename);
-  If Pos(':', String(Filename)) <> 0 Then Begin
-    fName := SP_Decode_Assignment(Copy(Filename, 1, Pos(':', String(Filename)) -1), Error);
-    fName2 := Copy(Filename, Pos(':', String(Filename)) +1, Length(Filename));
+  If Pos(':', Filename) <> 0 Then Begin
+    fName := SP_Decode_Assignment(Copy(Filename, 1, Pos(':', Filename) -1), Error);
+    fName2 := Copy(Filename, Pos(':', Filename) +1, Length(Filename));
     While Copy(fName2, 1, 1) = '/' Do
       fName2 := Copy(fName2, 2, Length(fName2));
     fName2 := fName + fName2;
@@ -346,7 +346,7 @@ Begin
 
   // Filename is in SpecBAS format.
 
-  System := Pos(':', String(Filename)) > 0;
+  System := Pos(':', Filename) > 0;
   ERRStr := Filename;
 
   If System or Not PackageIsOpen Then Begin
@@ -469,7 +469,7 @@ Begin
 
   // Filename might be in SpecBAS format, but may also be a host-format filename.
 
-  System := Pos(':', String(Filename)) > 0;
+  System := Pos(':', Filename) > 0;
   ERRStr := Filename;
 
   If System or Not PackageIsOpen Then Begin
@@ -734,12 +734,12 @@ Var
   System: Boolean;
 Begin
 
-  System := Pos(':', String(Filename)) > 0;
+  System := Pos(':', Filename) > 0;
   If PackageIsOpen And Not System Then
     Result := SP_PackageFileExists(Filename, Error)
   Else Begin
     HostName := SP_ConvertFilenameToHost(Filename, Error);
-    Result := FileExists(HostName);
+    Result := FileExists(String(HostName));
   End;
 
 End;
@@ -793,9 +793,8 @@ End;
 
 Procedure SP_SaveProgram(Filename: aString; AutoStart: Integer; Var Error: TSP_ErrorCode);
 Var
-  FileID, Idx, cPos, ProgLen, p: Integer;
+  FileID, Idx, ProgLen, p: Integer;
   ProgLine, SaveBuffer, Backup: aString;
-  LineLen, CheckSum: LongWord;
   System, BackBool: Boolean;
 Const
   ASCIITAG: aString = 'ZXASCII'#13#10;
@@ -816,7 +815,7 @@ Begin
 
   ERRStr := Filename;
   If SP_FileExists(Filename) Then Begin
-    System := Pos(':', String(Filename)) > 0;
+    System := Pos(':', Filename) > 0;
     If PackageIsOpen And Not System Then Begin
       SP_DeletePackageFile(Filename, Error);
       If Error.Code <> SP_ERR_OK Then Begin
@@ -857,7 +856,7 @@ Begin
 
     Idx := 0;
     While Idx < ProgLen Do Begin
-      ProgLine := StringOfChar(#9, Listing.Flags[Idx].Indent) + SP_FPGetUnwrappedLine(Idx) + #13+#10;
+      ProgLine := SP_StringOfChar(#9, Listing.Flags[Idx].Indent) + SP_FPGetUnwrappedLine(Idx) + #13+#10;
       SaveBuffer := SaveBuffer + ProgLine;
     End;
     SP_FileWrite(FileID, @SaveBuffer[1], Length(SaveBuffer), Error);
@@ -881,7 +880,7 @@ Procedure SP_IncludeFile(Filename: aString; Var Error: TSP_ErrorCode);
 Var
   Tokens: aString;
   NewProg: TAnsiStringList;
-  BaseLineNum, CurLastLine, Idx, Idx2, cPos, Token, LineNumber: Integer;
+  CurLastLine, Idx, Idx2, cPos, Token, LineNumber: Integer;
   CanTest, Changed, ChangeFlag: Boolean;
 Begin
 
@@ -915,7 +914,6 @@ Begin
 
   If Byte(NewProg[0][1]) = SP_LINE_NUM Then Begin
 
-    BaseLineNum := pLongWord(@NewProg[0][2])^;
     CurLastLine := pLongWord(@SP_Program[SP_Program_Count -1][2])^ + 10;
 
     For Idx := 0 To NewProg.Count -1 Do Begin
@@ -1015,7 +1013,6 @@ Begin
             Begin
               If Changed Then Begin
                 Tokens := Copy(Tokens, 1, Idx2 -2) + aChar(SP_SYMBOL) + ')' + Copy(Tokens, Idx2 -1, Length(Tokens));
-                Changed := False;
                 ChangeFlag := True;
               End;
               Break;
@@ -1042,7 +1039,6 @@ Begin
         Error.Position := 1;
         SP_Convert_ToPostFix(Tokens, Error.Position, Error);
         NewProg[Idx] := Tokens;
-        ChangeFlag := False;
       End;
 
     End;
@@ -1082,9 +1078,9 @@ End;
 
 Procedure SP_LoadProgram(Filename: aString; Merge, DirtyFile: Boolean; Const pList: TAnsiStringList; Var Error: TSP_ErrorCode);
 Var
-  cPos, FileID, FileSize, LineCount, AutoStart, NameLen, Idx, lIdx, LineLen, Posn, LineNum, LineNum2, i: Integer;
-  pName, ProgLine, Tokens, PlainCode, s, Dir: aString;
-  Done, InString, changed, isAutoSaved: Boolean;
+  cPos, FileID, FileSize, LineCount, AutoStart, NameLen, Idx, lIdx, LineLen, i: Integer;
+  pName, ProgLine, PlainCode, s, Dir: aString;
+  Done, changed, isAutoSaved: Boolean;
   Buffer: Array of Byte;
   NewProg: array of aString;
   CheckSum: LongWord;
@@ -1113,6 +1109,7 @@ Begin
   FileID := -1;
   changed := False;
   ERRStr := Filename;
+  AutoStart := -1;
   isAutoSaved := Lower(Filename) = 's:autosave';
 
   Dir := SP_ExtractFileDir(Filename);
@@ -1240,7 +1237,6 @@ Begin
 
                   If CheckSum = GetCRC32FromString(ProgLine) Then Begin
 
-                    Posn := 1;
                     PlainCode := SP_Detokenise(ProgLine, cPos, false, True);
                     NewProg[lIdx -1] := PlainCode;
 
@@ -1270,7 +1266,6 @@ Begin
 
                     lIdx := Idx;
                     Done := False;
-                    InString := False;
                     While not Done Do Begin
                       If (Buffer[lIdx] in [13, 10]) or (lIdx >= FileSize) Then
                         Done := True
@@ -1635,7 +1630,7 @@ Var
   Error: TSP_ErrorCode;
 Begin
 
-  If PackageIsOpen And (Pos(':', String(Dir)) = 0) then
+  If PackageIsOpen And (Pos(':', Dir) = 0) then
     Result := SP_PackageDirExists(Dir, Error)
   Else
     Result := DirectoryExists(String(SP_ConvertFilenameToHost(Dir, Error)));
@@ -1646,7 +1641,7 @@ Procedure SP_DeleteFile(Filename: aString; var Error: TSP_ErrorCode);
 Begin
 
   ErrStr := Filename;
-  If PackageIsOpen And (Pos(':', String(Filename)) = 0) Then
+  If PackageIsOpen And (Pos(':', Filename) = 0) Then
     SP_DeletePackageFile(Filename, Error)
   Else Begin
     Filename := SP_ConvertFilenameToHost(Filename, Error);
@@ -1664,7 +1659,7 @@ Begin
 
   ERRStr := Dir;
   If Dir <> '' Then
-    If Not PackageIsOpen or (Pos(':', String(Dir)) > 0) Then Begin
+    If Not PackageIsOpen or (Pos(':', Dir) > 0) Then Begin
       Dir := SP_ConvertFilenameToHost(Dir, Error);
       If Not SetCurrentDir(String(Dir)) Then
         Error.Code := SP_ERR_DIR_NOT_FOUND;
@@ -1684,8 +1679,8 @@ Begin
   // If there are '*' or '?' in the path string, then they should be in the filespec.
 
   MinPos := 0;
-  MQ := Pos('?', String(Result));
-  MS := Pos('*', String(Result));
+  MQ := Pos('?', Result);
+  MS := Pos('*', Result);
   If (MQ > 0) or (MS > 0) Then Begin
     If MQ <> 0 Then
       If MS <> 0 Then Begin
@@ -1720,8 +1715,8 @@ End;
 Function SP_GetFileListRecursive(Var FileSpec: aString; WantEXP: Boolean; Var Error: TSP_ErrorCode): aString;
 Var
   Files, FileSizes, Dirs: TAnsiStringList;
-  TempStr, ResultStr, PadStr, fSpec, pSpec: aString;
-  Idx, FileCount, DirIns, MaxSize, SizeCount: Integer;
+  ResultStr, PadStr, fSpec, pSpec: aString;
+  Idx, FileCount, MaxSize, SizeCount: Integer;
 Begin
 
   Result := '';
@@ -1765,7 +1760,7 @@ Begin
     If WantEXP Then Begin
       PadStr := aString(StringOfChar(' ', MaxSize +1));
       For Idx := 0 To Files.Count -1 Do Begin
-        ResultStr := ResultStr + aString(StringOfChar(' ', MaxSize - Length(FileSizes[Idx])) + FileSizes[Idx] + ' ' + Files[Idx])+#13;
+        ResultStr := ResultStr + aString(SP_StringOfChar(' ', MaxSize - Length(FileSizes[Idx])) + FileSizes[Idx] + ' ' + Files[Idx])+#13;
         Inc(FileCount);
       End;
     End Else Begin
@@ -1808,7 +1803,7 @@ Var
   HostPath: Boolean;
 Begin
 
-  HostPath := Pos(':', String(FileSpec)) > 0;
+  HostPath := Pos(':', FileSpec) > 0;
   If HostPath or Not PackageIsOpen then
     FileSpec := SP_ConvertFilenameToHost(FileSpec, Error);
 
@@ -1888,7 +1883,7 @@ var
   Attr: Integer;
   Error: TSP_ErrorCode;
 begin
-  If PackageIsOpen And (Pos(':', String(Path)) = 0) Then
+  If PackageIsOpen And (Pos(':', Path) = 0) Then
     Result := SP_PackageDirExists(Path, Error)
   Else Begin
     Attr := SysUtils.FileGetAttr(String(Path));
@@ -1923,7 +1918,7 @@ End;
 Procedure SP_RmDir(DirString: aString; var Error: TSP_ErrorCode);
 Begin
 
-  If PackageIsOpen And (Pos(':', String(DirString)) = 0) Then
+  If PackageIsOpen And (Pos(':', DirString) = 0) Then
     SP_PackageDeleteDir(DirString, Error)
   Else Begin
     DirString := SP_ConvertFilenameToHost(DirString, Error);
@@ -1939,13 +1934,13 @@ var
   Search: TSearchRec;
 begin
   Error.Code := SP_ERR_OK;
-  Path := IncludeTrailingBackslash(SP_ConvertFilenameToHost(DirString, Error));
+  Path := (IncludeTrailingPathDelimiter(String(SP_ConvertFilenameToHost(DirString, Error))));
   If Error.Code = SP_ERR_OK Then Begin
     If FindFirst(Path + '*.*', faAnyFile, Search) = 0 then
     try
       repeat
         if (Search.Attr and faDirectory) <> 0 then
-          SP_RmDirUnSafe(Path + Search.Name, Error)
+          SP_RmDirUnSafe(aString(Path + Search.Name), Error)
         else
           DeleteFile(Path + Search.Name);
       until SysUtils.FindNext(Search) <> 0;
@@ -2107,7 +2102,7 @@ Procedure SP_MakeDir(Dir: aString; var Error: TSP_ErrorCode);
 Begin
 
   ERRStr := Dir;
-  If PackageIsOpen And (Pos(':', String(Dir)) = 0) Then Begin
+  If PackageIsOpen And (Pos(':', Dir) = 0) Then Begin
 
     SP_PackageCreateDir(Dir, Error);
 
@@ -2162,8 +2157,8 @@ Begin
   SrcFiles := Lower(SrcFiles);
   DstFiles := Lower(DstFiles);
 
-  SrcHost := Pos(':', String(SrcFiles)) > 0;
-  DstHost := Pos(':', String(DstFiles)) > 0;
+  SrcHost := Pos(':', SrcFiles) > 0;
+  DstHost := Pos(':', DstFiles) > 0;
 
   If SrcHost <> DstHost Then Begin
     Error.Code := SP_ERR_PACKAGE_RENAME_HOST;
@@ -2172,7 +2167,7 @@ Begin
     HostFS := SrcHost;
 
 
-  If (Pos('?', String(SrcFiles)) = 0) And (Pos('*', String(SrcFiles)) = 0) And (Pos('?', String(DstFiles)) = 0) And (Pos('*', String(DstFiles)) = 0) Then Begin
+  If (Pos('?', SrcFiles) = 0) And (Pos('*', SrcFiles) = 0) And (Pos('?', DstFiles) = 0) And (Pos('*', DstFiles) = 0) Then Begin
 
     If HostFS Then
       SP_FileRename(SP_ConvertFilenameToHost(SrcFiles, Error), SP_ConvertFilenameToHost(DstFiles, Error), Error)

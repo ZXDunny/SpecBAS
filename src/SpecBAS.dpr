@@ -36,7 +36,7 @@ uses
   SP_Streams in 'SP_Streams.pas',
   SP_Sound in 'SP_Sound.pas',
   SP_Editor in 'SP_Editor.pas',
-  SP_VM_Emu in 'SP_VM_Emu.pas',
+  // SP_VM_Emu in 'SP_VM_Emu.pas',
   SP_Package in 'SP_Package.pas',
   SP_Math in 'SP_Math.pas',
   SP_Help in 'SP_Help.pas',

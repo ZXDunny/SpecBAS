@@ -94,7 +94,7 @@ End;
 
 Procedure SP_CheckBox.Draw;
 Var
-  dX, dy, dw, iH, bClr, cClr, capClr: Integer;
+  dX, dy, iH, bClr, cClr, capClr: Integer;
   iSC: aFloat;
 Begin
 
@@ -114,7 +114,6 @@ Begin
   End;
 
   dX := iFW + 4;
-  dw := iFW + 8 + (iFW * Length(Caption));
   dY := (fHeight - iFH) Div 2;
   If fGroupIndex = 0 Then Begin
     If fBorder Then

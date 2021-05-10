@@ -24,8 +24,8 @@ unit MainForm;
 interface
 
 uses
-  SHFolder, Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math,
-  Dialogs, SP_SysVars, SP_Graphics, SP_Graphics32, SP_BankManager, SP_Util, SP_Main, SP_FileIO,
+  System.Types, SHFolder, Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math,
+  Dialogs, System.SyncObjs, SP_SysVars, SP_Graphics, SP_Graphics32, SP_BankManager, SP_Util, SP_Main, SP_FileIO,
   ExtCtrls, SP_Input, MMSystem, SP_Errors, SP_Sound, Bass, SP_Tokenise, SP_Menu, PNGImage,
   GIFImg{$IFDEF OPENGL}, dglOpenGL{$ENDIF}, SP_Components, SP_BaseComponentUnit;
 
@@ -163,7 +163,7 @@ End;
 
 Procedure TRefreshThread.Execute;
 Var
-  LastTime, CurTime, StartTime, LastFrames: LongWord;
+  StartTime, LastFrames: Integer;
   p: TPoint;
 Begin
 
@@ -655,6 +655,7 @@ begin
 
   If ((X = LastMouseX) And (Y = LastMouseY)) or SIZINGMAIN Then Exit;
 
+  Handled := False;
   LastMouseX := X;
   LastMouseY := Y;
   {$IFDEF OPENGL}
@@ -843,7 +844,7 @@ begin
   PCOUNT := ParamCount;
   PARAMS := TStringList.Create;
   For Idx := 0 To PCOUNT Do
-    PARAMS.Add(ParamStr(Idx));
+    PARAMS.Add(aString(ParamStr(Idx)));
 
   Cursor := CrNone;
 
@@ -871,16 +872,16 @@ begin
 
   If ParamCount = 0 Then Begin
 
-    Main.Caption := 'SpecBAS for Windows v'+BuildStr;
+    Main.Caption := 'SpecBAS for Windows v'+String(BuildStr);
     SHGetFolderPath(0,$0028,0,SHGFP_TYPE_CURRENT,@path[0]);
     HOMEFOLDER := Path + aString('\specbas');
 
   End Else Begin
 
-    Main.Caption := SP_GetProgName(PROGNAME);
-    HOMEFOLDER := ExtractFileDir(PARAMS[1]);
+    Main.Caption := String(SP_GetProgName(PROGNAME));
+    HOMEFOLDER := aString(ExtractFileDir(String(PARAMS[1])));
     If HOMEFOLDER = '' Then
-      HOMEFOLDER := GetCurrentDir;
+      HOMEFOLDER := aString(GetCurrentDir);
 
   End;
 
@@ -947,7 +948,7 @@ begin
   SetThreadAffinityMask(BASThread.ThreadID, 2);
   SetThreadAffinityMask(RefreshTimer.ThreadID, 4);
 
-  BASThread.Resume;
+  BASThread.Start;
 
   DisplaySection.Leave;
 
@@ -995,7 +996,6 @@ Function TMain.GetCharFromVirtualKey(Var Key: Word): astring;
 var
   keyboardState: TKeyboardState;
   asciiResult: Integer;
-  Idx: Integer;
 begin
 
   GetKeyboardState(keyboardState);
@@ -1033,7 +1033,6 @@ end;
 procedure TMain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 Var
   aStr: aString;
-  Err: TSP_ErrorCode;
   kInfo: SP_KeyInfo;
 begin
 
@@ -1140,8 +1139,10 @@ begin
 end;
 
 procedure TMain.FormPaint(Sender: TObject);
+{$IFNDEF OPENGL}
 Var
   H1, H2: HWnd;
+{$ENDIF}
 begin
 
   {$IFNDEF OPENGL}
@@ -1257,7 +1258,7 @@ begin
         glMatrixMode(GL_MODELVIEW);
         glEnable(GL_TEXTURE_2D);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ScaledWidth, ScaledHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ScaledWidth, ScaledHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, Nil);
 
         glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1507,18 +1508,18 @@ Begin
 
   Ext := Lower(aString(ExtractFileExt(String(Filename))));
   If Ext = '.bmp' Then Begin
-    Bmp.SaveToFile(Filename);
+    Bmp.SaveToFile(String(Filename));
   End Else
     If Ext = '.png' Then Begin
       Png := TPNGImage.Create;
       Png.Assign(Bmp);
-      Png.SaveToFile(Filename);
+      Png.SaveToFile(String(Filename));
       Png.Free;
     End Else
       If Ext = '.gif' Then Begin
         Gif := TGIFImage.Create;
         Gif.Assign(Bmp);
-        Gif.SaveToFile(Filename);
+        Gif.SaveToFile(String(Filename));
         Gif.Free;
       End;
 
@@ -1536,14 +1537,14 @@ Begin
 End;
 
 Procedure UpdateLinuxBuildStr;
-Var
+{Var
   Str: TStringList;
-  Idx: Integer;
+  Idx: Integer;}
 Begin
-
+{
   If FileExists('Linux\specbas.pas') Then Begin
 
-{    Str := TStringList.Create;
+    Str := TStringList.Create;
     Str.LoadFromFile('linux\specbas.pas');
     For Idx := 0 To Str.Count -1 Do Begin
       If Pos('  BUILDSTR := '#39, Str[Idx]) > 0 Then
@@ -1555,9 +1556,9 @@ Begin
 
     Str.SaveToFile('linux\specbas.pas');
     Str.Free;
-}
-  End;
 
+  End;
+}
 End;
 
 Initialization

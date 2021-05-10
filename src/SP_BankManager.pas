@@ -25,7 +25,7 @@ unit SP_BankManager;
 
 interface
 
-Uses Math, SP_BankFiling, SP_Util, SP_FileIO, SP_Errors, SP_SysVars, SP_Tokenise, SP_InfixToPostFix, SP_Package, Bass, SP_Components;
+Uses Math, SyncObjs, SP_BankFiling, SP_Util, SP_FileIO, SP_Errors, SP_SysVars, SP_Tokenise, SP_InfixToPostFix, SP_Package, Bass, SP_Components;
 
 Type
 
@@ -422,9 +422,7 @@ Var
   tBuf: aString;
   Sprite: pSP_Sprite_Info;
   TileMap: pSP_TileMap_Info;
-  Window: pSP_Window_Info;
   Magic: Array of Byte;
-  SkipInfo: Boolean;
 Begin
 
   // Load a binary file into the specified bank. If the bank does not exist, it will be created,
@@ -1009,7 +1007,7 @@ Begin
         FONTTRANSPARENT := FontBank^.Transparent;
         FONTTYPE := FontBank^.FontType;
 
-        TABSIZE := (SCREENWIDTH Div FONTWIDTH) Div 2;
+        TABSIZE := (SCREENWIDTH Div Integer(FONTWIDTH)) Div 2;
 
       End Else
         Error.Code := SP_ERR_INVALID_BANK;
@@ -1087,7 +1085,7 @@ Begin
   Window^.dr_posx := 0;
   Window^.dr_posy := 0;
   Window^.heading := 0;
-  Window^.Scrollcnt := (Height Div FONTHEIGHT) -2;
+  Window^.Scrollcnt := (Height Div Integer(FONTHEIGHT)) -2;
   Window^.orgx := 0;
   Window^.orgy := 0;
   Window^.orgw := Width;
@@ -1120,7 +1118,6 @@ End;
 Function SP_Add_Window(Left, Top, Width, Height, TransIdx, Bpp, Alpha: Integer; Var Error: TSP_ErrorCode): Integer;
 Var
   Idx: Integer;
-  Pal: pPalArray;
   Bank: pSP_Bank;
   dPtr: pLongWord;
   Window: pSP_Window_Info;
@@ -1399,7 +1396,6 @@ Function SP_New_Sprite(X, Y: aFloat; Collide: Boolean; Over, Wrap, CopyFrom: Int
 Var
   Bank: pSP_Bank;
   Sprite: pSP_Sprite_Info;
-  Window: pSP_Window_Info;
 Begin
 
   Result := -1;
@@ -1655,7 +1651,7 @@ End;
 
 Procedure SP_SpriteToWindow(Sprite: pSP_Sprite_Info; Window: Integer);
 Var
-  ScreenIdx, Idx, Idx2, Idx3: Integer;
+  Idx, Idx2, Idx3: Integer;
   ScrBank: pSP_Bank;
   WindowInfo: pSP_Window_Info;
 Label
@@ -1833,7 +1829,7 @@ End;
 
 Procedure SP_GetFrameData(var Sprite: pSP_Sprite_Info; var StrPtr: pByte; var StrLen: Integer; FrameNum: Integer);
 Var
-  FrameIdx: LongWord;
+  FrameIdx: Integer;
   FrameW, FrameH: LongWord;
 Begin
 
@@ -1863,7 +1859,7 @@ End;
 
 Function SP_GetFrameAddr(SpriteID, Frame: Integer; Var Error: TSP_ErrorCode): Integer;
 Var
-  FrameIdx: LongWord;
+  FrameIdx: Integer;
   FrameW, FrameH: LongWord;
   Sprite: pSP_Sprite_Info;
   Idx: Integer;
@@ -2036,7 +2032,7 @@ Procedure SP_MirrorSprite(SpID: Integer; Var Error: TSP_ErrorCode);
 Var
   Sprite: pSP_Sprite_Info;
   SrcPtr: pByte;
-  SrcLen, Idx, fW, fH: Integer;
+  Idx, fW, fH: Integer;
 Begin
 
   Idx := SP_FindSpriteID(SpId, Error);
@@ -2060,7 +2056,7 @@ Procedure SP_FlipSprite(SpID: Integer; Var Error: TSP_ErrorCode);
 Var
   Sprite: pSP_Sprite_Info;
   SrcPtr: pByte;
-  SrcLen, Idx, fW, fH: Integer;
+  Idx, fW, fH: Integer;
 Begin
 
   Idx := SP_FindSpriteID(SpId, Error);
@@ -2166,23 +2162,24 @@ End;
 
 Procedure SP_DrawSprite(dPtr: pByte; var Sprite: pSP_Sprite_Info; var Window: pSP_Window_Info);
 Var
-  SrcPtr, wPtr: pByte;
+  SrcPtr: pByte;
   Delay: LongWord;
-  SrcLen, X, Y, Idx, Mx, W, H, cXa, cYa, cXb, cYb: Integer;
-  cX1, cY1, cX2, cY2, ccX1, ccY1, ccX2, ccY2, wX, wY, wCx, wCy: Integer;
+  SrcLen, X, Y, Idx, Mx, W, H: Integer;
+  cX1, cY1, cX2, cY2, ccX1, ccY1, ccX2, ccY2, wCx, wCy: Integer;
   Error: TSP_ErrorCode;
   Dist, dX, dY: aFloat;
   NewFrame, Collided, CollidedA, CollidedB, CollidedC: Boolean;
 Begin
 
-  Collided := False;
   CollidedA := False;
   CollidedB := False;
   CollidedC := False;
 
+  wcX := 0;
+  wcY := 0;
+  NewFrame := False;
   If Not Sprite^.Collided Then Begin
     // Animate
-    NewFrame := False;
     If Sprite^.FrameCounter > 0 Then
       Dec(Sprite^.FrameCounter)
     Else Begin
@@ -2567,10 +2564,9 @@ End;
 Function SP_RotateSprite(Src: pByte; sW, sH: Integer; Dst: pByte; dX, dY, dW, dH, Over, Paper, wTrans: Integer; Trans: Word; Rot, Scale: aFloat; cX1, cY1, cX2, cY2: Integer): Boolean;
 Var
   ndW, ndH, cX, cY, iSin, iCos,
-  xd, yd, aX, aY, X, Y, sdX, sdY, TLX, TLY, BRX, BRY,
-  odX, ndX, odY, ndY, dXx, dYy: Integer;
+  xd, yd, aX, aY, X, Y, sdX, sdY, TLX, TLY, BRX, BRY: Integer;
   tW, tH: aFloat;
-  sPtr, dPtr: pByte;
+  dPtr: pByte;
   TC, sCl: Byte;
 Begin
 
@@ -2885,8 +2881,7 @@ End;
 
 Procedure SP_SetWindowVisible(WindowID: Integer; Vis: Boolean; Error: TSP_ErrorCode);
 Var
-  WindowIdx, BankIdx: Integer;
-  Window: pSP_Window_Info;
+  BankIdx: Integer;
   Bank: pSP_Bank;
 Begin
 
@@ -4026,10 +4021,10 @@ End;
 
 Procedure SP_TileMap_Draw(TileMapID, OffX, OffY, ToX, ToY, ToW, ToH, RX, RY: Integer; Rotate, Scale: aFloat; Var Error: TSP_ErrorCode);
 Var
-  tGfxPtr, destPtr, srcPtr: pByte;
+  destPtr, srcPtr: pByte;
   Idx, CurTile, tX, tY: Integer;
   tmPtr: pInteger;
-  pX, pY, SrcX, SrcY, SrcW, SrcH, tmWidth, tmHeight, tWidth, tHeight: Integer;
+  pX, pY, SrcX, SrcY, tmWidth, tmHeight, tWidth, tHeight: Integer;
   tdw, tdh, tdx, tdy, nxtrow, w, h: LongWord;
   Bank: pSP_Bank;
   TileMap: pSP_TileMap_Info;
@@ -4041,6 +4036,7 @@ Begin
 
   tdh := 0;
   tClr := 0;
+  SrcX := 0; SrcY := 0;
 
   // Render the tilemap to the rectangle described by ToX/Y/W/H, with rotation and scaling.
   // Two render paths - one for regular drawing and one for rotation/scaling ensures that basic
@@ -4081,7 +4077,6 @@ Begin
     End;
 
     tmPtr := TileMap^.TileData;
-    tGfxPtr := TileMap^.GraphicData;
     tWidth := TileMap^.TileWidth;
     tHeight := TileMap^.TileHeight;
 
@@ -4171,8 +4166,6 @@ Begin
 
       SrcX := OffX;
       SrcY := OffY;
-      SrcW := OffX + ToW;
-      SrcH := OffY + ToH;
 
       // Modify OffX and OffY to offset into a tile, rather than into the tilemap now that we have our
       // starting tile position.

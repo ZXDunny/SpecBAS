@@ -10,10 +10,10 @@ SP_Slider = Class(SP_BaseComponent)
 
   Private
 
-    Procedure Draw; Override;
 
   Public
 
+    Procedure Draw; Override;
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
 

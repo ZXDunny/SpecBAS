@@ -38,7 +38,7 @@ Uses
   Math, Classes, SysUtils, SP_Graphics32,
   SP_Graphics, SP_SysVars, SP_Input, SP_Errors, SP_Util, SP_Tokenise,
   SP_InfixToPostFix, SP_Interpret_PostFix, SP_Variables, SP_BankManager,
-  SP_FileIO, SP_Sound, SP_Editor, SP_Package, SyncObjs;
+  SP_FileIO, SP_Sound, SP_Editor, SyncObjs;
 
 Type
 
@@ -90,6 +90,8 @@ Var
 
 implementation
 
+Uses SP_Package;
+
 Procedure SP_SetFPS(Value: aFloat);
 Begin
 
@@ -109,8 +111,6 @@ Function SP_FrameUpdate: Boolean;
 Begin
 
   // Changes the FLASH sysvar once every 16 frames.
-
-  Result := False;
 
   If FRAMES Mod FLASHINTERVAL = 0 Then Begin
     FLASHSTATE := 1 - FLASHSTATE;
@@ -367,7 +367,6 @@ Var
   Idx: pByte;
 Begin
 
-  Result := 1;
   Tokens := @SP_Program[Line];
   Idx := pByte(pNativeUInt(Tokens)^);
 
@@ -386,7 +385,7 @@ Begin
       ofs2 := Length(Tokens^)
     Else
       ofs2 := pLongWord(LongWord(Idx) + SizeOf(LongWord))^;
-    If (Offset >= Ofs1) And (Offset < Ofs2) Then
+    If (LongWord(Offset) >= Ofs1) And (LongWord(Offset) < Ofs2) Then
       Exit;
     Inc(Idx, SizeOf(LongWord));
   End;

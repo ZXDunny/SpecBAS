@@ -11,13 +11,12 @@ SP_Container = Class(SP_BaseComponent)
   Private
 
     fCaption: aString;
-    Procedure Draw; Override;
     Procedure SetCaption(s: aString);
 
   Public
 
+    Procedure Draw; Override;
     Property Caption: aString read fCaption write SetCaption;
-
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
 
@@ -30,17 +29,18 @@ SP_ContainerCollection = Class(SP_BaseComponent)
 
     fShowing: Integer;
     fContainers: Array of SP_Container;
+    Function  GetCount: Integer;
+    Function  GetContainer(Index: Integer): SP_Container;
+
+  Public
+
     Function  Add: SP_Container;
     Procedure Delete(Index: Integer); Overload;
     Procedure Delete(Container: SP_Container); Overload;
     Procedure Clear;
-    Function  GetCount: Integer;
     Procedure Show(Index: Integer); Overload;
     Procedure Show(Container: SP_Container); Overload;
     Procedure SetBounds(x, y, w, h: Integer); Override;
-    Function  GetContainer(Index: Integer): SP_Container;
-
-  Public
 
     Property Containers[Index: Integer]: SP_Container read GetContainer;
     Property Count: Integer read GetCount;
@@ -223,7 +223,9 @@ Function  SP_ContainerCollection.GetContainer(Index: Integer): SP_Container;
 Begin
 
   If (Index >= 0) And (Index < Length(fContainers)) Then
-    Result := fContainers[Index];
+    Result := fContainers[Index]
+  Else
+    Result := nil;
 
 End;
 

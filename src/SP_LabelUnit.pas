@@ -18,7 +18,7 @@ SP_Label = Class(SP_BaseComponent)
     fCaplen: Integer;
     Procedure SetCaption(s: aString);
     Procedure SetJustify(i: Integer);
-    Procedure SetAlign(i: Integer);
+    Procedure SetAlign(i: Integer); Override;
     Procedure SetAutoSize(b: Boolean);
     Procedure Prepare;
     Procedure Draw; Override;
@@ -155,6 +155,7 @@ Var
   bOffs, i, x, y: Integer;
 Begin
 
+  x := 0; y := 0;
   bOffs := Ord(fBorder) * 2;
 
   If fBorder Then
@@ -226,27 +227,33 @@ End;
 Procedure SP_Label.SetCaption(s: aString);
 Begin
 
-  fCaption := s;
-  Prepare;
-  Paint;
+  If fCaption <> s Then Begin
+    fCaption := s;
+    Prepare;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_Label.SetJustify(i: Integer);
 Begin
 
-  fJustify := i;
-  Prepare;
-  Paint;
+  If fJustify <> i Then Begin
+    fJustify := i;
+    Prepare;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_Label.SetAlign(i: Integer);
 Begin
 
-  fAlign := i;
-  Prepare;
-  Paint;
+  If fAlign <> i Then Begin
+    fAlign := i;
+    Prepare;
+    Paint;
+  End;
 
 End;
 

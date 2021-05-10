@@ -166,7 +166,7 @@ Begin
   i := 0;
   While i < Length(TimerList) Do Begin
     With TimerList[i] Do Begin
-      If NextFrameTime <= FRAMES Then Begin
+      If NextFrameTime <= Integer(FRAMES) Then Begin
         Inc(NextFrameTime, Interval);
         If Assigned(ObjectProc) Then ObjectProc(@TimerList[i]);
       End;
@@ -187,7 +187,7 @@ Begin
   TimerList[l].ID := -1;
   TimerList[l].Sender := Sender;
   TimerList[l].Interval := Interval;
-  TimerList[l].NextFrameTime := FRAMES + Interval;
+  TimerList[l].NextFrameTime := Integer(FRAMES) + Interval;
   TimerList[l].ObjectProc := ObjProc;
 
   Id := 0;
@@ -364,10 +364,12 @@ End;
 
 Function WindowAtPoint(Var x, y: Integer): Pointer;
 Var
-  Idx, wIdx: Integer;
+  Idx: Integer;
 Label
   GotWindow;
 Begin
+
+  Result := nil;
 
   If MODALWINDOW > -1 Then Begin
     Idx := SP_FindBankID(MODALWINDOW);
@@ -375,7 +377,7 @@ Begin
     Result := @SP_BankList[Idx]^.Info[0];
     Goto GotWindow;
   End Else
-    If (x >= 0) And (x < DISPLAYWIDTH) And (y >= 0) And (y < DISPLAYHEIGHT) Then Begin
+    If (x >= 0) And (x < Integer(DISPLAYWIDTH)) And (y >= 0) And (y < Integer(DISPLAYHEIGHT)) Then Begin
       Idx := Length(SP_BankList) -1;
       While Idx >= 0 Do Begin
         Result := @SP_BankList[Idx]^.Info[0];
@@ -389,8 +391,6 @@ Begin
         Dec(Idx);
       End;
     End;
-
-  Result := nil;
 
 End;
 

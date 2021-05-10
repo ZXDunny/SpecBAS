@@ -2,7 +2,7 @@ unit SP_UITools;
 
 interface
 
-Uses Types, SysUtils, Math, SP_Tokenise, SP_Components, SP_Util, SP_BankFiling, SP_Errors, SP_SysVars, SP_Graphics, SP_FileIO, SP_BankManager, SP_Package,
+Uses Types, SysUtils, Math, System.SyncObjs, SP_Tokenise, SP_Components, SP_Util, SP_BankFiling, SP_Errors, SP_SysVars, SP_Graphics, SP_FileIO, SP_BankManager, SP_Package,
      SP_ButtonUnit, SP_RadioGroupUnit, SP_BaseComponentUnit, SP_CheckBoxUnit, SP_ComboBoxUnit, SP_LabelUnit, SP_FileListBoxUnit, SP_EditUnit, SP_ContainerUnit;
 
 Type
@@ -232,7 +232,7 @@ End;
 
 Procedure SP_FileRequester.SelectFile(Sender: SP_BaseComponent; i: Integer);
 Var
-  p, s, t: aString;
+  p, s: aString;
 Begin
 
   If i >= 0 Then Begin
@@ -417,12 +417,14 @@ End;
 
 Function SP_FindReplace.Open(Mode: Boolean): Integer;
 Var
-  Font, FW, FH, w, h, Idx, tp, cw, OldFocus: Integer;
+  Font, FW, FH, w, h, tp, cw, OldFocus: Integer;
   Caption: aString;
   Win: pSP_Window_Info;
   Error: TSP_ErrorCode;
   Sel: SP_SelectionInfo;
 Begin
+
+  Result := -1;
 
   DisplaySection.Enter;
 
@@ -890,7 +892,7 @@ End;
 
 Procedure SP_BreakpointWindow.Open(BpIndex, BpType, Line, Statement, PassCount: Integer; Caption, Condition: aString);
 Var
-  Font, w, h, cw, OldFocus: Integer;
+  Font, w, h, OldFocus: Integer;
   win: pSP_Window_Info;
   Error: TSP_ErrorCode;
 begin
@@ -1130,8 +1132,8 @@ Begin
     End Else
       Error.Code := SP_ERR_SYNTAX_ERROR;
 
-    ln := StrToIntDef(l, MAXINT);
-    st := StrToIntDef(s, MAXINT);
+    ln := StringToInt(l, MAXINT);
+    st := StringToInt(s, MAXINT);
 
     BpLine := Ln;
     BpSt := St;

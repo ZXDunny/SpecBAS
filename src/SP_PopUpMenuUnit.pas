@@ -58,7 +58,7 @@ SP_PopupMenu = Class(SP_BaseComponent)
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
     Procedure PerformKeyUp(Var Handled: Boolean); Override;
     Procedure SetDisabledFontClr(c: Byte); Override;
-    Procedure SetHighlightClr(c: Byte);
+    Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetSeparatorClr(c: Byte);
 
     Procedure MouseDown(X, Y, Btn: Integer); Override;
@@ -219,10 +219,8 @@ Begin
   // Iterate through this menu's items. Not submenus.
 
   y := 2;
-  x := 3;
   mw := 0;
   mx := 3;
-  w := 0;
   SubsPresent := False;
   For i := 0 To Length(fItems) -1 Do Begin
     x := 3;
@@ -286,7 +284,7 @@ End;
 
 Procedure SP_PopUpMenu.Draw;
 Var
-  x, y, i, j, c, ic: Integer;
+  y, i, c, ic: Integer;
   MouseInSubMenu: Boolean;
   mp, rp: TPoint;
   e: TRect;
@@ -526,7 +524,9 @@ Function  SP_PopUpMenu.GetItem(Index: Integer): SP_MenuItem;
 Begin
 
   If (Index >= 0) And (Index < fCount) Then
-    Result := fItems[Index];
+    Result := fItems[Index]
+  Else
+    Result := nil;
 
 End;
 
@@ -676,9 +676,8 @@ End;
 
 Procedure SP_PopUpMenu.PerformKeyDown(Var Handled: Boolean);
 Var
-  i, j, k: Integer;
+  i, j: Integer;
   NewChar: Byte;
-  p: TPoint;
 Begin
 
   If fSelected <> -1 Then Begin

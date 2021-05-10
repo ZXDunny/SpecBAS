@@ -21,7 +21,7 @@ SP_TabBar = Class(SP_BaseComponent)
     Function  GetTab(Index: Integer): aString;
     Procedure SetTab(Index: Integer; s: aString);
     Function  GetTabContainer(Index: Integer): pSP_Container;
-    Procedure AddTab(s: String);
+    Procedure AddTab(s: aString);
     Procedure DeleteTab(Index: Integer);
     Procedure InsertTab(Index: Integer; s: aString);
     Procedure MoveTab(Index, Direction: Integer);
@@ -31,7 +31,7 @@ SP_TabBar = Class(SP_BaseComponent)
     Property ShowTabs: Boolean read fShowTabs write SetShowTabs;
 
     Constructor Create(Owner: SP_BaseComponent);
-    Destructor Destroy;
+    Destructor Destroy; Override;
 
 End;
 
@@ -44,6 +44,8 @@ Begin
 
   Inherited;
   fTabs := TStringlist.Create;
+  fPosition := spTop;
+  fActiveTab := -1;
 
 End;
 
@@ -98,7 +100,7 @@ Begin
 
 End;
 
-Procedure SP_TabBar.AddTab(s: String);
+Procedure SP_TabBar.AddTab(s: aString);
 Begin
 
   fTabs.Add(s);

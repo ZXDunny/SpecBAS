@@ -19,12 +19,12 @@ SP_Button = Class(SP_BaseComponent)
     Procedure SetCaption(s: aString);
     Procedure SetCaptionPos(p: TPoint);
     Procedure SetState(s: SP_ButtonState);
-    Procedure Draw; Override;
-    Procedure PerformKeyDown(Var Handled: Boolean); Override;
-    Procedure PerformKeyUp(Var Handled: Boolean); Override;
 
   Public
 
+    Procedure Draw; Override;
+    Procedure PerformKeyDown(Var Handled: Boolean); Override;
+    Procedure PerformKeyUp(Var Handled: Boolean); Override;
     Procedure MouseDown(X, Y, Btn: Integer); Override;
     Procedure MouseUp(X, Y, Btn: Integer); Override;
     Procedure CentreCaption;
@@ -162,7 +162,6 @@ End;
 
 Procedure SP_Button.PerformKeyDown(Var Handled: Boolean);
 Var
-  i, j, k: Integer;
   NewChar: Byte;
 Begin
 
@@ -192,8 +191,6 @@ Begin
 End;
 
 Procedure SP_Button.PerformKeyUp(Var Handled: Boolean);
-Var
-  i: Integer;
 Begin
 
   Case cLastKey Of

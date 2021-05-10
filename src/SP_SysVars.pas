@@ -85,9 +85,9 @@ Var
   BLOCKSPRITES:             Boolean;      // Temporarily stop sprite updates
 
   DISPLAYPOINTER:           Pointer;      // A pointer to the display - the one external to SpecOS.
-  DISPLAYWIDTH:             LongWord;     // The current display surface width
-  DISPLAYHEIGHT:            LongWord;     // The current display surface height
-  DISPLAYSTRIDE:            LongWord;     // The *real* width of the display surface
+  DISPLAYWIDTH:             Integer;      // The current display surface width
+  DISPLAYHEIGHT:            Integer;      // The current display surface height
+  DISPLAYSTRIDE:            Integer;      // The *real* width of the display surface
   SCALEWIDTH:               LongWord;
   SCALEHEIGHT:              LongWord;
   NUMWINDOWS:               Integer;
@@ -190,15 +190,15 @@ Var
 
   EDITORFPS:                LongWord;     // FPS in the editor
   DEFAULTFPS:               LongWord;     // Default FPS for running
-  FLASHINTERVAL:            LongWord;     // The number of frames that must elapse between cursor flash state changes
-  FRAMES:                   LongWord;     // Elapsed frame counter, 50Hz
+  FLASHINTERVAL:            Integer;      // The number of frames that must elapse between cursor flash state changes
+  FRAMES:                   Integer;      // Elapsed frame counter, 50Hz
   LASTFRAME:                LongWord;
   FLASHSTATE:               Integer;      // 1 or 0 for the cursor flash
   EDITERROR:                Boolean;      // True if the syntax check caught an editing error
   EDITERRORPOS:             Integer;      // Position in the EDITLINE aString of the error
   PROGLINE:                 Integer;      // The currently selected line in the listing
   SHOWLINE:                 Integer;      // The top line of an AUTOLIST
-  LASTINKEYFRAME:           LongWord;     // The last frame number that INKEY$ yielded CPU
+  LASTINKEYFRAME:           Integer;      // The last frame number that INKEY$ yielded CPU
   STEPMODE:                 Integer;      // Is single-step (or Step over) mode active?
   STEPADDR:                 NativeUInt;   // Pointer to the end of the current statement for single-stepping
 
@@ -218,9 +218,9 @@ Var
   BPSIGNAL:                 Boolean;      // Breakpoint triggered, or impending Single-step event
   KEYSTATE:   array[0..255] of Byte;      // The state of the keyboard
   LASTKEYFLAG:              Byte;         // For the last key pressed, these are its flags (currently KF_NOCLICK possible)
-  REPDEL:                   LongWord;     // The delay in frames before a key repeats when held down
-  REPPER:                   LongWord;     // Delay between successive repeats of a key that is held down
-  REPCOUNT:                 LongWord;     // The current counter for key repeats
+  REPDEL:                   Integer;      // The delay in frames before a key repeats when held down
+  REPPER:                   Integer;      // Delay between successive repeats of a key that is held down
+  REPCOUNT:                 Integer;      // The current counter for key repeats
   DEBUGVAL:                 LongWord;
   VOLUME:                   aFloat;       // The current volume of sounds in SpecBAS
   CLICKVOL:                 aFloat;       // Editor clicks volume
@@ -342,7 +342,7 @@ Var
   scrollActive:             Integer;
   scrollInactive:           Integer;
   scrollThumb:              Integer;
-  BSize:                    LongWord;
+  BSize:                    Integer;
 
   debugPanel:               Integer;
   debugCombo:               Integer;
@@ -367,8 +367,8 @@ Var
   WINDOWPOINTER:            Pointer;      // Pointer to the SP_Window_Info structure
   SCRBANKPOINTER:           Pointer;      // As above, but for the display bank.
   FONTBANKID:               Integer;      // The ID number of the bank to use as the current font.
-  FONTWIDTH:                LongWord;     // The Width of the current font
-  FONTHEIGHT:               LongWord;     // The Height of the current font
+  FONTWIDTH:                Integer;      // The Width of the current font
+  FONTHEIGHT:               Integer;      // The Height of the current font
   FONTTRANSPARENT:          Integer;      // The colour index to be used as a transparent colour in the current font
   FONTTYPE:                 Integer;      // The type of font being used (graphical or mono)
 
@@ -1760,7 +1760,7 @@ Const
    (Name: 'SCROLLINACTIVE'; svType: svInteger; Size: 4; Data: @scrollInactive),
    (Name: 'SCROLLTHUMB'; svType: svInteger; Size: 4; Data: @scrollThumb),
    (Name: 'LASTINKEYFRAME'; svType: svLongWord; Size: 4; Data: @LASTINKEYFRAME),
-   (Name: 'GAPSIZE'; svType: svLongWord; Size: 4; Data: @BSIZE),
+   (Name: 'GAPSIZE'; svType: svInteger; Size: 4; Data: @BSIZE),
    (Name: 'NATWIDTH'; svType: svLongWord; Size: 4; Data: @REALSCREENWIDTH),
    (Name: 'NATHEIGHT'; svType: svLongWord; Size: 4; Data: @REALSCREENHEIGHT));
 

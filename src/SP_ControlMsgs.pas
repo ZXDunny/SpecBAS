@@ -39,11 +39,9 @@ Uses
 Procedure ProcessNextControlMsg;
 Var
   i: Integer;
-  Error: TSP_ErrorCode;
   Bp: pSP_BreakPointInfo;
   p: NativeUInt;
   key: SP_KeyInfo;
-  c: aChar; kc: Word;
 Begin
 
   ControlMsgLock.Enter;

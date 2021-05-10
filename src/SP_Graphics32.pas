@@ -76,6 +76,7 @@ Type
   Procedure SP_DrawEllipse32(CX, CY, Rx, Ry: Integer);
   Procedure SP_DrawTexEllipse8To32(CX, CY, Rx, Ry: Integer; const TextureStr: aString; tW, tH: LongWord);
   Procedure SP_DrawTexEllipse32To32(CX, CY, Rx, Ry: Integer; const TextureStr: aString; tW, tH: LongWord);
+  Procedure SP_DrawTexEllipse32Alpha(CX, CY, Rx, Ry: Integer; TextureStr: aString; tW, tH: LongWord);
   Procedure SP_DrawSolidEllipse32(CX, CY, Rx, Ry: Integer);
   Procedure SP_FillRect32Alpha(X, Y, W, H: Integer; Colour: LongWord);
   Procedure SP_DrawLine32Alpha(X2, Y2: aFloat);
@@ -85,8 +86,10 @@ Type
   Procedure SP_DrawRectangle32Alpha(X1, Y1, X2, Y2: Integer);
   Procedure SP_DrawSolidRectangle32(X1, Y1, X2, Y2: Integer);
   Procedure SP_DrawSolidRectangle32Alpha(X1, Y1, X2, Y2: Integer);
+  Procedure SP_DrawTexRectangle32Alpha(X1, Y1, X2, Y2: Integer; TextureStr: aString; tW, tH: LongWord);
   Procedure SP_FloodFill32(Dst: pLongWord; dX, dY, dW, dH, Clr: LongWord);
   Procedure SP_FloodFill32Alpha(Dst: pLongWord; dX, dY, dW, dH, Clr: LongWord);
+  Procedure SP_PolygonFill32Alpha(Var Points: Array of TSP_Point; TextureStr: aString; tW, tH: LongWord);
   Procedure SP_PolygonSolidFill32(Var Points: Array of TSP_Point; MinX, MinY, MaxX, MaxY: Integer; Ink: LongWord);
   Procedure SP_PolygonSolidFill32Alpha(Var Points: Array of TSP_Point);
   Procedure SP_CLS32(Paper: LongWord);
@@ -338,12 +341,10 @@ End;
 Procedure SP_Composite32(Dest: Pointer; X1, Y1, X2, Y2: Integer);
 Var
   Idx, Width, Height, tw, add1, add2, LastWindowID: Integer;
-  LastWindow: pSP_Window_Info;
   dstPtr, srcPtr: pLongWord;
   Sprite: pSP_Sprite_Info;
   Alpha: LongWord;
   Trans: Byte;
-  UseBackBuffer: Boolean;
 
   Function IsWindowVisible(sPtr: pSP_Window_Info): Boolean;
   Begin
@@ -365,13 +366,13 @@ Var
   Begin
     inc(j);
     c := (DefaultPalette[j].R shl 16)+(DefaultPalette[j].R shl 8)+(DefaultPalette[j].B);
-    d := pLongWord(NativeUInt(Dest) + (y1 * DISPLAYSTRIDE) + (x1 * SizeOf(RGBA)));
+    d := pLongWord(NativeUInt(Dest) + (y1 * Integer(DISPLAYSTRIDE)) + (x1 * SizeOf(RGBA)));
     for i:=x1 to x2 do Begin d^ := c; inc(d); end;
-    d := pLongWord(NativeUInt(Dest) + (y1 * DISPLAYSTRIDE) + (x1 * SizeOf(RGBA)));
+    d := pLongWord(NativeUInt(Dest) + (y1 * Integer(DISPLAYSTRIDE)) + (x1 * SizeOf(RGBA)));
     for i:=y1 to y2 do Begin d^ := c; inc(d,DISPLAYSTRIDE Div 4); end;
-    d := pLongWord(NativeUInt(Dest) + (y1 * DISPLAYSTRIDE) + ((x2-1) * SizeOf(RGBA)));
+    d := pLongWord(NativeUInt(Dest) + (y1 * Integer(DISPLAYSTRIDE)) + ((x2-1) * SizeOf(RGBA)));
     for i:=y1 to y2 do Begin d^ := c; inc(d,DISPLAYSTRIDE Div 4); end;
-    d := pLongWord(NativeUInt(Dest) + ((y2-1) * DISPLAYSTRIDE) + ((x2-1) * SizeOf(RGBA)));
+    d := pLongWord(NativeUInt(Dest) + ((y2-1) * Integer(DISPLAYSTRIDE)) + ((x2-1) * SizeOf(RGBA)));
     for i:=x1 to x2 do Begin d^ := c; inc(d); end;
   End;
 
@@ -400,7 +401,6 @@ Begin
     SP_GenerateRects(X1, Y1, X2, Y2);
 
   LastWindowID := -1;
-  LastWindow := Nil;
 
   For Idx := MaxRect -1 DownTo 0 Do
 
@@ -417,6 +417,7 @@ Begin
       Inc(GfxUpdRect);
       {$ENDIF}
 
+      DstPtr := Dest;
       If (sPtr^.SpriteCount > 0) or (sPtr^.Component.Count > 0) Then Begin
         If sPtr^.ID <> LastWindowID Then Begin
           tw := sPtr^.Width * sPtr^.Height;
@@ -465,10 +466,9 @@ Begin
         dstPtr := pLongWord(NativeUInt(Dest) + (by1 * DISPLAYSTRIDE) + (bx1 * SizeOf(RGBA)));
 
         LastWindowID := sPtr^.ID;
-        LastWindow := sPtr;
 
         add1 := LongWord(sPtr^.Stride - Width);
-        add2 := DISPLAYSTRIDE - (Width * SizeOf(RGBA));
+        add2 := Integer(DISPLAYSTRIDE) - (Width * SizeOf(RGBA));
 
         If sPtr^.Transparent = $FFFF Then Begin
 
@@ -515,7 +515,7 @@ Begin
         dstPtr := pLongWord(NativeUInt(Dest) + (by1 * DISPLAYSTRIDE) + (bx1 * SizeOf(RGBA)));
 
         add1 := LongWord(sPtr^.Stride - (Width * (sPtr^.bpp Div 8)));
-        add2 := DISPLAYSTRIDE - (Width * SizeOf(RGBA));
+        add2 := Integer(DISPLAYSTRIDE) - (Width * SizeOf(RGBA));
 
         If sPtr^.Transparent = $FFFF Then Begin
 
@@ -633,7 +633,7 @@ Begin
   Dest := LongWordToString(rW) + LongWordToString(rH) + #255 + #32 + Dest;
   Dst := @Dest[3 + (SizeOf(LongWord) * 2)];
 
-  Src := pLongWord(NativeUInt(Src) + (Ry * SrcW) + (Rx * SizeOf(RGBA)));
+  Src := pLongWord(NativeUInt(Src) + (Ry * Integer(SrcW)) + (Rx * SizeOf(RGBA)));
 
   While rH > 0 Do Begin
 
@@ -745,7 +745,6 @@ End;
 Procedure SP_PutRegion_NO_OVER32To32(Dst: pLongWord; dX, dY: Integer; dW, dH: LongWord; Src: pLongWord; SrcLen: Integer; Var cX1, cY1, cX2, cY2: Integer; Var Error: TSP_ErrorCode);
 Var
   W, W2, H, SrcX, SrcY, SrcW, SrcH: LongWord;
-  TC: Byte;
   Graphic: pSP_Graphic_Info;
 Begin
 
@@ -783,7 +782,7 @@ Begin
   cX1 := dX; cY1 := dY; cX2 := W; cY2 := H;
 
   Src := pLongWord(NativeUInt(Src) + (W * SrcY * SizeOf(RGBA)) + (SrcX * SizeOf(RGBA)));
-  Dst := pLongWord(NativeUInt(Dst) + (dW * Dy) + (dX * SizeOf(RGBA)));
+  Dst := pLongWord(NativeUInt(Dst) + (Integer(dW) * Dy) + (dX * SizeOf(RGBA)));
 
   While SrcH > 0 Do Begin
     W2 := SrcW;
@@ -828,8 +827,8 @@ End;
 
 Procedure SP_FillRect32(X, Y, W, H: Integer; Colour: LongWord);
 Var
-  Ptr, cPtr: pLongWord;
-  Idx, W2, Clr, Add: LongWord;
+  Ptr: pLongWord;
+  Idx, W2, Add: LongWord;
 Begin
 
   // Fills a rectangle with the specified colour
@@ -860,8 +859,8 @@ End;
 
 Procedure SP_FillRect32Alpha(X, Y, W, H: Integer; Colour: LongWord);
 Var
-  Ptr, cPtr: pLongWord;
-  Idx, W2, Clr, Add: LongWord;
+  Ptr: pLongWord;
+  Idx, W2, Add: LongWord;
 Begin
 
   // Fills a rectangle with the specified colour
@@ -984,7 +983,7 @@ Procedure SP_Scroll32(Dy: Integer);
 Var
   Dst: pLongWord;
   Src: pLongWord;
-  Amt, nDy, Paper: Integer;
+  Amt, nDy: Integer;
 Begin
 
   nDy := Min(Dy, SCREENHEIGHT);
@@ -1346,9 +1345,8 @@ end;
 
 Procedure SP_DrawEllipse32(CX, CY, Rx, Ry: Integer);
 var
-  Rx2, Ry2, twoRx2, twoRy2, p,x,y,Xn,Yn, px,py: Integer;
+  Rx2, Ry2, twoRx2, twoRy2, p, x, y, px, py: Integer;
   cxpx, cypy, cxmx, cymy: Integer;
-  SnapX, SnapY: Boolean;
 begin
 
   Rx := Abs(Rx);
@@ -1420,11 +1418,9 @@ end;
 
 Procedure SP_DrawTexEllipse32To32(CX, CY, Rx, Ry: Integer; const TextureStr: aString; tW, tH: LongWord);
 var
-  Rx2, Ry2, twoRx2, twoRy2, p,x,y,Xn,Yn, px,py, Ink, xMin, xMax: Integer;
+  Rx2, Ry2, twoRx2, twoRy2, p, x, y, Xn, px, py, xMin, xMax: Integer;
   TexBase, DstA, DstB: pLongWord;
-  SnapX, SnapY: Boolean;
   Graphic: pSP_Graphic_Info;
-  Clr1, Clr2: Byte;
 begin
 
   // if TextureStr = '' Then tW holds a pointer to the graphic bank's data,
@@ -1527,9 +1523,8 @@ end;
 
 Procedure SP_DrawTexEllipse8To32(CX, CY, Rx, Ry: Integer; const TextureStr: aString; tW, tH: LongWord);
 var
-  Rx2, Ry2, twoRx2, twoRy2, p,x,y,Xn,Yn, px,py, Ink, xMin, xMax: Integer;
+  Rx2, Ry2, twoRx2, twoRy2, p, x, y, Xn, px,py, xMin, xMax: Integer;
   TexBase, DstA, DstB: pByte;
-  SnapX, SnapY: Boolean;
   Graphic: pSP_Graphic_Info;
   Trans: Word;
   tClr, Clr1, Clr2: Byte;
@@ -1785,9 +1780,8 @@ end;
 
 Procedure SP_DrawEllipse32Alpha(CX, CY, Rx, Ry: Integer);
 var
-  Rx2, Ry2, twoRx2, twoRy2, p,x,y,Xn,Yn, px,py: Integer;
+  Rx2, Ry2, twoRx2, twoRy2, p, x, y, px, py: Integer;
   cxpx, cypy, cxmx, cymy: Integer;
-  SnapX, SnapY: Boolean;
 begin
 
   Rx := Abs(Rx);
@@ -1943,7 +1937,7 @@ end;
 
 Procedure SP_DrawRectangle32(X1, Y1, X2, Y2: Integer);
 Var
-  T, W, W2: Integer;
+  W, W2: Integer;
   Dst: pLongWord;
 Begin
 
@@ -1990,7 +1984,7 @@ End;
 
 Procedure SP_DrawRectangle32Alpha(X1, Y1, X2, Y2: Integer);
 Var
-  T, W, W2: Integer;
+  W, W2: Integer;
   Dst: pLongWord;
 Begin
 
@@ -2110,7 +2104,6 @@ End;
 Procedure SP_FloodFill32(Dst: pLongWord; dX, dY, dW, dH, Clr: LongWord);
 Var
   o, qStart, qCount: LongWord;
-  Queue: Array of pLongWord;
   n, w, e, EdgeW, EdgeE, Up, Down, Top, Bottom: pLongWord;
   Target: LongWord;
 Begin
@@ -2121,7 +2114,7 @@ Begin
   qCount := 1;
 
   Top := pLongWord(NativeUInt(Dst) + (Integer(Dw) * Max(1, T_CLIPY1)));
-  Bottom := pLongWord(NativeUInt(Dst) + ((T_CLIPY2 - 1) * LongWord(dW)));
+  Bottom := pLongWord(NativeUInt(Dst) + (LongWord(T_CLIPY2 - 1) * dW));
   n := pLongWord(NativeUInt(Dst) + (dW * dY) + (dX * SizeOf(RGBA)));
   Target := n^ And $FFFFFF;
 
@@ -2191,7 +2184,6 @@ End;
 Procedure SP_FloodFill32Alpha(Dst: pLongWord; dX, dY, dW, dH, Clr: LongWord);
 Var
   o, qStart, qCount: LongWord;
-  Queue: Array of pLongWord;
   n, w, e, EdgeW, EdgeE, Up, Down, Top, Bottom: pLongWord;
   Target: LongWord;
 Begin
@@ -2202,7 +2194,7 @@ Begin
   qCount := 1;
 
   Top := pLongWord(NativeUInt(Dst) + (Integer(Dw) * Max(1, T_CLIPY1)));
-  Bottom := pLongWord(NativeUInt(Dst) + ((T_CLIPY2 - 1) * LongWord(dW)));
+  Bottom := pLongWord(NativeUInt(Dst) + (LongWord(T_CLIPY2 - 1) * dW));
   n := pLongWord(NativeUInt(Dst) + (dW * dY) + (dX * SizeOf(RGBA)));
   Target := n^ And $FFFFFF;
 
@@ -2271,7 +2263,7 @@ End;
 
 Procedure SP_PolygonSolidFill32(Var Points: Array of TSP_Point; MinX, MinY, MaxX, MaxY: Integer; Ink: LongWord);
 Var
-  Idx, I, J, Nodes, NumPoints, PixelY, Swap: Integer;
+  I, J, Nodes, NumPoints, PixelY, Swap: Integer;
   NodeX: Array of Integer;
   Ptr: pLongWord;
 Begin
@@ -2528,15 +2520,14 @@ End;
 
 Function SP_PRINT32(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: LongWord; var Error: TSP_ErrorCode): Integer;
 Var
-  CharW, CharH, Idx, Scrolls, cCount, OVER, StreamIdx, sx, sy, nx: Integer;
-  yp, xp, Cw, Ch, TC: LongWord;
+  CharW, CharH, Idx, Scrolls, cCount, sx, sy, nx: Integer;
+  yp, xp, Cw, Ch, TC: Integer;
   Transparent: Boolean;
   FontBank: pSP_Font_info;
   Bank: pSP_Bank;
   Coord: pLongWord;
   Char, pIdx, lIdx: pByte;
   IsScaled: Boolean;
-  Tokens: paString;
   ScaleX, ScaleY: aFloat;
   Info: TSP_iInfo;
   pInfo: pSP_iInfo;
@@ -2547,7 +2538,6 @@ Begin
 
   Result := 0;
   Scrolls := 0;
-  IsScaled := False;
 
   If OUTSET Then Begin
 
@@ -2563,7 +2553,6 @@ Begin
       Ink := Paper;
       Paper := Idx;
     End;
-    OVER := T_OVER;
     ScaleX := T_SCALEX;
     ScaleY := T_SCALEY;
 
@@ -2587,8 +2576,10 @@ Begin
         If (FontBank^.FontType = SP_FONT_TYPE_32BIT) And (pSP_Window_Info(WINDOWPOINTER)^.bpp <> 32) Then Begin
           Error.Code := SP_ERR_INVALID_DEPTH;
           Exit;
-        End Else
+        End Else Begin
           Transparent := T_TRANSPARENT;
+          TC := 0;
+        End;
 
       Idx := 1;
       Scrolls := 0;
@@ -2782,7 +2773,6 @@ Begin
            18:
               Begin // OVER control
                 T_OVER := pByte(@Text[Idx+1])^;
-                OVER := T_OVER;
                 Inc(Idx);
               End;
            19:
@@ -2818,15 +2808,15 @@ Begin
               Begin // AT control
                 X := 0; Y := 0;
                 SP_ConvertToOrigin_i(X, Y);
-                Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+                Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer));
-                Inc(X, pInteger(@Text[Idx+1])^ * LongWord(Cw));
+                Inc(X, pInteger(@Text[Idx+1])^ * Cw);
                 Inc(Idx, SizeOf(Integer));
               End;
            23:
               Begin // TAB control
                 nx := X Div Cw;
-                tc := pLongWord(@Text[Idx+1])^ mod (SCREENWIDTH Div Cw);
+                tc := pInteger(@Text[Idx+1])^ mod (SCREENWIDTH Div Cw);
                 If tc < nx Then Inc(tc, SCREENWIDTH Div Cw);
                 SP_PRINT32(-1, X, Y, -1, StringOfChar(aChar(' '), tc - nx), Ink, Paper, Error);
                 X := Round(PRPOSX);
@@ -2837,7 +2827,7 @@ Begin
               Begin // CENTRE control
                 Y := 0;
                 SP_ConvertToOrigin_i_y(Y);
-                Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+                Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer) +1);
                 pIdx := pByte(@Text[Idx]);
                 lIdx := pIdx + Length(Text) - Idx;
@@ -2903,25 +2893,22 @@ End;
 
 Function SP_TextOut32(BankID, X, Y: Integer; const Text: aString; Ink, Paper: LongWord; Visible: Boolean): Integer;
 Var
-  CharW, CharH, Idx, Val, cCount, OVER, nx: Integer;
-  sx, sy, Cw, Ch, yp, xp, TC: LongWord;
+  CharW, CharH, Idx, cCount, nx: Integer;
+  sx, sy, Cw, Ch, yp, xp, TC: Integer;
   Transparent: Boolean;
   FontBank: pSP_Font_Info;
   Bank: pSP_Bank;
   Coord: pLongWord;
   Char, pIdx, lIdx: pByte;
   IsScaled: Boolean;
-  dX, dY, ScaleX, ScaleY: aFloat;
+  ScaleX, ScaleY: aFloat;
 Begin
-
-  IsScaled := False;
 
   If T_INVERSE <> 0 Then Begin
     Idx := Ink;
     Ink := Paper;
     Paper := Idx;
   End;
-  OVER := T_OVER;
   ScaleX := T_SCALEX;
   ScaleY := T_SCALEY;
 
@@ -2941,8 +2928,13 @@ Begin
     If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
       Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
       TC := FontBank^.Transparent And $FF;
-    End Else
-      If (FontBank^.FontType = SP_FONT_TYPE_32BIT) And (pSP_Window_Info(WINDOWPOINTER)^.bpp <> 32) Then Exit Else Transparent := T_TRANSPARENT;
+    End Else Begin
+      If (FontBank^.FontType = SP_FONT_TYPE_32BIT) And (pSP_Window_Info(WINDOWPOINTER)^.bpp <> 32) Then
+        Exit
+      Else
+        Transparent := T_TRANSPARENT;
+      TC := 0;
+    End;
 
     Coord := SCREENPOINTER;
     Inc(Coord, (SCREENWIDTH * Y) + X);
@@ -3092,7 +3084,6 @@ Begin
          18:
             Begin // OVER control
               T_OVER := pByte(@Text[Idx+1])^;
-              OVER := T_OVER;
               Inc(Idx);
             End;
          19:
@@ -3130,9 +3121,9 @@ Begin
             Begin // AT control
               X := 0; Y := 0;
               SP_ConvertToOrigin_i(X, Y);
-              Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+              Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer));
-              Inc(X, pInteger(@Text[Idx+1])^ * LongWord(Cw));
+              Inc(X, pInteger(@Text[Idx+1])^ * Cw);
               Inc(Idx, SizeOf(Integer));
             End;
          23:
@@ -3149,7 +3140,7 @@ Begin
             Begin // CENTRE control
               Y := 0;
               SP_ConvertToOrigin_i_y(Y);
-              Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+              Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer) +1);
               pIdx := pByte(@Text[Idx]);
               lIdx := pIdx + Length(Text) - Idx;
@@ -3209,15 +3200,14 @@ End;
 
 Function SP_PRINT32Alpha(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: LongWord; var Error: TSP_ErrorCode): Integer;
 Var
-  CharW, CharH, Idx, Scrolls, cCount, OVER, StreamIdx, sx, sy, nx: Integer;
-  yp, xp, Cw, Ch, TC: LongWord;
+  CharW, CharH, Idx, Scrolls, cCount, sx, sy, nx: Integer;
+  yp, xp, Cw, Ch, TC: Integer;
   Transparent: Boolean;
   FontBank: pSP_Font_info;
   Bank: pSP_Bank;
   Coord: pLongWord;
   Char, pIdx, lIdx: pByte;
   IsScaled: Boolean;
-  Tokens: paString;
   ScaleX, ScaleY: aFloat;
   Info: TSP_iInfo;
   pInfo: pSP_iInfo;
@@ -3226,7 +3216,6 @@ Begin
 
   Result := 0;
   Scrolls := 0;
-  IsScaled := False;
 
   If OUTSET Then Begin
 
@@ -3242,7 +3231,6 @@ Begin
       Ink := Paper;
       Paper := Idx;
     End;
-    OVER := T_OVER;
     ScaleX := T_SCALEX;
     ScaleY := T_SCALEY;
 
@@ -3262,8 +3250,10 @@ Begin
       If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
         Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
         TC := FontBank^.Transparent And $FF;
-      End Else
+      End Else Begin
         Transparent := T_TRANSPARENT;
+        TC := 0;
+      End;
 
       Idx := 1;
       Scrolls := 0;
@@ -3452,7 +3442,6 @@ Begin
            18:
               Begin // OVER control
                 T_OVER := pByte(@Text[Idx+1])^;
-                OVER := T_OVER;
                 Inc(Idx);
               End;
            19:
@@ -3488,15 +3477,15 @@ Begin
               Begin // AT control
                 X := 0; Y := 0;
                 SP_ConvertToOrigin_i(X, Y);
-                Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+                Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer));
-                Inc(X, pInteger(@Text[Idx+1])^ * LongWord(Cw));
+                Inc(X, pInteger(@Text[Idx+1])^ * Cw);
                 Inc(Idx, SizeOf(Integer));
               End;
            23:
               Begin // TAB control
                 nx := X Div Cw;
-                tc := pLongWord(@Text[Idx+1])^ mod (SCREENWIDTH Div Cw);
+                tc := pInteger(@Text[Idx+1])^ mod (SCREENWIDTH Div Cw);
                 If tc < nx Then Inc(tc, SCREENWIDTH Div Cw);
                 SP_PRINT32Alpha(-1, X, Y, -1, StringOfChar(aChar(' '), tc - nx), Ink, Paper, Error);
                 X := Round(PRPOSX);
@@ -3507,7 +3496,7 @@ Begin
               Begin // CENTRE control
                 Y := 0;
                 SP_ConvertToOrigin_i_y(Y);
-                Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+                Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer) +1);
                 pIdx := pByte(@Text[Idx]);
                 lIdx := pIdx + Length(Text) - Idx;
@@ -3573,25 +3562,22 @@ End;
 
 Function SP_TextOut32Alpha(BankID, X, Y: Integer; const Text: aString; Ink, Paper: LongWord; Visible: Boolean): Integer;
 Var
-  CharW, CharH, Idx, Val, cCount, OVER, nx: Integer;
-  sx, sy, Cw, Ch, yp, xp, TC: LongWord;
+  CharW, CharH, Idx, cCount, nx: Integer;
+  sx, sy, Cw, Ch, yp, xp, TC: Integer;
   Transparent: Boolean;
   FontBank: pSP_Font_Info;
   Bank: pSP_Bank;
   Coord: pLongWord;
   Char, pIdx, lIdx: pByte;
   IsScaled: Boolean;
-  dX, dY, ScaleX, ScaleY: aFloat;
+  ScaleX, ScaleY: aFloat;
 Begin
-
-  IsScaled := False;
 
   If T_INVERSE <> 0 Then Begin
     Idx := Ink;
     Ink := Paper;
     Paper := Idx;
   End;
-  OVER := T_OVER;
   ScaleX := T_SCALEX;
   ScaleY := T_SCALEY;
 
@@ -3611,8 +3597,10 @@ Begin
     If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
       Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
       TC := FontBank^.Transparent And $FF;
-    End Else
+    End Else Begin
       Transparent := T_TRANSPARENT;
+      TC := 0;
+    End;
 
     Coord := SCREENPOINTER;
     Inc(Coord, (SCREENWIDTH * Y) + X);
@@ -3760,7 +3748,6 @@ Begin
          18:
             Begin // OVER control
               T_OVER := pByte(@Text[Idx+1])^;
-              OVER := T_OVER;
               Inc(Idx);
             End;
          19:
@@ -3798,9 +3785,9 @@ Begin
             Begin // AT control
               X := 0; Y := 0;
               SP_ConvertToOrigin_i(X, Y);
-              Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+              Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer));
-              Inc(X, pInteger(@Text[Idx+1])^ * LongWord(Cw));
+              Inc(X, pInteger(@Text[Idx+1])^ * Cw);
               Inc(Idx, SizeOf(Integer));
             End;
          23:
@@ -3817,7 +3804,7 @@ Begin
             Begin // CENTRE control
               Y := 0;
               SP_ConvertToOrigin_i_y(Y);
-              Inc(Y, pInteger(@Text[Idx+1])^ * LongWord(Ch));
+              Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer) +1);
               pIdx := pByte(@Text[Idx]);
               lIdx := pIdx + Length(Text) - Idx;
@@ -3957,19 +3944,17 @@ End;
 Function SP_RawTextOut(BankID: Integer; Dest: pLongWord; dW, dH, X, Y: Integer; const Text: aString; Ink, Paper: LongWord; ScaleX, ScaleY: aFloat; Trans: Boolean): Integer;
 Var
   fW, fH, CharW, CharH, Idx: Integer;
-  sX, sY, Cw, Ch, TC, xp, yp, pInk, pPaper: LongWord;
+  sX, sY, Cw, Ch, TC, xp, yp, pInk, pPaper: Integer;
   FontBank: pSP_Font_Info;
   Transparent: Boolean;
   Bank: pSP_Bank;
   Coord: pLongWord;
   Char, pIdx, lIdx: pByte;
   IsScaled: Boolean;
-  dX, dY: aFloat;
 Begin
 
   pInk := Ink;
   pPaper := Paper;
-  IsScaled := False;
   Result := SP_FindBankID(BankID);
   If Result <> SP_ERR_BANK_ID_NOT_FOUND Then Begin
 
@@ -3985,8 +3970,13 @@ Begin
     If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
       Transparent := FontBank^.Transparent <> $FFFF;
       TC := FontBank^.Transparent And $FF;
-    End Else
-      If FontBank^.FontType = SP_FONT_TYPE_32BIT Then Exit Else Transparent := T_TRANSPARENT;
+    End Else Begin
+      If FontBank^.FontType = SP_FONT_TYPE_32BIT Then
+        Exit
+      Else
+        Transparent := T_TRANSPARENT;
+      TC := 0;
+    End;
 
     Coord := Dest;
     Inc(Coord, (dW * Y) + X);
@@ -4128,7 +4118,7 @@ End;
 Procedure SP_DrawStripe32(Dst: pLongWord; Width, StripeWidth, StripeHeight: Integer);
 Var
   X, Y, X2: Integer;
-  Ptr, oPtr: pLongWord;
+  oPtr: pLongWord;
   Clrs: Array[0..3] of LongWord;
 Begin
 
@@ -4169,5 +4159,21 @@ Begin
   SP_ConvertToOrigin_d(DRPOSX, DRPOSY);
 
 End;
+
+Procedure SP_PolygonFill32Alpha(Var Points: Array of TSP_Point; TextureStr: aString; tW, tH: LongWord);
+Begin
+  // TODO Alpha
+End;
+
+Procedure SP_DrawTexRectangle32Alpha(X1, Y1, X2, Y2: Integer; TextureStr: aString; tW, tH: LongWord);
+Begin
+  // TODO Alpha
+End;
+
+Procedure SP_DrawTexEllipse32Alpha(CX, CY, Rx, Ry: Integer; TextureStr: aString; tW, tH: LongWord);
+Begin
+  // TODO Alpha
+End;
+
 
 end.

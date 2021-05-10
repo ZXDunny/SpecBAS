@@ -51,16 +51,9 @@ SP_ScrollBar = Class(SP_BaseComponent)
     Procedure SetPageSize(p: Integer);
     Procedure SetBorder(b: Boolean);
     Procedure SetKind(k: SP_ScrollBarKind);
-    Procedure SetBackgroundClr(c: Byte); Override;
-    Procedure SetDisabledFontClr(c: Byte); Override;
-    Procedure SetFontClr(c: Byte); Override;
     Function  SetUIElements: Boolean;
-    Procedure SetTrackClr(c: Byte);
-    Procedure SetBtnClr(c: Byte);
-    Procedure SetThumbClr(c: Byte);
     Procedure SetShowButtons(b: Boolean);
     Procedure Resize;
-    Procedure Draw; Override;
     Function  GetBorder: Boolean;
 
     Procedure UpBtnMouseDown(X, Y, Btn: Integer);
@@ -71,6 +64,13 @@ SP_ScrollBar = Class(SP_BaseComponent)
 
   Public
 
+    Procedure SetBackgroundClr(c: Byte); Override;
+    Procedure SetDisabledFontClr(c: Byte); Override;
+    Procedure SetFontClr(c: Byte); Override;
+    Procedure Draw; Override;
+    Procedure SetTrackClr(c: Byte);
+    Procedure SetBtnClr(c: Byte);
+    Procedure SetThumbClr(c: Byte);
     Procedure ScrollInView(p: Integer);
 
     Property Step:        Integer          read fStep        write fStep;
@@ -195,7 +195,6 @@ End;
 
 Procedure SP_ScrollBar.SetPos(p: Integer);
 Var
-  i: Integer;
   e: pSP_TimerEvent;
 Begin
 
@@ -299,8 +298,7 @@ end;
 Function SP_ScrollBar.SetUIElements: Boolean;
 Var
   op, m: Integer;
-  b1, b2: Boolean;
-  Mult, m2: aFloat;
+  m2: aFloat;
   UpChar, DnChar: aChar;
 Begin
 
@@ -309,7 +307,6 @@ Begin
   fRange := (fMax - fMin) -1;
   fPageSize := Math.Min(fPageSize, fRange);
   fPosition := Math.Min(Math.Max(fPosition, fMin), fMax - fPageSize);
-  b1 := fUpEnabled; b2 := fDownEnabled;
   fUpEnabled := fPosition > fMin;
   fDownEnabled := fPosition < fMax - fPageSize;
   If Assigned(fUpBtn) Then Begin
@@ -322,7 +319,6 @@ Begin
   // Calculate visual element sizes
 
   With fBoundsRect Do If fRange > 1 Then Begin
-    Mult := fPageSize/fRange;
     m := Math.Min(fWidth, fHeight);
     If fKind = spVertical Then Begin
       fUpRect := Rect(0, 0, m, m);
@@ -462,9 +458,6 @@ Begin
 End;
 
 Procedure SP_ScrollBar.MouseDown(X, Y, Btn: Integer);
-Var
-  p: TPoint;
-  Up: Boolean;
 Begin
 
   SP_PlaySystem(CLICKCHAN, CLICKBANK);

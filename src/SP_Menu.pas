@@ -270,12 +270,12 @@ End;
 Function  SP_GetItemAttrs(mIdx, iIdx: Integer; Var Error: TSP_ErrorCode): Integer;
 Begin
 
+  Result := 0;
   mIdx := SP_FindMenuID(mIdx);
   If mIdx > -1 Then Begin
 
     If (iIdx > 0) And (iIdx <= Length(SP_MENUS[mIdx].Items)) Then Begin
       Dec(iIdx);
-      Result := 0;
       With SP_MENUS[mIdx].Items[iIdx] Do Begin
         If Checkable Then Result := Result or MI_TOGGLE;
         If Checked Then Result := Result or MI_CHECK;
@@ -426,7 +426,7 @@ End;
 
 Procedure SP_SetMenuFont(mIdx, FontID: Integer; ScX, ScY: aFloat; Recurse: Boolean; Var Error: TSP_ErrorCode);
 Var
-  Idx, iIdx: Integer;
+  Idx: Integer;
 
   Procedure SetFont(m, f: Integer);
   Var
@@ -479,7 +479,6 @@ End;
 Procedure SP_MenuToWindow(MenuId, WindowID: Integer; Var Error: TSP_ErrorCode);
 Var
   WindowInfo: pSP_Window_Info;
-  WindowIdx: Integer;
 Begin
 
   // Attach a menu to a window. This will result in a top-level menu (a bar style) being created in
@@ -738,18 +737,19 @@ End;
 
 Procedure SP_DrawMainMenu(Dst: pByte; dW, dH, mIdx: Integer);
 Var
-  m, m2, mH, cW, il, Idx, pSz, fB, fW, fH, sW, tX, tY: Integer;
-  SelectedItem, SelX, SelY, oSel: Integer;
-  lClr, Ink, Paper: LongWord; Clr: Byte;
+  m, mH, cW, il, Idx, fB, fW, fH, sW, tX, tY: Integer;
+  SelectedItem, SelX, SelY: Integer;
+  lClr: LongWord;
   FontBank: pSP_Font_Info;
   SclX, SclY: aFloat;
-  Caption: aString;
   pPtr: pByte;
 Begin
 
   SelectedItem := -1;
 
   // Draw an Amiga-style menu that inhabits the top of the screen
+
+  fW := 8; fH := 8; SelX := 0; SelY := 0;
 
   m := SP_FindMenuID(mIdx);
   If m > -1 Then Begin
@@ -903,7 +903,7 @@ Var
   m, Idx, il, icl, mxW, mcl, mW, mH, tX, tY, SelectedItem, SelX, SelY: Integer;
   HasSubs, Checks: Boolean;
   FontBank: pSP_Font_Info;
-  lClr, iClr: LongWord;
+  lClr: LongWord;
   fB, fW, fH: Integer;
   SclX, SclY: aFloat;
   Caption: aString;
@@ -913,6 +913,8 @@ Begin
   // Draw a "box" menu, used as a submenu from the main bar or other menu item.
   // Very similar on the face of it to the above code, but items in these can change their appearance,
   // and selection/highlighting is slightly (and subtly) different.
+
+  fW := 8; fH := 8; SelX := 0; SelY := 0;
 
   m := SP_FindMenuID(mIdx);
   If m > -1 Then Begin

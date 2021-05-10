@@ -43,8 +43,8 @@ Unit SP_FPEditor;
 //    New dialogs:
 //      *File (load/save)
 //      *Find/Replace
-//      GO TO (line number, proc/fn, label)
-//      Debug window - Tabs for Virtual CPU, Variables, Machine Stack, GOSUB Stack, Watches, Breakpoints
+//      *GO TO (line number, proc/fn, label)
+//      *Debug window - Tabs for Virtual CPU, Variables, Machine Stack, GOSUB Stack, Watches, Breakpoints
 //      Preferences
 //      Tool management (add/remove to/from tools menu)
 //        Character map
@@ -60,9 +60,9 @@ Unit SP_FPEditor;
 interface
 
 Uses Types, Classes, Clipbrd, SyncObjs, SysUtils, Math{$IFNDEF FPC}, Windows{$ENDIF},
-     SP_Graphics, SP_BankManager, SP_SysVars, SP_Errors, SP_Main, SP_Tokenise, SP_Util, SP_BankFiling, SP_UITools,
+     SP_Graphics, SP_BankManager, SP_SysVars, SP_Errors, SP_Main, SP_Tokenise, SP_BankFiling, SP_UITools,
      SP_Input, SP_Sound, SP_InfixToPostFix, SP_Interpret_PostFix, SP_FileIO, SP_Package, SP_Variables, SP_Components, SP_Menu, SP_AnsiStringlist,
-     SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_CheckListUnit, SP_MenuActions;
+     SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_CheckListUnit, SP_MenuActions, SP_Util;
 
 Type
 
@@ -144,7 +144,7 @@ Function  SP_GetLineIndex(LineNum: Integer): Integer;
 Function  SP_GetLineNumberFromText(Const Txt: aString): Integer;
 Function  SP_GetFPLineNumber(Idx: Integer): Integer;
 Procedure SP_FillFlags;
-Procedure ScanForStatements(Const s: String; Var St: Integer; Var InString, InREM, InClr: Boolean);
+Procedure ScanForStatements(Const s: aString; Var St: Integer; Var InString, InREM, InClr: Boolean);
 Procedure SP_DisplayFPListing(Line: Integer);
 Procedure SP_FPScrollToLine(Line, Statement: Integer);
 Procedure SP_CalculateFPCursorPos;
@@ -388,9 +388,9 @@ Begin
 
   If Index > -1 Then Begin
     s := Lower(Listing[Index]);
-    c := Pos('label', s) > 0;
-    c := c or (Pos('def proc', s) > 0);
-    c := c or (Pos('def fn', s) > 0);
+    c := SP_Util.Pos('label', s) > 0;
+    c := c or (SP_Util.Pos('def proc', s) > 0);
+    c := c or (SP_Util.Pos('def fn', s) > 0);
     Listing.Flags[Index].PoI := c;
   End;
 
@@ -859,8 +859,7 @@ Procedure SP_Decorate_Window(WindowID: Integer; Title: aString; Clear, SizeGrip,
 Var
   Win: pSP_Window_Info;
   Err: TSP_ErrorCode;
-  Idx, Font, Window, sp: Integer;
-  tTitleBar: aString;
+  Font, Window, sp: Integer;
 Begin
 
   Window := SCREENBANK;
@@ -912,7 +911,7 @@ End;
 Procedure SP_DrawStripe(Dst: pByte; Width, StripeWidth, StripeHeight: Integer; Focused: Boolean);
 Var
   X, Y, X2, i: Integer;
-  Ptr, oPtr: pByte;
+  oPtr: pByte;
 Const
   ClrsFocused: Array[0..3] of Byte   = (2, 6, 4, 5);
   ClrsUnFocused: Array[0..3] of Byte = (238, 252, 246, 243); //(231, 245, 238, 241);
@@ -940,7 +939,7 @@ End;
 
 Procedure SP_DrawBatteryStatus;
 Var
-  Idx, X, Y, BattW, pW, PixW, Font, Window: Integer;
+  Idx, X, Y, BattW, PixW, Font, Window: Integer;
   PixPtr: pByte;
   Win: pSP_Window_Info;
   Err: TSP_ErrorCode;
@@ -1035,8 +1034,6 @@ Begin
 End;
 
 Procedure SP_FPUpdateHorzScrollBar;
-Var
-  ScrollBar: pSP_ScrollBar;
 Begin
 
   // Called when the gutter size changes - the scrollbar should move its left coordinate to match.
@@ -1055,10 +1052,8 @@ End;
 Procedure SP_CreateFPWindow;
 Var
   Idx: Integer;
-  Event: SP_EditorEvent;
   Error: TSP_ErrorCode;
   Win: pSP_Window_Info;
-  i: SP_CheckList;
 Begin
 
   // Create the main editor window - fullscreen (with margin/border)
@@ -1259,8 +1254,7 @@ End;
 
 Procedure SP_MarkAsDirty(Idx: Integer);
 Var
-  cIdx, lIdx, Mxg: Integer;
-  s, s2: aString;
+  Mxg: Integer;
 Begin
 
   // Marks a line in the text editor as dirty - i.e, changed and needing to be syntax checked and compiled.
@@ -1438,7 +1432,7 @@ End;
 
 Procedure SP_ScrollEditor(d: Integer);
 Var
-  i, w, h, ltm, WinW, WinH, Window, Font: Integer;
+  i, w, h, ltm, WinW, Window, Font: Integer;
   sPtr, dPtr: pByte;
   Win: pSP_Window_Info;
   Err: TSP_ErrorCode;
@@ -1456,7 +1450,6 @@ Begin
   w := FPPaperWidth;
   h := FPPaperHeight;
   WinW := Win^.Width;
-  WinH := Win^.Height;
   ltm := h - Abs(d);
   VertSB := @FPScrollBars[SP_FindScrollBar(FPVertSc)];
 
@@ -1759,9 +1752,9 @@ End;
 Procedure SP_FPApplyHighlighting(Line: Integer);
 Var
   CodeLine, SynLine, LastSyntax, AddedEndChars, AddedStartChars, t, s, s2, s3: aString;
-  Idx, Idx2, Added, l, m, FindIdx, Ink, Paper, oPaper, Bold, Italic, i, j, k, bp1, bp2: Integer;
-  fLine, fPos, fLen: Integer;
-  NeedUpdate, GoAgain, CanShowBraces, Done, Found: Boolean;
+  Idx, Idx2, Added, l, m, Ink, Paper, Bold, Italic, i, j, k, bp1, bp2: Integer;
+  fPos, fLen: Integer;
+  NeedUpdate, GoAgain, CanShowBraces, Done: Boolean;
 Begin
 
   // Applies syntax highlighting to the specified line, and
@@ -1948,12 +1941,10 @@ Begin
         l := Length(FPFindResults);
         While (j < l) And (FPFindResults[j].Line <= Line) Do Begin
           If FPFindResults[j].Line = Line Then Begin
-            fLine := FPFindResults[j].Line;
             fPos := FPFindResults[j].Position + Length(AddedStartChars);
             fLen := FPFindResults[j].Length;
             i := 1; k := 0;
-            oPaper := -1;
-            Paper := -1;
+            Paper := -1; Ink := -1; Bold := -1; Italic := -1;
             Repeat
               If SynLine[i] < ' ' Then Begin
                 Case SynLine[i] of
@@ -1978,7 +1969,7 @@ Begin
                 Inc(k);
               End;
             Until k = fPos;
-            Dec(k); Dec(i);
+            Dec(i);
             If Ink >= 0 Then t := #16 + LongWordToString(Ink) Else t := '';
             If Paper >= 0 Then t := t + #17 + LongWordToString(Paper);
             If Italic >= 0 Then t := t + #26 + LongWordToString(Italic);
@@ -2183,7 +2174,7 @@ Begin
   Result := -1;
   Idx := (Idx +1) Shl 16;
   For i := 0 To 9 Do
-    If (EditorMarks[i] And $FFFF0000) = Idx Then
+    If Integer(EditorMarks[i] And $FFFF0000) = Idx Then
       Exit(i+1);
 
 End;
@@ -2227,15 +2218,11 @@ End;
 
 Function SP_FindFPLineStatement(LineNum, Statement: Integer): TPoint;
 var
-  Idx, cIdx, St, Org: Integer;
-  Done, InString: Boolean;
-  s: aString;
+  Idx: Integer;
 Begin
 
   Result := Point(-1, -1);
-  St := 1;
   Idx := SP_FindFPLine(LineNum);
-  InString := False;
 
   If Idx > -1 Then Begin
     While (Idx < Listing.Count) And (Listing.Flags[idx].Statement < Statement) And (Listing.Flags[idx].Line = LineNum) Do
@@ -2256,13 +2243,11 @@ End;
 Function  SP_CheckForConflict(LineIndex: Integer): Boolean;
 Var
   Idx, Line: Integer;
-  Found: Boolean;
 Begin
 
   // Counts instances of a given line number. If more than one, then a conflict.
 
   Idx := 0;
-  Found := False;
   Result := False;
   Line := SP_GetLineNumberFromIndex(LineIndex);
   While (Idx < Listing.Count) And (Idx <> LineIndex) Do Begin
@@ -2433,7 +2418,7 @@ Begin
 
 End;
 
-Procedure ScanForStatements(Const s: String; Var St: Integer; Var InString, InREM, InClr: Boolean);
+Procedure ScanForStatements(Const s: aString; Var St: Integer; Var InString, InREM, InClr: Boolean);
 Var
   i: Integer;
   NewWord: aString;
@@ -2489,8 +2474,8 @@ End;
 
 Procedure SP_DisplayFPListing(Line: Integer);
 Var
-  Idx, cIdx, dIdx, Cpx, OfsY, OfsX, Digits, Ps, st, LineNum, Window, cursLineNum, MinY, MaxY, yPartTop, yPartBottom, ty, i, j: Integer;
-  vScTrackTop, vScTrackHeight, SelectionStartsAt, Font, pClr, gClr, l, OldSt, x, y, ContIdx, llbpx, llbpy: Integer;
+  Idx, cIdx, dIdx, Cpx, OfsY, OfsX, Ps, st, LineNum, Window, cursLineNum, MinY, MaxY, ty, i, j: Integer;
+  SelectionStartsAt, Font, pClr, gClr, l, OldSt, ContIdx, llbpx, llbpy: Integer;
   HasNumber, ContainsSelection, Editing, DoneProgline, DontDoProgLine, IsProgLine, Highlight, DoDraw, DoDrawSt, InString,
   InREM, InClr, DrawnCONTLocation: Boolean;
   CodeLine, NumberLine, EmptyGutter, s, IndStr, tempS: aString;
@@ -2516,6 +2501,8 @@ Begin
     FPGutterChangedSize := False;
   End;
 
+  fx := 0; fy := 0; ps := 0;
+  Highlight := False;
   Window := SCREENBANK;
   Font := SP_SetFPEditorFont;
   SP_GetWindowDetails(FPWindowID, Win, Err);
@@ -2524,7 +2511,8 @@ Begin
   If Editing Then Begin
     dIdx := Listing.FPCLine;
     cursLineNum := SP_GetLineNumberFromIndex(dIdx);
-  End;
+  End Else
+    cursLineNum := 0;
   VertSB := @FPScrollBars[SP_FindScrollBar(FPVertSc)];
   If Not EDITORWRAP Then
     HorzSB := @FPScrollBars[SP_FindScrollBar(FPHorzSc)]
@@ -2573,8 +2561,6 @@ Begin
       Ofsx := FPGutterWidth * FPFw
     Else
       OfsX := -Trunc(HorzSB^.Position) + (FPGutterWidth * FPFw);
-    yPartTop := MinY - FPPaperTop;
-    yPartBottom := (MaxY - OfsY) Mod FPFh;
 
     SP_GetSelectionInfo(Sel);
 
@@ -2655,6 +2641,7 @@ Begin
         CodeLine := SyntaxListing[Idx];
         // If this line is part of a selection then insert the necessary colour commands now
         ContainsSelection := False;
+        SelectionStartsAt := 1;
         If (Sel.Active) And (FocusedWindow = fwEditor) Then
           If (Idx >= Sel.StartL) And (Idx <= Sel.EndL) Then Begin
             If (Idx <> Sel.StartL) And (Idx <> Sel.EndL) Then Begin
@@ -2685,9 +2672,9 @@ Begin
         // As you can see, selections make things really complex.
         // Pad the line number to align with the gutter if it exists
         dIdx := 1;
+        HasNumber := False;
         l := Length(CodeLine);
         If StripSpaces(CodeLine) <> '' Then Begin
-          HasNumber := False;
           Cpx := 0;
           While CodeLine[dIdx] < ' ' Do Inc(dIdx, 5);
           cIdx := dIdx;
@@ -2702,7 +2689,7 @@ Begin
           // If the line has a number, then draw it in the gutter.
           If HasNumber Then Begin
             St := 1;
-            NumberLine := StringOfChar(aChar(' '), FPGutterWidth - Cpx) + Copy(CodeLine, 1, cIdx -1);
+            NumberLine := SP_StringOfChar(aChar(' '), FPGutterWidth - Cpx) + Copy(CodeLine, 1, cIdx -1);
             If DoDraw Then
               If ContainsSelection Then
                 SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, gutterClr, True)
@@ -2732,7 +2719,7 @@ Begin
           End Else
             NumberLine := '';
           // And now draw the rest of the line.
-          IndStr := StringOfChar(' ', Listing.Flags[Idx].Indent);
+          IndStr := SP_StringOfChar(' ', Listing.Flags[Idx].Indent);
           If DoDraw Then
             If Highlight Then Begin
               s := SP_StriphighlightedTrailingSpaces(Copy(CodeLine, cIdx));
@@ -2786,10 +2773,8 @@ Begin
               Ps := gClr +1
             Else
               Ps := gClr;
-          If DoDraw And DoDrawSt Then Begin
+          If DoDraw And DoDrawSt Then
             SP_TextOut(-1, FPPaperLeft + (FPGutterWidth * FPFw) - (Length(NumberLine) * 8) - ((FPFw - 8) Div 2), OfsY + ((FPFh - 8) Div 2), IntToString(St), Ps -4, -1, True);
-            DoDrawSt := False;
-          End;
           Listing.Flags[Idx].Line := LineNum;
           Listing.Flags[Idx].Statement := St;
         End;
@@ -2861,7 +2846,7 @@ Function SP_ScrollInView(Force: Boolean = False): Boolean;
 Var
   Extents: TPoint;
   VertSB, HorzSB: pSP_ScrollBar;
-  TenPercentW, TenPercentH, Cx, Cy, OfsX, OfsY, Idx, mn, mx, tpx, tpy: Integer;
+  TenPercentW, TenPercentH, Cx, Cy, OfsX, mn, mx, tpx, tpy: Integer;
   Direct: Boolean;
 Label
   Skip;
@@ -2880,7 +2865,9 @@ Begin
 
   TenPercentH := VertSB.PageSize Div 4;
   If Not EditorWrap Then
-    TenPercentW := HorzSB.PageSize Div 4;
+    TenPercentW := HorzSB.PageSize Div 4
+  Else
+    TenPercentW := 0;
 
   SP_CalculateFPCursorPos;
 
@@ -2892,7 +2879,8 @@ Begin
     If Not EDITORWRAP Then Begin
       OfsX := -Trunc(HorzSB^.Position) + (FPGutterWidth * FPFw) + FPPaperLeft;
       Cx := CURSORX - OfsX;
-    End;
+    End Else
+      Cx := 0;
     Cy := Listing.FPCLine * FPFh;
   End Else Begin
     Extents := SP_GetLineExtents(SP_GetLineIndex(PROGLINE));
@@ -2905,7 +2893,9 @@ Begin
 
   tpy := Trunc(VertSB.Position);
   If Not EDITORWRAP then
-    tpx := Trunc(HorzSB.Position);
+    tpx := Trunc(HorzSB.Position)
+  Else
+    tpx := 0;
 
   If Direct Then Begin
     Dec(mn, TenPercentH - FPFh);
@@ -2961,7 +2951,7 @@ End;
 
 Procedure SP_CalculateFPCursorPos;
 Var
-  Idx, Cpx, OfsX, OfsY, Fg, Bg, Lc, LL, sl: Integer;
+  Idx, Cpx, OfsX, OfsY, Lc, LL, sl: Integer;
   VertSB, HorzSB: pSP_ScrollBar;
   s: aString;
 Begin
@@ -3069,7 +3059,7 @@ Begin
     End;
   End;
   If (FocusedWindow = fwEditor) Then Begin
-    If Pos(aChar(CursorChar), '()[]{}') > 0 Then Begin
+    If SP_Util.Pos(aChar(CursorChar), '()[]{}') > 0 Then Begin
       SP_SetBracketPositions(aChar(CursorChar), Listing.FPCLine, Listing.FPCPos);
       SP_FPApplyHighlighting(FPBracket1Line);
       AddDirtyLine(FPBracket1Line);
@@ -3140,9 +3130,8 @@ End;
 
 Procedure SP_DisplayFPCursor;
 Var
-  Idx, Cpx, OfsX, OfsY, Fg, Bg, Lc, LL, It, Bl, Font: Integer;
+  Fg, Bg, It, Bl, Font: Integer;
   Err: TSP_ErrorCode;
-  s: aString;
 Begin
 
   Font := SP_SetFPEditorFont;
@@ -3181,7 +3170,7 @@ Procedure SP_DisplayDWCursor;
 Var
   Fg, Bg: Byte;
   PosX, PosY: aFloat;
-  WindowId, Font, Over, Cp: Integer;
+  Font, Over, Cp: Integer;
   Err: TSP_ErrorCode;
 Begin
 
@@ -3204,8 +3193,6 @@ Begin
   End;
 
   PosX := PRPOSX; PosY := PRPOSY;
-
-  WindowID := SCREENBANK;
   Font := FONTBANKID;
 
   SP_SetSystemFont(EDITORFONT, Err);
@@ -3305,16 +3292,14 @@ End;
 
 Procedure SP_GetFPUserInput;
 Var
-  Finished, Changed: Boolean;
+  Finished: Boolean;
   KeyInfo: pSP_KeyInfo;
-  RepeatLen: LongWord;
   LocalFlashState: Integer;
 Begin
 
   KeyInfo := nil;
   SYSTEMSTATE := SS_EDITOR;
   Finished := False;
-  Changed := True;
   LocalFlashState := FLASHSTATE;
 
   While Not (Finished or QUITMSG) Do Begin
@@ -3382,7 +3367,7 @@ End;
 
 Function SP_FPCharAtPos(X, Y: Integer): TPoint;
 Var
-  Idx, Cpx, OfsX, OfsY: Integer;
+  Idx, OfsX, OfsY: Integer;
   VertSB, HorzSB: pSP_ScrollBar;
   s: aString;
 Begin
@@ -3400,12 +3385,9 @@ Begin
 
   If Not EDITORWRAP Then Begin
     HorzSB := @FPScrollBars[SP_FindScrollBar(FPHorzSc)];
-    Cpx := Trunc(HorzSB^.Position/FPFw);
     OfsX := -Trunc(HorzSB^.Position) + (FPGutterWidth * FPFw) + FPPaperLeft;
-  End Else Begin
-    Cpx := 0;
+  End Else
     OfsX := (FPGutterWidth * FPFw) + FPPaperLeft;
-  End;
   Inc(OfsX);
 
   Dec(Y, OfsY);
@@ -3440,7 +3422,7 @@ End;
 Procedure SP_FPEditorHandleMouseDown(X, Y: Integer);
 Var
   CharPos: TPoint;
-  Idx, wIdx, OldLine: Integer;
+  Idx, OldLine: Integer;
   Window: pSP_Window_Info;
   Event: SP_EditorEvent;
   Sel: SP_SelectionInfo;
@@ -3448,6 +3430,7 @@ Var
   IsDouble: Boolean;
 Begin
 
+  Window := nil;
   M_DOWNFLAG := False;
   SP_GetSelectionInfo(Sel);
 
@@ -3562,7 +3545,6 @@ Procedure SP_FPEditorHandleMouseMove(X, Y: Integer);
 Var
   Idx, wIdx, Delta: Integer;
   CharPos: TPoint;
-  Mult: aFloat;
   NewPosition: Integer;
   Window: pSP_Window_Info;
 Begin
@@ -3602,6 +3584,7 @@ Begin
   // We can shortcut this check if we're already mousedown in an editor window.
 
   Idx := 1;
+  wIdx := 0;
   Window := Nil;
   If FPCDragging Then Begin
     wIdx := FPWindowID;
@@ -3677,20 +3660,18 @@ End;
 
 Procedure SP_FPEditorHandleMouseWheel(WheelUp: Boolean; X, Y: Integer);
 Var
-  c, Idx, wIdx, NewPosition: Integer;
+  c, Idx, NewPosition: Integer;
   Window: pSP_Window_Info;
 Begin
 
+  Window := nil;
   Idx := NUMBANKS -1;
   While Idx >= 0 Do Begin
     If SP_BankList[Idx]^.DataType = SP_WINDOW_BANK Then Begin
       Window := @SP_BankList[Idx]^.Info[0];
       With Window^ Do
-        If PtInRect(Rect(Left, Top, Left + Width, Top + Height), Point(X, Y)) Then Begin
-          Dec(X, Left);
-          Dec(Y, Top);
+        If PtInRect(Rect(Left, Top, Left + Width, Top + Height), Point(X, Y)) Then
           Break;
-        End;
     End;
     Dec(Idx);
   End;
@@ -3739,7 +3720,6 @@ Var
   Pt: TPoint;
   NewPosition, c: Integer;
   evt, repEvent: SP_EditorEvent;
-  Data: SP_EventData;
   CanRepeat: Boolean;
   Window: pSP_Window_Info;
   Error: TSP_ErrorCode;
@@ -4107,7 +4087,7 @@ Begin
       End;
   End;
 
-  Clipboard.AsText := s;
+  Clipboard.AsText := String(s);
 
 End;
 
@@ -4136,7 +4116,7 @@ End;
 
 Procedure SP_PasteSelection;
 Var
-  Idx, nCPos, SelS, SelE: Integer;
+  Idx, nCPos: Integer;
   txt, t: aString;
   Strings: TStringList;
   Sel: SP_SelectionInfo;
@@ -4148,7 +4128,7 @@ Var
     Repeat
       i := Pos(#9, s);
       if i > 0 then
-        s := Copy(s, 1, i -1) + StringOfChar(' ', EDTABSIZE) + Copy(s, i +1);
+        s := SP_Copy(s, 1, i -1) + SP_StringOfChar(' ', EDTABSIZE) + SP_Copy(s, i +1);
     Until i = 0;
   End;
 
@@ -4164,7 +4144,7 @@ Begin
           SP_FPDeleteSelection(Sel);
 
         Strings := TStringlist.Create;
-        Strings.Text := Clipboard.AsText;
+        Strings.Text := aString(Clipboard.AsText);
 
         If Strings.Count > 0 Then Begin
           nCPos := Length(Strings[Strings.Count -1]);
@@ -4211,12 +4191,10 @@ Begin
     fwDirect:
       Begin
         If DWSelP <> CURSORPOS Then Begin
-          SelS := Min(DWSelP, CURSORPOS);
-          SelE := Max(DWSelP, CURSORPOS);
           SP_FPDeleteSelection(Sel);
         End;
         Strings := TAnsiStringlist.Create;
-        Strings.Text := Clipboard.AsText;
+        Strings.Text := aString(Clipboard.AsText);
         If Strings.Count > 0 Then Begin
           t := Strings[0];
           ProcessTabs(t);
@@ -4285,7 +4263,6 @@ End;
 
 Procedure SP_SelectWord;
 Var
-  Sel: SP_SelectionInfo;
   s: aString;
   t: Integer;
 Begin
@@ -4327,6 +4304,7 @@ Var
   p1, p2, t: Integer;
 Begin
 
+  p1 := 0;
   Case FocusedWindow Of
     fwEditor:
       Begin
@@ -4484,6 +4462,9 @@ Begin
 
   // Switch between Editor, Editor+Cmd, Cmd and none
 
+  CmdTargetY := 0;
+  EditorTargetHeight := FPWindowHeight;
+  EditorTargetY := FPWindowTop;
   SizeEditor := False;
   MoveEditor := False;
   MoveCmd := False;
@@ -4599,7 +4580,7 @@ Begin
     End;
     SP_InvalidateWholeDisplay;
     SP_WaitForSync;
-  Until (t3 - t) >= ANIMSPEED;
+  Until (t3 - t) >= LongWord(ANIMSPEED);
 
   If SizeEditor Then
     SP_FPResizeWindow(ListWin^.Height)
@@ -4682,7 +4663,7 @@ End;
 
 Procedure SP_ToggleEditorMark(i: Integer);
 Begin
-  If EditorMarks[i] And $FFFF0000 = (Listing.FPCLine +1) Shl 16 Then
+  If EditorMarks[i] And $FFFF0000 = LongWord(Listing.FPCLine +1) Shl 16 Then
     EditorMarks[i] := 0
   Else
     EditorMarks[i] := LongWord(((Listing.FPCLine +1) Shl 16) or Listing.FPCPos);
@@ -4708,13 +4689,11 @@ End;
 Procedure SP_FPEditorPerformEdit(Key: pSP_KeyInfo);
 Var
   s, s2, prev: aString;
-  Idx, DesiredPos, lc, OldLine, c, i, n, nl, m, p, fp, GfxMode, Flag, l, cx, cy: Integer;
-  OldPt, NewPt: TPoint;
+  Idx, lc, c, i, n, nl, m, p, fp, GfxMode, Flag, cy: Integer;
   SB: pSP_ScrollBar;
   Sel: SP_SelectionInfo;
-  Changed, SelWasActive, b: Boolean;
+  Changed, b: Boolean;
   Error: TSP_ErrorCode;
-  Flags: TLineFlags;
 
   Procedure PlayClick;
   Begin
@@ -4729,12 +4708,9 @@ Begin
   lc := Listing.Count;
   GfxMode := GFXLOCK;
 
-  DesiredPos := FPCDes;
-  Dec(DesiredPos, Listing.Flags[Listing.FPCLine].Indent);
 
   Changed := False;
   SP_GetSelectionInfo(Sel);
-  SelWasActive := Sel.Active;
 
   If Not (Key.KeyCode in [K_F3, K_ESCAPE]) Then
     HideSearchResults;
@@ -4745,7 +4721,6 @@ Begin
   If (Key.KeyChar in ['a'..'z', 'A'..'Z', '0'..'9']) And Not Listing.UndoInProgress Then
     Listing.CommenceUndo;
 
-  cx := Listing.FPCPos;
   cy := Listing.FPCLine;
 
   If Key.KeyChar = #0 then Begin
@@ -4913,7 +4888,7 @@ Begin
             If Listing.FPCLine >= 0 Then Begin
               prev := Listing[Listing.FPCLine];
               If Prev <> '' Then Begin
-                c := 1; n := 0;
+                c := 1;
                 If Not SP_WasPrevSoft(Listing.FPCLine) Then
                   While (c < Length(Prev)) And (Prev[c] in ['0'..'9']) Do Inc(c);
                 n := c;
@@ -4945,7 +4920,6 @@ Begin
             n := Listing.FPCLine +1;
             SP_FPUnWrapLine(n);
             Listing.Flags[Listing.FPCLine +1].Indent := c;
-            Changed := True;
             FPCDes := Listing.FPCPos;
             Inc(Listing.FPCLine);
             FPCDesLine := Listing.FPCLine;
@@ -4965,7 +4939,6 @@ Begin
               Begin
                 SP_FPCycleEditorWindows(1);
                 SYSTEMSTATE := ss_IDLE;
-                Key := nil;
                 SP_ClearAllKeys;
                 Repeat
                   Key := SP_GetNextKey(FRAMES);
@@ -4992,7 +4965,7 @@ Begin
               End;
               SP_GetSelectionInfo(Sel);
               For Idx := Sel.StartL To Sel.EndL Do Begin
-                c := EDTABSIZE; m := Idx;
+                c := EDTABSIZE;
                 s := Listing[Idx];
                 n := SP_LineHasNumber(Idx);
                 While (c > 0) and (Copy(s, n+1, 1) <= ' ') Do Begin
@@ -5009,7 +4982,6 @@ Begin
                 SP_FPApplyHighlighting(Idx);
                 AddDirtyLine(Idx);
               End;
-              Changed := True;
               SP_FPWrapProgram;
               AddDirtyLine(Sel.EndL);
               AddDirtyLine(Sel.StartL);
@@ -5044,7 +5016,6 @@ Begin
                 Listing[Listing.FPCLine] := s;
                 SP_FPWordWrapLine(Listing.FPCLine);
                 SP_MarkAsDirty(Listing.FPCLine);
-                Changed := True;
                 SP_FPApplyHighlighting(Listing.FPCLine);
                 AddDirtyLine(Listing.FPCLine);
               End;
@@ -5057,11 +5028,10 @@ Begin
               If (Sel.StartL = Sel.EndL) And ((Sel.StartP > 1) or (Sel.EndP < Length(Listing[Sel.StartL]))) Then Begin
                 SP_FPDeleteSelection(Sel);
                 s := Listing[Listing.FPCLine];
-                s := Copy(s, 1, Listing.FPCPos -1) + StringOfChar(' ', EDTABSIZE) + Copy(s, Listing.FPCPos);
+                s := Copy(s, 1, Listing.FPCPos -1) + SP_StringOfChar(' ', EDTABSIZE) + Copy(s, Listing.FPCPos);
                 Listing[Listing.FPCLine] := s;
                 SP_FPWordWrapLine(Listing.FPCLine);
                 SP_MarkAsDirty(Listing.FPCLine);
-                Changed := True;
               End Else Begin
                 Idx := Sel.StartL;
                 While Idx <= Sel.EndL Do Begin
@@ -5072,14 +5042,13 @@ Begin
                 For Idx := Sel.StartL To Sel.EndL Do Begin
                   s := Listing[Idx];
                   n := SP_LineHasNumber(Idx);
-                  s := Copy(s, 1, n) + StringOfChar(' ', EDTABSIZE) + Copy(s, n+1);
+                  s := Copy(s, 1, n) + SP_StringOfChar(' ', EDTABSIZE) + Copy(s, n+1);
                   Listing[Idx] := s;
                   SP_MarkAsDirty(Idx);
                   SP_FPApplyHighlighting(Idx);
                   AddDirtyLine(Idx);
                 End;
                 SP_FPWrapProgram;
-                Changed := True;
                 Inc(Listing.FPSelPos, EDTABSIZE);
                 Listing.FPCPos := Listing.FPCPos + EDTABSIZE;
                 AddDirtyLine(Sel.EndL);
@@ -5092,7 +5061,7 @@ Begin
               s := Listing[Listing.FPCLine];
               c := (Listing.FPCPos - (SP_LineHasNumber(Listing.FPCLine)) + 1) + i;
               c := (((c + EDTABSIZE) Div EDTABSIZE) * EDTABSIZE) - c;
-              s := Copy(s, 1, Listing.FPCPos -1) + StringOfChar(' ', c) + Copy(s, Listing.FPCPos);
+              s := Copy(s, 1, Listing.FPCPos -1) + SP_StringOfChar(' ', c) + Copy(s, Listing.FPCPos);
               Listing[Listing.FPCLine] := s;
               Listing.Flags[Listing.FPCLine].Indent := i;
               Listing.FPCPos := Listing.FPCPos + c;
@@ -5261,6 +5230,7 @@ Begin
         Begin // CTRL - jump to last line on this page. Shift - extend selection
           SB := @FPScrollBars[SP_FindScrollBar(FPVertSc)];
           If KEYSTATE[K_CONTROL] = 1 Then Begin
+            Idx := Listing.FPCLine;
             Listing.FPCLine := Min(Trunc(SB^.Position/FPFh) + (SB^.PageSize Div FPFh), Listing.Count -1);
             AddDirtyLine(Idx);
           End Else Begin
@@ -5385,7 +5355,6 @@ Begin
               Listing.CompleteUndo;
             End;
           End;
-          Changed := True;
           FPCDes := Listing.FPCPos;
           FPCDesLine := Listing.FPCLine;
           SP_FPClearSelection(Sel);
@@ -5446,7 +5415,6 @@ Begin
           FPCDes := Listing.FPCPos;
           FPCDesLine := Listing.FPCLine;
           SP_FPClearSelection(Sel);
-          Changed := True;
           PlayClick;
         End;
 
@@ -5740,9 +5708,9 @@ End;
 
 Procedure SP_FPWordWrapLine(Line: Integer; FromHere: Boolean);
 Var
-  Idx, lIdx, MaxW, Min, Max, tx, cp, sp, ns, l, indent, state: Integer;
-  s, s2, s3, os, nl: aString;
-  HasNumber, c: Boolean;
+  Idx, MaxW, Min, Max, cp, sp, ns, l, indent, state: Integer;
+  s, s2, s3, nl: aString;
+  c: Boolean;
 Begin
 
   If (Line >= Listing.Count) Or Not EDITORWRAP Then Exit;
@@ -5784,8 +5752,6 @@ Begin
     s := s + Listing[Min];
     SP_DeleteLine(Min, False);
   End;
-
-  HasNumber := s[1] in ['0'..'9'];
 
   s2 := '';
   l := Length(nl);
@@ -5878,7 +5844,7 @@ End;
 
 Procedure SP_FPWrapProgram;
 Var
-  Idx, Idx2: Integer;
+  Idx: Integer;
 Begin
 
   If Not EDITORWRAP Then Exit;
@@ -5945,7 +5911,6 @@ Var
   Err: TSP_ErrorCode;
 Begin
 
-  Font := SP_SetFPEditorFont;
   WindowID := SCREENBANK;
   SP_SetDrawingWindow(DWWindowID);
 
@@ -5986,13 +5951,14 @@ End;
 
 Procedure SP_EditorDisplayEditLine;
 Var
-  Idx, WorkW, WorkH, NewW, NewH, NewX, NewY, TLen, SelS, SelE: Integer;
+  Idx, WorkW, NewW, NewH, TLen, SelS, SelE: Integer;
   EditLen, X, Y, WindowID, Font: Integer;
   CText, EL_Text: aString;
   StartWithSel: Boolean;
   Err: TSP_ErrorCode;
 Begin
 
+  SelS := CURSORPOS; SelE := CURSORPOS;
   If DWSelP <> CURSORPOS Then Begin
     SelS := Min(DWSelP, CURSORPOS);
     SelE := Max(DWSelP, CURSORPOS);
@@ -6018,18 +5984,12 @@ Begin
 
   // Figure out how much screen real estate we have to play with.
 
-  NewX := DWWindowLeft;
-  NewY := DWWindowTop;
   NewW := DWWindowWidth;
   WorkW := DWPaperWidth - DWTextLeft;
-  WorkH := DWPaperHeight;
 
   // Extend the window downwards, and if necessary move it upwards.
 
   NewH := (Ceil(EditLen/(WorkW Div FPFw)) * FPFh) + FPCaptionHeight + (BSize * 2) + 1;
-
-  If NewY + NewH > DISPLAYHEIGHT - 4 Then
-    NewY := (DISPLAYHEIGHT - 4) - NewH;
 
   If NewH <> DWWindowHeight Then
     SP_DWResizeWindow(NewW, NewH, False);
@@ -6314,6 +6274,7 @@ Begin
     End;
   End;
 
+  fp2 := 0;
   SP_GetSelectionInfo(Sel);
 
   If Not (soMatchCase in Options) Then
@@ -6417,7 +6378,6 @@ Begin
       End Else Begin
         // Re-synchronise if we lost spaces.
         cIdx := 1;
-        Cnt := 0;
         While cIdx <= fp2 Do Begin
           While s2[cIdx] <= ' ' Do Begin
             Inc(fp2);
@@ -6446,7 +6406,6 @@ Var
   Idx, n, d, di: Integer;
 Begin
 
-  Result := 1;
   d := 99999999;
   di := -1;
   For Idx := 0 To Listing.Count -1 Do Begin
@@ -6468,7 +6427,6 @@ Procedure SP_FPBringToEditor(LineNum, Statement: Integer; Var Error: TSP_ErrorCo
 Var
   Idx, St, cPos: Integer;
   uLabel: aString;
-  tLabel: TSP_Label;
   Found, lFound: TPoint;
   LabelSearch: Boolean;
   searchOpt: SP_SearchOptions;
@@ -6597,7 +6555,6 @@ Begin
             CURSORPOS := Idx;
           End;
         End Else Begin
-          Statement := 1;
           CURSORPOS := 1;
           While (CURSORPOS <= Length(EDITLINE)) And ((EDITLINE[CURSORPOS] in ['0'..'9']) Or (EDITLINE[CURSORPOS] <= ' ')) Do
             Inc(CURSORPOS);
@@ -6627,7 +6584,7 @@ End;
 
 Procedure SP_DWPerformEdit(Key: pSP_KeyInfo);
 Var
-  LineIdx, Idx, Cnt, LineNum, Statement, SelS, SelE, GfxMode, c: Integer;
+  Idx, Cnt, LineNum, GfxMode, c: Integer;
   Sel: SP_SelectionInfo;
   Error: TSP_ErrorCode;
   SB: pSP_ScrollBar;
@@ -6647,10 +6604,6 @@ Begin
   // KEYBOARDSTATE sysvar.
 
   Error.Code := SP_ERR_OK;
-  If DWSelP <> CURSORPOS Then Begin
-    SelS := Min(DWSelP, CURSORPOS);
-    SelE := Max(DWSelP, CURSORPOS);
-  End;
 
   GfxMode := GFXLOCK;
 
@@ -6824,7 +6777,6 @@ Begin
             Else
               Begin
                 SP_FPCycleEditorWindows(1);
-                Key := nil;
                 SP_ClearAllKeys;
                 Repeat
                   Key := SP_GetNextKey(FRAMES);
@@ -7288,11 +7240,10 @@ Var
   ErrWin: pSP_Window_Info;
   ErrorText, Text, Title, StripeText: aString;
   ErrorFPS, t2, EMove, ETop: aFloat;
-  ERRORWINDOW, WinW, WinH, WinX, WinY, MaxW, Lines, Cnt, Idx, MaxLen, bInk, bOver,
-  Font, Window, ErrorDRPOSX, ErrorDRPOSY, ErrorPRPOSX, ErrorPRPOSY, ofs, x, sz, ErrDy, MoveFrames: Integer;
-  CurrentTicks, TargetTicks, t, t3: LongWord;
+  ERRORWINDOW, WinW, WinH, WinX, WinY, MaxW, Lines, Cnt, Idx, MaxLen,
+  Font, Window, ofs, x, sz: Integer;
+  TargetTicks, t, t3: Integer;
   IsNew, WasTab: Boolean;
-  Key: pSP_KeyInfo;
   fp: TPoint;
 Const
   stClrRed = #10;
@@ -7301,6 +7252,8 @@ Const
   stClrCyan = #5;
   stClrBlue = #9;
 Begin
+
+  WasTab := False;
 
   SP_Interpreter_Ready := True;
   CB_YIELD;
@@ -7436,7 +7389,7 @@ Begin
       COVER := 0;
       T_INK := 0;
       T_OVER := 0;
-      SP_TextOut(-1, 1 + BSize, BSize + FPCaptionHeight, EdSc + ErrorText, 0, 7, True);
+      SP_TextOut(-1, 1 + BSize, Integer(BSize) + FPCaptionHeight, EdSc + ErrorText, 0, 7, True);
       SP_SetWindowVisible(ERRORWINDOW, False, Error);
     End Else Begin
       SP_FillRect(0, 0, WinW, WinH, 0);
@@ -7456,7 +7409,7 @@ Begin
           cnt := FRAMES;
           Repeat
             SP_WaitForSync;
-          Until (FRAMES - cnt) > 25;
+          Until (Integer(FRAMES) - cnt) > 25;
           SP_PlaySignature;
 
           // If the sample bank is playing, then start drawing loading stripes
@@ -7479,7 +7432,7 @@ Begin
             End;
             // Red/Cyan pilot tone
             TargetTicks := Round(CB_GetTicks + LongWord(500));
-            ofs := 65536; sz := 16;
+            ofs := 65536;
             While CB_GetTicks < TargetTicks Do Begin
               For x := 16 To WinW -16 Do Begin
                 If (x+ofs) mod 16 < 8 + (Random(4) -2) Then T_INK := 5 Else T_Ink := 2;
@@ -7566,7 +7519,6 @@ Begin
     SP_ClearAllKeys;
     MOUSEBTN := 0;
 
-    WasTab := False;
     Repeat
       SP_WaitForSync;
       If KEYSTATE[K_TAB] = 1 Then
@@ -7745,6 +7697,7 @@ Var
   Backup: Pointer;
 Begin
 
+  Result := 0;
   Backup := SP_StackPtr;
   Error.Code := SP_ERR_OK;
   Error.ReturnType := 0;
@@ -7806,7 +7759,6 @@ End;
 
 Procedure SP_FPExecuteExpression(Const Expr: aString; var Error: TSP_ErrorCode);
 Var
-  CC: Boolean;
   Position: Integer;
   ValTkn: paString;
   Str1, ValTokens: aString;
@@ -7840,13 +7792,11 @@ End;
 
 Procedure SP_FPExecuteEditLine(Var Line: aString);
 Var
-  aSave, b: Boolean;
+  b: Boolean;
   TokensStr, Expr, s: aString;
   Tokens: paString;
-  PreParseErrorCode, PreParseErrorLine, PreParseErrorStatement, CurLine, Idx, LocalFlashState,
+  PreParseErrorCode, PreParseErrorLine, PreParseErrorStatement, Idx, LocalFlashState,
   saveCONTLINE, saveCONTSTATEMENT: Integer;
-  pInfo: pSP_iInfo;
-  Info: TSP_iInfo;
   Error: TSP_ErrorCode;
   Key: pSP_KeyInfo;
 Label
@@ -7910,8 +7860,6 @@ Begin
         ClearFlags;
         OUTSET := FPEditorOutSet;
         SystemState := SS_DIRECT;
-        saveCONTLINE := CONTLINE;
-        saveCONTSTATEMENT := CONTSTATEMENT;
         // Run it!
         SP_Interpreter(Tokens, Error.Position, Error, PreParseErrorCode);
         // And back to the editor.
@@ -8110,7 +8058,6 @@ Begin
                 If FPWindowID = -1 Then SP_CreateEditorWindows;
                 SP_FPScrollToLine(pLongWord(@SP_Program[CONTLINE][2])^, CONTSTATEMENT);
               End;
-          PreparseErrorCode := SP_ERR_OK;
           COVER := 0;
           T_OVER := 0;
         End Else
@@ -8200,7 +8147,7 @@ Begin
 
   s := StripSpaces(EDITLINE);
   LineNum := SP_GetLineNumberFromText(s);
-  If StrToIntDef(s, -1) <> -1 Then Begin
+  If StringToInt(s, -1) <> -1 Then Begin
     // A single line number, so a line delete operation
     Idx := SP_GetExactLineIndex(LineNum);
     If Idx < Listing.Count Then Begin
@@ -8273,7 +8220,7 @@ End;
 
 Procedure SP_Interpreter(Var Tokens: paString; Var Position: Integer; Var Error: TSP_ErrorCode; PreParseErrorCode: Integer; Continue: Boolean);
 Var
-  CurLine, ProgLen, Idx, ErrLine, ErrStatement, OldEC: Integer;
+  CurLine, Idx, OldEC: Integer;
   HasErrors, BreakNow: Boolean;
   res: aString;
 Begin
@@ -8316,7 +8263,7 @@ Begin
     End Else Begin
       If HasErrors Then Begin
         Error.Code := SP_ERR_EDITOR;
-        Error.Line := Idx;
+        Error.Line := NXTLINE;
         Error.Statement := 1;
         EDITERROR := True;
         Exit;
@@ -8780,7 +8727,7 @@ End;
 
 Procedure SP_FPDeleteLines(Start, Finish: Integer; var Error: TSP_ErrorCode);
 Var
-  LineNum, Idx, ProgLen: Integer;
+  LineNum, Idx: Integer;
   NeedStart, NeedFinish: Boolean;
 Begin
 
@@ -8798,15 +8745,15 @@ Begin
     Exit;
   End;
 
+  LineNum := 0;
   NeedStart := True;
   NeedFinish := True;
 
   For Idx := 0 To Listing.Count -1 Do Begin
 
+    LineNum := 0;
     If Not SP_WasPrevSoft(Idx) Then
-      LineNum := SP_GetLineNumberFromText(Listing[Idx])
-    Else
-      LineNum := 0;
+      LineNum := SP_GetLineNumberFromText(Listing[Idx]);
     If LineNum > 0 Then Begin
       If NeedStart Then
         If LineNum >= Start then Begin
@@ -8847,7 +8794,7 @@ End;
 
 Procedure SP_FPMergeLines(Start, Finish: Integer; var Error: TSP_ErrorCode);
 Var
-  LineNum, Idx, ProgLen, sIdx, nIdx: Integer;
+  LineNum, Idx, sIdx, nIdx: Integer;
   NeedStart, NeedFinish: Boolean;
   s: aString;
 Begin
@@ -8867,15 +8814,15 @@ Begin
     Exit;
   End;
 
+  LineNum := 0;
   NeedStart := True;
   NeedFinish := True;
 
   For Idx := 0 To Listing.Count -1 Do Begin
 
+    LineNum := 0;
     If Not SP_WasPrevSoft(Idx) Then
-      LineNum := SP_GetLineNumberFromText(Listing[Idx])
-    Else
-      LineNum := 0;
+      LineNum := SP_GetLineNumberFromText(Listing[Idx]);
     If LineNum > 0 Then Begin
       If NeedStart Then
         If LineNum >= Start then Begin
@@ -8935,14 +8882,12 @@ Procedure SP_SetBracketPositions(c: aChar; Line, CPos: Integer);
 Var
   s: aString;
   srch: aChar;
-  LineMin, mn, cnt, ocp, offset, i, j, b1, b2, bl1, bl2: Integer;
-  Done, InString, InREM: Boolean;
+  LineMin, mn, cnt, i, j, b1, b2, bl1, bl2: Integer;
 Const
   searches: array[0..5] of aChar = (')', '(', ']', '[', '}', '{');
 Begin
 
-  srch := searches[Pos(c, '()[]{}') -1];
-  Done := False;
+  srch := searches[SP_Util.Pos(c, '()[]{}') -1];
 
   s := '';
   mn := Line;
@@ -8954,8 +8899,6 @@ Begin
       CPos := CPos + Length(Listing[mn]);
     Inc(mn);
   Until (mn = Listing.Count) or (SP_LineHasNumber(mn) > 0);
-
-  offset := CPos - oCP;
 
   b1 := CPos;
   bl1 := Line;
@@ -9211,7 +9154,7 @@ End;
 
 Procedure FindNext(jumpNext: Boolean);
 Var
-  i, j, l, p, op: Integer;
+  i, j: Integer;
   Sel: SP_SelectionInfo;
   Error: TSP_ErrorCode;
 Label
@@ -9240,7 +9183,6 @@ Begin
     If Length(FPFindResults) > 0 Then Begin
 
       If jumpNext Then Begin
-        op := PROGLINE;
         If soForward in FPSearchOptions Then Begin
           Wrap:
           For i := 0 To Length(FPFindResults) -1 Do
@@ -9321,13 +9263,11 @@ End;
 
 Procedure PerformReplace(Var Idx: Integer);
 Var
-  j, p, l, l2, sl, diff, line, posn: Integer;
+  j, p, l, l2, sl, line, posn: Integer;
   old_opt: SP_SearchOptions;
   Error: TSP_ErrorCode;
   s: aString;
 Begin
-
-  diff := Length(FPReplaceTerm) - Length(FPSearchTerm);
 
   j := FPFindResults[idx].Line;
   p := FPFindResults[idx].Position;
@@ -9407,8 +9347,6 @@ Begin
 End;
 
 Procedure DWStoreEditorState;
-Var
-  s: aString;
 Begin
 
   UndoLock.Enter;
@@ -9455,8 +9393,7 @@ End;
 
 Procedure DWPerformUndo;
 Var
-  i, l, l2, j, sl: Integer;
-  Ptr: pByte;
+  i: longWord; j: Integer;
 Begin
 
   UndoLock.Enter;
@@ -9497,8 +9434,6 @@ Begin
 End;
 
 Procedure DWStoreRedoEditorState;
-Var
-  s: aString;
 Begin
 
   UndoLock.Enter;
@@ -9533,8 +9468,7 @@ End;
 
 Procedure DWPerformRedo;
 Var
-  i, l, l2, j, sl: Integer;
-  Ptr: pByte;
+  i: LongWord; j: Integer;
 Begin
 
   UndoLock.Enter;
@@ -9716,7 +9650,6 @@ Begin
 
     bpLine := PROGLINE;
     bpSt := 1;
-    idx := SP_GetLineIndex(bpLine);
     Idx := -1;
 
   End;
@@ -9763,11 +9696,9 @@ End;
 
 Procedure SP_PrepareBreakpoints(Create: Boolean);
 Var
-  i, j, l, Idx, stIdx, LineNum, Statement, StatementListPos, numStatements: Integer;
-  Error: TSP_ErrorCode;
+  i, j, l, Idx, stIdx, LineNum, Statement: Integer;
   Tokens: paString;
   Token: pToken;
-  res: aString;
 Begin
 
   If Create Then Begin
@@ -9789,30 +9720,6 @@ Begin
     End;
 
   End Else Begin
-
-    For i := 0 To SP_Program_Count -1 Do Begin
-
-      Tokens := @SP_Program[i];
-
-      Idx := 1;
-      If Tokens^[Idx] = aChar(SP_LINE_NUM) Then Begin
-        Inc(Idx);
-        LineNum := pLongWord(@Tokens^[Idx])^;
-        Inc(Idx, SizeOf(LongWord));
-      End;
-      If Tokens^[Idx] = aChar(SP_STATEMENTS) Then Begin
-        StatementListPos := Idx + 1 + SizeOf(LongWord);
-        numStatements := pLongWord(@Tokens^[Idx +1])^;
-      End;
-
-      For Statement := 1 To numStatements Do Begin
-
-        stIdx := pLongWord(@Tokens^[StatementListPos + ((Statement -1) * SizeOf(LongWord))])^;
-        Token := pToken(@Tokens^[stIdx]);
-
-      End;
-
-    End;
 
     // Also remove hidden breakpoints from the list.
 
@@ -9839,9 +9746,8 @@ Var
   Info: TSP_iInfo;
   Inf: pSP_iInfo;
   Tokens: paString;
-  Position, Line, Statement: Integer;
+  Position: Integer;
   Error: TSP_ErrorCode;
-  Token: pToken;
 Label
   WasActuallyAnError;
 Begin

@@ -22,7 +22,7 @@ SP_WindowMenu = Class(SP_BaseComponent)
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
     Procedure PerformKeyUp(Var Handled: Boolean); Override;
     Procedure SetDisabledFontClr(c: Byte); Override;
-    Procedure SetHighlightClr(c: Byte);
+    Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetPermanent(b: Boolean);
     Procedure MouseDown(X, Y, Btn: Integer); Override;
     Procedure MouseMove(X, Y, Btn: Integer); Override;
@@ -164,9 +164,9 @@ End;
 
 Procedure SP_WindowMenu.Draw;
 Var
-  x, y, i, j, c, ic, mx, my: Integer;
+  i, c, ic: Integer;
   MouseInSubMenu: Boolean;
-  mp, rp, sp: TPoint;
+  mp, rp: TPoint;
   e: TRect;
 Begin
 
@@ -270,10 +270,7 @@ End;
 
 Procedure SP_WindowMenu.MouseMove(X, Y, Btn: Integer);
 Var
-  mnu, lmnu: SP_PopUpMenu;
   i: Integer;
-  p: TPoint;
-  r: TRect;
 Begin
 
   If (X = fMX) And (Y = fMY) Then Exit;
@@ -407,7 +404,7 @@ End;
 
 Procedure SP_WindowMenu.PerformKeyDown(Var Handled: Boolean);
 Var
-  i, j, k: Integer;
+  i: Integer;
   NewChar: Byte;
   b: Boolean;
   p: TPoint;

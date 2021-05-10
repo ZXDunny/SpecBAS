@@ -27,7 +27,7 @@ unit SP_Variables;
 
 interface
 
-Uses Math, Classes, SysUtils, SP_Math, SP_Tokenise, SP_Errors, SP_SysVars, SP_Util, SP_AnsiStringlist;
+Uses Math, Classes, SysUtils, System.SyncObjs, SP_Math, SP_Tokenise, SP_Errors, SP_SysVars, SP_Util, SP_AnsiStringlist;
 
 Type
 
@@ -120,6 +120,23 @@ Type
     Name: aString;
     Val: aFloat;
     Str: aString;
+  End;
+
+  TSP_GOSUB_Item = Packed Record
+    Line, Statement, St, Source, Count: Integer;
+  End;
+
+  TSP_ProcItem = Packed Record
+    Name: aString;
+    NumVars: Integer;
+    VarList: aString;
+    VarTypes: aString;
+    Line, Statement, St: Integer;
+    EP_Line, EP_Statement, EP_St: Integer;
+  End;
+
+  TSP_ProcStackItem = Packed Record
+    ProcIndex, NumVars, VarPosN, VarPosS, VarPosNA, VarPosSA, CALLType: Integer;
   End;
 
 Function  SP_FindNumVar(const Name: aString): Integer;
@@ -244,6 +261,14 @@ Var
   NVLen, SVLen, NumNV, NumSV: Integer;
   logtext: astring;
 
+  SP_DATA_Line: TSP_GOSUB_Item;
+  SP_DATA_Tokens: paString;
+  ProcListAvailable: Boolean;
+  SP_ProcsList: Array [0 .. 1023] of TSP_ProcItem;
+  SP_ProcsListPtr: Integer;
+  SP_ProcStack: Array [0 .. 1023] of TSP_ProcStackItem;
+  SP_ProcStackPtr: Integer;
+
 Const
 
   SP_FORVAR = 1;
@@ -271,7 +296,7 @@ End;
 
 Function SP_FindNumVarLocalOnly(const Name: aString): Integer;
 var
-  limit: LongWord;
+  limit: Integer;
 Begin
 
   ERRStr := Name;
@@ -979,6 +1004,7 @@ Begin
       If IndexCount < 0 Then Begin
         SetLength(NumArrays, Length(NumArrays) -1);
         Error.Code := SP_ERR_OUT_OF_MEMORY;
+        Result := -1;
         Exit;
       End;
       NumArrays[Idx].Indices[pIdx Div 4] := LongWordPtr^;
@@ -1096,6 +1122,7 @@ Label
   SubWrong;
 Begin
 
+  Result := -1;
   ERRStr := Key;
   If Not NumArrays[Idx].DynArray Then Begin
     If Key = '' Then Begin
@@ -1306,7 +1333,7 @@ Begin
 
   Ptr := NumArrays[Idx].Hashes[Ord(Key[1])];
   LastPtr := Ptr;
-  While Ptr^.Index <> Index Do Begin
+  While Integer(Ptr^.Index) <> Index Do Begin
     LastPtr := Ptr;
     Ptr := Ptr^.NextHash;
   End;
@@ -1508,6 +1535,7 @@ Begin
     Else Begin
       ERRStr := StructName;
       Error.Code := SP_ERR_STRUCT_NOT_FOUND;
+      Result := -1;
       Exit;
     End;
   End Else
@@ -1664,6 +1692,7 @@ Begin
   // Returns a negative value if an extra index has been supplied - a one character
   // slicer.
 
+  Result := 0;
   ERRStr := StrArrays[Idx].Name + '$';
   If StrArrays[Idx].DynArray Then Begin
     If Key = '' Then Begin
@@ -1735,9 +1764,8 @@ End;
 
 Function SP_UpdateStrArray(Idx: Integer; const Name, Indices, Key: aString; Phrase: aString; aSliceFrom, aSliceTo: Integer; Var Error: TSP_ErrorCode): Integer;
 Var
-  pIdx, Index, iIdx, tIdx, Offset, vLen, Len: Integer;
+  Offset, vLen, Len: Integer;
   LastPtr, Ptr: pHashEntry;
-  Str: aString;
 Begin
 
   Result := 0;
@@ -1978,7 +2006,7 @@ Begin
 
   Ptr := StrArrays[Idx].Hashes[Ord(Key[1])];
   LastPtr := Ptr;
-  While Ptr^.Index <> Index Do Begin
+  While Integer(Ptr^.Index) <> Index Do Begin
     LastPtr := Ptr;
     Ptr := Ptr^.NextHash;
   End;
@@ -2022,8 +2050,7 @@ End;
 
 Function SP_QueryStrArray(Var Idx: Integer; Var Indices, Key: aString; Var Error: TSP_ErrorCode): aString;
 Var
-  pIdx, Index, iLen, iIdx, tIdx, Offset, vLen: Integer;
-  ptr: pLongWord;
+  Index, Offset: Integer;
 Begin
 
   Result := '';
@@ -2208,15 +2235,14 @@ Type
   pVarType = ^VarType;
 Var
   Tkn, Tkn2: pToken;
-  Token, TokenLen, Idx, Idx2, Idx3, cIdx, cIdx2, pStatement, cStatement,
-  LabelPos, LabelLen, ProcIdx, CASECount, cToken, cTokenLen, LastStrAt, LastStrLen: Integer;
-  Tokens, cTokens, Name, s: aString;
-  Changed, Reference, cFound, NewStatement: Boolean;
+  Idx, Idx2, Idx3, pStatement,
+  LabelPos, LabelLen, ProcIdx, LastStrAt, LastStrLen: Integer;
+  Tokens, Name, s: aString;
+  Changed, Reference, NewStatement: Boolean;
   TempLine, cLine: TSP_GOSUB_Item;
   xVar: pVarType;
   KeyWord, MaxLineNum, cKW, LastKW: LongWord;
   ProcLines: aString;
-  Dbl: aFloat;
   StrPtr: pByte;
   KwPtr: pLongWord;
   TknType: Byte;
@@ -2226,7 +2252,6 @@ Begin
 
   LabelLen := 0;
   LabelPos := 0;
-  CASECount := 0;
   SetLength(Constants, 0);
   INPROC := False;
 
@@ -2254,6 +2279,9 @@ Begin
   ProcLines := '';
   MaxLineNum := 0;
   NUMCONSTS := 0;
+  LastKW := 0;
+  LastStrAt := 0;
+  LastStrLen := 0;
   SetLength(LineLUT, 0);
 
   SP_CompileProgram;
@@ -2452,7 +2480,6 @@ Begin
 
         StrPtr := @Tokens[Idx2];
         Tkn := pToken(StrPtr);
-        TknType := Tkn^.Token;
         If Tkn^.Token = SP_TERMINAL Then Break;
         If ClearVars then Tkn^.Cache := 0;
         Inc(Idx2, SizeOf(TToken)); // Idx2 now points to content
@@ -2678,19 +2705,16 @@ Begin
   Idx := 1;
   StatementListPos := -1;
   If Tokens <> '' Then Begin
-    If Tokens[Idx] = aChar(SP_LINE_NUM) Then Begin
+    If Tokens[Idx] = aChar(SP_LINE_NUM) Then
       Inc(Idx, 1 + SizeOf(LongWord));
-    End;
-    If Tokens[Idx] = aChar(SP_STATEMENTS) Then Begin
+    If Tokens[Idx] = aChar(SP_STATEMENTS) Then
       StatementListPos := Idx;
-      Idx := pLongWord(@Tokens[1 + Idx + SizeOf(LongWord)])^;
-    End;
     If StatementListPos >= 0 Then Begin
       Ptr := @Tokens[StatementListPos +1];
       n := Ptr^;
       While n > 0 Do Begin
         Inc(Ptr);
-        If Ptr^ >= Position Then
+        If Ptr^ >= LongWord(Position) Then
           If Displacement > 0 Then
             Inc(Ptr^, Displacement)
           Else
@@ -2705,11 +2729,11 @@ End;
 Procedure SP_TestConsts(Var Tokens: aString; lIdx: Integer; Var Error: TSP_ErrorCode; Preserve: Boolean);
 Var
   cKw, LineNum: LongWord;
-  Idx, Idx2, Idx3, LastItemPos, TokenPos, TokenLen, TLen, TknLen2, TknType2, StatementListPos, pStatement, StartPos, SkipCnt: Integer;
+  Idx, Idx2, Idx3, TokenPos, TokenLen, TLen, TknLen2, TknType2, pStatement, StartPos, SkipCnt: Integer;
   Name: aString;
   LastRefWasConst, Changed: Boolean;
   Tkn, Tkn2: pToken;
-  TknType, LastItemType: Byte;
+  TknType: Byte;
   kwPtr: pLongWord;
 
   cFound: Boolean;
@@ -2721,7 +2745,6 @@ Var
   Procedure FixStatements(Position, Displacement: Integer);
   Var
     n, Idx, Idx2, Value: LongWord;
-    Ptr: pLongWord;
     NewVal: aFloat;
     Jump: Integer;
     Kwd: LongWord;
@@ -2750,14 +2773,14 @@ Var
     Idx := 1;
     If Tokens[Idx] = aChar(SP_LINE_NUM) Then Inc(Idx, 1 + SizeOf(LongWord));
     If Tokens[Idx] = aChar(SP_STATEMENTS) Then Idx := pLongWord(@Tokens[1 + Idx + SizeOf(LongWord)])^;
-    While Idx < Length(Tokens) Do Begin
+    While Integer(Idx) < Length(Tokens) Do Begin
       Token := @Tokens[Idx];
       Inc(Idx, SizeOf(TToken));
       Case Token^.Token of
         SP_JZ, SP_JNZ:
           Begin
             Jump := pLongWord(@Tokens[Idx])^;
-            If (Idx + Jump >= Position - Displacement) And (Jump > 0) Then
+            If (Integer(Idx) + Jump >= Position - Displacement) And (Jump > 0) Then
               If Displacement >= 0 Then
                 Inc(pLongWord(@Tokens[Idx])^, Displacement)
               Else
@@ -2777,7 +2800,7 @@ Var
                 // Found a value followed by an IIF or IIF$.
                 Idx2 := Idx + Token^.TokenLen + SizeOf(TToken) + SizeOf(LongWord);
                 Value := Trunc(gaFloat(@Tokens[Idx]));
-                If (Position > Idx2) And (Position < Idx2 + Value) Then Begin
+                If (Position > Integer(Idx2)) And (Position < Integer(Idx2 + Value)) Then Begin
                   If Displacement >= 0 Then
                     Inc(Value, Displacement)
                   Else
@@ -2790,7 +2813,7 @@ Var
                 Inc(Idx2, Value);
                 // Now get the jump and see if the displacement counts.
                 Jump := pInteger(@Tokens[Idx2 - SizeOf(Integer)])^;
-                If (Position >= Idx2) And (Position < Idx2 + Jump) Then
+                If (Position >= Integer(Idx2)) And (Position < Integer(Idx2) + Jump) Then
                   pLongWord(@Tokens[Idx2 - SizeOf(Integer)])^ := Jump + Displacement;
                 Inc(Idx, Token^.TokenLen);
               End Else
@@ -2805,7 +2828,7 @@ Var
             Inc(Idx, SizeOf(LongWord));
             While n > 0 Do Begin
               Jump := pLongWord(@Tokens[Idx])^;
-              If (Idx + Jump >= Position - Displacement) And (Jump > 0) Then
+              If (Integer(Idx) + Jump >= Position - Displacement) And (Jump > 0) Then
                 If Displacement >= 0 Then
                   Inc(pLongWord(@Tokens[Idx])^, Displacement)
                 Else
@@ -2836,7 +2859,7 @@ Begin
   pStatement := 1;
 
   Idx := 1;
-  StatementListPos := -1;
+  LineNum := 0;
   If Tokens <> '' Then Begin
     If Tokens[Idx] = aChar(SP_LINE_NUM) Then Begin
       Inc(Idx);
@@ -2844,13 +2867,10 @@ Begin
       Inc(Idx, SizeOf(LongWord));
     End;
     If Tokens[Idx] = aChar(SP_STATEMENTS) Then Begin
-      StatementListPos := Idx;
       Idx := pLongWord(@Tokens[1 + Idx + SizeOf(LongWord)])^;
     End;
 
     StartPos := Idx;
-    LastItemType := $FF;
-    LastItemPos := 0;
 
     While Idx <= Length(Tokens) Do Begin
 
@@ -2894,7 +2914,7 @@ Begin
                   CASECount := 0;
                   cIdx := lIdx;
                   cTokens := SP_Program[cIdx];
-                  cIdx2 := Idx + Tkn^.TokenLen;
+                  cIdx2 := Idx + Integer(Tkn^.TokenLen);
                   cStatement := pStatement;
 
                   While Not cFound And (cIdx < SP_Program_Count) Do Begin
@@ -3080,7 +3100,7 @@ Begin
             // If this token is followed by an SP_KEYWORD that is CONST, we're in business - skip it completely.
             // Otherwise, it might be part of a DATA statement, and should be processed.
 
-            Idx2 := Idx + Tkn^.TokenLen;
+            Idx2 := Idx + Integer(Tkn^.TokenLen);
             Tkn2 := @Tokens[Idx2];
             If (Tkn2^.Token = SP_KEYWORD) And (pLongWord(@Tokens[Idx2 + SizeOf(TToken)])^ = SP_KW_CONST) Then
               Inc(Idx, Tkn^.TokenLen + pLongWord(@Tokens[Idx])^)
@@ -3099,7 +3119,7 @@ Begin
               TLen := Tkn^.TokenLen;
               Tokens := Copy(Tokens, 1, TokenPos -1) +
                         CreateToken(SP_NUMCONST, 0, SizeOf(aFloat) + Length (Name)) + aFloatToString(Constants[Idx2].Val) + Name +
-                        Copy(Tokens, Idx + Tkn^.TokenLen, Length(Tokens));
+                        Copy(Tokens, Idx + Integer(Tkn^.TokenLen), Length(Tokens));
               TLen := (SizeOf(aFloat) + Length(Name)) - TLen;
               FixStatements(Idx, TLen);
               Changed := True;
@@ -3120,7 +3140,7 @@ Begin
               TLen := Length(Tokens);
               Tokens := Copy(Tokens, 1, TokenPos -1) +
                         CreateToken(SP_STRCONST, Length(Constants[Idx2].Str), Length(Constants[Idx2].Str) + Length(Name)) + Constants[Idx2].Str + Name +
-                        Copy(Tokens, Idx + Tkn^.TokenLen, Length(Tokens));
+                        Copy(Tokens, Idx + Integer(Tkn^.TokenLen), Length(Tokens));
               FixStatements(Idx, Length(Tokens) - TLen);
               Changed := True;
               Inc(Idx, Length(Constants[Idx2].Str) + Length(Name));
@@ -3146,7 +3166,7 @@ Begin
             End Else Begin
               // No longer exists - probably been removed by the user. Convert back to a NUMVAR.
               Idx2 := Length(Tokens);
-              Tokens := Copy(Tokens, 1, TokenPos -1) + CreateToken(SP_NUMVAR_EVAL, 0, (SizeOf(LongWord) * 2) + Length(Name)) + LongWordToString(0) + LongWordToString(Length(Name)) + Name + Copy(Tokens, Idx + Tkn^.TokenLen, Length(Tokens));
+              Tokens := Copy(Tokens, 1, TokenPos -1) + CreateToken(SP_NUMVAR_EVAL, 0, (SizeOf(LongWord) * 2) + Length(Name)) + LongWordToString(0) + LongWordToString(Length(Name)) + Name + Copy(Tokens, Idx + Integer(Tkn^.TokenLen), Length(Tokens));
               FixStatements(Idx, Length(Tokens) - Idx2);
               Inc(Idx, SizeOf(LongWord) + Length(Name));
               LastRefWasConst := False;
@@ -3157,13 +3177,13 @@ Begin
         SP_STRCONST:
           Begin
             LastRefWasConst := True;
-            Name := Lower(Copy(Tokens, Idx + Tkn^.TokenPos, Tkn^.TokenLen - Tkn^.TokenPos));
+            Name := Lower(Copy(Tokens, Idx + Integer(Tkn^.TokenPos), Tkn^.TokenLen - Tkn^.TokenPos));
             Idx2 := 0;
             While (Idx2 < NUMCONSTS) And (Constants[Idx2].Name <> Name) Do Inc(Idx2);
             If Idx2 < NUMCONSTS Then Begin
               If Not Preserve Then Begin
                 TLen := Length(Tokens);
-                Tokens := Copy(Tokens, 1, TokenPos -1) + CreateToken(SP_STRCONST, Length(Constants[Idx2].Str), Length(Constants[Idx2].Str) + Length(Name)) + Constants[Idx2].Str + Name + Copy(Tokens, Idx + Tkn^.TokenLen, Length(Tokens));
+                Tokens := Copy(Tokens, 1, TokenPos -1) + CreateToken(SP_STRCONST, Length(Constants[Idx2].Str), Length(Constants[Idx2].Str) + Length(Name)) + Constants[Idx2].Str + Name + Copy(Tokens, Idx + Integer(Tkn^.TokenLen), Length(Tokens));
                 FixStatements(Idx, Length(Tokens) - TLen);
                 Inc(Idx, Length(Constants[Idx2].Str) + Length(Name));
                 Changed := True;
@@ -3171,7 +3191,7 @@ Begin
             End Else Begin
               Name := Copy(Name, 1, Length(Name) -1);
               Idx2 := Length(Tokens);
-              Tokens := Copy(Tokens, 1, TokenPos -1) + CreateToken(SP_STRVAR_EVAL, 0, (SizeOf(LongWord) * 2) + Length(Name)) + LongWordToString(0) + LongWordToString(Length(Name)) + Name + Copy(Tokens, Idx + Tkn^.TokenLen, Length(Tokens));
+              Tokens := Copy(Tokens, 1, TokenPos -1) + CreateToken(SP_STRVAR_EVAL, 0, (SizeOf(LongWord) * 2) + Length(Name)) + LongWordToString(0) + LongWordToString(Length(Name)) + Name + Copy(Tokens, Idx + Integer(Tkn^.TokenLen), Length(Tokens));
               FixStatements(Idx, Length(Tokens) - Idx2);
               Inc(Idx, SizeOf(LongWord) + Length(Name));
               LastRefWasConst := False;
@@ -3195,9 +3215,6 @@ Begin
         End;
 
       End;
-
-      LastItemType := TknType;
-      LastItemPos := TokenPos;
 
     End;
 
@@ -3256,9 +3273,7 @@ Begin
                               Tokens := Copy(Tokens, 1, TokenPos -1) + Copy(Tokens, Idx + TokenLen);
                               FixStatements(TokenPos, -(((Idx + TokenLen)-TokenPos)));
                               Dec(Idx, SizeOf(TToken) + TokenLen);
-                              Idx2 := Length(Tokens);
                               Changed := True;
-                              SkipCnt := 0;
                               Break;
                             End Else
                               Inc(Idx2, TknLen2);
@@ -3275,7 +3290,6 @@ Begin
                               pLongWord(@Tokens[Idx])^ := Idx3 - Idx;
                               FixStatements(Idx3, -(SizeOf(TToken) + TknLen2));
                               Changed := True;
-                              SkipCnt := 0;
                               Break;
                             End Else
                               Inc(Idx2, TknLen2);
@@ -3292,7 +3306,6 @@ Begin
                               pLongWord(@Tokens[Idx])^ := Idx3 - Idx;
                               FixStatements(Idx3, -(SizeOf(TToken) + TknLen2));
                               Changed := True;
-                              SkipCnt := 0;
                               Break;
                             End Else
                               Inc(Idx2, TknLen2);
@@ -3336,7 +3349,7 @@ Var
   Tkn: pToken;
   Tokens: aString;
   Changed: Boolean;
-  Idx, Idx2, Idx3: Integer;
+  Idx, Idx2: Integer;
 Begin
 
   Idx := -1;
@@ -3434,7 +3447,7 @@ Begin
                   Inc(sIdx);
               End;
               If sIdx = Structs.Count Then
-                Structs.Add(String(Strings[Idx]^.StructName));
+                Structs.Add(Strings[Idx]^.StructName);
               SaveData := SaveData + LongWordToString(Length(Strings[Idx]^.StructName)) + Strings[Idx]^.StructName;
             End;
 
@@ -3695,7 +3708,7 @@ Type
     SliceFrom, SliceTo, DLen, Len: Integer;
   End;
 Var
-  StrLen, SrcFile, VarIdx, DataLen, Idx, sIdx, mIdx, NumStructs, NumMembers, Ps, HashCount: Integer;
+  StrLen, SrcFile, VarIdx, DataLen, Idx, sIdx, mIdx, NumStructs, NumMembers, HashCount: Integer;
   Size, NumIndices, LwVal, ArrayBase, KeyLen, KeyIndex: LongWord;
   Buffer, InternalName, Str, Key: aString;
   NV: NV_Template;
@@ -4129,7 +4142,7 @@ End;
 
 Function  SP_NumArrayToString(Index, MaxLen: Integer): aString;
 Var
-  Idx, Idx2, IndexSize, c: Integer;
+  Idx, Idx2, IndexSize: Integer;
   nArr: pSP_NumArray;
   Strs, Strs2: TAnsiStringList;
   Str: aString;
@@ -4141,7 +4154,6 @@ Begin
 
   // Gather all values into strings, comma separated, the size of the last index.
 
-  c := 0;
   Idx := 0;
   If nArr^.NumIndices > 0 Then
     IndexSize := nArr^.Indices[nArr^.NumIndices -1]
@@ -4158,7 +4170,7 @@ Begin
         If Length(Str) > MaxLen Then Break;
       End;
       Str := Str + ')';
-      Strs.Add(String(Str));
+      Strs.Add(Str);
       If Length(Str) > MaxLen Then Break;
     End;
   End Else
@@ -4178,7 +4190,7 @@ Begin
       Str := '(';
       For Idx2 := 0 To IndexSize -1 Do Begin
         If Strs[Idx] <> '' Then Begin
-          Str := Str + aString(Strs[Idx]);
+          Str := Str + Strs[Idx];
           If Idx2 < IndexSize -1 Then
             Str := Str + ',';
           Inc(Idx);
@@ -4186,7 +4198,7 @@ Begin
           Break;
       End;
       Str := Str + ')';
-      Strs2.Add(String(Str));
+      Strs2.Add(Str);
     End;
 
     Strs.Clear;
@@ -4238,7 +4250,7 @@ Begin
         If Length(Str) > MaxLen Then Break;
       End;
       Str := Str + ')';
-      Strs.Add(string(Str));
+      Strs.Add(Str);
       If Length(Str) > MaxLen Then Break;
     End;
   End Else
@@ -4258,7 +4270,7 @@ Begin
       Str := '(';
       For Idx2 := 0 To IndexSize -1 Do Begin
         If Strs[Idx] <> '' Then Begin
-          Str := Str + aString(Strs[Idx]);
+          Str := Str + Strs[Idx];
           If Idx2 < IndexSize -1 Then
             Str := Str + ',';
           Inc(Idx);
@@ -4266,7 +4278,7 @@ Begin
           Break;
       End;
       Str := Str + ')';
-      Strs2.Add(string(Str));
+      Strs2.Add(Str);
     End;
 
     Strs.Clear;
@@ -4282,7 +4294,7 @@ Begin
   Result := '';
   For Idx := 0 To Strs.Count -1 Do
     if Copy(Strs[Idx], 1, 2) <> ',,' Then
-      Result := Result + aString(Strs[Idx]);
+      Result := Result + Strs[Idx];
   Strs.Free;
   Strs2.Free;
 
@@ -4774,7 +4786,6 @@ End;
 Function  SP_UpdateFOREACHRANGEVar(Idx: Integer; const Name, EachString: aString; Var NumRanges, LoopLine, LoopStatement, St: Integer; Ptr: pLongWord; Var Error: TSP_ErrorCode): Integer;
 Var
   StrVar: Boolean;
-  nIdx: Integer;
   rType: Byte;
   Tokens: paString;
   nName: aString;

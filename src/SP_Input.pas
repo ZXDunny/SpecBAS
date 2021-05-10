@@ -32,7 +32,7 @@ Type
   SP_KeyInfo = Packed Record  // Defines a key that is currently down
     KeyChar: aChar;           // The character that is down (for alpha-num-symbols}
     KeyCode: Word;            // For modifier keys etc
-    NextFrameTime: LongWord;  // When this reaches zero, it's counted as triggering a repeated key event
+    NextFrameTime: Integer;  // When this reaches zero, it's counted as triggering a repeated key event
     Repeating: Boolean;       // Has the key started to repeat yet?
   End;
   pSP_KeyInfo = ^SP_KeyInfo;

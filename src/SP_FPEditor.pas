@@ -946,8 +946,6 @@ Var
   {$IFNDEF FPC}
   SysPowerStatus: TSystemPowerStatus;
   {$ENDIF}
-Const
-  Clrs: Array[0..6] of Byte = (0, 0, 232, 0, 238, 240, 245);
 Begin
 
   {$IFDEF PANDORA}
@@ -979,17 +977,17 @@ Begin
     T_INK := 0;
     T_OVER := 0;
 
-    X := Win^.Width - FPFh -2;
+    X := Win^.Width - FPFh - 3 + FPFw;
     Y := 0;
 
     // Now calculate how much we need to remove for the battery meter.
     // There are four stripes.
 
-    BattW := Round((((FPFw * 4))) * ((100-BATTLEVEL)/100)) -2;
+    BattW := Round((((FPFw * 4))) * ((100-BATTLEVEL)/100)) -3;
     SP_DrawStripe(@SP_BankList[SP_FindBankID(SCREENBANK)]^.Memory[0], Win^.Width, FPFw, FPFh, FocusedWindow = fwDirect);
 
     For Idx := 2 To FPFh -1 Do Begin
-      PixPtr := @SP_BankList[SP_FindBankID(SCREENBANK)]^.Memory[X + (Idx * Win^.Width) - Idx];
+      PixPtr := @SP_BankList[SP_FindBankID(SCREENBANK)]^.Memory[X + (Idx * Win^.Width) - Idx Div 2];
       PixW := BattW;
       While PixW > 0 Do Begin
         PixPtr^ := 0;

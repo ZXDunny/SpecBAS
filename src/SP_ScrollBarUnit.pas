@@ -7,7 +7,7 @@ Uses Types, Math, SP_Util, SP_Components, SP_BaseComponentUnit, SP_ButtonUnit;
 Type
 
 SP_ScrollBarKind = (spHorizontal, spVertical);
-SP_ScrollEvent = Procedure(Delta, NewPos: Integer) of Object;
+SP_ScrollEvent = Procedure(Delta, NewPos: aFloat) of Object;
 
 SP_ScrollBar = Class(SP_BaseComponent)
 

@@ -69,8 +69,8 @@ SP_ListBox = Class(SP_BaseComponent)
     Function      GetColWidth(Index: Integer): Integer;
     Function      GetSelected(Index: Integer): Boolean;
     Procedure     SetUIElements;
-    Procedure     vScroll(Delta, NewPos: Integer);
-    Procedure     hScroll(Delta, NewPos: Integer);
+    Procedure     vScroll(Delta, NewPos: aFloat);
+    Procedure     hScroll(Delta, NewPos: aFloat);
     Procedure     SetShowHeaders(b: Boolean);
     Procedure     SortStrings(L, R: Integer);
     Function      GetString(Index: Integer): aString; Virtual;
@@ -866,14 +866,14 @@ Begin
 
 End;
 
-Procedure SP_ListBox.vScroll(Delta, NewPos: Integer);
+Procedure SP_ListBox.vScroll(Delta, NewPos: aFloat);
 Begin
 
   Paint;
 
 End;
 
-Procedure SP_ListBox.hScroll(Delta, NewPos: Integer);
+Procedure SP_ListBox.hScroll(Delta, NewPos: aFloat);
 Begin
 
   Paint;

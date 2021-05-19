@@ -2067,15 +2067,22 @@ End;
 Procedure SP_Interpret_SP_IJMP(Var iInfo: pSP_iInfo);
 Var
   c, n: Integer;
+  es: LongWord;
 Begin
   With iInfo^ Do Begin
     // Read count
     c := pLongWord(StrPtr)^;
+    Inc(StrPtr, SizeOf(LongWord));
+    // Read the ELSE jump size
+    es := pLongWord(StrPtr)^;
     n := Round(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
-    If (n < 1) or (n > c) Then
-      Exit
-    Else Begin
+    If (n < 1) or (n > c) Then Begin
+      If es > 0 Then
+        Inc(StrPtr, es)
+      Else
+        Exit;
+    End Else Begin
       Inc(StrPtr, n * SizeOf(LongWord));
       Inc(StrPtr, pLongWord(StrPtr)^);
     End;

@@ -437,7 +437,7 @@ Begin
                   Begin
                     // This is a special case - jump forward to the expression list so we can parse the keywords.
                     Inc(Idx, SizeOf(TToken));
-                    i := pLongWord(@Tokens[Idx])^ + 1; // number of exprs
+                    i := pLongWord(@Tokens[Idx])^ + 2; // number of exprs
                     Inc(Idx, i * SizeOf(LongWord)); // now after the next line, Idx will point to the first expression.
                     doJump := False;
                   End;
@@ -5252,7 +5252,7 @@ Var
   Val: aFloat;
   Searches, TypePositions: Array of aString;
 Label
-  Cont1, Cont2, Start;
+  Cont1, Cont2, Cont3, Cont4, Start;
 Begin
 
   // A simple peephole optimiser. Look for common patterns of tokens that can be condensed in a similar manner to
@@ -5622,7 +5622,7 @@ Begin
 
       End Else Begin
 
-      Cont1:
+        Cont1:
 
         // Let's also look and see if we have a variable raised by power 2. If so,
         // optimise out as a square.
@@ -5656,7 +5656,7 @@ Begin
 
         End Else Begin
 
-        Cont2:
+          Cont2:
 
           SearchString := aChar(SP_STRING) + aChar(SP_STRING) + aChar(SP_SYMBOL);
           Idx := Pos(SearchString, TypeString);
@@ -5674,14 +5674,18 @@ Begin
             Tokens := Copy(Tokens, 1, tStart -1) + TestTokens + Copy(Tokens, tStart + tLen, Length(Tokens));
             Replaced := Error.Code = SP_ERR_OK;
             Error.Code := SP_ERR_OK;
+            If Replaced Then Goto Start Else Goto Cont3;
 
           End Else Begin
+
+            Cont3:
 
             SearchString := aChar(SP_VALUE) + aChar(SP_SPECIAL_SYMBOL);
             Idx := Pos(SearchString, TypeString);
             If Idx <> 0 Then Begin
 
               // Number, NOT or Unary Minus/Plus. Converts down to a number.
+
               tStart := Idx -1;
               tLen := pLongWord(@TypePositions[tStart][5])^ + pLongWord(@TypePositions[tStart +1][5])^;
               tStart := pLongWord(@TypePositions[tStart][1])^;
@@ -5692,8 +5696,11 @@ Begin
               Tokens := Copy(Tokens, 1, tStart -1) + TestTokens + Copy(Tokens, tStart + tLen, Length(Tokens));
               Replaced := Error.Code = SP_ERR_OK;
               Error.Code := SP_ERR_OK;
+              If Replaced Then Goto Start Else Goto Cont4;
 
             End Else Begin
+
+              Cont4:
 
               // Now for more complex types, as promised.
 
@@ -5783,7 +5790,9 @@ Begin
                       End;
                     End;
                   End;
+
                   Inc(Idx);
+
                 End;
 
               End;
@@ -10176,11 +10185,11 @@ Var
   Exprs: Array of aString;
   Condition, Every, FnResult, GotoExpr: aString;
   Condition_Pos, KeyWord, KeyWordPos: LongWord;
-  GotCondition, OffFlag, b: Boolean;
+  GotCondition, OffFlag, b, HasElse: Boolean;
   n, i, j, KW, ot: Integer;
 Begin
 
-  // ON <[numexpr|EVERY numexpr] statement[:statement...]]|OFF|numexpr GOTO numexpr,numexpr...>
+  // ON <[numexpr|EVERY numexpr] statement[:statement...]]|OFF|numexpr GOTO numexpr,numexpr...[ELSE statement...]>
   // ON EVERY numexpr statement[:statement...]
   // ON EVERY OFF
   // ON numexpr
@@ -10366,7 +10375,9 @@ Begin
         Until (Position > Length(Tokens)) or Not b;
         If Error.Code <> SP_ERR_OK then Exit;
 
-        // SP_IJMP, Count, Skip0, Skip1, Skip2, Skip3, expr0, expr1, expr2, expr3
+        HasElse := (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_ELSE);
+
+        // SP_IJMP, Count, else-skip, Skip0, Skip1, Skip2, Skip3, expr0, expr1, expr2, expr3
 
         SetLength(vals, n);
         For i := 0 To n -1 Do Begin
@@ -10375,18 +10386,24 @@ Begin
             for j := 0 to i-1 do
               Inc(vals[i], Length(Exprs[j]));
         End;
-        for j := 0 to n-1 do
-          Inc(vals[n], Length(Exprs[j]));
 
         // Got the lengths, now build the result string.
-        GotoExpr := LongWordToString(n); // Number of expressions
+        GotoExpr := '';
         For i := 0 to n-1 Do
           GotoExpr := GotoExpr + LongWordToString(vals[i]); // Jump table
 
         For i := 0 to n-1 Do
           GotoExpr := GotoExpr + Exprs[i];
 
+        If HasElse Then Begin // In order to actually jump past the ELSE, we need to skip the displacement *and* the keyword.
+          GotoExpr := LongWordToString(Length(GotoExpr) + SizeOf(aFloat) + (2 * SizeOf(TToken)) + (2 * SizeOf(LongWord))) + GotoExpr;
+        End Else
+          GotoExpr := LongWordToString(0) + GotoExpr;
+        GotoExpr := LongWordToString(n) + GotoExpr; // Number of expressions
+
+
         Result := Condition + CreateToken(SP_IJMP, 0, Length(GotoExpr)) + GotoExpr;
+
         KeyWordID := 0;
 
       End Else

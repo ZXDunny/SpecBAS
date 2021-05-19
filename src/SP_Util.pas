@@ -865,21 +865,32 @@ End;
 
 Function Upper(const Text: aString): aString; inline;
 Var
-  Ps: Integer;
+//  Ps: Integer;
+  p, q: pByte;
+  c, l: Integer;
 Begin
 
   // Returns a copy of the supplied aString in lowercase.
 
-  SetLength(Result, Length(Text));
+  l := Length(Text);
+  SetLength(Result, l);
+  q := pByte(pNativeUInt(@Text)^);
+  p := pByte(pNativeUInt(@Result)^);
+  CopyMem(p, q, l);
+  For c := 1 to l Do Begin
+    If p^ in [97..122] Then
+      p^ := p^ - 32;
+    Inc(p);
+  End;
 
-  Ps := 1;
+{  Ps := 1;
   While Ps <= Length(Text) Do Begin
      If Text[Ps] in ['a'..'z'] Then
         Result[Ps] := aChar(Ord(Text[Ps])-32)
      Else
         Result[Ps] := Text[Ps];
      Inc(Ps);
-  End;
+  End;}
 
 End;
 

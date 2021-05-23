@@ -36,7 +36,6 @@ uses
   SP_Streams in 'SP_Streams.pas',
   SP_Sound in 'SP_Sound.pas',
   SP_Editor in 'SP_Editor.pas',
-  // SP_VM_Emu in 'SP_VM_Emu.pas',
   SP_Package in 'SP_Package.pas',
   SP_Math in 'SP_Math.pas',
   SP_Help in 'SP_Help.pas',
@@ -67,7 +66,8 @@ uses
   SP_MenuActions in 'SP_MenuActions.pas',
   SP_ControlMsgs in 'SP_ControlMsgs.pas',
   SP_DebugPanel in 'SP_DebugPanel.pas',
-  SP_SliderUnit in 'SP_SliderUnit.pas';
+  SP_SliderUnit in 'SP_SliderUnit.pas',
+  SP_ProgressBarUnit in 'SP_ProgressBarUnit.pas';
 
 {$R *.res}
 

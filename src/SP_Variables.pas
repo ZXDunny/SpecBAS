@@ -4146,6 +4146,8 @@ Var
   Str: aString;
 Begin
 
+  If MaxLen < 0 Then MaxLen := MAXINT;
+
   nArr := @NumArrays[Index];
   Strs := TAnsiStringList.Create;
   Strs2 := TAnsiStringList.Create;
@@ -4225,6 +4227,8 @@ Var
   Strs, Strs2: TAnsiStringList;
   Str: aString;
 Begin
+
+  If MaxLen < 0 Then MaxLen := MAXINT;
 
   sArr := @StrArrays[Index];
   Strs := TAnsiStringList.Create;

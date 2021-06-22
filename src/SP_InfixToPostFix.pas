@@ -4912,7 +4912,7 @@ Begin
                     If BraceLevel = 0 Then
                       Goto Finish;
 
-                  If ((Not ExpectOperand) And (Symbol = '!')) or (Symbol in ['+', '-', '/', '*', SP_CHAR_NUM_PLUS, SP_CHAR_STR_PLUS, SP_CHAR_MUL, SP_CHAR_DIV, SP_CHAR_ADD, SP_CHAR_SUB]) Then Begin
+                  If ((Not ExpectOperand) And (Symbol = '!')) or (Symbol in ['+', '-', '/', '*', '^', SP_CHAR_NUM_PLUS, SP_CHAR_STR_PLUS, SP_CHAR_MUL, SP_CHAR_DIV, SP_CHAR_ADD, SP_CHAR_SUB]) Then Begin
 
                     // Left-associativity
 

@@ -10,7 +10,7 @@ interface
 // SP_BaseComponent - all components descend from this
 
 Uses SysUtils, Types, Math, SyncObjs,
-     SP_Util;
+     SP_Util, SP_Errors;
 
 Type
 
@@ -38,12 +38,21 @@ SP_PopUpEvent = Procedure (Sender: SP_BaseComponent) of Object;
 SP_ActivateEvent = Procedure of Object;
 SP_DeactivateEvent = Procedure of Object;
 SP_FocusEvent = Procedure(Sender: SP_BaseComponent; WillFocus: Boolean) of Object;
+SP_ChangeEvent = Procedure(Sender: SP_BaseComponent) of Object;
 
 SP_ParentType = (spControl, spWindow);
 SP_TabPosition = (spTop, spBottom);
 
 SP_Anchor = (aLeft, aTop, aRight, aBottom);
 SP_AnchorSet = Set of SP_Anchor;
+
+SP_PropertySetter = Procedure(Value: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode) of Object;
+SP_PropertyGetter = Function: aString of Object;
+SP_Property = Record
+  Name: aString;
+  Getter: SP_PropertyGetter;
+  Setter: SP_PropertySetter;
+End;
 
 SP_BaseComponent = Class
 
@@ -116,6 +125,44 @@ SP_BaseComponent = Class
     ControlID: Integer;
     Dbl: Boolean;
     fCurFontID: Integer;
+    User_OnMouseMove: aString;
+    User_OnMouseDown: aString;
+    User_OnMouseUp: aString;
+    User_OnMouseEnter: aString;
+    User_OnMouseLeave: aString;
+    User_OnMouseWheel: aString;
+    User_OnKeyDown: aString;
+    User_OnKeyUp: aString;
+    User_OnPaintBefore: aString;
+    User_OnPaintAfter: aString;
+    User_OnDblClick: aString;
+    User_OnClick: aString;
+    User_OnAbort: aString;
+    User_OnEnter: aString;
+    User_OnExit: aString;
+    User_OnShow: aString;
+    User_OnHide: aString;
+    User_OnResize: aString;
+    Compiled_OnMouseMove: aString;
+    Compiled_OnMouseDown: aString;
+    Compiled_OnMouseUp: aString;
+    Compiled_OnMouseEnter: aString;
+    Compiled_OnMouseLeave: aString;
+    Compiled_OnMouseWheel: aString;
+    Compiled_OnKeyDown: aString;
+    Compiled_OnKeyUp: aString;
+    Compiled_OnPaintBefore: aString;
+    Compiled_OnPaintAfter: aString;
+    Compiled_OnDblClick: aString;
+    Compiled_OnClick: aString;
+    Compiled_OnAbort: aString;
+    Compiled_OnEnter: aString;
+    Compiled_OnExit: aString;
+    Compiled_OnShow: aString;
+    Compiled_OnHide: aString;
+    Compiled_OnResize: aString;
+
+    fProperties: Array of SP_Property;
 
     Procedure SetVisible(Value: Boolean);
     Procedure SetTransparent(Value: Boolean);
@@ -187,6 +234,50 @@ SP_BaseComponent = Class
     Procedure ChangeFont;
     Procedure SetChainControl(c: SP_BaseComponent); Virtual;
     Function  GetFocused: Boolean;
+    Procedure SetProperty(Name, Value: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+    Function  GetProperty(Name: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode): aString;
+    Procedure RegisterProperty(Name: aString; Getter: SP_PropertyGetter; Setter: SP_PropertySetter);
+
+    {User Properties}
+
+    Procedure RegisterProperties;
+    Procedure Set_Align(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Align: aString;
+    Procedure Set_Anchors(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Anchors: aString;
+    Procedure Set_BackgroundClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_BackgroundClr: aString;
+    Procedure Set_FontClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_FontClr: aString;
+    Procedure Set_ErrorClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ErrorClr: aString;
+    Procedure Set_Width(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Width: aString;
+    Procedure Set_Height(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Height: aString;
+    Procedure Set_Left(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Left: aString;
+    Procedure Set_Top(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Top: aString;
+    Procedure Set_OnResize(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnResize: aString;
+    Procedure Set_Enabled(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Enabled: aString;
+    Procedure Set_Visible(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Visible: aString;
+    Procedure Set_Border(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Border: aString;
+    Procedure Set_MinWidth(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_MinWidth: aString;
+    Procedure Set_MinHeight(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_MinHeight: aString;
+    Procedure Set_MaxWidth(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_MaxWidth: aString;
+    Procedure Set_MaxHeight(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_MaxHeight: aString;
+    Function  Get_Canvas: aString;
+    Procedure Set_Transparent(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Transparent: aString;
+
+    Procedure Set_OnMouseMove(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseMove: aString;
+    Procedure Set_OnMouseDown(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseDown: aString;
+    Procedure Set_OnMouseUp(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseUp: aString;
+    Procedure Set_OnMouseEnter(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseEnter: aString;
+    Procedure Set_OnMouseLeave(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseLeave: aString;
+    Procedure Set_OnMouseWheel(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseWheel: aString;
+    Procedure Set_OnKeyDown(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnKeyDown: aString;
+    Procedure Set_OnKeyUp(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnKeyUp: aString;
+    Procedure Set_OnPaintBefore(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnPaintBefore: aString;
+    Procedure Set_OnPaintAfter(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnPaintAfter: aString;
+    Procedure Set_OnDblClick(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnDblClick: aString;
+    Procedure Set_OnClick(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnClick: aString;
+    Procedure Set_OnAbort(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnAbort: aString;
+    Procedure Set_OnEnter(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnEnter: aString;
+    Procedure Set_OnExit(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnExit: aString;
+    Procedure Set_OnShow(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnShow: aString;
+    Procedure Set_OnHide(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnHide: aString;
 
     Property Align:         Integer             read fAlign         write SetAlign;
     Property Anchors:       SP_AnchorSet        read fAnchors       write fAnchors;
@@ -263,8 +354,74 @@ implementation
 
 Uses
 
-  SP_Main, SP_Input, SP_Graphics, SP_BankFiling, SP_BankManager, SP_SysVars, SP_Errors,
-  SP_PopUpMenuUnit, SP_Components;
+  SP_Main, SP_Input, SP_Graphics, SP_BankFiling, SP_BankManager, SP_SysVars,
+  SP_PopUpMenuUnit, SP_Components, SP_Interpret_PostFix;
+
+// All controls should register their extra properties via this routine in the base class.
+// These are properties that the user can change or read.
+
+// All properties, methods and event handlers can be registered through here.
+
+Procedure SP_BaseComponent.RegisterProperty(Name: aString; Getter: SP_PropertyGetter; Setter: SP_PropertySetter);
+Var
+  i, l: Integer;
+  Found: Boolean;
+Begin
+
+  Found := False;
+  Name := Lower(Name);
+  l := Length(fProperties);
+  For i := 0 To l -1 Do
+    If fProperties[i].Name = Name Then Begin
+      Found := True;
+      Break;
+    End;
+
+  If Not Found Then Begin
+    SetLength(fProperties, l +1);
+    i := l;
+  End;
+
+  fProperties[i].Name := Name;
+  fProperties[i].Getter := Getter;
+  fProperties[i].Setter := Setter;
+
+End;
+
+Procedure SP_BaseComponent.SetProperty(Name, Value: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx: Integer;
+Begin
+
+  Handled := False;
+
+  For Idx := 0 To Length(fProperties) -1 Do
+    If (Name = fProperties[Idx].Name) And Assigned(fProperties[Idx].Setter) Then Begin
+      fProperties[Idx].Setter(Value, Handled, Error);
+      Exit;
+    End;
+
+  Error.Code := SP_ERR_INVALID_PROPERTY_NAME;
+
+End;
+
+Function SP_BaseComponent.GetProperty(Name: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode): aString;
+Var
+  Idx: Integer;
+Begin
+
+  Handled := False;
+
+  For Idx := 0 To Length(fProperties) -1 Do
+    If (Name = fProperties[Idx].Name) and Assigned(fProperties[Idx].Getter) Then Begin
+      Handled := True;
+      Result := fProperties[Idx].Getter;
+      Exit;
+    End;
+
+  Error.Code := SP_ERR_INVALID_PROPERTY_NAME;
+
+End;
 
 Procedure SP_BaseComponent.SetChainControl(c: SP_BaseComponent);
 Begin
@@ -940,6 +1097,8 @@ Var
   l: Integer;
 Begin
 
+  RegisterProperties;
+
   ChangeFont;
   If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then
     fCurFontID := EDITORFONT
@@ -1068,6 +1227,8 @@ Begin
 
   If Assigned(fParentControl) Then
     Dec(ControlCount);
+
+  SetLength(fProperties, 0);
 
   Inherited;
 
@@ -1998,5 +2159,497 @@ begin
   End;
 
 end;
+
+// Property getters and setters
+
+Procedure SP_BaseComponent.RegisterProperties;
+Begin
+  RegisterProperty('align', Get_Align, Set_Align);
+  RegisterProperty('anchors', Get_Anchors, Set_Anchors);
+  RegisterProperty('backgroundclr', Get_BackgroundClr, Set_BackgroundClr);
+  RegisterProperty('fontclr', Get_FontClr, Set_FontClr);
+  RegisterProperty('errorclr', Get_ErrorClr , Set_ErrorClr);
+  RegisterProperty('width', Get_Width , Set_Width);
+  RegisterProperty('height', Get_Height , Set_Height);
+  RegisterProperty('left', Get_Left , Set_Left);
+  RegisterProperty('top', Get_Top , Set_Top);
+  RegisterProperty('border', Get_Border , Set_Border);
+  RegisterProperty('enabled', Get_Enabled , Set_Enabled);
+  RegisterProperty('visible', Get_Visible , Set_Visible);
+  RegisterProperty('minwidth', Get_MinWidth , Set_MinWidth);
+  RegisterProperty('minheight', Get_MinHeight , Set_MinHeight);
+  RegisterProperty('maxwidth', Get_MaxWidth , Set_MaxWidth);
+  RegisterProperty('maxheight', Get_MaxHeight , Set_MaxHeight);
+  RegisterProperty('canvas', Get_Canvas , nil);
+  RegisterProperty('transparent', Get_Transparent , Set_Transparent);
+  RegisterProperty('onmousemove', Get_OnMouseMove, Set_OnMouseMove);
+  RegisterProperty('onmousedown', Get_OnMouseDown, Set_OnMouseDown);
+  RegisterProperty('onmouseup', Get_OnMouseUp, Set_OnMouseUp);
+  RegisterProperty('onmouseenter', Get_OnMouseEnter, Set_OnMouseEnter);
+  RegisterProperty('onmouseleave', Get_OnMouseLeave, Set_OnMouseLeave);
+  RegisterProperty('onmousewheel', Get_OnMouseWheel, Set_OnMouseWheel);
+  RegisterProperty('onkeydown', Get_OnKeyDown, Set_OnKeyDown);
+  RegisterProperty('onkeyup', Get_OnKeyUp, Set_OnKeyUp);
+  RegisterProperty('onpaintbefore', Get_OnPaintBefore, Set_OnPaintBefore);
+  RegisterProperty('onpaintafter', Get_OnPaintAfter, Set_OnPainTAfter);
+  RegisterProperty('onresize', Get_OnResize , Set_OnResize);
+  RegisterProperty('ondblclick', Get_OnDblClick , Set_OnDblClick);
+  RegisterProperty('onclick', Get_OnClick , Set_OnClick);
+  RegisterProperty('onenter', Get_OnEnter , Set_OnEnter);
+  RegisterProperty('onexit', Get_OnExit , Set_OnExit);
+  RegisterProperty('onabort', Get_OnAbort , Set_OnAbort);
+  RegisterProperty('onshow', Get_OnShow , Set_OnShow);
+  RegisterProperty('onhide', Get_Onhide , Set_OnHide);
+End;
+
+Procedure SP_BaseComponent.Set_Align(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  if s = 'top' then
+    Align := SP_AlignTop
+  else
+    if s = 'bottom' then
+      Align := SP_AlignBottom
+    else
+      if s = 'left' then
+        Align := SP_AlignLeft
+      else
+        if s = 'right' then
+          Align := SP_AlignRight
+        else
+          if s = 'all' then
+            Align := SP_AlignAll
+          else
+            if s = 'none' then
+              Align := SP_AlignNone
+            else
+              Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+End;
+
+Function  SP_BaseComponent.Get_Align: aString;
+Begin
+  Case Align of
+    SP_AlignTop:
+      Result := 'top';
+    SP_AlignBottom:
+      Result := 'bottom';
+    SP_AlignLeft:
+      Result := 'left';
+    SP_AlignRight:
+      Result := 'right';
+    SP_AlignAll:
+      Result := 'all';
+    SP_AlignNone:
+      Result := 'none';
+  Else
+    Result := '';
+  End;
+End;
+
+Procedure SP_BaseComponent.Set_Anchors(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Anchor: SP_AnchorSet;
+Begin
+
+  Anchor := [];
+  While s <> '' Do Begin
+    Case s[1] of
+      'l': Anchor := Anchor + [aLeft];
+      'r': Anchor := Anchor + [aRight];
+      't': Anchor := Anchor + [aTop];
+      'b': Anchor := Anchor + [aBottom];
+    Else
+      Begin
+        Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+        Exit;
+      End;
+    End;
+    s := Copy(s, 2);
+  End;
+
+End;
+
+Function  SP_BaseComponent.Get_Anchors: aString;
+Begin
+  Result := '';
+  If aLeft in Anchors Then
+    Result := Result + 'l';
+  If aRight in Anchors Then
+    Result := Result + 'r';
+  If aTop in Anchors Then
+    Result := Result + 't';
+  If aBottom in Anchors Then
+    Result := Result + 'b';
+End;
+
+Procedure SP_BaseComponent.Set_OnMouseMove(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnMouseMove := SP_ConvertToTokens(s, Error);
+  If Compiled_OnMouseMove <> '' Then
+    User_OnMouseMove := s;
+End;
+
+Function  SP_BaseComponent.Get_OnMouseMove: aString;
+Begin
+  Result := User_OnMouseMove;
+End;
+
+Procedure SP_BaseComponent.Set_OnMouseDown(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnMouseDown := SP_ConvertToTokens(s, Error);
+  If Compiled_OnMouseDown <> '' Then
+    User_OnMouseDown := s;
+End;
+
+Function  SP_BaseComponent.Get_OnMouseDown: aString;
+Begin
+  Result := User_OnMouseDown;
+End;
+
+Procedure SP_BaseComponent.Set_OnMouseUp(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnMouseUp := SP_ConvertToTokens(s, Error);
+  If Compiled_OnMouseUp <> '' Then
+    User_OnMouseUp := s;
+End;
+
+Function  SP_BaseComponent.Get_OnMouseUp: aString;
+Begin
+  Result := User_OnMouseUp;
+End;
+
+Procedure SP_BaseComponent.Set_OnMouseEnter(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnMouseEnter := SP_ConvertToTokens(s, Error);
+  If Compiled_OnMouseEnter <> '' Then
+    User_OnMouseEnter := s;
+End;
+
+Function  SP_BaseComponent.Get_OnMouseEnter: aString;
+Begin
+  Result := User_OnMouseEnter;
+End;
+
+Procedure SP_BaseComponent.Set_OnMouseLeave(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnMouseLeave := SP_ConvertToTokens(s, Error);
+  If Compiled_OnMouseLeave <> '' Then
+    User_OnMouseLeave := s;
+End;
+
+Function  SP_BaseComponent.Get_OnMouseLeave: aString;
+Begin
+  Result := User_OnMouseEnter;
+End;
+
+Procedure SP_BaseComponent.Set_OnMouseWheel(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnMouseWheel := SP_ConvertToTokens(s, Error);
+  If Compiled_OnMouseWheel <> '' Then
+    User_OnMouseWheel := s;
+End;
+
+Function  SP_BaseComponent.Get_OnMouseWheel: aString;
+Begin
+  Result := User_OnMouseWheel;
+End;
+
+Procedure SP_BaseComponent.Set_OnKeyDown(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnKeyDown := SP_ConvertToTokens(s, Error);
+  If Compiled_OnKeyDown <> '' Then
+    User_OnKeyDown := s;
+End;
+
+Function  SP_BaseComponent.Get_OnKeyDown: aString;
+Begin
+  Result := User_OnKeyDown;
+End;
+
+Procedure SP_BaseComponent.Set_OnKeyUp(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnKeyUp := SP_ConvertToTokens(s, Error);
+  If Compiled_OnKeyUp <> '' Then
+    User_OnKeyUp := s;
+End;
+
+Function  SP_BaseComponent.Get_OnKeyUp: aString;
+Begin
+  Result := User_OnKeyUp;
+End;
+
+Procedure SP_BaseComponent.Set_OnPaintBefore(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnPaintBefore := SP_ConvertToTokens(s, Error);
+  If Compiled_OnPaintBefore <> '' Then
+    User_OnPaintBefore := s;
+End;
+
+Function  SP_BaseComponent.Get_OnPaintBefore: aString;
+Begin
+  Result := User_OnPaintBefore;
+End;
+
+Procedure SP_BaseComponent.Set_OnPaintAfter(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnPaintAfter := SP_ConvertToTokens(s, Error);
+  If Compiled_OnPaintAfter <> '' Then
+    User_OnPaintAfter := s;
+End;
+
+Function  SP_BaseComponent.Get_OnPaintAfter: aString;
+Begin
+  Result := User_OnPaintAfter;
+End;
+
+Procedure SP_BaseComponent.Set_BackgroundClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  fBackgroundClr := StringToInt(s, fBackgroundClr);
+End;
+
+Function  SP_BaseComponent.Get_BackgroundClr: aString;
+Begin
+  Result := IntToString(fBackgroundClr);
+End;
+
+Procedure SP_BaseComponent.Set_FontClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  fFontClr := StringToInt(s, fFontClr);
+End;
+
+Function  SP_BaseComponent.Get_FontClr: aString;
+Begin
+  Result := IntToString(fFontClr);
+End;
+
+Procedure SP_BaseComponent.Set_ErrorClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  fErrorClr := StringToInt(s, fErrorClr);
+End;
+
+Function  SP_BaseComponent.Get_ErrorClr: aString;
+Begin
+  Result := IntToString(fErrorClr);
+End;
+
+Procedure SP_BaseComponent.Set_Width(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Width := StringToInt(s, fWidth);
+End;
+
+Function  SP_BaseComponent.Get_Width: aString;
+Begin
+  Result := IntToString(Width);
+End;
+
+Procedure SP_BaseComponent.Set_Height(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Height := StringToInt(s, fHeight)
+End;
+
+Function  SP_BaseComponent.Get_Height: aString;
+Begin
+  Result := IntToString(Height);
+End;
+
+Procedure SP_BaseComponent.Set_Left(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Left := StringToInt(s, Left);
+End;
+
+Function  SP_BaseComponent.Get_Left: aString;
+Begin
+  Result := IntToString(Left);
+End;
+
+Procedure SP_BaseComponent.Set_Top(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Top := StringToInt(s, Top);
+End;
+
+Function  SP_BaseComponent.Get_Top: aString;
+Begin
+  Result := IntToString(Top);
+End;
+
+Procedure SP_BaseComponent.Set_OnResize(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnResize := SP_ConvertToTokens(s, Error);
+  If Compiled_OnResize <> '' Then
+    User_OnResize := s;
+End;
+
+Function  SP_BaseComponent.Get_OnResize: aString;
+Begin
+  Result := User_OnResize;
+End;
+
+Procedure SP_BaseComponent.Set_Enabled(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Enabled := Boolean(StringToInt(s, Ord(fEnabled)));
+End;
+
+Function  SP_BaseComponent.Get_Enabled: aString;
+Begin
+  Result := IntToString(Ord(fEnabled));
+End;
+
+Procedure SP_BaseComponent.Set_Visible(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Visible := Boolean(StringToInt(s, Ord(fVisible)));
+End;
+
+Function  SP_BaseComponent.Get_Visible: aString;
+Begin
+  Result := IntToString(Ord(fVisible));
+End;
+
+Procedure SP_BaseComponent.Set_OnDblClick(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnDblClick := SP_ConvertToTokens(s, Error);
+  If Compiled_OnDblClick <> '' Then
+    User_OnDblClick := s;
+End;
+
+Function  SP_BaseComponent.Get_OnDblClick: aString;
+Begin
+  Result := User_OnDblClick;
+End;
+
+Procedure SP_BaseComponent.Set_OnClick(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnClick := SP_ConvertToTokens(s, Error);
+  If Compiled_OnClick <> '' Then
+    User_OnClick := s;
+End;
+
+Function  SP_BaseComponent.Get_OnClick: aString;
+Begin
+  Result := User_OnClick;
+End;
+
+Procedure SP_BaseComponent.Set_OnAbort(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnPaintAfter := SP_ConvertToTokens(s, Error);
+  If Compiled_OnPaintAfter <> '' Then
+    User_OnPaintAfter := s;
+End;
+
+Function  SP_BaseComponent.Get_OnAbort: aString;
+Begin
+  Result := User_OnAbort;
+End;
+
+Procedure SP_BaseComponent.Set_OnEnter(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnEnter := SP_ConvertToTokens(s, Error);
+  If Compiled_OnEnter <> '' Then
+    User_OnEnter := s;
+End;
+
+Function  SP_BaseComponent.Get_OnEnter: aString;
+Begin
+  Result := User_OnEnter;
+End;
+
+Procedure SP_BaseComponent.Set_OnExit(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnExit := SP_ConvertToTokens(s, Error);
+  If Compiled_OnExit <> '' Then
+    User_OnExit := s;
+End;
+
+Function  SP_BaseComponent.Get_OnExit: aString;
+Begin
+  Result := User_OnExit;
+End;
+
+Procedure SP_BaseComponent.Set_OnShow(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnShow := SP_ConvertToTokens(s, Error);
+  If Compiled_OnShow <> '' Then
+    User_OnShow := s;
+End;
+
+Function  SP_BaseComponent.Get_OnShow: aString;
+Begin
+  Result := User_OnShow;
+End;
+
+Procedure SP_BaseComponent.Set_OnHide(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Compiled_OnHide := SP_ConvertToTokens(s, Error);
+  If Compiled_OnHide <> '' Then
+    User_OnHide := s;
+End;
+
+Function  SP_BaseComponent.Get_OnHide: aString;
+Begin
+  Result := User_OnHide;
+End;
+
+Procedure SP_BaseComponent.Set_Border(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Border := Boolean(StringToInt(s, Ord(Border)));
+End;
+
+Function  SP_BaseComponent.Get_Border: aString;
+Begin
+  Result := IntToString(Ord(fBorder));
+End;
+
+Procedure SP_BaseComponent.Set_MinWidth(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  MinWidth := StringToInt(s, fMinWidth);
+End;
+
+Function  SP_BaseComponent.Get_MinWidth: aString;
+Begin
+  Result := IntToString(MinWidth);
+End;
+
+Procedure SP_BaseComponent.Set_MinHeight(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  MinHeight := StringToInt(s, fMinHeight);
+End;
+
+Function  SP_BaseComponent.Get_MinHeight: aString;
+Begin
+  Result := IntToString(fMinHeight);
+End;
+
+Procedure SP_BaseComponent.Set_MaxWidth(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  MaxWidth := StringToInt(s, fMaxWidth);
+End;
+
+Function  SP_BaseComponent.Get_MaxWidth: aString;
+Begin
+  Result := IntToString(fMaxWidth);
+End;
+
+Procedure SP_BaseComponent.Set_MaxHeight(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  MaxHeight := StringToInt(s, fMaxHeight);
+End;
+
+Function  SP_BaseComponent.Get_MaxHeight: aString;
+Begin
+  Result := IntToString(fMaxHeight);
+End;
+
+Function  SP_BaseComponent.Get_Canvas: aString;
+Begin
+  Result := IntToString(NativeInt(Canvas));
+End;
+
+Procedure SP_BaseComponent.Set_Transparent(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Transparent := Boolean(StringToInt(s, Ord(fTransparent)));
+End;
+
+Function  SP_BaseComponent.Get_Transparent: aString;
+Begin
+  Result := IntToString(Ord(fTransparent));
+End;
 
 end.

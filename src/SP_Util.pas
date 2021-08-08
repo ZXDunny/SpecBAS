@@ -73,7 +73,7 @@ Function  LowerNoFormatting(const Text: aString): aString; inline;
 Function  LowerNoSpaces(const Text: aString): aString; inline;
 Function  StringToLong(Str: aString): LongWord; inline;
 Function  StringToInt(Str: aString; Default: Integer = 0): Integer; inline;
-Function  IntToString(Value: Integer): aString; inline;
+Function  IntToString(Value: NativeInt): aString; inline;
 Function  SP_StringOfChar(ch: aChar; Count: Integer): aString;
 Function  StripSpaces(const Text: aString): aString; inline;
 Function  StringHasContent(const Text: aString): Boolean; Inline;
@@ -941,7 +941,7 @@ Begin
 
 End;
 
-Function  IntToString(Value: Integer): aString; inline;
+Function  IntToString(Value: NativeInt): aString; inline;
 Var
   NegFlag: Boolean;
   Len: Integer;
@@ -972,7 +972,10 @@ Begin
       10000000..99999999: Inc(Len, 8);
       100000000..999999999: Inc(Len, 9);
     Else
-      Inc(Len, 10);
+      Begin
+        Result := IntToStr(Value);
+        Exit;
+      End;
     End;
 
     SetLength(Result, Len);

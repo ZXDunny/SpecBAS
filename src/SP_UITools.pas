@@ -442,7 +442,7 @@ Begin
   FindMode := Mode;
   If FindMode Then Caption := 'Find...' else Caption := 'Replace...';
 
-  w := 35 * FW; h := FPFh + 21 + (10 * FH) + (Ord(Not FindMode) * (bh + FH)) + (5 * bh);
+  w := 38 * FW; h := FPFh + 21 + (10 * FH) + (Ord(Not FindMode) * (bh + FH)) + (5 * bh);
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
   Dec(w, 1); // Account for the one-pixel border around the window when placing items
   SP_GetWindowDetails(FDWindowID, Win, Error);
@@ -488,7 +488,7 @@ Begin
   searchEdt.OnAbort := Abort;
 
   dirGroup := SP_RadioGroup.Create(Win^.Component);
-  dirGroup.SetBounds(searchLbl.Left, tp, (14 * FW) - Bw, FH * 5);
+  dirGroup.SetBounds(searchLbl.Left, tp, (17 * FW) - Bw, FH * 5);
   dirGroup.AddItem('Forward');
   dirGroup.AddItem('Backward');
   dirGroup.Caption := 'Direction';
@@ -509,8 +509,8 @@ Begin
   inselChk.Caption := 'In selection';
   expChk.Caption := 'Expression';
 
-  caseChk.SetBounds(bw + BSize, dirGroup.Top + dirGroup.Height + bh, dirGroup.Width, FH + bh);
-  wholeChk.SetBounds(bw + BSize, caseChk.Top + caseChk.Height + 2, dirGroup.Width, FH + bh);
+  caseChk.SetBounds(dirGroup.Left, dirGroup.Top + dirGroup.Height + bh, dirGroup.Width, FH + bh);
+  wholeChk.SetBounds(dirGroup.Left, caseChk.Top + caseChk.Height + 2, dirGroup.Width, FH + bh);
   inselChk.SetBounds(originGroup.Left, CaseChk.Top, originGroup.Width, FH + bh);
   expChk.SetBounds(inselChk.Left, inSelChk.Top + inSelChk.Height + 2, inselChk.Width, FH + bh);
 

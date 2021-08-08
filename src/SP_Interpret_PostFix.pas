@@ -126,6 +126,7 @@ Function  SP_BreakPointExists(Line, Statement: Integer): Boolean;
 Procedure SP_AddSourceBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integer; Condition: aString);
 Procedure SP_AddConditionalBreakpoint(BpIndex, Passes: Integer; Condition: aString; IsData: Boolean);
 Procedure SP_MakeListVarOutput(Var List: TAnsiStringlist);
+Function  SP_ConvertToTokens(Const s: aString; Var Error: TSP_ErrorCode): aString;
 
 Procedure SP_InterpretCONTSafe(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_Interpret(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
@@ -7538,6 +7539,23 @@ Begin
     While (Str <> '') And (Str[Length(Str)] <= ' ') Do
       Str := Copy(Str, 1, Length(Str) - 1);
   End;
+End;
+
+Function SP_ConvertToTokens(Const s: aString; Var Error: TSP_ErrorCode): aString;
+Var
+  info: TSP_iInfo;
+  iInfo: pSP_iInfo;
+Begin
+  Inc(SP_StackPtr);
+  SP_StackPtr^.Str := s;
+  iInfo := @info;
+  SP_Interpret_FN_TOKENS(iInfo);
+  Error.Code := Info.Error.Code;
+  If Error.Code = SP_ERR_OK Then
+    Result := SP_StackPtr^.Str
+  Else
+    Result := '';
+  Dec(SP_StackPtr);
 End;
 
 Procedure SP_Interpret_FN_TOKENS(Var Info: pSP_iInfo);

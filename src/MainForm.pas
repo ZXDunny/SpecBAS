@@ -171,14 +171,15 @@ Begin
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
-  Priority := tpNormal;
+  Priority := tpHigher;
   StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
 
   While Not QUITMSG Do Begin
 
     FRAMES := Round((CB_GETTICKS - StartTime)/FRAME_MS);
-    If FRAMES - LastFrames >= 1 Then Begin
+    If FRAMES <> LastFrames Then Begin
+
       FrameElapsed := True;
       Inc(AutoFrameCount);
       LastFrames := FRAMES;

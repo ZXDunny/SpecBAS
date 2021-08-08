@@ -36,10 +36,10 @@ Uses Types, SysUtils, Classes, SyncObjs, Math, ClipBrd, SP_SysVars, SP_FileIO, S
 // *SP_Container - visually a box with a caption, border and then components inside
 // *SP_RadioGroup
 // *SP_CheckList - a list of checkboxes
-// SP_Slider - user manipulable scrollbar that fills as the value increases. Vertical or horizontal.
+// *SP_Slider - user manipulable scrollbar that fills as the value increases. Vertical or horizontal.
 // *SP_Combobox - SP_EditBox with SP_PopupMenu attached. Can be read-only, or editable
+// *SP_ProgressBar - non-interactive slider type with customisable fill graphic (character?)
 // SP_Memo - a memo control, can be a single line (an Edit box), optional BASIC editor
-// SP_ProgressBar - non-interactive slider type with customisable fill graphic (character?)
 // SP_TreeView
 // SP_TabBar - A tab list (bottom or top of window) with an SP_Container for each tab
 
@@ -62,41 +62,6 @@ SP_TimerEvent = Record
 End;
 pSP_TimerEvent = ^SP_TimerEvent;
 
-{
-SP_ProgressBar = Class(SP_BaseComponent)
-
-  Private
-
-    fCaption: aString;
-    fCaptionType: Integer; // None, Percentage, value
-    fFillClr: Integer;
-    fFillTexture: aString;
-    fMin, fMax, fValue: Integer;
-
-    Procedure SetCaption(s: aString);
-    Procedure SetValue(v: Integer);
-    Procedure SetFillColour(c: Integer);
-    Procedure SetFillTexture(s: aString);
-    Procedure SetCaptionType(t: Integer);
-    Procedure SetMin(m: Integer);
-    Procedure SetMax(m: Integer);
-    Procedure Draw; Override;
-
-  Public
-
-    Property Caption: aString read fCaption write SetCaption;
-    Property Min: Integer read fMin write SetMin;
-    Property Max: Integer read fMax write SetMax;
-    Property Value: Integer read fValue write SetValue;
-    Property FillClr: Integer read fFillClr write SetFillColour;
-    Property FillTex: aString read fFillTexture write SetFillTexture;
-    Property cType: Integer read fAutoCaptionType write SetCaptionType;
-
-    Constructor Create(Owner: SP_BaseComponent);
-    Destructor Destroy;
-
-End;
-}
 Function  ControlsAreInUse: Boolean;
 Function  ControlKeyEvent(aStr: aString; Key: Integer; Down: Boolean): Boolean;
 
@@ -446,10 +411,6 @@ Begin
   Result := Nil;
 
 End;
-
-// SP_ProgressBar
-
-// SP_Slider
 
 // SP_Memo
 

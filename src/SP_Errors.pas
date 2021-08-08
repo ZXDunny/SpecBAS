@@ -204,8 +204,10 @@ Const
   SP_ERR_INSTALL_DONE = 157;
   SP_ERR_INVALID_WINDOW_EX = 158;
   SP_ERR_BREAKPOINT = 159;
+  SP_ERR_INVALID_PROPERTY_NAME = 160;
+  SP_ERR_INVALID_PROPERTY_VALUE = 161;
 
-  MAXERROR = 159;
+  MAXERROR = 161;
 
   // Runtime error codes.
 
@@ -376,7 +378,9 @@ Const
      'Editor error',
      'Installation finished',
      'Invalid window',
-     'Breakpoint reached');
+     'Breakpoint reached',
+     'Invalid property',
+     'Invalid property value');
 
   Function ProcessErrorMessage(s: aString): aString;
 

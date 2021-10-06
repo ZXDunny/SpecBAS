@@ -5480,7 +5480,7 @@ Var
     Dbl: aFloat;
   {$ELSE}
     Dbl: aFloat;
-  {$IFEND}
+  {$ENDIF}
 Begin
 
   {$IF DEFINED(PANDORA) OR DEFINED(RASPI)}
@@ -5489,7 +5489,7 @@ Begin
   {$ELSE}
     Dbl := SP_StackPtr^.Val;
     SP_StackPtr^.Val := Dbl*Dbl;
-  {$IFEND}
+  {$ENDIF}
 
 End;
 
@@ -14686,9 +14686,9 @@ Begin
 
   // Waits for a key. Returns as soon as a key is pressed.
 
-  SP_WaitForSync;
+  SP_ForceScreenUpdate;
   While (Length(ActiveKeys) = 0) And Not QUITMSG Do
-    CB_Yield;
+    SP_WaitForSync;
 
 End;
 
@@ -14698,9 +14698,9 @@ Begin
   // Waits for a key *press* - if a key is down then wait for it to go up;
   // then wait for any key to go down.
 
-  SP_WaitForSync;
-  While (Length(ActiveKeys) <> 0) And Not (BREAKSIGNAL or QUITMSG) Do CB_Yield;
-  While (Length(ActiveKeys) = 0) And Not (BREAKSIGNAL or QUITMSG) Do CB_Yield;
+  SP_ForceScreenUpdate;
+  While (Length(ActiveKeys) <> 0) And Not (BREAKSIGNAL or QUITMSG) Do SP_WaitForSync;
+  While (Length(ActiveKeys) = 0) And Not (BREAKSIGNAL or QUITMSG) Do SP_WaitForSync;
 
 End;
 

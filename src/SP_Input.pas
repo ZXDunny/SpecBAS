@@ -53,6 +53,8 @@ Type
 
   TCB_GetKeyLockState = Procedure;
 
+  Procedure WaitForKey;
+
   Procedure SP_AddKey(var KeyInfo: SP_KeyInfo);
   Procedure SP_RemoveKey(KeyCode: Word);
   Function  GetLastKeyChar: aString;
@@ -255,6 +257,15 @@ Var
 implementation
 
 Uses SP_FileIO, SP_Main;
+
+Procedure WaitForKey;
+Begin
+
+  Repeat
+    CB_YIELD;
+  Until Length(ActiveKeys) > 0;
+
+End;
 
 Procedure SP_LoadKeyboardDefinition(Name: aString; Var Error: TSP_ErrorCode);
 Var

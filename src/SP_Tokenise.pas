@@ -77,7 +77,7 @@ Const
   // List of keywords that are used in statements.
   // MUST Be in this order - add new commands to the end of the list.
 
-  SP_KEYWORDS_EXTRA: Array[0..242] of aString =
+  SP_KEYWORDS_EXTRA: Array[0..245] of aString =
     ('SPECTRUM ', 'PLAY ', 'AT ', 'TAB ', 'LINE ', ' THEN ', ' TO ', ' STEP ',
      'DEF ', 'CAT ', ' FORMAT ', 'MOVE ', 'ERASE ', 'OPEN ', 'CLOSE ', 'MERGE ', 'BEEP ',
      'CIRCLE ', 'INK ', 'PAPER ', 'INVERSE ', 'OUT ', 'STOP ', 'READ ', ' DATA ',
@@ -106,7 +106,7 @@ Const
      'COLLIDE ', 'WRAP ', 'ZONE ', 'USING ', 'SPLIT ', ' BPP ', ' ALPHA ', ' DEPTH ', 'UNDIM ',
      'BOLD ', 'ITALIC ', 'FILTER ', 'INSERT ', 'MENUITEM ', 'MEMWRT ', 'MEMWRTD ', 'MEMWRTQ ',
      'MEMWRT$ ', 'REPEAT', 'PARTICLE ', 'FRICTION ', 'GRAVITY ', 'FORCE ', 'INSTALL', 'MEMWRTF ',
-     'PRESS', 'TURNS', 'GRADIANS', 'EGA', 'CGA');
+     'PRESS', 'TURNS', 'GRADIANS', 'EGA', 'CGA', 'ADDCTRL', 'CTRL', 'PROP$ ');
 
   // Constants used to quickly identify keywords when in token form. Each keyword listed
   // above has a corresponding constant, which must be SP_KEYWORD_BASE + (Index of Keyword above).
@@ -356,6 +356,10 @@ Const
   SP_KW_GRADIANS            = 1240;
   SP_KW_EGA                 = 1241;
   SP_KW_CGA                 = 1242;
+  SP_KW_ADDCTRL             = 1243;
+  SP_KW_CTRL                = 1244;
+  SP_KW_PROPS               = 1245;
+
 
   // These are meta-commands; they do not appear in listings, and are used during
   // execution only, having been inserted by the pre-processor.
@@ -704,10 +708,11 @@ Const
   SP_KW_WAIT_KEY_PRESS      = 4392;
   SP_KW_PAL_EGA             = 4393;
   SP_KW_PAL_CGA             = 4394;
+  SP_KW_WINDOW_ADDCTRL      = 4395;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..343] of aString =
+  SP_Keyword_Names: Array[0..344] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -755,7 +760,8 @@ Const
      'IMPLICIT LET', 'MULTIDRAW', 'MULTIDRAW TO', 'A-MULTIDRAW', 'A-MULTIDRAW TO', 'INPUT ERROR REPEAT',
      'MAT INTERP', 'FLIP GFXSTR', 'MIRROR GFXSTR', 'WINDOW FLIP', 'WINDOW MIRROR', 'PR ITALIC', 'PR BOLD',
      'SPRITE FRONT', 'SPRITE BACK', 'SPRITE FRONT ADD', 'SPRITE BACK DEC', 'CHANNEL RATE STRING', 'GFX SCALE XY',
-     'GFX SCALE TO', 'SCREEN SAVE', 'GRAPHIC SAVE', 'WAIT KEY', 'WAIT KEY PRESS', 'PALETTE EGA', 'PALETTE CGA');
+     'GFX SCALE TO', 'SCREEN SAVE', 'GRAPHIC SAVE', 'WAIT KEY', 'WAIT KEY PRESS', 'PALETTE EGA', 'PALETTE CGA',
+     'WINDOW ADD CONTROL');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.

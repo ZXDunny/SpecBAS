@@ -7404,30 +7404,28 @@ Begin
 
         If SIGSAMPLEBANK = -1 Then Begin
 
-          cnt := FRAMES;
-          Repeat
-            SP_WaitForSync;
-          Until (Integer(FRAMES) - cnt) > 25;
+          SP_WaitForSync;
           SP_PlaySignature;
 
           // If the sample bank is playing, then start drawing loading stripes
 
           If SIGSAMPLEBANK > -1 Then Begin
 
-            // Cyan border
-            SP_FillRect(16, WinH - 32, WinW - 32, 16, 5);
+            // Red border
+            SP_FillRect(16, WinH - 32, WinW - 32, 16, 2);
             TargetTicks := Round(CB_GetTicks + LongWord(35));
             SP_NeedDisplayUpdate := True;
             While CB_GetTicks < TargetTicks Do Begin
               SP_WaitForSync;
             End;
-            // Red border
-            SP_FillRect(16, WinH - 32, WinW - 32, 16, 2);
+            // Cyan border
+            SP_FillRect(16, WinH - 32, WinW - 32, 16, 5);
             TargetTicks := Round(CB_GetTicks + LongWord(65));
             SP_NeedDisplayUpdate := True;
             While CB_GetTicks < TargetTicks Do Begin
               SP_WaitForSync;
             End;
+
             // Red/Cyan pilot tone
             TargetTicks := Round(CB_GetTicks + LongWord(500));
             ofs := 65536;
@@ -7441,6 +7439,7 @@ Begin
               SP_WaitForSync;
             End;
             // Yellow/Blue data burst
+            Cnt := 0;
             TargetTicks := Round(CB_GetTicks + LongWord(160));
             While CB_GetTicks < TargetTicks Do Begin
               x := 16; Sz := 0; Ofs := 0;

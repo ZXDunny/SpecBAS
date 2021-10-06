@@ -2234,7 +2234,7 @@ Type
 Var
   Tkn, Tkn2: pToken;
   Idx, Idx2, Idx3, pStatement,
-  LabelPos, LabelLen, ProcIdx, LastStrAt, LastStrLen: Integer;
+  LabelPos, LabelLen, ProcIdx, LastStrAt, LastStrLen, DATALine, DATAStatement: Integer;
   Tokens, Name, s: aString;
   Changed, Reference, NewStatement: Boolean;
   TempLine, cLine: TSP_GOSUB_Item;
@@ -2248,6 +2248,8 @@ Label
   NextLine;
 Begin
 
+  DATALine := -1;
+  DATAStatement := -1;
   LabelLen := 0;
   LabelPos := 0;
   SetLength(Constants, 0);
@@ -2537,11 +2539,10 @@ Begin
                     End;
                     Tkn := Tkn2;
                   End;
-                SP_KW_DATA:
-                  If SP_DATA_Line.Line = -1 Then Begin
-                    SP_DATA_Line := SP_ConvertLineStatement(Idx, pStatement);
-                    Inc(SP_DATA_Line.Statement, SizeOf(TToken) + SizeOf(LongWord));
-                    SP_DATA_Tokens := @SP_Program[Idx];
+                SP_KW_DATA: // if this is the first time we find DATA then store the location for later
+                  If DATALine = -1 Then Begin
+                    DATALine := Idx;
+                    DATAStatement := Tkn^.TokenPos;
                   End;
                 SP_KW_LABEL:
                   Begin
@@ -2572,7 +2573,7 @@ Begin
             End;
           SP_SYMBOL:
             Begin
-              If Tokens[Idx2] = ':' Then
+              If (Tokens[Idx2] = ':') or (Tokens[Idx2] = SP_CHAR_SEMICOLON) or (Tokens[Idx2] = ';') Then
                 Inc(pStatement);
               Inc(Idx2, Tkn^.TokenLen);
             End;
@@ -2680,6 +2681,12 @@ Begin
 
     If INCLUDEFROM > -1 Then
       SP_DeleteIncludes;
+
+    If (SP_DATA_Line.Line = -1) and (DATALine >= 0) Then Begin
+      SP_DATA_Line := SP_ConvertLineStatement(DATALine, DATAStatement);
+      Inc(SP_DATA_Line.Statement, SizeOf(TToken) + SizeOf(LongWord));
+      SP_DATA_Tokens := @SP_Program[DATALine];
+    End;
 
   End;
 
@@ -2949,7 +2956,7 @@ Begin
                       End Else Begin
 
                         If Tkn2^.Token = SP_SYMBOL Then
-                          If pByte(@cTokens[cIdx2])^ = Ord(':') Then
+                          If (pByte(@cTokens[cIdx2])^ = Ord(':')) or (pByte(@cTokens[cIdx2])^ = Ord(SP_CHAR_SEMICOLON)) Then
                             Inc(cStatement);
 
                         Inc(cIdx2, Tkn2^.TokenLen);
@@ -3199,7 +3206,7 @@ Begin
 
         SP_SYMBOL:
           Begin
-            If Tokens[Idx] = ':' Then Begin
+            If (Tokens[Idx] = ':') or (Tokens[Idx] = SP_CHAR_SEMICOLON) Then Begin
               Inc(pStatement);
               LastRefWasConst := False;
             End;

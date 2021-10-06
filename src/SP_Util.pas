@@ -50,6 +50,7 @@ Type
   aFloat = Extended;
   paFloat = ^aFloat;
 
+Procedure Delay(ms: Integer);
 Function  Pos(Const SubStr, s: aString): Integer; Overload;
 Function  Pos(Const SubStr: aChar; s: aString): Integer; Overload;
 Function  ReadLinuxFile(Filename: aString): aString;
@@ -941,7 +942,7 @@ Begin
 
 End;
 
-Function  IntToString(Value: NativeInt): aString; inline;
+Function IntToString(Value: NativeInt): aString; inline;
 Var
   NegFlag: Boolean;
   Len: Integer;
@@ -973,7 +974,7 @@ Begin
       100000000..999999999: Inc(Len, 9);
     Else
       Begin
-        Result := IntToStr(Value);
+        Result := aString(IntToStr(Value));
         Exit;
       End;
     End;
@@ -1547,6 +1548,19 @@ Begin
       Exit;
     End Else
       Inc(ps);
+
+End;
+
+Procedure Delay(ms: Integer);
+Var
+  t, ot: aFloat;
+Begin
+
+  ot := CB_GETTICKS;
+  Repeat
+    CB_YIELD;
+    t := CB_GETTICKS
+  Until t - ot >= ms;
 
 End;
 

@@ -9352,7 +9352,7 @@ End;
 
 Function  SP_Convert_WINDOW(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
-  Expr, FlipExpr, VarResult, RotateExpr, ScaleExpr: aString;
+  Expr, FlipExpr, VarResult, RotateExpr, ScaleExpr, propExpr: aString;
   KeyWordPos: LongWord;
   GotRotate, GotScale, IsGraphic: Boolean;
 Begin
@@ -9379,6 +9379,7 @@ Begin
   //         DEPTH id,depth
   //         FLIP id
   //         MIRROR id
+  //         id ADDCTRL ctrl-id,ctrl-type <PROP [Property-name$=value$,...]
 
   Result := '';
   If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_NEW) Then Begin
@@ -10094,6 +10095,37 @@ Begin
 
   Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
   Result := Expr;
+
+  //         id ADDCTRL ctrl-id,ctrl-type <PROP [Property-name$=value$,...]
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_ADDCTRL) Then Begin
+    Inc(Position, 1 + SizeOf(Longword));
+    If Byte(Tokens[Position]) = SP_NUMVAR Then Begin // ctrl-id
+      VarResult := SP_Convert_Var_Assign(Tokens, Position, Error);
+      If Error.Code <> SP_ERR_OK Then Exit;
+      KeyWordPos := Position -1;
+      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+        Inc(Position, 2);
+        Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Control type
+      End Else
+        Error.Code := SP_ERR_MISSING_COMMA;
+      Result := VarResult + Expr;
+      If Error.Code = SP_ERR_OK Then Begin
+        // Check for a property string
+        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_PROPS) Then Begin
+          Inc(Position, 1 + SizeOf(LongWord));
+          propExpr := SP_Convert_Expr(Tokens, Position, Error, -1); // Index
+          If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_STRING Then Begin
+            Error.Code := SP_ERR_MISSING_STREXPR;
+            Exit;
+          End;
+          Result := Result + propExpr;
+          KeyWordID := SP_KW_WINDOW_ADDCTRL;
+          Exit;
+        End;
+      End;
+    End Else
+      Error.Code := SP_ERR_MISSING_VARIABLE;
+  End;
 
 End;
 

@@ -949,9 +949,9 @@ begin
   SetThreadAffinityMask(BASThread.ThreadID, 2);
   SetThreadAffinityMask(RefreshTimer.ThreadID, 4);
 
-  BASThread.Start;
-
   DisplaySection.Leave;
+
+  BASThread.Start;
 
   GetCursorPos(p);
   p := Main.ScreenToClient(p);

@@ -12475,7 +12475,7 @@ Begin
           Exit;
         End;
         If Token^.Token = SP_SYMBOL Then
-          If Tokens[Position + 1] = ':' Then
+          If (Tokens[Position + 1] = ':') or (Tokens[Position + 1] = SP_CHAR_SEMICOLON) or (Tokens[Position + 1] = ';') Then
             Inc(SP_DATA_Line.St);
         Inc(Position, Token^.TokenLen);
       End;

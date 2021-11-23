@@ -1404,7 +1404,8 @@ Begin
 
   // Now de-click the start and end.
 
-  DeClickSize := 44;
+  DeClickSize := Min(44, WaveSize Div 4);
+
   Scalar := 0;
   ScaleInc := 1/DeClickSize;
   For i := 0 to DeClickSize -1 Do Begin

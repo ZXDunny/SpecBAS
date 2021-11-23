@@ -7237,10 +7237,10 @@ Var
   Err: TSP_ErrorCode;
   ErrWin: pSP_Window_Info;
   ErrorText, Text, Title, StripeText: aString;
-  ErrorFPS, t2, EMove, ETop: aFloat;
+  ErrorFPS, t2, EMove, ETop, TargetTicks: aFloat;
   ERRORWINDOW, WinW, WinH, WinX, WinY, MaxW, Lines, Cnt, Idx, MaxLen,
   Font, Window, ofs, x, sz: Integer;
-  TargetTicks, t, t3: Integer;
+  t, t3: Integer;
   IsNew, WasTab: Boolean;
   fp: TPoint;
 Const
@@ -7413,21 +7413,21 @@ Begin
 
             // Red border
             SP_FillRect(16, WinH - 32, WinW - 32, 16, 2);
-            TargetTicks := Round(CB_GetTicks + LongWord(35));
+            TargetTicks := CB_GetTicks + 35;
             SP_NeedDisplayUpdate := True;
             While CB_GetTicks < TargetTicks Do Begin
               SP_WaitForSync;
             End;
             // Cyan border
             SP_FillRect(16, WinH - 32, WinW - 32, 16, 5);
-            TargetTicks := Round(CB_GetTicks + LongWord(65));
+            TargetTicks := CB_GetTicks + 65;
             SP_NeedDisplayUpdate := True;
             While CB_GetTicks < TargetTicks Do Begin
               SP_WaitForSync;
             End;
 
             // Red/Cyan pilot tone
-            TargetTicks := Round(CB_GetTicks + LongWord(500));
+            TargetTicks := CB_GetTicks + 500;
             ofs := 65536;
             While CB_GetTicks < TargetTicks Do Begin
               For x := 16 To WinW -16 Do Begin
@@ -7440,7 +7440,7 @@ Begin
             End;
             // Yellow/Blue data burst
             Cnt := 0;
-            TargetTicks := Round(CB_GetTicks + LongWord(160));
+            TargetTicks := CB_GetTicks + 160;
             While CB_GetTicks < TargetTicks Do Begin
               x := 16; Sz := 0; Ofs := 0;
               While x < WinW - 16 Do Begin

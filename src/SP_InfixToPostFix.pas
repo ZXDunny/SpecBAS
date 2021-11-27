@@ -5018,7 +5018,6 @@ Finish:
       If Error.Code = SP_ERR_OK Then Begin
         If CanOptimise And (numTerms > 1) Then Begin
           m := Position; // Position may be corrupted here, thanks Delphi.
-          SP_RemoveFunctionMarkers(Result);
           SP_OptimiseStack(Result, oPosition, Error);
           Position := m;
         End;
@@ -5213,7 +5212,9 @@ Begin
   // So evaluate it and then condense into just one token!
 
   Position := 1;
-  newTokens := Tokens + #255#255#255#255;
+  newTokens := Tokens;
+  SP_RemoveFunctionMarkers(newTokens);
+  newTokens := newTokens + #255#255#255#255;
   TokensPtr := @newTokens;
   SaveStack := SP_StackPtr;
 
@@ -5324,12 +5325,14 @@ Begin
 
         If TestTokens[szValueToken + szSymbolToken] = '/' Then Begin
 
-          Val := 1/gaFloat(@TestTokens[SizeOf(TToken)+1]);
-          WriteaFloat(@TestTokens[SizeOf(TToken)+1], Val);
-          TestTokens[szValueToken + szSymbolToken] := '*';
-
-          Tokens := Copy(Tokens, 1, tStart -1) + TestTokens + Copy(Tokens, tStart + tLen, Length(Tokens));
-          Goto Start;
+          Val := gaFloat(@TestTokens[SizeOf(TToken)+1]);
+          if val <> 0 then Begin
+            val := 1/val;
+            WriteaFloat(@TestTokens[SizeOf(TToken)+1], Val);
+            TestTokens[szValueToken + szSymbolToken] := '*';
+            Tokens := Copy(Tokens, 1, tStart -1) + TestTokens + Copy(Tokens, tStart + tLen, Length(Tokens));
+            Goto Start;
+          end;
 
         End;
 

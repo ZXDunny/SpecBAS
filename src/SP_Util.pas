@@ -119,6 +119,7 @@ Function SP_PartialMatchPtrs(ps, pd: pByte; l: Integer): Boolean;
 Function aFloatToStr(Value: aFloat): aString; inline;
 Function SP_Power(Base, Exponent: aFloat): aFloat; inline;
 Function SP_Max(A, B: Integer): Integer;
+Function InsertLiterals(Const s: aString): aString;
 
 Var
 
@@ -767,7 +768,7 @@ Begin
 
     While Tl > 0 Do Begin
       Dec(Tl);
-      If sPtr^ in [16..27] Then Begin
+      If sPtr^ in [5, 16..27] Then Begin
         b := sPtr^;
         dPtr^ := sPtr^;
         Inc(sPtr);
@@ -1367,35 +1368,40 @@ Begin
   Idx := 1;
   Result := 0;
   While Idx <= Length(Text) Do Begin
-    If Text[Idx] >= ' ' Then
-      Inc(Result)
+    Case Ord(Text[Idx]) of
+      5: // Literal char
+        Begin
+          // The following char should be counted so do nothing
+        End;
+      16, 17:
+        Begin // INK, PAPER control
+          Inc(Idx, SizeOf(LongWord));
+        End;
+      18, 19, 20:
+        Begin // OVER control
+          Inc(Idx);
+        End;
+      21, 22:
+        Begin // MOVE, AT control
+          Inc(Idx, SizeOf(Integer) * 2);
+        End;
+      23:
+        Begin // TAB control
+          Inc(Idx, SizeOf(Integer));
+        End;
+      24:
+        Begin // CENTRE control
+          Inc(Idx, SizeOf(Integer));
+        End;
+      25:
+        Begin // SCALE control
+          Inc(Idx, SizeOf(aFloat) * 2);
+        End;
     Else
-      Case Ord(Text[Idx]) of
-        16, 17:
-          Begin // INK, PAPER control
-            Inc(Idx, SizeOf(LongWord));
-          End;
-        18, 19, 20:
-          Begin // OVER control
-            Inc(Idx);
-          End;
-        21, 22:
-          Begin // MOVE, AT control
-            Inc(Idx, SizeOf(Integer) * 2);
-          End;
-        23:
-          Begin // TAB control
-            Inc(Idx, SizeOf(Integer));
-          End;
-        24:
-          Begin // CENTRE control
-            Inc(Idx, SizeOf(Integer));
-          End;
-        25:
-          Begin // SCALE control
-            Inc(Idx, SizeOf(aFloat) * 2);
-          End;
+      Begin
+        Inc(Result);
       End;
+    End;
     Inc(Idx);
   End;
 
@@ -1562,6 +1568,27 @@ Begin
     t := CB_GETTICKS
   Until t - ot >= ms;
 
+End;
+
+Function InsertLiterals(Const s: aString): aString; // Inserts #5 before a char < ' ' for the syntax highlighter ONLY
+Var
+  i, l, ol: Integer;
+Begin
+  l := Length(s);
+  ol := l;
+  For i := 1 To l Do
+    if s[i] < ' ' Then
+      inc(l);
+  SetLength(Result, l);
+  l := 1;
+  For i := 1 to ol Do Begin
+    If s[i] < ' ' Then Begin
+      Result[l] := #5;
+      Inc(l);
+    End;
+    Result[l] := s[i];
+    Inc(l);
+  End;
 End;
 
 Initialization

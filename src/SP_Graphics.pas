@@ -677,6 +677,11 @@ Const
   BlockChars = '12345678!"£$%^&*';
 Begin
 
+  // Small characters in positions 0..31
+
+  For Idx := 0 To 31 Do
+    SP_SetSpeccyStyleChar(ID, Idx, @SmallChars[Idx * 8]);
+
   // Default font characters
 
   For Idx := 0 To 95 Do
@@ -1962,7 +1967,7 @@ Function SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Inte
 Var
   CharW, CharH, Idx, cCount, OVER, ItalicOffset, DefPaper, nx: Integer;
   sx, sy, Cw, Ch, yp, xp, TC, t: Integer;
-  Transparent: Boolean;
+  Transparent, ForceNextChar: Boolean;
   FontBank: pSP_Font_Info;
   Bank: pSP_Bank;
   Coord, Char, pIdx, lIdx: pByte;
@@ -1970,6 +1975,7 @@ Var
   ScaleX, ScaleY: aFloat;
 Begin
 
+  ForceNextChar := False;
   If T_INVERSE <> 0 Then Begin
     Idx := Ink;
     Ink := Paper;
@@ -2008,8 +2014,9 @@ Begin
     Idx := 1;
     While Idx <= Length(Text) Do Begin
 
-      If Text[Idx] >= ' ' Then Begin
+      If (Text[Idx] >= ' ') or ForceNextChar Then Begin
 
+        ForceNextChar := False;
         Char := @Bank^.Memory[FontBank^.Font_Info[Byte(Text[Idx])].Data];
         If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + X, SCREENY + Y, SCREENX + X + CharW, SCREENY + Y + CharH);
         If T_ITALIC > 0 Then
@@ -2158,6 +2165,10 @@ Begin
 
         // Control codes!
         Case Ord(Text[Idx]) of
+          5:
+            Begin // Literal character - for characters lower than Space. The next char should be PRINTed regardless.
+              ForceNextChar := True;
+            End;
           6:
             Begin // PRINT comma
               nx := X + (TABSIZE * Cw);
@@ -4643,7 +4654,7 @@ Function SP_PRINT(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: 
 Var
   CharW, CharH, Idx, Scrolls, cCount, OVER, sx, sy, TInk, TPaper, ItalicOffset, nx: Integer;
   yp, xp, Cw, Ch, TC, t: Integer;
-  Transparent: Boolean;
+  Transparent, ForceNextChar: Boolean;
   FontBank: pSP_Font_info;
   Bank: pSP_Bank;
   Coord, Char, pIdx, lIdx: pByte;
@@ -4656,6 +4667,7 @@ Begin
   Result := 0;
   Scrolls := 0;
   SwapBack := False;
+  ForceNextChar := False;
 
   If OUTSET Then Begin
 
@@ -4714,8 +4726,9 @@ Begin
           End;
         End;
 
-        If Text[Idx] >= ' ' Then Begin
+        If (Text[Idx] >= ' ') or (ForceNextChar) Then Begin
 
+          ForceNextChar := False;
           Char := @Bank^.Memory[FontBank^.Font_Info[Byte(Text[Idx])].Data];
 
           If X + Cw > SCREENWIDTH Then Begin
@@ -4881,6 +4894,10 @@ Begin
         End Else Begin
           // Control codes!
           Case Ord(Text[Idx]) of
+            5:
+              Begin // Literal character - for characters lower than Space. The next char should be PRINTed regardless.
+                ForceNextChar := True;
+              End;
             6:
               Begin // PRINT comma
                 nx := X + (TABSIZE * Cw);

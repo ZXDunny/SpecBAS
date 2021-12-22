@@ -2686,13 +2686,17 @@ Begin
             End;
           // If the line has a number, then draw it in the gutter.
           If HasNumber Then Begin
+            if Listing.Flags[Idx].State in [spLineError, spLineDuplicate] then
+              ps := LineErrClr
+            else
+              ps := 0;
             St := 1;
             NumberLine := SP_StringOfChar(aChar(' '), FPGutterWidth - Cpx) + Copy(CodeLine, 1, cIdx -1);
             If DoDraw Then
               If ContainsSelection Then
-                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, gutterClr, True)
+                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, ps, gutterClr, True)
               Else
-                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, -1, True);
+                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, ps, -1, True);
             DoDrawSt := False;
             Listing.Flags[Idx].Line := LineNum;
             Listing.Flags[Idx].Statement := 1;
@@ -2772,7 +2776,7 @@ Begin
             Else
               Ps := gClr;
           If DoDraw And DoDrawSt Then
-            SP_TextOut(-1, FPPaperLeft + (FPGutterWidth * FPFw) - (Length(NumberLine) * 8) - ((FPFw - 8) Div 2), OfsY + ((FPFh - 8) Div 2), IntToString(St), Ps -4, -1, True);
+            SP_TextOut(-1, FPPaperLeft + (FPGutterWidth * FPFw) - (Length(NumberLine) * 8) - ((FPFw - 8) Div 2) +1, OfsY + ((FPFh - 8) Div 2), IntToString(St), Ps -4, -1, True);
           Listing.Flags[Idx].Line := LineNum;
           Listing.Flags[Idx].Statement := St;
         End;
@@ -5972,12 +5976,7 @@ Begin
   // Get the edit line length
 
   Idx := 1;
-  EditLen := 0;
-  While Idx <= Length(EditLine) Do Begin
-    If EDITLINE[Idx] >= ' ' Then Inc(EditLen);
-    Inc(Idx);
-  End;
-  EditLen := Max(EditLen, 1);
+  EditLen := Max(Length(EDITLINE), 1);
   If CURSORPOS >= EditLen Then Inc(EditLen);
 
   // Figure out how much screen real estate we have to play with.
@@ -6013,11 +6012,16 @@ Begin
     X := DWTextLeft;
     If StartWithSel Then CText := selClr Else CText := '';
     While (TLen > 0) and (Idx <= Length(EL_Text)) Do Begin
-      CText := CText + EL_Text[Idx];
-      If EL_Text[Idx] = #17 Then
-        StartWithSel := Not StartWithSel;
-      If EL_Text[Idx] >= ' ' Then
-        Dec(TLen);
+      If EL_Text[Idx] = #5 Then Begin
+        Inc(Idx);
+        CText := CText + EL_Text[Idx]
+      End Else
+
+        CText := CText + EL_Text[Idx];
+        If EL_Text[Idx] = #17 Then         // to do - if < 0 then extract params (? is always ink/paper?)
+          StartWithSel := Not StartWithSel
+        Else
+          Dec(TLen);
       Inc(Idx);
     End;
     SP_PRINT(-1, X, Y, -1, EdSc + CText, 0 + (8 * Ord(FocusedWindow <> fwDirect)), 7, Err);
@@ -9605,6 +9609,7 @@ Begin
   paperClr    := 7;                                    // Editor background colour
   proglineClr := 5;                                    // PROGLINE colour for highlighted lines
   proglineGtr := 35;                                   // Colour for PROGLINE's gutter
+  lineErrClr  := 2;
 
   winBack     := 7;                                    // Default window background colour for dialogs etc
   capBack     := 228;                                  // Caption bar colour

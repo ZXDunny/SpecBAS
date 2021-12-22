@@ -32,8 +32,9 @@ Type
   SP_KeyInfo = Packed Record  // Defines a key that is currently down
     KeyChar: aChar;           // The character that is down (for alpha-num-symbols}
     KeyCode: Word;            // For modifier keys etc
-    NextFrameTime: Integer;  // When this reaches zero, it's counted as triggering a repeated key event
+    NextFrameTime: Integer;   // When this reaches zero, it's counted as triggering a repeated key event
     Repeating: Boolean;       // Has the key started to repeat yet?
+    CanRepeat: Boolean;       // Some keys (such as alt-xxx keys) cannot repeat
   End;
   pSP_KeyInfo = ^SP_KeyInfo;
 
@@ -360,9 +361,12 @@ Begin
   While i >= 0 Do
     If Not (ActiveKeys[i].KeyCode in [16, 17, 18]) And (ActiveKeys[i].NextFrameTime <= CurFrames) Then Begin
       Result := @ActiveKeys[i];
-      If Result^.Repeating Then
-        Result^.NextFrameTime := CurFrames + REPPER
-      Else Begin
+      If Result^.Repeating Then Begin
+        If Result^.CanRepeat Then Begin
+          Result^.NextFrameTime := CurFrames + REPPER
+        End Else
+          SP_RemoveKey(Result^.KeyCode);
+      End Else Begin
         Result^.Repeating := True;
         Result^.NextFrameTime := CurFrames + REPDEL;
       End;

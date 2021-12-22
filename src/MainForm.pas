@@ -49,12 +49,14 @@ type
     procedure FormResize(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure FormKeyPress(Sender: TObject; var Key: Char);
   private
     { Private declarations }
     Minimised: Boolean;
     procedure OnAppMessage(var Msg: TMsg; var Handled: Boolean);
     procedure CMDialogKey( Var msg: TCMDialogKey ); message CM_DIALOGKEY;
     Procedure OnResizeMain(Var Msg: TMessage); Message WM_RESIZEMAIN;
+    procedure WMMenuChar(var MessageRec: TWMMenuChar); message WM_MENUCHAR;
   public
     { Public declarations }
     Function GetCharFromVirtualKey(Var Key: Word): astring;
@@ -115,7 +117,8 @@ var
   ScaleFactor: Integer = 1;
   ScaleMouseX, ScaleMouseY: aFloat;
   ScaledWidth, ScaledHeight: Integer;
-  MouseInForm: Boolean;
+  MouseInForm, IgnoreNextMenuChar, AltDown: Boolean;
+  AltChars: aString;
 
 {$IFDEF OPENGL}
 Const
@@ -175,7 +178,7 @@ Begin
   StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
 
-  While Not QUITMSG Do Begin
+   While Not QUITMSG Do Begin
 
     FRAMES := Round((CB_GETTICKS - StartTime)/FRAME_MS);
     If FRAMES <> LastFrames Then Begin
@@ -409,6 +412,7 @@ End;
 Function SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
 Var
   l, t, w, h: NativeUInt;
+  r: TRect;
 Begin
 
   Result := 0;
@@ -441,13 +445,16 @@ Begin
   SetScreenResolution(sWidth, sHeight, FullScreen);
   w := sWidth;
   h := sHeight;
+
+  SystemParametersInfo(SPI_GETWORKAREA, 0, @r, 0);
+
   If FullScreen Then Begin
     l := 0;
     t := 0;
   End Else Begin
     If INSTARTUP Then Begin
-      l := (Screen.Width - w) Div 2;
-      t := (Screen.Height - h) Div 2;
+      l := ((r.Right - r.Left) - Main.Width) Div 2;
+      t := ((r.Bottom - r.Top) - Main.Height) Div 2;
     End Else Begin
       l := WINLEFT; //(Screen.Width - sWidth) Div 2;
       t := WINTOP; //(Screen.Height - sHeight) Div 2;
@@ -1031,6 +1038,19 @@ begin
     inherited;
 end;
 
+procedure TMain.FormKeyPress(Sender: TObject; var Key: Char);
+Begin
+  Key := #32;
+End;
+
+procedure TMain.WMMenuChar(var MessageRec: TWMMenuChar);
+Begin
+  if IgnoreNextMenuChar Then Begin
+    MessageRec.Result := MakeLong(0, 1);
+    IgnoreNextMenuChar := False;
+  End;
+End;
+
 procedure TMain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 Var
   aStr: aString;
@@ -1039,29 +1059,67 @@ begin
 
   aStr := aString(GetCharFromVirtualKey(Key));
   If (aStr = '') or (aStr[1] < ' ') Then aStr := #0;
+  kInfo.CanRepeat := True;
 
-  kInfo.KeyChar := aStr[1];
-  kInfo.KeyCode := Key;
-  kInfo.NextFrameTime := FRAMES;
+  If Key = $12 Then Begin // ALT went down
 
-  If ControlsAreInUse Then Begin
-    DisplaySection.Enter;
-    If Not ControlKeyEvent(kInfo.KeyChar, kInfo.KeyCode, True) Then
+    AltDown := True;
+    AltChars := '';
+
+  End Else Begin
+
+    If AltDown then Begin
+
+      If aStr[1] in ['0'..'9'] Then Begin
+
+        IgnoreNextMenuChar := True;
+        AltChars := AltChars + aStr[1];
+        If Length(AltChars) = 3 Then Begin
+          kInfo.KeyCode := StringToInt(AltChars);
+          kInfo.keyChar := aChar(kInfo.KeyCode);
+          kInfo.NextFrameTime := FRAMES;
+          kInfo.CanRepeat := False;
+        End Else Begin
+          Key := 0;
+          Exit;
+        End;
+
+      End;
+
+    End Else Begin
+
+      kInfo.KeyChar := aStr[1];
+      kInfo.KeyCode := Key;
+      kInfo.NextFrameTime := FRAMES;
+
+    End;
+
+    If ControlsAreInUse Then Begin
+      DisplaySection.Enter;
+      If Not ControlKeyEvent(kInfo.KeyChar, kInfo.KeyCode, True) Then
+        SP_AddKey(kInfo);
+      DisplaySection.Leave;
+    End Else
       SP_AddKey(kInfo);
-    DisplaySection.Leave;
-  End Else
-    SP_AddKey(kInfo);
+
+  End;
 
   Key := 0;
 
 end;
 
-procedure TMain.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
+Procedure TMain.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
 
   KEYSTATE[Key] := 0;
   ControlKeyEvent(#0, Key, False);
   SP_RemoveKey(Key);
+
+  If AltDown And (Key = $12) Then Begin
+    AltDown := False;
+    SP_RemoveKey(StringToInt(AltChars));
+    AltChars := '';
+  End;
 
 end;
 

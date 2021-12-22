@@ -656,19 +656,24 @@ End;
 Procedure SP_PopUpMenu.MouseUp(X, Y, Btn: Integer);
 Var
   i: Integer;
+  item: Integer;
 Begin
 
   // Complete the menu item click if we're still on the same menu item.
 
+  Item := ItemAtPos(X, Y);
   If Not fIgnoreMouseUp Then Begin
     If fSelected <> -1 Then Begin
       i := fSelected;
       LastClicked := fItems[i];
-      CloseAll;
-      If fItems[i].Enabled And Assigned(fItems[i].OnClick) Then
-        fItems[i].OnClick(SP_BaseComponent(fItems[i]));
+      If (Item <> -1) and (fItems[Item].Caption <> '-') Then Begin
+        CloseAll;
+        If fItems[i].Enabled And Assigned(fItems[i].OnClick) Then
+          fItems[i].OnClick(SP_BaseComponent(fItems[i]));
+      End;
     End Else
-      CloseAll;
+      If ((Item <> -1) and (fItems[Item].Caption <> '-')) or (Item = -1) Then
+        CloseAll;
   End Else
     fIgnoreMouseUp := False;
 

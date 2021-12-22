@@ -10456,6 +10456,9 @@ Begin
   Delay := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
+  If Not SCREENLOCK Then
+    SP_ForceScreenUpdate;
+
   If Delay = 0 Then Begin
     While Not (SP_AreAnyKeysDown or QUITMSG) Do
       CB_Yield;

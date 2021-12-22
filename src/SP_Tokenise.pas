@@ -2563,7 +2563,7 @@ Begin
                   Dec(Idx2, Idx -1);
                   NewSyntax := RemClr;
                 End Else
-                  If CodeLine[Idx] = '"' Then Begin
+                  If CodeLine[Idx] = '"' Then Begin // String constant
                     Idx2 := Idx +1;
                     StringDone := False;
                     ProcessString:
@@ -2618,6 +2618,8 @@ Begin
                       End Else
                         NewSyntax := symClr;
           Wd := Copy(CodeLine, Idx, Idx2);
+          If NewSyntax = StrClr then
+            wd := InsertLiterals(wd);
           Inc(Idx, Idx2);
         End;
       End;

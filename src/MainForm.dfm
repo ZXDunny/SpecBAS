@@ -19,6 +19,7 @@ object Main: TMain
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   OnKeyDown = FormKeyDown
+  OnKeyPress = FormKeyPress
   OnKeyUp = FormKeyUp
   OnMouseDown = FormMouseDown
   OnMouseMove = FormMouseMove

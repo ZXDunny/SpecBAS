@@ -2690,7 +2690,7 @@ Begin
         dIdx := 1;
         HasNumber := False;
         l := Length(CodeLine);
-        If StripSpacesSpecial(CodeLine) <> '' Then Begin
+        If HasContent(CodeLine) Then Begin
           Cpx := 0;
           While CodeLine[dIdx] < ' ' Do If CodeLine[dIdx] = #5 Then Inc(dIdx) Else Inc(dIdx, 5);
           cIdx := dIdx;
@@ -2784,7 +2784,7 @@ Begin
         End;
 
         // Draw the statement number - only if there's no line number
-        If Not HasNumber And (StripSpacesSpecial(CodeLine) <> '') And (Idx > 0) And Not (Listing.Flags[Idx -1].ReturnType = spSoftReturn) Then Begin
+        If Not HasNumber And HasContent(CodeLine) And (Idx > 0) And Not (Listing.Flags[Idx -1].ReturnType = spSoftReturn) Then Begin
           NumberLine := IntToString(St);
           If IsProgLine Then
             Ps := 4

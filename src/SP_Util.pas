@@ -77,7 +77,7 @@ Function  StringToInt(Str: aString; Default: Integer = 0): Integer; inline;
 Function  IntToString(Value: NativeInt): aString; inline;
 Function  SP_StringOfChar(ch: aChar; Count: Integer): aString;
 Function  StripSpaces(const Text: aString): aString; inline;
-Function  StripSpacesSpecial(const Text: aString): aString; inline;
+Function  HasContent(const Text: aString): Boolean; inline;
 Function  StringHasContent(const Text: aString): Boolean; Inline;
 Function  StripLeadingSpaces(const Text: aString): aString; inline;
 Function  aFloatToString(Value: aFloat): aString; inline;
@@ -1020,23 +1020,27 @@ Begin
 
 End;
 
-Function StripSpacesSpecial(const Text: aString): aString; inline;
+Function HasContent(const Text: aString): Boolean; inline;
 Var
   Idx, Ln: Integer;
+  c: aChar;
 Begin
 
   Ln := Length(Text);
-  Result := '';
+  Result := False;
   Idx := 1;
   While Idx < Ln Do Begin
-    If Text[Idx] > #32 Then
-      Result := Result + Text[Idx]
-    Else
-      If Text[Idx] = #5 Then Begin
-        Result := Result + #5 + Text[Idx +1];
-        Inc(Idx);
+    c := Text[Idx];
+    If c > #32 Then Begin
+      Result := True;
+      Exit;
+    End Else
+      If c = #5 Then Begin
+        Result := True;
+        Exit;
       End Else
-        Inc(Idx, 5);
+        If c <> #32 Then
+          Inc(Idx, 4);
     Inc(Idx);
   End;
 

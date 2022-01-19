@@ -1077,7 +1077,7 @@ begin
 
     If AltDown then Begin
 
-?      If aStr[1] in ['0'..'9'] Then Begin
+      If aStr[1] in ['0'..'9'] Then Begin
 
         IgnoreNextMenuChar := True;
         AltChars := AltChars + aStr[1];

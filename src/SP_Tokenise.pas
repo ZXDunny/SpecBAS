@@ -2385,7 +2385,9 @@ Begin
       If Idx2 > -1 Then Begin
         If Idx2 + SP_KEYWORD_BASE = SP_KW_REM Then Begin
           NewSyntax := kwdClr;
-          Wd := Tw + remClr + Copy(CodeLine, Idx);
+          Wd := Tw + remClr;
+          l1 := Length(Wd);
+          Wd := Wd + Copy(CodeLine, Idx);
           IsREM := True;
           Idx := L +1;
         End Else Begin
@@ -2618,8 +2620,6 @@ Begin
                       End Else
                         NewSyntax := symClr;
           Wd := Copy(CodeLine, Idx, Idx2);
-          If NewSyntax = StrClr then
-            wd := InsertLiterals(wd);
           Inc(Idx, Idx2);
         End;
       End;
@@ -2630,7 +2630,11 @@ Begin
       LastSyntax := NoClr
     Else
       LastSyntax := NewSyntax;
-    Result := Result + Wd;
+    If not IsREM Then
+      wd := InsertLiterals(Wd)
+    Else
+      wd := Copy(wd, 1, l1) + InsertLiterals(Copy(wd, l1 +1));
+    Result := Result + wd;
     If AddSpace Then
       Result := Result + ' ';
     Wd := ''

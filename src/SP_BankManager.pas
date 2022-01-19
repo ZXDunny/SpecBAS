@@ -1085,7 +1085,7 @@ Begin
   Window^.dr_posx := 0;
   Window^.dr_posy := 0;
   Window^.heading := 0;
-  Window^.Scrollcnt := (Height Div Integer(FONTHEIGHT)) -2;
+  Window^.Scrollcnt := 0;
   Window^.orgx := 0;
   Window^.orgy := 0;
   Window^.orgw := Width;

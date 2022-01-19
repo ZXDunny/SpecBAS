@@ -78,7 +78,7 @@ Procedure SP_SetPalette(Index: Integer; Colours: Array of TP_Colour);
 Procedure SP_FillRect(X, Y, W, H: Integer; Colour: LongWord);
 Procedure SP_Scroll(Dy: Integer);
 Procedure SP_Reset_Temp_Colours; inline;
-Function  SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Visible: Boolean): Integer;
+Function  SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Visible: Boolean; ShowSpecial: Boolean = False): Integer;
 Function  SP_PRINT(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: Integer; var Error: TSP_ErrorCode): Integer;
 Procedure SP_CLS(Paper: LongWord);
 Function  SP_Get_Contrasting_INK(Index: Integer): Integer;
@@ -1646,7 +1646,7 @@ Begin
   PRPOSY := 0;
   DRPOSX := 0;
   DRPOSY := 0;
-  SCROLLCNT := (SCREENHEIGHT Div Integer(FONTHEIGHT));
+  SCROLLCNT := 0;
   bOver := T_OVER;
   T_OVER := 0;
   SP_FillRect(0, 0, SCREENWIDTH, SCREENHEIGHT, Paper);
@@ -1963,7 +1963,7 @@ Begin
 
 End;
 
-Function SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Visible: Boolean): Integer;
+Function SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Visible: Boolean; ShowSpecial: Boolean = False): Integer;
 Var
   CharW, CharH, Idx, cCount, OVER, ItalicOffset, DefPaper, nx: Integer;
   sx, sy, Cw, Ch, yp, xp, TC, t: Integer;
@@ -2167,7 +2167,7 @@ Begin
         Case Ord(Text[Idx]) of
           5:
             Begin // Literal character - for characters lower than Space. The next char should be PRINTed regardless.
-              ForceNextChar := True;
+              If ShowSpecial Then ForceNextChar := True;
             End;
           6:
             Begin // PRINT comma
@@ -2446,11 +2446,13 @@ ENd;
 
 Procedure SP_DrawLine(X2, Y2: aFloat);
 var
-  x1, y1, x3, y3, d, ax, ay, sx, sy, dx, dy: Integer;
+  x1, y1, x3, y3, d, ax, ay, sx, sy, dx, dy, w: Integer;
   Ptr: pByte;
   Ink: Byte;
   stsy: Integer;
   DrX, DrY: aFloat;
+  ink_long: LongWord;
+  ink_64: NativeUInt;
 begin
 
   If SCREENBPP = 8 Then Begin
@@ -2462,12 +2464,17 @@ begin
     x3 := Round(x2);
     y3 := Round(y2);
 
+    If y2 < y1 then Begin
+      y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
+      x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
+    End;
+
     DrX := x2;
     DrY := y2;
 
     If SP_LineClip(x1, y1, x3, y3, T_CLIPX1, T_CLIPY1, T_CLIPX2, T_CLIPY2) Then Begin
 
-      If SCREENVISIBLE Then SP_SetDirtyRectEx(SCREENX +X1, SCREENY + Y1, SCREENX + X3, SCREENY + Y3);
+      If SCREENVISIBLE Then SP_SetDirtyRectEx(SCREENX + X1, SCREENY + Y1, SCREENX + X3, SCREENY + Y3);
 
       If T_INVERSE = 1 Then
         Ink := T_PAPER
@@ -2522,12 +2529,26 @@ begin
         End;
         Ptr := pByte(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + x1);
         If T_OVER = 0 Then Begin
-          While x1 <> x3 do begin
-            Ptr^ := Ink;
-            Inc(x1);
-            Inc(Ptr);
+          ink_long := Ink + (Ink shl 8) + (Ink Shl 16) + (Ink shl 24);
+          w := (x3 - x1) +1;
+          {$IFDEF CPU64}
+          ink_64 := ink_Long + (NativeUInt(Ink_Long) Shl 32);
+          While w > SizeOf(NativeUint) Do Begin
+            pNativeUInt(Ptr)^ := ink_64;
+            Inc(pNativeUInt(Ptr));
+            Dec(w, SizeOf(NativeUInt));
           End;
-          Ptr^ := Ink;
+          {$ENDIF}
+          While w > SizeOf(LongWord) do Begin
+            pLongWord(Ptr)^ := Ink_Long;
+            Inc(pLongWord(Ptr));
+            Dec(w, SizeOf(LongWord));
+          End;
+          While w > 0 do Begin
+            pByte(Ptr)^ := Ink;
+            Inc(pByte(Ptr));
+            Dec(w);
+          End;
         End Else Begin
           While x1 <> x3 do begin
             SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
@@ -2550,7 +2571,7 @@ begin
         If ax > ay Then Begin
           d := ay - (ax shr 1);
           while x1 <> x3 do begin
-            if d>-1 then begin
+            if d > -1 then begin
               Inc(Ptr, stsy);
               Dec(d, ax);
             end;
@@ -2562,7 +2583,7 @@ begin
         end else begin
           d := ax - (ay shr 1);
           while y1 <> y3 do begin
-            if d >= 0 then begin
+            if d > -1 then begin
               Inc(Ptr, sx);
               Dec(d, ay);
             end;
@@ -2578,7 +2599,7 @@ begin
         If ax > ay Then Begin
           d := ay - (ax shr 1);
           while x1 <> x3 do begin
-            if d>-1 then begin
+            if d > -1 then begin
               Inc(Ptr, stsy);
               Dec(d, ax);
             end;
@@ -2590,7 +2611,7 @@ begin
         end else begin
           d := ax - (ay shr 1);
           while y1 <> y3 do begin
-            if d >= 0 then begin
+            if d > -1 then begin
               Inc(Ptr, sx);
               Dec(d, ay);
             end;
@@ -2626,6 +2647,12 @@ var
 begin
 
   dst := SCREENPOINTER;
+
+  If y2 < y1 then Begin
+    y1 := y1 Xor y2; y2 := y1 Xor y2; y1 := y1 Xor y2;
+    x1 := x1 Xor x2; x2 := x1 Xor x2; x1 := x1 Xor x2;
+  End;
+
   If SP_LineClip(x1, y1, x2, y2, T_CLIPX1, T_CLIPY1, T_CLIPX2, T_CLIPY2) Then Begin
 
     If SCREENVISIBLE Then SP_SetDirtyRectEx(SCREENX +X1, SCREENY + Y1, SCREENX + X2, SCREENY + Y2);
@@ -2693,7 +2720,7 @@ begin
     If ax > ay Then Begin
       d := ay - (ax shr 1);
       while x1 <> x2 do begin
-        if d>-1 then begin
+        if d > -1 then begin
           Inc(Ptr, stsy);
           Dec(d, ax);
         end;
@@ -2705,7 +2732,7 @@ begin
     end else begin
       d := ax - (ay shr 1);
       while y1 <> y2 do begin
-        if d >= 0 then begin
+        if d > -1 then begin
           Inc(Ptr, sx);
           Dec(d, ay);
         end;
@@ -4095,9 +4122,11 @@ Begin
 
 End;
 
+//  based on code by Darel Rex Finley, 2007
+
 Procedure SP_PolygonFill(Var Points: Array of TSP_Point; const TextureStr: aString; tW, tH: LongWord);
 Var
-  MinY, MaxY, MinX, MaxX, Idx, I, J, Nodes, NumPoints, PixelY, Swap: Integer;
+  MinY, MaxY, MinX, MaxX, Idx, I, J, Nodes, NumPoints, PixelY: Integer;
   NodeX: Array of Integer;
   Ptr, TexBase: pByte;
   Ink, tClr: Byte;
@@ -4130,6 +4159,8 @@ Begin
 
   While Idx >= 0 Do Begin
 
+    Points[Idx].X := Round(Points[Idx].X);
+    Points[Idx].Y := Round(Points[Idx].Y);
     If Points[Idx].Y < MinY then MinY := Round(Points[Idx].Y);
     If Points[Idx].Y > MaxY then MaxY := Round(Points[Idx].Y);
     If Points[Idx].X < MinX then MinX := Round(Points[Idx].X);
@@ -4162,7 +4193,7 @@ Begin
     I := 0;
     While I < Nodes -1 Do
       If NodeX[I] > NodeX[I+1] Then Begin
-        Swap := NodeX[I]; NodeX[I] := NodeX[I+1]; NodeX[I+1] := Swap; If I > 0 Then Dec(I);
+        NodeX[I] := NodeX[I] Xor NodeX[I+1]; NodeX[I+1] := NodeX[I] Xor NodeX[I+1]; NodeX[I] := NodeX[I] Xor NodeX[I+1];
       End Else
         Inc(I);
 
@@ -4176,7 +4207,7 @@ Begin
           If NodeX[I+1] >= T_CLIPX2 Then NodeX[I+1] := T_CLIPX2;
           Ptr := SCREENPOINTER;
           Inc(Ptr, ((PixelY * SCREENSTRIDE) + NodeX[I]));
-          For J := NodeX[I] To NodeX[I+1] Do Begin
+          For J := NodeX[I] To NodeX[I+1] -1 Do Begin
             Ink := pByte(TexBase + ((LongWord(PixelY) Mod tH) * tW) + (LongWord(J) Mod tW))^;
             IF T_OVER = 0 Then
               Ptr^ := Ink
@@ -4198,7 +4229,7 @@ Begin
           If NodeX[I+1] >= T_CLIPX2 Then NodeX[I+1] := T_CLIPX2;
           Ptr := SCREENPOINTER;
           Inc(Ptr, ((PixelY * SCREENSTRIDE) + NodeX[I]));
-          For J := NodeX[I] To NodeX[I+1] Do Begin
+          For J := NodeX[I] To NodeX[I+1] -1 Do Begin
             Ink := pByte(TexBase + ((LongWord(PixelY) Mod tH) * tW) + (LongWord(J) Mod tW))^;
             If Ink <> tClr Then
               IF T_OVER = 0 Then
@@ -4221,8 +4252,8 @@ End;
 
 Procedure SP_PolygonSolidFill(Var Points: Array of TSP_Point);
 Var
+  Idx, I, J, Nodes, NumPoints, PixelY: Integer;
   MinY, MaxY, MinX, MaxX: Integer;
-  Idx, I, J, Nodes, NumPoints, Swap, PixelY: Integer;
   NodeX: Array of Integer;
   Ptr: pByte;
   Ink: Byte;
@@ -4243,6 +4274,8 @@ Begin
 
   While Idx >= 0 Do Begin
 
+    Points[Idx].X := Round(Points[Idx].X);
+    Points[Idx].Y := Round(Points[Idx].Y);
     If Points[Idx].Y < MinY then MinY := Round(Points[Idx].Y);
     If Points[Idx].Y > MaxY then MaxY := Round(Points[Idx].Y);
     If Points[Idx].X < MinX then MinX := Round(Points[Idx].X);
@@ -4279,7 +4312,8 @@ Begin
       I := 0;
       While I < Nodes -1 Do
         If NodeX[I] > NodeX[I+1] Then Begin
-          Swap := NodeX[I]; NodeX[I] := NodeX[I+1]; NodeX[I+1] := Swap; If I > 0 Then Dec(I);
+          NodeX[I] := NodeX[I] Xor NodeX[I+1]; NodeX[I+1] := NodeX[I] Xor NodeX[I+1]; NodeX[I] := NodeX[I] Xor NodeX[I+1];
+          If I > 0 Then Dec(I);
         End Else
           Inc(I);
 
@@ -4299,7 +4333,7 @@ Begin
             Inc(Ptr);
           End;
         End;
-        Inc(I,2);
+        Inc(I, 2);
       End;
 
     End;
@@ -4339,7 +4373,7 @@ Begin
           If NodeX[I+1] >= T_CLIPY2 Then NodeX[I+1] := T_CLIPY2 -1;
           Ptr := SCREENPOINTER;
           Inc(Ptr, (NodeX[I] * SCREENSTRIDE) + PixelY);
-          For J := NodeX[I] To NodeX[I+1] Do Begin
+          For J := NodeX[I] To NodeX[I+1] -1 Do Begin
             IF T_OVER = 0 Then
               Ptr^ := Ink
             Else
@@ -4925,9 +4959,7 @@ Begin
               End;
            13:
               Begin // Carriage return
-                X := 0;
-                Inc(Y, Ch);
-                While Y >= SCREENHEIGHT Do Begin
+                While Y + Ch >= SCREENHEIGHT Do Begin
                   If Not SP_TestScroll(Ch, Error) Then Begin
                     Result := SP_ERR_PRINT_ABANDONED;
                     Exit;
@@ -4935,6 +4967,8 @@ Begin
                   Dec(Y, Ch);
                   Inc(Scrolls);
                 End;
+                X := 0;
+                Inc(Y, Ch);
               End;
            16:
               Begin // INK control

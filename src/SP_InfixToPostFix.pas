@@ -11323,6 +11323,8 @@ Begin
       If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
         Inc(Position, 2);
         Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // BankID or Filename
+        If Expr = '' Then
+          Error.Code := SP_ERR_SYNTAX_ERROR;
         If Error.Code <> SP_ERR_OK Then Exit;
         Result := Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_STREAM_NEW) + VarResult;
         If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;

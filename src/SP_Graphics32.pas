@@ -1125,6 +1125,12 @@ begin
   y2 := y2 + DRPOSY;
   x3 := Round(x2);
   y3 := Round(y2);
+
+  If y2 < y1 then Begin
+    y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
+    x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
+  End;
+
   DrX := x2;
   DrY := y2;
 
@@ -1194,7 +1200,7 @@ begin
     If ax > ay Then Begin
       d := ay - (ax shr 1);
       while x1 <> x3 do begin
-        if d>-1 then begin
+        if d > -1 then begin
           Inc(Ptr, stsy);
           Dec(d, ax);
         end;
@@ -1206,7 +1212,7 @@ begin
     end else begin
       d := ax - (ay shr 1);
       while y1 <> y3 do begin
-        if d >= 0 then begin
+        if d > -1 then begin
           Inc(Ptr, sx);
           Dec(d, ay);
         end;
@@ -1242,6 +1248,12 @@ begin
   y2 := y2 + DRPOSY;
   x3 := Round(x2);
   y3 := Round(y2);
+
+  If y2 < y1 then Begin
+    y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
+    x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
+  End;
+
   DrX := x2;
   DrY := y2;
 
@@ -1311,7 +1323,7 @@ begin
     If ax > ay Then Begin
       d := ay - (ax shr 1);
       while x1 <> x3 do begin
-        if d>-1 then begin
+        if d > -1 then begin
           Inc(Ptr, stsy);
           Dec(d, ax);
         end;
@@ -1323,7 +1335,7 @@ begin
     end else begin
       d := ax - (ay shr 1);
       while y1 <> y3 do begin
-        if d >= 0 then begin
+        if d > -1 then begin
           Inc(Ptr, sx);
           Dec(d, ay);
         end;
@@ -2263,7 +2275,7 @@ End;
 
 Procedure SP_PolygonSolidFill32(Var Points: Array of TSP_Point; MinX, MinY, MaxX, MaxY: Integer; Ink: LongWord);
 Var
-  I, J, Nodes, NumPoints, PixelY, Swap: Integer;
+  I, J, Nodes, NumPoints, PixelY: Integer;
   NodeX: Array of Integer;
   Ptr: pLongWord;
 Begin
@@ -2287,7 +2299,7 @@ Begin
     I := 0;
     While I < Nodes -1 Do
       If NodeX[I] > NodeX[I+1] Then Begin
-        Swap := NodeX[I]; NodeX[I] := NodeX[I+1]; NodeX[I+1] := Swap; If I > 0 Then Dec(I);
+        NodeX[I] := NodeX[I] Xor NodeX[I+1]; NodeX[I+1] := NodeX[I] Xor NodeX[I+1]; NodeX[I] := NodeX[I] Xor NodeX[I+1];
       End Else
         Inc(I);
 
@@ -2747,8 +2759,6 @@ Begin
               End;
            13:
               Begin // Carriage return
-                X := 0;
-                Inc(Y, Ch);
                 While Y >= SCREENHEIGHT Do Begin
                   If Not SP_TestScroll(Ch, Error) Then Begin
                     Result := SP_ERR_PRINT_ABANDONED;
@@ -2757,6 +2767,8 @@ Begin
                   Dec(Y, Ch);
                   Inc(Scrolls);
                 End;
+                X := 0;
+                Inc(Y, Ch);
               End;
            16:
               Begin // INK control
@@ -3416,8 +3428,6 @@ Begin
               End;
            13:
               Begin // Carriage return
-                X := 0;
-                Inc(Y, Ch);
                 While Y >= SCREENHEIGHT Do Begin
                   If Not SP_TestScroll(Ch, Error) Then Begin
                     Result := SP_ERR_PRINT_ABANDONED;
@@ -3426,6 +3436,8 @@ Begin
                   Dec(Y, Ch);
                   Inc(Scrolls);
                 End;
+                X := 0;
+                Inc(Y, Ch);
               End;
            16:
               Begin // INK control
@@ -4149,7 +4161,7 @@ Begin
   PRPOSY := 0;
   DRPOSX := 0;
   DRPOSY := 0;
-  SCROLLCNT := (SCREENHEIGHT Div FONTHEIGHT);
+  SCROLLCNT := 0;
   bOver := T_OVER;
   T_OVER := 0;
   SP_FillRect32Alpha(0, 0, SCREENWIDTH, SCREENHEIGHT, Paper);

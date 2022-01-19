@@ -73,6 +73,7 @@ Var
   CB_Yield: TCB_YieldProc;
   CB_Quit: TCB_QuitProc;
   CB_GetTicks: TCB_GetTicks;
+  CB_GetTimeFreq: TCB_GetTicks;
   CB_GetAxis: TCB_GetAxis;
   CB_InitSticks: TCB_InitSticks;
   CB_ReleaseSticks: TCB_ReleaseSticks;
@@ -255,16 +256,16 @@ Var
   Key: pSP_KeyInfo;
 Begin
 
-  Inc(SCROLLCNT);
+  If SCREENBANK < 0 Then Exit; // Don't do this is the surface is a graphic.
+
+  Dec(SCROLLCNT);
   Result := True;
   CONTLINE := Error.Line;
   CONTSTATEMENT := Error.Statement;
 
-  If SCREENBANK < 0 Then Exit;
+  If SCROLLCNT <= 0 Then Begin
 
-  If SCROLLCNT > (SCREENHEIGHT Div Height) -3 Then Begin
-
-    SCROLLCNT := 0;
+    SCROLLCNT := (SCREENHEIGHT Div Height) -1;
     SP_CLS_Lower(CPAPER);
     If SCREENBPP = 8 Then
       SP_TextOut(-1, 2, SCREENHEIGHT - 2 - Height, 'Scroll?', CINK, CPAPER, True)

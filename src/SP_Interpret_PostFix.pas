@@ -7135,7 +7135,7 @@ Begin
   Str1 := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
   Str2 := SP_StackPtr^.Str;
-  Pn := Pos(Str2, Copy(Str1, Ps, Length(Str1)));
+  Pn := Pos(Str2, Str1, Ps);
   If Pn > 0 then SP_StackPtr^.Val := Pn + Ps -1 Else SP_StackPtr^.Val := 0;
   SP_StackPtr^.OpType := SP_VALUE;
 End;
@@ -8297,7 +8297,6 @@ Begin
     If PrItem[Length(PrItem)] = #13 Then
       AddReturn := False;
 
-    If AddReturn Then PrItem := PrItem + #13;
     If Not T_CENTRE Then Begin
       If SCREENBPP = 8 Then Begin
         If SP_PRINT(-1, Round(PRPOSX), Round(PRPOSY), -1, PrItem, T_INK, T_PAPER, Info^.Error^) = SP_ERR_PRINT_ABANDONED Then Begin
@@ -8314,10 +8313,12 @@ Begin
     End Else Begin
       T_CENTRETEXT := T_CENTRETEXT + PrItem;
     End;
-  End Else
-    If AddReturn Then Begin
+    if AddReturn Then Begin
       PRPOSX := 0;
       PRPOSY := PRPOSY + FONTHEIGHT;
+    End;
+  End Else
+    If AddReturn Then Begin
       If PRPOSY + FONTHEIGHT > SCREENHEIGHT Then
         If Not SP_TestScroll(FONTHEIGHT, Info^.Error^) Then Begin
           Info^.Error^.Code := SP_ERR_BREAK;
@@ -8326,6 +8327,8 @@ Begin
           Repeat
             PRPOSY := PRPOSY - FONTHEIGHT;
           Until PRPOSY + FONTHEIGHT < SCREENHEIGHT;
+      PRPOSX := 0;
+      PRPOSY := PRPOSY + FONTHEIGHT;
     End;
 
   If OUTSET Then SP_FlushOUTBuffer(Info);
@@ -8410,8 +8413,6 @@ Begin
     If PrItem[Length(PrItem)] = #13 Then
       AddReturn := False;
 
-    If AddReturn Then PrItem := PrItem + #13;
-
     If OUTSET Then
       SP_PRINT(-1, Round(PRPOSX), Round(PRPOSY), -1, PrItem, T_INK, T_PAPER, Info^.Error^)
     Else
@@ -8430,6 +8431,10 @@ Begin
           End;
       End Else Begin
         T_CENTRETEXT := T_CENTRETEXT + PrItem;
+      End;
+      if AddReturn Then Begin
+        PRPOSX := 0;
+        PRPOSY := PRPOSY + FONTHEIGHT;
       End;
   End Else
     If AddReturn Then Begin
@@ -14648,7 +14653,7 @@ End;
 Procedure SP_Interpret_WAIT(Var Info: pSP_iInfo);
 Var
   Delay: Integer;
-  TargetTicks, CurrentTicks: Integer;
+  TargetTicks, CurrentTicks: aFloat;
   OldScreenLock: Boolean;
 Begin
 
@@ -14662,12 +14667,13 @@ Begin
     SCREENLOCK := False;
     CauseUpdate := True;
     SP_NeedDisplayUpdate := False;
-    CurrentTicks := Round(CB_GetTicks);
+    CurrentTicks := CB_GetTicks;
     TargetTicks := CurrentTicks - Delay;
-    SP_WaitForSync;
+    SP_ForceScreenUpdate;
     Repeat
       CB_YIELD;
-    Until (CB_GetTicks >= TargetTicks) or (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL or QUITMSG;
+      CurrentTicks := CB_GetTicks;
+    Until (CurrentTicks >= TargetTicks) or (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL or QUITMSG;
     SCREENLOCK := OldScreenLock;
   End Else
     If Delay = 0 Then Begin // WAIT SCREEN - forces a display update
@@ -14680,7 +14686,8 @@ Begin
       Until (CB_GetTicks >= TargetTicks) or (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL or QUITMSG;
     End;
 
-  If (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL Then Info^.Error^.ReturnType := SP_JUMP;
+  If (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL Then
+    Info^.Error^.ReturnType := SP_JUMP;
 
 End;
 

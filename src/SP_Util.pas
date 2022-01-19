@@ -51,8 +51,8 @@ Type
   paFloat = ^aFloat;
 
 Procedure Delay(ms: Integer);
-Function  Pos(Const SubStr, s: aString): Integer; Overload;
-Function  Pos(Const SubStr: aChar; s: aString): Integer; Overload;
+Function  Pos(Const SubStr, s: aString; StartAt: Integer = 1): Integer; Overload;
+Function  Pos(Const SubStr: aChar; s: aString; StartAt: Integer = 1): Integer; Overload;
 Function  ReadLinuxFile(Filename: aString): aString;
 Procedure WriteLinuxFile(Filename, Value: aString);
 Function  GetCRC32FromString(Str: aString): LongWord;
@@ -77,6 +77,7 @@ Function  StringToInt(Str: aString; Default: Integer = 0): Integer; inline;
 Function  IntToString(Value: NativeInt): aString; inline;
 Function  SP_StringOfChar(ch: aChar; Count: Integer): aString;
 Function  StripSpaces(const Text: aString): aString; inline;
+Function  StripSpacesSpecial(const Text: aString): aString; inline;
 Function  StringHasContent(const Text: aString): Boolean; Inline;
 Function  StripLeadingSpaces(const Text: aString): aString; inline;
 Function  aFloatToString(Value: aFloat): aString; inline;
@@ -1019,6 +1020,28 @@ Begin
 
 End;
 
+Function StripSpacesSpecial(const Text: aString): aString; inline;
+Var
+  Idx, Ln: Integer;
+Begin
+
+  Ln := Length(Text);
+  Result := '';
+  Idx := 1;
+  While Idx < Ln Do Begin
+    If Text[Idx] > #32 Then
+      Result := Result + Text[Idx]
+    Else
+      If Text[Idx] = #5 Then Begin
+        Result := Result + #5 + Text[Idx +1];
+        Inc(Idx);
+      End Else
+        Inc(Idx, 5);
+    Inc(Idx);
+  End;
+
+End;
+
 Function StringHasContent(const Text: aString): Boolean; Inline;
 Var
   Idx: Integer;
@@ -1495,22 +1518,23 @@ Begin
     Result := B;
 End;
 
-Function Pos(Const SubStr, s: aString): Integer;
+Function  Pos(Const SubStr, s: aString; StartAt: Integer = 1): Integer; Overload;
 Var
-  l, l1, l2: Integer;
+  l, l1, l2: NativeUInt;
   ps, pd, pdb, psb: pByte;
 Begin
 
   Result := 1;
   pd := pByte(pNativeUInt(@SubStr)^);
   ps := pByte(pNativeUInt(@s)^);
+  Inc(ps, StartAt -1);
   pdb := pd;
 
   l1 := Length(s);
   l2 := Length(SubStr);
   l := NativeUInt(ps) + l1;
 
-  If l2 > l1 Then Begin
+  If l2 + StartAt -1 > l1 Then Begin
     Result := 0;
     Exit;
   End Else
@@ -1534,7 +1558,7 @@ Begin
 
 End;
 
-Function Pos(Const SubStr: aChar; s: aString): Integer;
+Function Pos(Const SubStr: aChar; s: aString; StartAt: Integer = 1): Integer;
 Var
   ps: pByte;
   pss: NativeUInt;
@@ -1547,6 +1571,7 @@ Begin
   ps := pByte(pNativeUInt(@s)^);
   l := NativeUInt(ps) + Length(s);
   pss := NativeUInt(ps);
+  inc(ps, StartAt -1);
 
   While NativeUint(ps) <= l Do
     if ps^ = Ord(SubStr) Then Begin

@@ -84,6 +84,7 @@ type
   Procedure MsgProc; inline;
   Procedure GetKeyState;
   Function  GetTicks: aFloat;
+  Function  GetTimerFrequency: aFloat;
   Procedure Quit;
   function  Sto_GetFmtFileVersion(const FileName: String = ''; const Fmt: String = '%d.%d'): String;
   Procedure LoadImage(Filename: aString; Var Error: TSP_ErrorCode);
@@ -381,6 +382,11 @@ Var
 Begin
   QueryPerformanceCounter(t);
   Result := t/TimerFreq * 1000;
+End;
+
+Function GetTimerFrequency: aFloat;
+Begin
+  Result := TimerFreq;
 End;
 
 Procedure SetScaling(Width, Height, sWidth, sHeight: Integer);
@@ -925,6 +931,7 @@ begin
   CB_SetScreenRes := SetScreen;
   CB_Test_Resolution := TestScreenResolution;
   CB_GetTicks := GetTicks;
+  CB_GetTimeFreq := GetTimerFrequency;
   CB_Yield := YieldProc;
   CB_Load_Image := LoadImage;
   CB_Save_Image := SaveImage;
@@ -1070,7 +1077,7 @@ begin
 
     If AltDown then Begin
 
-      If aStr[1] in ['0'..'9'] Then Begin
+?      If aStr[1] in ['0'..'9'] Then Begin
 
         IgnoreNextMenuChar := True;
         AltChars := AltChars + aStr[1];

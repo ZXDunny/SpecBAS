@@ -26,6 +26,7 @@ SP_Edit = Class(SP_BaseComponent)
     fEditable: Boolean;
     fValidText: Boolean;
     fGhostText: aString;
+    fAllowLiterals: Boolean;
 
     Procedure SetText(s: aString);
     Procedure SetEditable(b: Boolean);
@@ -60,6 +61,7 @@ SP_Edit = Class(SP_BaseComponent)
     Property ValidText: Boolean read fValidText write SetValidText;
     Property SelStart: Integer read fSelStart write SetSelStart;
     Property GhostText: aString read fGhostText write SetGhostText;
+    Property AllowLiterals: Boolean read fAllowLiterals write fAllowLiterals;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -100,6 +102,7 @@ Begin
   fBorder := True;
   fEditable := True;
   fTransparent := False;
+  fAllowLiterals := False;
   fUndoList := TStringList.Create;
   fRedoList := TStringList.Create;
 
@@ -162,6 +165,7 @@ End;
 Procedure SP_Edit.Draw;
 Var
   tl, ss, sc, p, Clr: Integer;
+  s: aString;
   c: aChar;
 Begin
 
@@ -176,14 +180,16 @@ Begin
       Clr := fFontClr
     Else
       Clr := fErrorClr;
-    If (fGhostText <> '') And (Copy(fGhostText, 1, Length(fText)) = fText) Then
-      Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, fGhostText, SP_UITextDisabled, -1, iSX, iSY, False, False)
-    Else
+    If (fGhostText <> '') And (Copy(fGhostText, 1, Length(fText)) = fText) Then Begin
+      s := InsertLiterals(fGhostText);
+      Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, SP_UITextDisabled, -1, iSX, iSY, False, False)
+    End Else
       fGhostText := '';
   End Else
     Clr := SP_UITextDisabled;
 
-  Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, fText, Clr, -1, iSX, iSY, False, False);
+  s := InsertLiterals(fText);
+  Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Clr, -1, iSX, iSY, False, False);
 
   If fBorder Then Begin
     DrawRect(0, 0, Width -1, Height -1, fBorderClr);
@@ -197,7 +203,8 @@ Begin
 
       ss := Min(fSelStart, fCursorPos);
       sc := (Max(fSelStart, fCursorPos) - ss) +1;
-      Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, Copy(fText, ss, sc), Clr, p, iSX, iSY, False, False);
+      s := InsertLiterals(Copy(fText, ss, sc));
+      Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Clr, p, iSX, iSY, False, False);
     End;
 
     If Focused Then Begin
@@ -205,7 +212,11 @@ Begin
         If fCursorPos <= Length(fGhostText) Then
           c := fGhostText[fCursorPos];
 
-      Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, c, fCursFg, fCursBg, iSX, iSY, False, False);
+      if c < ' ' Then
+        s := #5 + c
+      else
+        s := c;
+      Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, fCursFg, fCursBg, iSX, iSY, False, False);
 
     End;
 
@@ -279,7 +290,7 @@ Begin
 
   NewChar := DecodeKey(cLastKey);
 
-  If (NewChar = 0) {$IFNDEF FPC} And (cLastKeyChar <> 1) {$ENDIF} Then Begin
+  If (NewChar = 0) And (cLastKeyChar = 0) Then Begin
 
     Case cLastKey of
 
@@ -426,6 +437,7 @@ Begin
         DeleteSelection
       Else
         StoreUndo;
+      if NewChar = 0 Then NewChar := Ord(cLastKeyChar);
       If INSERT Then
         If fGfxMode = 1 Then
           fText := Copy(fText, 1, fCursorPos -1) + aChar(Byte(NewChar)+128) + Copy(fText, fCursorPos, Length(fText))

@@ -50,7 +50,7 @@ Function  SP_IsFunction(Line: aString): Integer;
 Function  SP_IsFunctionEx(Line: aString): Integer;
 Function  SP_GetNumber(Line: aString; Var Idx: Integer; Var Number: aFloat; AllowSpaces: Boolean = False): Boolean;
 Function  SP_Detokenise(Tokens: aString; Var cPos: Integer; Highlight, UseDoubles: Boolean): aString;
-Function  SP_SyntaxHighlight(Const CodeLine, PrevSyntax: aString; HasNumber: Boolean; Var AddedChars: Integer): aString;
+Function  SP_SyntaxHighlight(CodeLine, PrevSyntax: aString; HasNumber: Boolean; Var AddedChars: Integer): aString;
 Function  SP_Store_Line(Tokens: aString): Integer;
 Procedure SP_Program_Add(Str: aString);
 Procedure SP_Program_AddStrings(List: TAnsiStringList);
@@ -2282,7 +2282,79 @@ Begin
 
 End;
 
-Function SP_SyntaxHighlight(Const CodeLine, PrevSyntax: aString; HasNumber: Boolean; Var AddedChars: Integer): aString;
+Function CondenseString(const Text: aString): aString;
+Var
+  c: aChar;
+  s: aString;
+  i, l: Integer;
+  lastPaper, lastInk, lastItalic, lastBold,
+  curPaper, curInk, curItalic, curBold: Integer;
+Begin
+
+  // The syntax highlighter can get quite silly with the amount of colour codes it adds in.
+  // This keeps track of them and replaces blocks of them with the last ink/paper/italic/bold codes used.
+
+  lastPaper := -1; curPaper := -1;
+  lastInk := -1; curInk := -1;
+  lastItalic := -1; curItalic := -1;
+  lastBold := -1; curBold := -1;
+
+  Result := '';
+  i := 1;
+  l := Length(Text);
+
+  While i < L Do Begin
+    c := Text[i];
+    If (c < ' ') And (c <> #5) Then Begin
+      Case c of
+        #16: // Ink
+          Begin
+            curInk := pLongWord(@Text[i+1])^;
+          End;
+        #17: // Paper
+          Begin
+            curPaper := pLongWord(@Text[i+1])^;
+          End;
+        #26: // Italic
+          Begin
+            curItalic := pLongWord(@Text[i+1])^;
+          End;
+        #27: // Bold
+          Begin
+            curBold := pLongWord(@Text[i+1])^;
+          End;
+      End;
+      Inc(i, 5);
+    End Else Begin
+      If (curInk >= 0) And (curInk <> lastInk) Then s := #16 + LongWordToString(curInk) Else s := '';
+      If (curPaper >= 0) And (curPaper <> lastPaper) Then s := s + #17 + LongWordToString(curPaper);
+      If (curItalic >= 0) And (curItalic <> lastItalic) Then s := s + #26 + LongWordToString(curItalic);
+      If (curBold >= 0) And (curBold <> lastBold) Then s := s + #27 + LongWordToString(curBold);
+      lastInk := curInk;
+      lastPaper := curPaper;
+      lastItalic := curItalic;
+      lastBold := curBold;
+      Result := Result + s + c;
+      Inc(i);
+      If c = #5 Then Begin
+        Result := Result + Text[i];
+        Inc(i);
+      End;
+
+    End;
+  End;
+
+  If (curInk >= 0) And (curInk <> lastInk) Then s := #16 + LongWordToString(curInk) Else s := '';
+  If (curPaper >= 0) And (curPaper <> lastPaper) Then s := s + #17 + LongWordToString(curPaper);
+  If (curItalic >= 0) And (curItalic <> lastItalic) Then s := s + #26 + LongWordToString(curItalic);
+  If (curBold >= 0) And (curBold <> lastBold) Then s := s + #27 + LongWordToString(curBold);
+
+  If s <> '' Then
+    Result := Result + s;
+
+End;
+
+Function SP_SyntaxHighlight(CodeLine, PrevSyntax: aString; HasNumber: Boolean; Var AddedChars: Integer): aString;
 Var
 
   Idx, l, l1, Idx2, sIdx: Integer;
@@ -2322,6 +2394,7 @@ Begin
   // Highlight the line number.
 
   Idx := 1;
+  COdeLine := InsertLiterals(CodeLine);
   l := Length(CodeLine);
   If HasNumber Then Begin
     wd := '';
@@ -2336,7 +2409,7 @@ Begin
   End Else Begin
     Result := PrevSyntax;
     If PrevSyntax = remClr Then Begin
-      Result := Result + CodeLine + PrevSyntax;
+      Result := CondenseString(Result + CodeLine + PrevSyntax);
       Exit;
     End Else
       If PrevSyntax = StrClr Then Begin
@@ -2630,10 +2703,6 @@ Begin
       LastSyntax := NoClr
     Else
       LastSyntax := NewSyntax;
-    If not IsREM Then
-      wd := InsertLiterals(Wd)
-    Else
-      wd := Copy(wd, 1, l1) + InsertLiterals(Copy(wd, l1 +1));
     Result := Result + wd;
     If AddSpace Then
       Result := Result + ' ';
@@ -2645,6 +2714,8 @@ Begin
     Result := Result + remClr
   Else
     Result := Result + LastSyntax;
+
+  Result := CondenseString(Result);
 
 End;
 

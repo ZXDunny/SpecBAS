@@ -560,9 +560,10 @@ Var
   FontBank: pSP_Font_Info;
   Bank: pSP_Bank;
   Dst, Coord, Char, pIdx, lIdx: pByte;
-  IsScaled, SkipNextPaper: Boolean;
+  IsScaled, SkipNextPaper, ForceNextChar: Boolean;
 Begin
 
+  ForceNextChar := False;
   Dst := @fCanvas[0];
   BankID := SP_FindBankID(Font);
   If BankID <> SP_ERR_BANK_ID_NOT_FOUND Then Begin
@@ -585,8 +586,9 @@ Begin
     Idx := 1;
     While Idx <= Length(Text) Do Begin
 
-      If Text[Idx] >= ' ' Then Begin
+      If (Text[Idx] >= ' ') or ForceNextChar Then Begin
 
+        ForceNextChar := False;
         Char := @Bank^.Memory[FontBank^.Font_Info[Byte(Text[Idx])].Data];
         If Italic Then
           ItalicOffset := (CharH Div 3) Shl 16
@@ -689,6 +691,10 @@ Begin
 
         // Control codes!
         Case Ord(Text[Idx]) of
+          5:
+            Begin // Next character is not a control code.
+              ForceNextChar := True;
+            End;
           8:
             Begin // Cursor Left
               X := (X - Cw) Mod fWidth;
@@ -1443,6 +1449,7 @@ Begin
       Paint;
       If b And Assigned(fOnFocus) then
         fOnFocus(Self, b);
+      FocusedControl := nil;
     End;
 
   End;

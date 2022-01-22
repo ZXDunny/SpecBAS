@@ -1067,6 +1067,7 @@ begin
   aStr := aString(GetCharFromVirtualKey(Key));
   If (aStr = '') or (aStr[1] < ' ') Then aStr := #0;
   kInfo.CanRepeat := True;
+  kInfo.IsKey := True;
 
   If Key = $12 Then Begin // ALT went down
 
@@ -1086,6 +1087,8 @@ begin
           kInfo.keyChar := aChar(kInfo.KeyCode);
           kInfo.NextFrameTime := FRAMES;
           kInfo.CanRepeat := False;
+          kInfo.IsKey := False;
+          ALtChars := '';
         End Else Begin
           Key := 0;
           Exit;
@@ -1103,7 +1106,7 @@ begin
 
     If ControlsAreInUse Then Begin
       DisplaySection.Enter;
-      If Not ControlKeyEvent(kInfo.KeyChar, kInfo.KeyCode, True) Then
+      If Not ControlKeyEvent(kInfo.KeyChar, kInfo.KeyCode, True, kInfo.IsKey) Then
         SP_AddKey(kInfo);
       DisplaySection.Leave;
     End Else
@@ -1119,7 +1122,7 @@ Procedure TMain.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
 
   KEYSTATE[Key] := 0;
-  ControlKeyEvent(#0, Key, False);
+  ControlKeyEvent(#0, Key, False, True);
   SP_RemoveKey(Key);
 
   If AltDown And (Key = $12) Then Begin

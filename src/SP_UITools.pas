@@ -452,6 +452,7 @@ Begin
 
   searchLbl := SP_Label.Create(Win^.Component);
   SearchEdt := SP_ComboBox.Create(Win^.Component);
+  SearchEdt.AllowLiterals := True;
 
   If FindMode Then Begin
     searchLbl.Caption := 'Find:';
@@ -480,6 +481,7 @@ Begin
     replaceEdt.Editable := True;
     replaceEdt.OnAccept := Accept;
     replaceEdt.OnAbort := Abort;
+    replaceEdt.AllowLiterals := True;
     replaceEdt.ChainControl := searchEdt;
     searchEdt.ChainControl := replaceEdt;
     tp := replaceEdt.Top + replaceEdt.Height + bh;
@@ -938,6 +940,7 @@ begin
   edtLine.OnChange := edtLineChange;
   edtCondition := SP_Edit.Create(Win^.Component);
   edtCondition.OnChange := edtLineChange;
+  edtCondition.AllowLiterals := True;
   edtPassCount := SP_Edit.Create(Win^.Component);
   edtPassCount.OnChange := edtLineChange;
 

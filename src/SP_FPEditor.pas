@@ -1751,8 +1751,9 @@ Procedure SP_FPApplyHighlighting(Line: Integer);
 Var
   CodeLine, SynLine, LastSyntax, AddedEndChars, AddedStartChars, t, s, s2, s3: aString;
   Idx, Idx2, Added, l, m, Ink, Paper, Bold, Italic, i, j, k, bp1, bp2: Integer;
-  fPos, fLen: Integer;
   NeedUpdate, GoAgain, CanShowBraces, Done: Boolean;
+  fPos, fLen: Integer;
+  c: aChar;
 Begin
 
   // Applies syntax highlighting to the specified line, and
@@ -1849,10 +1850,9 @@ Begin
             s := '';
           i := 1;
           While i < Length(s) Do Begin
-            If s[i] < ' ' Then Begin
-              Case s[i] of
-                #5: // Dummy character for literals
-                  Dec(i, 3);
+            c := s[i];
+            If (c < ' ') and (c <> #5) Then Begin
+              Case c of
                 #16: // Ink
                   Ink := pLongWord(@s[i+1])^;
                 #17: // Paper
@@ -1869,7 +1869,10 @@ Begin
               End;
               Inc(i, 5);
             End Else
-              Inc(i);
+              if c = #5 Then
+                Inc(i, 2)
+              Else
+                Inc(i);
           End;
           If Ink >= 0 Then s := #16 + LongWordToString(Ink) Else s := '';
           If Paper >= 0 Then s := s + #17 + LongWordToString(Paper);
@@ -1897,17 +1900,20 @@ Begin
           j := 1;
           Paper := -1;
           While j < FPBracket1Pos Do Begin
-            If SynLine[i] < ' ' Then Begin
-              If SynLine[i] = #17 Then
+            c := SynLine[i];
+            If (c < ' ') and (c <> #5) Then Begin
+              If c = #17 Then
                 Paper := pLongWord(@SynLine[i+1])^;
-              If SynLine[i] = #5 Then Inc(i) Else Inc(i, 5);
+              Inc(i, 5);
             End Else Begin
+              if c = #5 Then
+                Inc(i);
               Inc(i);
               Inc(j);
             End;
           End;
           While (i < Length(SynLine)) And (SynLine[i] < ' ') Do
-            If SynLine[i] = #5 Then Inc(i) Else Inc(i, 5);
+            If SynLine[i] = #5 Then Inc(i, 2) Else Inc(i, 5);
           If Paper > -1 Then
             t := #17 + LongWordToString(paper)
           Else
@@ -1917,11 +1923,14 @@ Begin
             m := Length(t) + Length(BraceHltClr);
             Inc(i, m +1);
             While j < bp2 Do Begin
-              If SynLine[i] < ' ' Then Begin
+              c := SynLine[i];
+              If (c < ' ') and (c <> #5) Then Begin
                 If SynLine[i] = #17 Then
                   Paper := pLongWord(@SynLine[i+1])^;
-                If SynLine[i] = #5 Then Inc(i) Else Inc(i, 5);
+                Inc(i, 5);
               End Else Begin
+                if c = #5 Then
+                  Inc(i);
                 Inc(i);
                 Inc(j);
               End;
@@ -1946,10 +1955,9 @@ Begin
             i := 1; k := 0;
             Paper := -1; Ink := -1; Bold := -1; Italic := -1;
             Repeat
-              If SynLine[i] < ' ' Then Begin
+              c := SynLine[i];
+              If (c < ' ') and (c <> #5) Then Begin
                 Case SynLine[i] of
-                  #5: // Literal char
-                    Dec(i, 3);
                   #16: // Ink
                     Ink := pLongWord(@SynLine[i+1])^;
                   #17: // Paper
@@ -1967,6 +1975,8 @@ Begin
                 End;
                 Inc(i, 5);
               End Else Begin
+                If c = #5 Then
+                  Inc(i);
                 Inc(i);
                 Inc(k);
               End;
@@ -1979,7 +1989,7 @@ Begin
             k := 0; m := 0;
             while (k < Length(SynLine)) and (k < fLen) do Begin
               if SynLine[m + i] < ' ' Then Begin
-                If SynLine[m] = #5 Then Inc(m) Else Inc(m, 5);
+                If SynLine[m] = #5 Then Inc(m, 2) Else Inc(m, 5);
               End Else Begin
                 Inc(m);
                 Inc(k);
@@ -2001,10 +2011,11 @@ Begin
       Idx := 1;
       Idx2 := 1;
       While Idx < Length(CodeLine) - Length(AddedEndChars) Do Begin
-        If SynLine[Idx2] < ' ' Then Begin
-          If SynLine[Idx2] = #5 Then Inc(Idx2) Else Inc(Idx2, 4);
+        c := SynLine[Idx2];
+        If (c < ' ') and (c <> #5) Then Begin
+          Inc(Idx2, 4);
         End Else Begin
-          If (SynLine[Idx2] = ' ') And (CodeLine[Idx] <> ' ') Then Begin
+          If (c = ' ') And (CodeLine[Idx] <> ' ') Then Begin
             CodeLine := Copy(CodeLine, 1, Idx -1) + ' ' + Copy(CodeLine, Idx);
             If (Listing.FPCPos >= Idx) And (Listing.FPCLine = Line) Then Begin
               Listing.FPCPos := Listing.FPCPos + 1;
@@ -2013,8 +2024,13 @@ Begin
             End;
             NeedUpdate := True;
           End Else
-            If CodeLine[Idx] <> SynLine[Idx2] Then
+            If c = #5 Then Begin
+              CodeLine[Idx] := #5;
+              Inc(Idx); Inc(Idx2);
               CodeLine[Idx] := SynLine[Idx2];
+            End Else
+              If CodeLine[Idx] <> SynLine[Idx2] Then
+                CodeLine[Idx] := SynLine[Idx2];
           Inc(Idx);
         End;
         Inc(Idx2);
@@ -2030,14 +2046,13 @@ Begin
       Ink := -1; Paper := -1; Italic := -1; Bold := -1;
       i := 1;
       s := '';
-      s2 := LowerNoFormatting(AddedStartChars);
+      s2 := Lower(AddedStartChars);
       s3 := LowerNoFormatting(SynLine);
       Done := False;
       While Not Done Do Begin
-        If s3[i] < ' ' Then Begin
-          Case s3[i] of
-            #5: // Literal char
-              Dec(i, 3);
+        c := s3[i];
+        If (c < ' ') and (c <> #5) Then Begin
+          Case c of
             #16: // Ink
               Ink := pLongWord(@s3[i+1])^;
             #17: // Paper
@@ -2054,6 +2069,7 @@ Begin
           End;
           Inc(i, 5);
         End Else Begin
+          if c = #5 Then Inc(i);
           s := s + s3[i];
           Inc(i);
         End;
@@ -2074,13 +2090,13 @@ Begin
       CodeLine := Copy(CodeLine, 1, Length(CodeLine) - Length(AddedEndChars));
       i := 1; m := 1; l := Length(Codeline);
       If l > 0 Then Begin
-        s := Lower(SynLine);
+        s := LowerNoFormatting(SynLine);
         s2 := Lower(CodeLine);
         While i < Length(SynLine) Do Begin
           If (s[i] < ' ') And (s[i] <> #5) Then Begin
             Inc(i, 5);
           End Else Begin
-            if s[i] = #5 Then Inc(i);
+            if s[i] = #5 Then Begin Inc(i); c := #1; End ELse c := #0;
             If s[i] = s2[m] Then Begin
               Inc(i);
               Inc(m);
@@ -2090,7 +2106,7 @@ Begin
               Break;
           End;
         End;
-        SynLine := Copy(SynLine, 1, i -1);
+        SynLine := Copy(SynLine, 1, i - (1 + Ord(c = #1)));
       End Else
         SynLine := '';
     End;
@@ -2387,13 +2403,10 @@ Begin
   LastCharAt := -1;
   While i <= Length(Line) Do Begin
     c := Line[i];
-    If c < ' ' Then Begin
-      if c = #5 Then Begin
-        LastCharAt := i +1;
-        Inc(i, 2);
-      End Else
-        Inc(i, 5);
+    If (c < ' ') and (c <> #5) Then Begin
+      Inc(i, 5);
     End Else Begin
+      if c = #5 Then Inc(i);
       LastCharAt := i;
       Inc(i);
     End;
@@ -2692,15 +2705,14 @@ Begin
         l := Length(CodeLine);
         If HasContent(CodeLine) Then Begin
           Cpx := 0;
-          While CodeLine[dIdx] < ' ' Do If CodeLine[dIdx] = #5 Then Inc(dIdx) Else Inc(dIdx, 5);
+          While (CodeLine[dIdx] < ' ') and (CodeLine[dIdx] <> #5) Do Inc(dIdx, 5);
           cIdx := dIdx;
           If Not SP_WasPrevSoft(Idx) Then
             While (cIdx < l) And (CodeLine[cIdx] in ['0'..'9']) Do Begin
               HasNumber := True;
               Inc(Cpx);
               Inc(cIdx);
-              While (cIdx < l) And (CodeLine[cIdx] < ' ') Do
-                If CodeLine[cIdx] = #5 Then Inc(cIdx) Else Inc(cIdx, 5);
+              While (cIdx < l) And (CodeLine[cIdx] < ' ') and (CodeLine[cIdx] <> #5) Do Inc(cIdx, 5);
             End;
           // If the line has a number, then draw it in the gutter.
           If HasNumber Then Begin
@@ -3002,10 +3014,18 @@ Begin
     If s <> '' Then Begin
       Idx := 1;
       Cpx := 1;
-      While s[Idx] < ' ' Do Begin
-        if s[idx] = #5 Then
-          Inc(Idx)
-        Else Begin
+      While (s[Idx] < ' ') And (s[Idx] <> #5) Do Begin
+        If s[Idx] = #26 Then Begin
+          If Ord(s[Idx +1]) <> 8 Then
+            T_ITALIC := Ord(s[Idx +1])
+        End Else
+          If s[Idx] = #27 Then
+            If Ord(s[Idx +1]) <> 8 Then
+              T_BOLD := Ord(s[Idx +1]);
+        Inc(Idx, 5);
+      End;
+      While Cpx < Listing.FPCPos Do Begin
+        If (s[Idx] < ' ') and (s[Idx] <> #5) Then Begin
           If s[Idx] = #26 Then Begin
             If Ord(s[Idx +1]) <> 8 Then
               T_ITALIC := Ord(s[Idx +1])
@@ -3014,46 +3034,24 @@ Begin
               If Ord(s[Idx +1]) <> 8 Then
                 T_BOLD := Ord(s[Idx +1]);
           Inc(Idx, 5);
-        End;
-      End;
-      While Cpx < Listing.FPCPos Do Begin
-        If (s[Idx] < ' ') and Not Skip Then Begin
-          While s[Idx] < ' ' Do Begin
-            if s[idx] = #5 Then Begin
-              Inc(Idx);
-              Skip := True;
-              Break;
-            End Else Begin
-              If s[Idx] = #26 Then Begin
-                If Ord(s[Idx +1]) <> 8 Then
-                  T_ITALIC := Ord(s[Idx +1])
-              End Else
-                If s[Idx] = #27 Then
-                  If Ord(s[Idx +1]) <> 8 Then
-                    T_BOLD := Ord(s[Idx +1]);
-              Inc(Idx, 5);
-            End;
-          End;
         End Else Begin
-          Skip := False;
+          If s[Idx] = #5 Then
+            Inc(Idx);
           Inc(Cpx);
           Inc(Idx);
         End;
       End;
-      While (s[Idx] < ' ') and (s[Idx -1] <> #5) Do Begin
-        if s[idx] = #5 Then
-          Inc(Idx)
-        Else Begin
-          If s[Idx] = #26 Then Begin
+      While (s[Idx] < ' ') and (s[Idx] <> #5) Do Begin
+        If s[Idx] = #26 Then Begin
+          If Ord(s[Idx +1]) <> 8 Then
+            T_ITALIC := Ord(s[Idx +1])
+        End Else
+          If s[Idx] = #27 Then
             If Ord(s[Idx +1]) <> 8 Then
-              T_ITALIC := Ord(s[Idx +1])
-          End Else
-            If s[Idx] = #27 Then
-              If Ord(s[Idx +1]) <> 8 Then
-                T_BOLD := Ord(s[Idx +1]);
-          Inc(Idx, 5);
-        End;
+              T_BOLD := Ord(s[Idx +1]);
+        Inc(Idx, 5);
       End;
+      If s[Idx] = #5 Then Inc(Idx);
       CURSORCHAR := Ord(s[Idx]);
     End Else
       CURSORCHAR := 32;
@@ -3105,6 +3103,7 @@ Begin
       End;
     End;
   End;
+  SP_CalculateFPCursorPos;
 End;
 
 Procedure SP_DrawGraphicsID;
@@ -3187,8 +3186,6 @@ Begin
   End;
   It := T_ITALIC;
   Bl := T_BOLD;
-
-  SP_CalculateFPCursorPos;
 
   s := aChar(CURSORCHAR);
   if CURSORCHAR < 32 Then
@@ -4767,7 +4764,7 @@ Begin
 
   cy := Listing.FPCLine;
 
-  If Key.KeyChar = #0 then Begin
+  If (Key.KeyChar = #0) and (Key.KeyCode <> 0) then Begin
 
     If Not (Key.KeyCode in [K_BACK, K_DELETE]) And Listing.UndoInProgress Then
       Listing.CompleteUndo;
@@ -6665,7 +6662,7 @@ Begin
   If (Key^.KeyChar in ['a'..'z', 'A'..'Z', '0'..'9']) And Not DWUndoInProgress Then
     DWCommenceUndo;
 
-  If Key^.KeyChar = #0 Then Begin
+  If (Key^.KeyChar = #0) and (Key^.KeyCode <> 0) Then Begin
 
     DWCompleteUndo;
     DWCommenceUndo;

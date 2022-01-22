@@ -60,9 +60,10 @@ Begin
           With ControlMsgList[0] Do Begin
             For i := 1 To Length(Data) Do Begin
               Key.KeyChar := Data[i];
+              Key.IsKey := True;
               If (Key.KeyChar >= 'A') And (Key.KeyChar <= 'Z') Then Begin
                 Key.KeyChar := Lower(Key.KeyChar)[1];
-                Key.KeyCode := 0
+                Key.KeyCode := Ord(Key.KeyChar);
               End Else Begin
                 Key.KeyCode := Ord(Key.KeyChar);
                 Key.KeyChar := #0;
@@ -73,7 +74,7 @@ Begin
               Key.KeyChar := Data[i];
               If (Key.KeyChar >= 'A') And (Key.KeyChar <= 'Z') Then Begin
                 Key.KeyChar := Lower(Key.KeyChar)[1];
-                Key.KeyCode := 0
+                Key.KeyCode := Ord(Key.KeyChar);
               End Else Begin
                 Key.KeyCode := Ord(Key.KeyChar);
                 Key.KeyChar := #0;

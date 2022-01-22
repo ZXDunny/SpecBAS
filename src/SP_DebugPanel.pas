@@ -145,6 +145,7 @@ Begin
     FPSizeGrabber := SP_Container.Create(Win^.Component);
   End;
   FPDebugPanelVisible := True;
+  FPDebugPanel.AllowLiterals := True;
 
   With FPDebugCombo Do Begin
     BackgroundClr := debugCombo;
@@ -347,7 +348,7 @@ Begin
       Case FPDebugCombo.ItemIndex of
         0: // Variables
           Begin
-            SP_MakeListVarOutput(List);
+            SP_MakeListVarOutput(List, True);
             If Integer(List.Objects[0]) = -1 Then Begin
               Clear;
               Add(' No variables defined');

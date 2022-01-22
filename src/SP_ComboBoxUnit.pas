@@ -44,6 +44,8 @@ SP_ComboBox = Class(SP_BaseComponent)
     Procedure SetDisabledFontClr(c: Byte); Override;
     Procedure SetChainControl(c: SP_BaseComponent); Override;
     Procedure SetOnFocus(e: SP_FocusEvent); Override;
+    Procedure SetAllowLiterals(b: Boolean);
+    Function  GetAllowLiterals: Boolean;
 
     Procedure AddStrings(Strings: TStringlist);
     Procedure AddItem(Caption: aString);
@@ -53,14 +55,15 @@ SP_ComboBox = Class(SP_BaseComponent)
     Procedure SetBounds(x, y, w, h: Integer); Override;
     Procedure SetFocus(b: Boolean); Override;
 
-    Property  Border:     Boolean            read GetBorder       write SetBorder;
-    Property  Items[Index: Integer]: aString read GetCaption      write SetCaption;
-    Property  ItemIndex:  Integer            read fItemIndex      write SetItemIndex;
-    Property  Editable:   Boolean            read fEditable       write SetEditable;
-    Property  Text:       aString            read GetText         write SetText;
-    Property  OnAccept:   SP_EditEvent       read fOnAccept       write fOnAccept;
-    Property  OnChange:   SP_EditEvent       read fOnChange       write fOnChange;
-    Property  HightlightColour: Byte         read fHighlightClr   write SetHighlightClr;
+    Property  Border:     Boolean            read GetBorder        write SetBorder;
+    Property  Items[Index: Integer]: aString read GetCaption       write SetCaption;
+    Property  ItemIndex:  Integer            read fItemIndex       write SetItemIndex;
+    Property  Editable:   Boolean            read fEditable        write SetEditable;
+    Property  Text:       aString            read GetText          write SetText;
+    Property  OnAccept:   SP_EditEvent       read fOnAccept        write fOnAccept;
+    Property  OnChange:   SP_EditEvent       read fOnChange        write fOnChange;
+    Property  HightlightColour: Byte         read fHighlightClr    write SetHighlightClr;
+    Property  AllowLiterals: Boolean         read GetAllowLiterals write SetAllowLiterals;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor Destroy; Override;
@@ -90,6 +93,7 @@ Begin
   Edit.ChainControl := Self;
   Edit.OnAccept := EditAccept;
   Edit.OnChange := EditChange;
+  Edit.AllowLiterals := False;
   Btn := SP_Button.Create(Self);
   Btn.OnClick := OnBtnClick;
   Btn.OverrideScaling := True;
@@ -105,6 +109,16 @@ Begin
 
   Inherited;
 
+End;
+
+Procedure SP_ComboBox.SetAllowLiterals(b: Boolean);
+Begin
+  Edit.AllowLiterals := b;
+End;
+
+Function  SP_ComboBox.GetAllowLiterals: Boolean;
+Begin
+  Result := Edit.AllowLiterals;
 End;
 
 Procedure SP_ComboBox.SetOnFocus(e: SP_FocusEvent);

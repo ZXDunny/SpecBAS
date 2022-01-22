@@ -775,6 +775,12 @@ Begin
         Inc(sPtr);
         Inc(dPtr);
         Case b of
+          5:
+            Begin
+              dPtr^ := sPtr^;
+              Inc(dPtr);
+              Inc(sPtr);
+            End;
           16..20, 26, 27:
             Begin
               pLongWord(dPtr)^ := pLongWord(sPtr)^;

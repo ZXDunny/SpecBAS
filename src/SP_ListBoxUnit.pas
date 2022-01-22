@@ -22,38 +22,39 @@ SP_ListBox = Class(SP_BaseComponent)
 
   Public
 
-    fStrings:     Array of aString;
-    fObjects:     Array of TObject;
-    fHeaders:     Array of SP_ListBoxHeader;
-    fSelected:    Array of Boolean;
-    fCount:       Integer;
-    fHCount:      Integer;
-    fSelCount:    Integer;
+    fStrings:       Array of aString;
+    fObjects:       Array of TObject;
+    fHeaders:       Array of SP_ListBoxHeader;
+    fSelected:      Array of Boolean;
+    fCount:         Integer;
+    fHCount:        Integer;
+    fSelCount:      Integer;
     fHScroll,
-    fVScroll:     SP_ScrollBar;
-    fClientRgn:   TRect;
-    fNeedPaint:   Boolean;
-    fMultiSelect: Boolean;
-    fSelectedIdx: Integer;
-    fShowHeaders: Boolean;
-    fSorted:      Boolean;
-    fSortedBy:    Integer;
-    fSortDir:     Integer;
-    fCanUserSort: Boolean;
-    fChosen:      Boolean;
-    fSortByAlpha: Boolean;
-    fLastSelected:Integer;
-    fSortProc:    SP_SortEvent;
-    fTextPrep:    SP_TextPrepare;
-    fOnSelect:    SP_LBSelectEvent;
-    fOnChoose:    SP_LBChooseEvent;
-    fSelectAnchor:Integer;
+    fVScroll:       SP_ScrollBar;
+    fClientRgn:     TRect;
+    fNeedPaint:     Boolean;
+    fMultiSelect:   Boolean;
+    fSelectedIdx:   Integer;
+    fShowHeaders:   Boolean;
+    fSorted:        Boolean;
+    fSortedBy:      Integer;
+    fSortDir:       Integer;
+    fCanUserSort:   Boolean;
+    fChosen:        Boolean;
+    fSortByAlpha:   Boolean;
+    fLastSelected:  Integer;
+    fSortProc:      SP_SortEvent;
+    fTextPrep:      SP_TextPrepare;
+    fOnSelect:      SP_LBSelectEvent;
+    fOnChoose:      SP_LBChooseEvent;
+    fSelectAnchor:  Integer;
     fSortIndClr,
     fSortedColumnClr,
-    fHeaderClr:   Integer;
-    fMouseMode:   Integer;
-    fHeaderGrab:  Integer;
-    fLastMouseX:  Integer;
+    fHeaderClr:     Integer;
+    fMouseMode:     Integer;
+    fHeaderGrab:    Integer;
+    fLastMouseX:    Integer;
+    fAllowLiterals: Boolean;
 
     Procedure     Clear;
     Procedure     ClearSelected;
@@ -123,6 +124,7 @@ SP_ListBox = Class(SP_BaseComponent)
     Property      SortIndClr:                Integer          read fSortIndClr      write SetSortIndClr;
     Property      SortedColumnClr:           Integer          read fSortedColumnClr write SetSortedColumnClr;
     Property      SelectedIndex:             Integer          read fSelectedIdx;
+    Property      AllowLiterals:             Boolean          read fAllowLiterals   write fAllowLiterals;
 
     Constructor   Create(Owner: SP_BaseComponent);
     Destructor    Destroy; Override;

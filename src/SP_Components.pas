@@ -63,7 +63,7 @@ End;
 pSP_TimerEvent = ^SP_TimerEvent;
 
 Function  ControlsAreInUse: Boolean;
-Function  ControlKeyEvent(aStr: aString; Key: Integer; Down: Boolean): Boolean;
+Function  ControlKeyEvent(aStr: aString; Key: Integer; Down, IsKey: Boolean): Boolean;
 
 Function  WindowAtPoint(Var x, y: Integer): Pointer;
 Function  ControlAtPoint(Window: Pointer; Var x, y: Integer): Pointer;
@@ -236,7 +236,7 @@ Begin
 
 End;
 
-Function ControlKeyEvent(aStr: aString; Key: Integer; Down: Boolean): Boolean;
+Function ControlKeyEvent(aStr: aString; Key: Integer; Down, IsKey: Boolean): Boolean;
 Var
   c: SP_BaseComponent;
   cList: Array of SP_BaseComponent;
@@ -278,9 +278,9 @@ Begin
     If Down Then Begin
       cLastKeyChar := Ord(aStr[1]);
       cLastKey := Key;
-      KEYSTATE[Key] := 1;
+      If IsKey Then KEYSTATE[Key] := 1;
     End Else Begin
-      KEYSTATE[Key] := 0;
+      If IsKey Then KEYSTATE[Key] := 0;
       cLastKeyChar := 0;
       cLastKey := 0;
     End;
@@ -299,14 +299,14 @@ Begin
 
       cLastKeyChar := Ord(aStr[1]);
       cLastKey := Key;
-      KEYSTATE[Key] := 1;
+      If IsKey Then KEYSTATE[Key] := 1;
 
       c.KeyDown(Key, Result);
 
     End Else Begin
 
       cLastKey := Key;
-      KEYSTATE[Key] := 0;
+      If IsKey then KEYSTATE[Key] := 0;
       c.KeyUp(Key, Result);
       If Result Then Begin
         cLastKeyChar := 0;

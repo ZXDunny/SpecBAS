@@ -35,6 +35,7 @@ Type
     NextFrameTime: Integer;   // When this reaches zero, it's counted as triggering a repeated key event
     Repeating: Boolean;       // Has the key started to repeat yet?
     CanRepeat: Boolean;       // Some keys (such as alt-xxx keys) cannot repeat
+    IsKey: Boolean;           // Was this triggered by a key event or an ALT-nnn sequence?
   End;
   pSP_KeyInfo = ^SP_KeyInfo;
 
@@ -336,7 +337,7 @@ Begin
   End;
   KeyInfo.Repeating := False;
   CopyMem(@ActiveKeys[l - 1].KeyChar, @KeyInfo.KeyChar, SizeOf(SP_KeyInfo));
-  KeyState[KeyInfo.KeyCode] := 1;
+  If KeyInfo.IsKey Then KeyState[KeyInfo.KeyCode] := 1;
   KeyLock.Leave;
 End;
 
@@ -359,13 +360,17 @@ Begin
 
   i := Length(ActiveKeys) -1;
   While i >= 0 Do
-    If Not (ActiveKeys[i].KeyCode in [16, 17, 18]) And (ActiveKeys[i].NextFrameTime <= CurFrames) Then Begin
+    If Not ((ActiveKeys[i].KeyCode in [16, 17, 18]) And (ActiveKeys[i].KeyChar = #0)) And (ActiveKeys[i].NextFrameTime <= CurFrames) Then Begin
       Result := @ActiveKeys[i];
       If Result^.Repeating Then Begin
         If Result^.CanRepeat Then Begin
           Result^.NextFrameTime := CurFrames + REPPER
-        End Else
+        End Else Begin
           SP_RemoveKey(Result^.KeyCode);
+          Result := nil;
+          KeyLock.Leave;
+          Exit;
+        End;
       End Else Begin
         Result^.Repeating := True;
         Result^.NextFrameTime := CurFrames + REPDEL;
@@ -489,6 +494,7 @@ Begin
           Key.KeyCode := KeyBuffer[0].KeyCode;
           Key.Repeating := False;
           Key.NextFrameTime := FRAMES;
+          Key.IsKey := True;
           SP_AddKey(Key);
         End;
       1: // KeyUp

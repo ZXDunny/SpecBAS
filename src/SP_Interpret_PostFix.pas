@@ -125,7 +125,7 @@ Procedure SP_DeleteWatch(Index: Integer);
 Function  SP_BreakPointExists(Line, Statement: Integer): Boolean;
 Procedure SP_AddSourceBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integer; Condition: aString);
 Procedure SP_AddConditionalBreakpoint(BpIndex, Passes: Integer; Condition: aString; IsData: Boolean);
-Procedure SP_MakeListVarOutput(Var List: TAnsiStringlist);
+Procedure SP_MakeListVarOutput(Var List: TAnsiStringlist; UseLiterals: Boolean);
 Function  SP_ConvertToTokens(Const s: aString; Var Error: TSP_ErrorCode): aString;
 
 Procedure SP_InterpretCONTSafe(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
@@ -18850,7 +18850,7 @@ Begin
 
 End;
 
-Procedure SP_MakeListVarOutput(Var List: TAnsiStringlist);
+Procedure SP_MakeListVarOutput(Var List: TAnsiStringlist; UseLiterals: Boolean);
 Var
   Str, TempStr: aString;
   Idx, Idx2: Integer;
@@ -18909,7 +18909,10 @@ Begin
 
         sVar := StrVars[Idx]^.ContentPtr;
         Str := StrVars[Idx]^.Name + '$="' + Copy(sVar^.Value, 1, (SCREENWIDTH Div FONTWIDTH) - (Length(StrVars[Idx]^.Name) + 3)) + '"';
-        SP_ReplaceSpecialChars(Str);
+        if UseLiterals Then
+          Str := InsertLiterals(Str)
+        Else
+          SP_ReplaceSpecialChars(Str);
         List.Add(Str);
 
       End;
@@ -18941,7 +18944,10 @@ Begin
         End;
         Str := Str + ')=';
         TempStr := SP_StrArrayToString(Idx, (SCREENWIDTH Div FONTWIDTH) - Length(Str) - 4);
-        SP_ReplaceSpecialChars(TempStr);
+        if UseLiterals Then
+          TempStr := InsertLiterals(TempStr)
+        Else
+          SP_ReplaceSpecialChars(TempStr);
         List.Add(Str + TempStr);
       End;
 
@@ -18962,7 +18968,7 @@ Begin
 
   Vars := TAnsiStringList.Create;
 
-  SP_MakeListVarOutput(Vars);
+  SP_MakeListVarOutput(Vars, False);
   Output := '';
   For Idx := 0 To Vars.Count -1 Do
     Output := Output + aString(Vars[Idx]) + #13;

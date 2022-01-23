@@ -1450,6 +1450,7 @@ Begin
   WinW := Win^.Width;
   ltm := h - Abs(d);
   VertSB := @FPScrollBars[SP_FindScrollBar(FPVertSc)];
+  Dec(CURSORY, d);
 
   If d > 0 Then Begin // Down, so scroll up
 
@@ -1561,8 +1562,10 @@ Begin
             SP_ScrollEditor(Delta)
           Else
             SmoothMove := False;
-        End Else
+        End Else Begin
+          Dec(CURSORX, Delta);
           SP_DisplayFPListing(-1);
+        End;
         OnChange(Data);
         Updated := True;
       End Else
@@ -3187,6 +3190,7 @@ Begin
   It := T_ITALIC;
   Bl := T_BOLD;
 
+//  SP_CalculateFPCursorPos;
   s := aChar(CURSORCHAR);
   if CURSORCHAR < 32 Then
     s := #5 + s;
@@ -3616,6 +3620,10 @@ Begin
           NewPosition := 0;
       SmoothMove := True;
       TargetPos := NewPosition;
+      If Kind = scVertical Then
+        Inc(CURSORY, Round(Position - NewPosition))
+      Else
+        Inc(CURSORX, Round(Position - NewPosition));
       SP_UpdateScrollBar(ID, -1, -1, NewPosition);
       SP_DisplayFPListing(-1);
       Exit;

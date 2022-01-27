@@ -134,6 +134,7 @@ Var
 
   NUMBANKS:                 Integer;      // The number of memory banks in use.
   SYSFONT:                  Integer;      // The index of the system font - cannot be deleted.
+  ITALICSCALE:              Integer;      // The slope of italics in the TEXT and PRINT commands
   EDITORFONT:               Integer;      // The index of the editor font.
   ANIMSPEED:                Integer;      // Speed in ms that it takes to hide or show a window in the editor
   EDFONTWIDTH:              Integer;      // The size of the editor font. Usually the default system font.
@@ -1551,7 +1552,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..242] of TSysVar =
+  SysVars: Array[0..243] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
@@ -1577,6 +1578,7 @@ Const
    (Name: 'DISPLAYHEIGHT'; svType: svInteger; Size: 4; Data: @DISPLAYHEIGHT),
    (Name: 'NUMBANKS'; svType: svInteger; Size: 4; Data: @NUMBANKS),
    (Name: 'SYSFONT'; svType: svInteger; Size: 4; Data: @SYSFONT),
+   (Name: 'ITALICSCALE'; svType: svInteger; Size: 4; Data: @ITALICSCALE),
    (Name: 'EDITORFONT'; svType: svInteger; Size: 4; Data: @EDITORFONT),
    (Name: 'NUMSTREAMS'; svType: svInteger; Size: 4; Data: @NUMSTREAMS),
    (Name: 'SYSTEMSTATE'; svType: svInteger; Size: 4; Data: @SYSTEMSTATE),

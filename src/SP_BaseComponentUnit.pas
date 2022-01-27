@@ -591,12 +591,13 @@ Begin
         ForceNextChar := False;
         Char := @Bank^.Memory[FontBank^.Font_Info[Byte(Text[Idx])].Data];
         If Italic Then
-          ItalicOffset := (CharH Div 3) Shl 16
+          ItalicOffset := (CharH Div ITALICSCALE) Shl 16
         Else
           ItalicOffset := 0;
         Coord := Dst;
         Inc(Coord, (fWidth * Y) + X);
         Inc(Coord, ItalicOffset Shr 16);
+        if Italic Then Dec(Coord, ItalicScale Div 2);
 
         If IsScaled Then Begin
           // Scaled character
@@ -638,7 +639,7 @@ Begin
             CharW := Cw;
             Dec(X, CharW);
             Inc(Coord, fWidth - (cW + (ItalicOffset Shr 16)));
-            If Italic Then Dec(ItalicOffset, 65536 Div 3);
+            If Italic Then Dec(ItalicOffset, 65536 Div ITALICSCALE);
             Inc(Coord, ItalicOffset Shr 16);
             Dec(CharH);
             Inc(yp, sy);
@@ -678,7 +679,7 @@ Begin
             CharW := FontBank^.Width;
             Dec(X, CharW);
             Inc(Coord, fWidth - (CharW + (ItalicOffset Shr 16)));
-            If Italic Then Dec(ItalicOffset, 65536 Div 3);
+            If Italic Then Dec(ItalicOffset, 65536 Div ITALICSCALE);
             Inc(Coord, ItalicOffset Shr 16);
             Dec(CharH);
           End;

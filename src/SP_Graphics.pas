@@ -2020,12 +2020,13 @@ Begin
         Char := @Bank^.Memory[FontBank^.Font_Info[Byte(Text[Idx])].Data];
         If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + X, SCREENY + Y, SCREENX + X + CharW, SCREENY + Y + CharH);
         If T_ITALIC > 0 Then
-          ItalicOffset := (65536 Div 3) + (CharH Div 3) Shl 16
+          ItalicOffset := (65536 Div ItalicScale) + (CharH Div ItalicScale) Shl 16
         Else
           ItalicOffset := 0;
         Coord := SCREENPOINTER;
         Inc(Coord, (SCREENSTRIDE * Y) + X);
         Inc(Coord, ItalicOffset Shr 16);
+        if T_ITALIC > 0 Then Dec(Coord, ItalicScale Div 2);
 
         If IsScaled Then Begin
           // Scaled character
@@ -2087,7 +2088,7 @@ Begin
             CharW := Cw;
             Dec(X, CharW);
             Inc(Coord, SCREENSTRIDE - (cW + (ItalicOffset Shr 16)));
-            If T_ITALIC > 0 Then Dec(ItalicOffset, 65536 Div 3);
+            If T_ITALIC > 0 Then Dec(ItalicOffset, 65536 Div ItalicScale);
             If ItalicOffset < 0 Then ItalicOffset := 0;
             Inc(Coord, ItalicOffset Shr 16);
             Dec(CharH);
@@ -2149,7 +2150,7 @@ Begin
             CharW := Cw;
             Dec(X, CharW);
             Inc(Coord, SCREENSTRIDE - (cW + (ItalicOffset Shr 16)));
-            If T_ITALIC > 0 Then Dec(ItalicOffset, 65536 Div 3);
+            If T_ITALIC > 0 Then Dec(ItalicOffset, 65536 Div ItalicScale);
             If ItalicOffset < 0 Then ItalicOffset := 0;
             Inc(Coord, ItalicOffset Shr 16);
             Dec(CharH);
@@ -4780,13 +4781,16 @@ Begin
           End;
 
           If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + X, SCREENY + Y, SCREENX + X + Cw, SCREENY + Y + Ch);
+
           If T_ITALIC > 0 Then
-            ItalicOffset := (65536 Div 3) + (CharH Div 3) Shl 16
+            ItalicOffset := (65536 Div ItalicScale) + (CharH Div ItalicScale) Shl 16
           Else
             ItalicOffset := 0;
           Coord := SCREENPOINTER;
           Inc(Coord, (SCREENSTRIDE * Y) + X);
           Inc(Coord, ItalicOffset Shr 16);
+          if T_ITALIC > 0 Then Dec(Coord, ItalicScale Div 2);
+
           If SwapBack Then Begin
             Ink := TInk; Paper := TPaper;
           End;
@@ -4856,7 +4860,7 @@ Begin
                 End;
                 CharW := Cw;
                 Inc(Coord, SCREENSTRIDE - (cW + (ItalicOffset Shr 16)));
-                If T_ITALIC > 0 Then Dec(ItalicOffset, 65536 Div 3);
+                If T_ITALIC > 0 Then Dec(ItalicOffset, 65536 Div ITALICSCALE);
                 If ItalicOffset < 0 Then ItalicOffset := 0;
                 Inc(Coord, ItalicOffset Shr 16);
                 Dec(CharH);
@@ -4914,7 +4918,7 @@ Begin
                 CharW := FontBank^.Width;
                 Dec(X, CharW);
                 Inc(Coord, SCREENSTRIDE - (CharW + (ItalicOffset Shr 16)));
-                If T_ITALIC > 0 Then Dec(ItalicOffset, 65536 Div 3);
+                If T_ITALIC > 0 Then Dec(ItalicOffset, 65536 Div ITALICSCALE);
                 If ItalicOffset < 0 Then ItalicOffset := 0;
                 Inc(Coord, ItalicOffset Shr 16);
                 Dec(CharH);
@@ -7108,6 +7112,7 @@ End;
 
 Initialization
 
+  ITALICSCALE := 4;
   DisplaySection := TCriticalSection.Create;
 
 Finalization

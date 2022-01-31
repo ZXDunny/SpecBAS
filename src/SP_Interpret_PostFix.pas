@@ -13409,7 +13409,7 @@ Begin
 
   With Info^ Do Begin
 
-    DoAutoSave;
+    DoAutoSave(True);
 
     SP_DeleteIncludes;
     If PackageIsOpen Then SP_ClosePackage;
@@ -14441,13 +14441,24 @@ Begin
 
   aSave := AUTOSAVE;
   AUTOSAVE := False;
-  If SP_FileExists('\autosave') Then Begin
-    SP_LoadProgram('\autosave', False, False, nil, Info^.Error^);
+  If SP_FileExists('s:autosave') Then Begin
+    SP_LoadProgram('s:autosave', False, False, nil, Info^.Error^);
     NXTLINE := -1;
     NXTSTATEMENT := -1;
   End Else
     Info^.Error^.Code := SP_ERR_NO_RECOVER;
   AUTOSAVE := aSave;
+
+End;
+
+Procedure SP_Interpret_OLD(Var Info: pSP_iInfo);
+Begin
+
+  If SP_FileExists('s:oldprog') Then Begin
+    SP_LoadProgram('s:oldprog', False, False, nil, Info^.Error^);
+    NXTLINE := -1;
+    NXTSTATEMENT := -1;
+  End;
 
 End;
 
@@ -25381,6 +25392,7 @@ Initialization
   InterpretProcs[SP_KW_TURNS] := @SP_Interpret_TURNS;
   InterpretProcs[SP_KW_GRADIANS] := @SP_Interpret_GRADIANS;
   InterpretProcs[SP_KW_RECOVER] := @SP_Interpret_RECOVER;
+  InterpretProcs[SP_KW_OLD] := @SP_Interpret_OLD;
   InterpretProcs[SP_KW_FONT] := @SP_Interpret_FONT;
   InterpretProcs[SP_KW_FONT_NEW] := @SP_Interpret_FONT_NEW;
   InterpretProcs[SP_KW_FONT_TRANS] := @SP_Interpret_FONT_TRANS;

@@ -51,7 +51,7 @@ Type
   TCB_ReleaseSticks = Procedure;
 
 Function  SP_FrameUpdate: Boolean;
-Procedure DoAutoSave;
+Procedure DoAutoSave(SaveOLD: Boolean = False);
 Procedure SP_MainLoop;
 Procedure SP_CleanUp;
 Function  SP_TestScroll(Height: Integer; var Error: TSP_ErrorCode): Boolean;
@@ -123,7 +123,7 @@ Begin
 
 End;
 
-Procedure DoAutoSave;
+Procedure DoAutoSave(SaveOLD: Boolean = False);
 Var
   Error: TSP_ERRORCODE;
 Begin
@@ -131,6 +131,8 @@ Begin
     FileSection.Enter;
     Error.Code := SP_ERR_OK;
     SP_SaveProgram('s:autosave', -1, Error);
+    If SaveOld Then
+      SP_SaveProgram('s:oldprog', -1, Error);
     FileSection.Leave;
   End;
 End;

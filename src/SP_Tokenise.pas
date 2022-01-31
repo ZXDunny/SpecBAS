@@ -77,7 +77,7 @@ Const
   // List of keywords that are used in statements.
   // MUST Be in this order - add new commands to the end of the list.
 
-  SP_KEYWORDS_EXTRA: Array[0..245] of aString =
+  SP_KEYWORDS_EXTRA: Array[0..246] of aString =
     ('SPECTRUM ', 'PLAY ', 'AT ', 'TAB ', 'LINE ', ' THEN ', ' TO ', ' STEP ',
      'DEF ', 'CAT ', ' FORMAT ', 'MOVE ', 'ERASE ', 'OPEN ', 'CLOSE ', 'MERGE ', 'BEEP ',
      'CIRCLE ', 'INK ', 'PAPER ', 'INVERSE ', 'OUT ', 'STOP ', 'READ ', ' DATA ',
@@ -106,7 +106,7 @@ Const
      'COLLIDE ', 'WRAP ', 'ZONE ', 'USING ', 'SPLIT ', ' BPP ', ' ALPHA ', ' DEPTH ', 'UNDIM ',
      'BOLD ', 'ITALIC ', 'FILTER ', 'INSERT ', 'MENUITEM ', 'MEMWRT ', 'MEMWRTD ', 'MEMWRTQ ',
      'MEMWRT$ ', 'REPEAT', 'PARTICLE ', 'FRICTION ', 'GRAVITY ', 'FORCE ', 'INSTALL', 'MEMWRTF ',
-     'PRESS', 'TURNS', 'GRADIANS', 'EGA', 'CGA', 'ADDCTRL', 'CTRL', 'PROP$ ');
+     'PRESS', 'TURNS', 'GRADIANS', 'EGA', 'CGA', 'ADDCTRL', 'CTRL', 'PROP$ ', 'OLD');
 
   // Constants used to quickly identify keywords when in token form. Each keyword listed
   // above has a corresponding constant, which must be SP_KEYWORD_BASE + (Index of Keyword above).
@@ -359,6 +359,7 @@ Const
   SP_KW_ADDCTRL             = 1243;
   SP_KW_CTRL                = 1244;
   SP_KW_PROPS               = 1245;
+  SP_KW_OLD                 = 1246;
 
 
   // These are meta-commands; they do not appear in listings, and are used during

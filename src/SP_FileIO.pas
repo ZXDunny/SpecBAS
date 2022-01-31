@@ -835,7 +835,7 @@ Begin
 
     ProgLen := Listing.Count;
 
-    If Lower(Filename) <> 's:autosave' Then Begin
+    If (Lower(Filename) <> 's:autosave') and (lower(filename) <> 's:oldprog') Then Begin
       PROGNAME := SP_ExtractFileDir(Filename);
       Repeat
         p := Pos('\', PROGNAME);
@@ -1110,7 +1110,7 @@ Begin
   changed := False;
   ERRStr := Filename;
   AutoStart := -1;
-  isAutoSaved := Lower(Filename) = 's:autosave';
+  isAutoSaved := (Lower(Filename) = 's:autosave') or (Lower(Filename) = 's:oldprog');
 
   Dir := SP_ExtractFileDir(Filename);
   SP_SetCurrentDir(Dir, Error);
@@ -1309,7 +1309,7 @@ Begin
                             PlainCode := Copy(PlainCode, 8, Length(PlainCode));
                             While Copy(PlainCode, 1, 1) <= ' ' Do
                               PlainCode := Copy(PlainCode, 2, Length(PlainCode));
-                            If Filename <> 's:autosave' Then
+                            If (Filename <> 's:autosave') and (Filename <> 's:oldprog') Then
                               changed := False
                             else
                               If Lower(Copy(Plaincode, 1, 4)) = 'true' Then

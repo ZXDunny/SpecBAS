@@ -98,6 +98,7 @@ Function  SP_Convert_CIRCLE(Var KeyWordID: LongWord; Var Tokens: aString; Var Po
 Function  SP_Convert_ELLIPSE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_CURVE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_RANDOMIZE(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_OLD(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_SAVE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_LOAD(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_MERGE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -584,6 +585,7 @@ Begin
     SP_KW_ELLIPSE: Result := Result + SP_Convert_ELLIPSE(KeyWordID, Tokens, Position, Error);
     SP_KW_CURVE: Result := Result + SP_Convert_CURVE(KeyWordID, Tokens, Position, Error);
     SP_KW_RANDOMIZE: Result := Result + SP_Convert_RANDOMIZE(Tokens, Position, Error);
+    SP_KW_OLD: Result := Result + SP_Convert_OLD(Tokens, Position, Error);
     SP_KW_SAVE: Result := Result + SP_Convert_SAVE(KeyWordID, Tokens, Position, Error);
     SP_KW_LOAD: Result := Result + SP_Convert_LOAD(KeyWordID, Tokens, Position, Error);
     SP_KW_MERGE: Result := Result + SP_Convert_MERGE(KeyWordID, Tokens, Position, Error);
@@ -6957,6 +6959,15 @@ Begin
   // STOP
 
   Result := '';
+
+End;
+
+Function SP_Convert_OLD(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Begin
+
+  // OLD
+
+  Result := ''
 
 End;
 

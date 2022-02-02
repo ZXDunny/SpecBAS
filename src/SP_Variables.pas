@@ -2253,7 +2253,7 @@ Begin
   LabelLen := 0;
   LabelPos := 0;
   SetLength(Constants, 0);
-  INPROC := False;
+  INPROC := 0;
 
   If ClearVars Then Begin
     SVLen := 0;

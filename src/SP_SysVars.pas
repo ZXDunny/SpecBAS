@@ -187,7 +187,7 @@ Var
   PROGSTATE:                Integer;      // Program state - running, or editing.
   IGNORE_ON_ERROR:          Boolean;      // If an ON ERROR command is run, then allow errors in the handler.
   INCLUDEFROM:              Integer;      // The line number that INCLUDEs are appended from, if present (-1 if not)
-  INPROC:                   Boolean;      // Are we executing code inside a PROC?
+  INPROC:                   Integer;      // Are we executing code inside a PROC?
 
   EDITORFPS:                LongWord;     // FPS in the editor
   DEFAULTFPS:               LongWord;     // Default FPS for running

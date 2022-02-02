@@ -3097,25 +3097,28 @@ Begin
                   ParamCount := 0;
                   If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = '(') Then Begin
                     Inc(Position, 2);
-                    While True Do Begin
-                        FnResult := SP_Convert_Expr(Tokens, Position, Error, -1) + FnResult;
-                        If Error.Code <> SP_ERR_OK Then Exit;
-                        If Error.ReturnType = SP_UNKNOWN Then Begin
-                          Error.Code := SP_ERR_SYNTAX_ERROR;
-                          Exit;
-                        End;
-                        Inc(ParamCount);
-                        If Byte(Tokens[Position]) = SP_SYMBOL Then
-                          If Tokens[Position +1] = ')' Then Begin
-                            Inc(Position, 2);
-                            Break;
-                          End Else
-                            If Tokens[Position +1] <> ',' Then Begin
-                              Error.Code := SP_ERR_MISSING_COMMA;
-                              Exit;
-                            End Else
+                    if (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ')') Then
+                      Inc(Position, 2)
+                    Else
+                      While True Do Begin
+                          FnResult := SP_Convert_Expr(Tokens, Position, Error, -1) + FnResult;
+                          If Error.Code <> SP_ERR_OK Then Exit;
+                          If Error.ReturnType = SP_UNKNOWN Then Begin
+                            Error.Code := SP_ERR_SYNTAX_ERROR;
+                            Exit;
+                          End;
+                          Inc(ParamCount);
+                          If Byte(Tokens[Position]) = SP_SYMBOL Then
+                            If Tokens[Position +1] = ')' Then Begin
                               Inc(Position, 2);
-                    End;
+                              Break;
+                            End Else
+                              If Tokens[Position +1] <> ',' Then Begin
+                                Error.Code := SP_ERR_MISSING_COMMA;
+                                Exit;
+                              End Else
+                                Inc(Position, 2);
+                      End;
                   End;
 
                   FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
@@ -3224,6 +3227,7 @@ Begin
                       Else
                         VarList := SP_ProcsList[Idx].VarTypes;
                     End;
+
                   End Else Begin
 
                     // CALL has been executed with a PROCID/PROCID$ instead of a function name. MUST be followed by open-brace, then
@@ -3263,114 +3267,118 @@ Begin
 
                   If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = Symbol) Then Begin
                     Inc(Position, 2);
-                    While True Do Begin
+                    if (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ')') Then Begin
+                      FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
+                      Inc(Position, 2)
+                    End Else
+                      While True Do Begin
 
-                      // No upper limit on the number of parameters, so we loop until we encounter a closing-brace (or end of line, which
-                      // would be an error).
+                        // No upper limit on the number of parameters, so we loop until we encounter a closing-brace (or end of line, which
+                        // would be an error).
 
-                      If Byte(Tokens[Position]) = SP_KEYWORD Then Begin
-                        If pLongWord(@Tokens[Position +1])^ = SP_KW_REF Then Begin
+                        If Byte(Tokens[Position]) = SP_KEYWORD Then Begin
+                          If pLongWord(@Tokens[Position +1])^ = SP_KW_REF Then Begin
 
-                          // We've got a "REF" command here, so a variable or structure member name must follow.
-                          // This will pass the variable or structure member as a reference, so it can be altered by
-                          // the function or procedure.
+                            // We've got a "REF" command here, so a variable or structure member name must follow.
+                            // This will pass the variable or structure member as a reference, so it can be altered by
+                            // the function or procedure.
 
-                          Inc(Position, 1 + SizeOf(LongWord));
-                          If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
-                            FnResult := SP_Convert_Var_Assign(Tokens, Position, Error) + FnResult;
-                            If Error.Code = SP_ERR_OK Then Begin
-                              Tkn := @FnResult[1];
-                              If Tkn^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
-                                Dec(Tkn^.Token, 30)
-                              Else
-                                If Tkn^.Token = SP_STRUCT_MEMBER_ASS Then
-                                  Error.Code := SP_ERR_STRUCT_NOT_REF;
-                              If Error.Code <> SP_ERR_OK Then Exit;
-                              Inc(ParamCount);
-                              If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
-                                Inc(Position);
-                                If Tokens[Position] = ')' Then Begin
+                            Inc(Position, 1 + SizeOf(LongWord));
+                            If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
+                              FnResult := SP_Convert_Var_Assign(Tokens, Position, Error) + FnResult;
+                              If Error.Code = SP_ERR_OK Then Begin
+                                Tkn := @FnResult[1];
+                                If Tkn^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
+                                  Dec(Tkn^.Token, 30)
+                                Else
+                                  If Tkn^.Token = SP_STRUCT_MEMBER_ASS Then
+                                    Error.Code := SP_ERR_STRUCT_NOT_REF;
+                                If Error.Code <> SP_ERR_OK Then Exit;
+                                Inc(ParamCount);
+                                If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
                                   Inc(Position);
-                                  FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
-                                  Break;
-                                End Else
-                                  If Tokens[Position] <> ',' Then Begin
-                                    Error.Code := SP_ERR_SYNTAX_ERROR;
-                                    Exit;
-                                  End;
-                                Inc(Position);
-                              End;
-                            End Else
-                              Exit;
-                          End Else Begin
-                            Error.Code := SP_ERR_MISSING_VARIABLE;
-                            Exit;
-                          End;
-                        End Else Begin
-                          Error.Code := SP_ERR_SYNTAX_ERROR;
-                          Exit;
-                        End;
-                      End Else Begin
-
-                        // The VarList is set up when the pre-parser is called (in SP_Variables.pas).
-                        // It contains a list of parameters which is used to make sure that a parameter that should be
-                        // a reference is passed as such.
-
-                        If (VarList <> '') And (VarList[ParamCount +1] = '!') Then Begin
-                          If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
-                            FnResult := SP_Convert_Var_Assign(Tokens, Position, Error) + FnResult;
-                            If Error.Code = SP_ERR_OK Then Begin
-                              Tkn := @FnResult[1];
-                              If Tkn^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
-                                Dec(Tkn^.Token, 30)
-                              Else
-                                If Tkn^.Token = SP_STRUCT_MEMBER_ASS Then
-                                  Error.Code := SP_ERR_STRUCT_NOT_REF;
-                              If Error.Code <> SP_ERR_OK Then Exit;
-                              Inc(ParamCount);
-                              If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
-                                Inc(Position);
-                                If Tokens[Position] = ')' Then Begin
+                                  If Tokens[Position] = ')' Then Begin
+                                    Inc(Position);
+                                    FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
+                                    Break;
+                                  End Else
+                                    If Tokens[Position] <> ',' Then Begin
+                                      Error.Code := SP_ERR_SYNTAX_ERROR;
+                                      Exit;
+                                    End;
                                   Inc(Position);
-                                  FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
-                                  Break;
-                                End Else
-                                  If Tokens[Position] <> ',' Then Begin
-                                    Error.Code := SP_ERR_SYNTAX_ERROR;
-                                    Exit;
-                                  End;
-                                Inc(Position);
-                              End;
-                            End Else
-                              Exit;
-                          End Else Begin
-                            Error.Code := SP_ERR_MISSING_VARIABLE;
-                            Exit;
-                          End;
-                        End Else Begin
-
-                          // The Var list doesn't exist (so it hasn't been pre-parsed yet) - so just process the parameters as normal.
-
-                          Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
-                          If ((Expr = '') And (Error.ReturnType = SP_UNKNOWN)) or (Error.Code <> SP_ERR_OK) Then Exit;
-                          FnResult := Expr + FnResult;
-                          Inc(ParamCount);
-                          If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
-                            Inc(Position);
-                            If Tokens[Position] = ')' Then Begin
-                              Inc(Position);
-                              FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
-                              Break;
-                            End Else
-                              If Tokens[Position] <> ',' Then Begin
-                                Error.Code := SP_ERR_SYNTAX_ERROR;
+                                End;
+                              End Else
                                 Exit;
-                              End;
-                            Inc(Position);
+                            End Else Begin
+                              Error.Code := SP_ERR_MISSING_VARIABLE;
+                              Exit;
+                            End;
+                          End Else Begin
+                            Error.Code := SP_ERR_SYNTAX_ERROR;
+                            Exit;
+                          End;
+                        End Else Begin
+
+                          // The VarList is set up when the pre-parser is called (in SP_Variables.pas).
+                          // It contains a list of parameters which is used to make sure that a parameter that should be
+                          // a reference is passed as such.
+
+                          If (VarList <> '') And (VarList[ParamCount +1] = '!') Then Begin
+                            If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
+                              FnResult := SP_Convert_Var_Assign(Tokens, Position, Error) + FnResult;
+                              If Error.Code = SP_ERR_OK Then Begin
+                                Tkn := @FnResult[1];
+                                If Tkn^.Token in [SP_NUMVAR_LET, SP_STRVAR_LET] Then
+                                  Dec(Tkn^.Token, 30)
+                                Else
+                                  If Tkn^.Token = SP_STRUCT_MEMBER_ASS Then
+                                    Error.Code := SP_ERR_STRUCT_NOT_REF;
+                                If Error.Code <> SP_ERR_OK Then Exit;
+                                Inc(ParamCount);
+                                If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
+                                  Inc(Position);
+                                  If Tokens[Position] = ')' Then Begin
+                                    Inc(Position);
+                                    FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
+                                    Break;
+                                  End Else
+                                    If Tokens[Position] <> ',' Then Begin
+                                      Error.Code := SP_ERR_SYNTAX_ERROR;
+                                      Exit;
+                                    End;
+                                  Inc(Position);
+                                End;
+                              End Else
+                                Exit;
+                            End Else Begin
+                              Error.Code := SP_ERR_MISSING_VARIABLE;
+                              Exit;
+                            End;
+                          End Else Begin
+
+                            // The Var list doesn't exist (so it hasn't been pre-parsed yet) - so just process the parameters as normal.
+
+                            Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+                            If ((Expr = '') And (Error.ReturnType = SP_UNKNOWN)) or (Error.Code <> SP_ERR_OK) Then Exit;
+                            FnResult := Expr + FnResult;
+                            Inc(ParamCount);
+                            If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
+                              Inc(Position);
+                              If Tokens[Position] = ')' Then Begin
+                                Inc(Position);
+                                FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
+                                Break;
+                              End Else
+                                If Tokens[Position] <> ',' Then Begin
+                                  Error.Code := SP_ERR_SYNTAX_ERROR;
+                                  Exit;
+                                End;
+                              Inc(Position);
+                            End;
                           End;
                         End;
                       End;
-                    End;
                   End Else
                     FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(ParamCount);
                 End Else Begin
@@ -12417,30 +12425,33 @@ Begin
     If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = '(') Then Begin
 
       Inc(Position, 2);
-      While True Do Begin
+      if (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ')') Then
+        Inc(Position, 2)
+      Else
+        While True Do Begin
 
-        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_REF) Then Begin
-          Inc(Position, 1 + SizeOf(longWord));
-        End;
+          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_REF) Then Begin
+            Inc(Position, 1 + SizeOf(longWord));
+          End;
 
-        If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
-          Inc(Position, 1 + (SizeOf(LongWord)*2) + pLongWord(@Tokens[Position +1 + SizeOf(LongWord)])^);
-          If Byte(Tokens[Position]) = SP_SYMBOL Then
-            If Tokens[Position +1] = ')' Then Begin
-              Inc(Position, 2);
-              Exit
-            End Else
-              If Tokens[Position +1] <> ',' Then Begin
-                Error.Code := SP_ERR_MISSING_COMMA;
-                Exit;
-              End Else
+          If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
+            Inc(Position, 1 + (SizeOf(LongWord)*2) + pLongWord(@Tokens[Position +1 + SizeOf(LongWord)])^);
+            If Byte(Tokens[Position]) = SP_SYMBOL Then
+              If Tokens[Position +1] = ')' Then Begin
                 Inc(Position, 2);
-        End Else Begin
-          Error.Code := SP_ERR_MISSING_VARIABLE;
-          Exit;
-        End;
+                Exit
+              End Else
+                If Tokens[Position +1] <> ',' Then Begin
+                  Error.Code := SP_ERR_MISSING_COMMA;
+                  Exit;
+                End Else
+                  Inc(Position, 2);
+          End Else Begin
+            Error.Code := SP_ERR_MISSING_VARIABLE;
+            Exit;
+          End;
 
-      End;
+        End;
 
     End;
 
@@ -12596,33 +12607,36 @@ Begin
     If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = '(') Then Begin
 
       Inc(Position, 2);
-      While True Do Begin
+      if (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ')') Then
+        Inc(Position, 2)
+      Else
+        While True Do Begin
 
-        If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
-          VarType := Tokens[Position];
-          Inc(Position, SizeOf(LongWord)+1);
-          NameLen := pLongWord(@Tokens[Position])^;
-          Inc(Position, SizeOf(LongWord));
-          Name := LowerNoSpaces(Copy(Tokens, Position, NameLen));
-          Inc(Position, NameLen);
-          Result := CreateToken(Byte(VarType), Position, Length(Name) + SizeOf(LongWord)) + LongWordToString(0) + Name + Result;
-          Inc(VarCount);
-          If Byte(Tokens[Position]) = SP_SYMBOL Then
-            If Tokens[Position +1] = ')' Then Begin
-              Inc(Position, 2);
-              Break;
-            End Else
-              If Tokens[Position +1] <> ',' Then Begin
-                Error.Code := SP_ERR_MISSING_COMMA;
-                Exit;
-              End Else
+          If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
+            VarType := Tokens[Position];
+            Inc(Position, SizeOf(LongWord)+1);
+            NameLen := pLongWord(@Tokens[Position])^;
+            Inc(Position, SizeOf(LongWord));
+            Name := LowerNoSpaces(Copy(Tokens, Position, NameLen));
+            Inc(Position, NameLen);
+            Result := CreateToken(Byte(VarType), Position, Length(Name) + SizeOf(LongWord)) + LongWordToString(0) + Name + Result;
+            Inc(VarCount);
+            If Byte(Tokens[Position]) = SP_SYMBOL Then
+              If Tokens[Position +1] = ')' Then Begin
                 Inc(Position, 2);
-        End Else Begin
-          Error.Code := SP_ERR_MISSING_VARIABLE;
-          Exit;
-        End;
+                Break;
+              End Else
+                If Tokens[Position +1] <> ',' Then Begin
+                  Error.Code := SP_ERR_MISSING_COMMA;
+                  Exit;
+                End Else
+                  Inc(Position, 2);
+          End Else Begin
+            Error.Code := SP_ERR_MISSING_VARIABLE;
+            Exit;
+          End;
 
-      End;
+        End;
 
     End;
 

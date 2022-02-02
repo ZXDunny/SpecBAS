@@ -2090,6 +2090,7 @@ Begin
     // No need to track colours for this.
 
     If AddedEndChars <> '' Then Begin
+      c := #0;
       CodeLine := Copy(CodeLine, 1, Length(CodeLine) - Length(AddedEndChars));
       i := 1; m := 1; l := Length(Codeline);
       If l > 0 Then Begin
@@ -2988,7 +2989,6 @@ Procedure SP_CalculateFPCursorPos;
 Var
   Idx, Cpx, OfsX, OfsY, Lc, LL, sl: Integer;
   VertSB, HorzSB: pSP_ScrollBar;
-  Skip: Boolean;
   s: aString;
 Begin
 
@@ -6083,7 +6083,6 @@ Begin
     End;
     SP_TextOut(-1, X, Y, EdSc + CText, 0 + (8 * Ord(FocusedWindow <> fwDirect)), 7, True, True);
     EL_Text := Copy(EL_Text, Length(CText) - (5 * Ord((CText[1] = #17) And (EL_Text[1] <> #17))) +1);
-    TLen := DWTextWidth;
     Inc(Y, FPFh);
   End;
 

@@ -213,7 +213,7 @@ Begin
           c := fGhostText[fCursorPos];
 
       if c < ' ' Then
-        s := #5 + c
+        s := aChar(#5) + c
       else
         s := c;
       Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, fCursFg, fCursBg, iSX, iSY, False, False);

@@ -2460,7 +2460,6 @@ Begin
         If Idx2 + SP_KEYWORD_BASE = SP_KW_REM Then Begin
           NewSyntax := kwdClr;
           Wd := Tw + remClr;
-          l1 := Length(Wd);
           Wd := Wd + Copy(CodeLine, Idx);
           IsREM := True;
           Idx := L +1;

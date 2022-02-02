@@ -3418,11 +3418,17 @@ Procedure SP_InterpretCONTSafe(Const Tokens: paString; Var nPosition: Integer; V
 Var
   cLine, cStatement: Integer;
 Begin
-  cLine := CONTLINE;
-  cStatement := CONTSTATEMENT;
-  SP_Interpret(Tokens, nPosition, Error);
-  CONTSTATEMENT := cStatement;
-  CONTLINE := cLine;
+  Inc(INPROC);
+  If INPROC > 1023 Then
+    Error.Code := SP_ERR_OUT_OF_MEMORY
+  Else Begin
+    cLine := CONTLINE;
+    cStatement := CONTSTATEMENT;
+    SP_Interpret(Tokens, nPosition, Error);
+    CONTSTATEMENT := cStatement;
+    CONTLINE := cLine;
+  End;
+  Dec(INPROC);
 End;
 
 Procedure SP_Interpret(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
@@ -8866,7 +8872,7 @@ Begin
             Idx := Round(Val);
             SP_UpdateNumArray(Idx, Str, gbIndices, gbKey, Sp1^.Val, Info^.Error^);
             If Idx <> -1 Then
-              If Not INPROC Then
+              If INPROC = 0 Then
                 SP_StackPtr^.Ptr^ := Idx +1;
           End;
           Dec(SP_StackPtr, 2);
@@ -11410,7 +11416,7 @@ Begin
                 Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
                 Exit;
               End;
-              If Not INPROC Then Ptr^ := Idx +1;
+              If INPROC = 0 Then Ptr^ := Idx +1;
             End Else
               Dec(Idx);
             Value := SP_QueryNumArray(Idx, gbIndices, gbKey, Info^.Error^);
@@ -11489,7 +11495,7 @@ Begin
                 Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
                 Exit;
               End;
-              If Not INPROC Then Ptr^ := Idx +1;
+              If INPROC = 0 Then Ptr^ := Idx +1;
             End Else
               Dec(Idx);
             Value := SP_QueryNumArray(Idx, gbIndices, gbKey, Info^.Error^) + Increment;
@@ -11557,7 +11563,7 @@ Begin
                 Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
                 Exit;
               End;
-              If Not INPROC Then Ptr^ := Idx +1;
+              If INPROC = 0 Then Ptr^ := Idx +1;
             End Else
               Dec(Idx);
             Value := SP_QueryNumArray(Idx, gbIndices, gbKey, Info^.Error^);
@@ -11627,7 +11633,7 @@ Begin
                 Info^.Error^.Code := SP_ERR_ARRAY_NOT_FOUND;
                 Exit;
               End;
-              If Not INPROC Then Ptr^ := Idx +1;
+              If INPROC = 0 Then Ptr^ := Idx +1;
             End Else
               Dec(Idx);
             Value := SP_QueryNumArray(Idx, gbIndices, gbKey, Info^.Error^) - Decrement;
@@ -12363,7 +12369,7 @@ Begin
           With SP_StackPtr^ Do Begin
             Idx := Round(Val);
             Idx := SP_UpdateNumArray(Idx, Str, gbIndices, gbKey, Sp1^.Val, Info^.Error^);
-            If Not INPROC Then Ptr^ := Idx +1;
+            If INPROC = 0 Then Ptr^ := Idx +1;
           End;
           Dec(SP_StackPtr, 2);
         End;
@@ -15939,7 +15945,9 @@ FoundIt:
         NXTSTATEMENT := TempLine.Statement;
         NXTST := TempLine.St;
         Error.ReturnType := SP_JUMP;
-        INPROC := True;
+        Inc(INPROC);
+        If INPROC > 1023 Then
+          Error.Code := SP_ERR_OUT_OF_MEMORY;
 
       End Else
 
@@ -15974,7 +15982,7 @@ Begin
     Dec(SP_GOSUB_STACKPTR);
 
     Info^.Error^.ReturnType := SP_EXIT;
-    INPROC := False;
+    Dec(INPROC);
 
   End Else
 
@@ -16000,7 +16008,7 @@ Begin
     Info^.Error^.Statement := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].St;
     Dec(SP_GOSUB_STACKPTR);
     Info^.Error^.ReturnType := SP_EXIT;
-    INPROC := False;
+    Dec(INPROC);
 
   End Else
     Info^.Error^.Code := SP_ERR_EXITPROC_WITHOUT_PROC_CALL;
@@ -16233,9 +16241,7 @@ Begin
 
       ValPosition := 1;
       ValTkn := @SP_FnList[Idx].Expr;
-      INPROC := True;
       SP_InterpretCONTSafe(ValTkn, ValPosition, Info^.Error^);
-      INPROC := False;
 
       // Now remove the variables
 

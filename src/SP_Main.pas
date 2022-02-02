@@ -258,6 +258,7 @@ Var
   Key: pSP_KeyInfo;
 Begin
 
+  Result := False;
   If SCREENBANK < 0 Then Exit; // Don't do this is the surface is a graphic.
 
   Dec(SCROLLCNT);
@@ -382,16 +383,19 @@ Begin
   NumStatements := pLongWord(Idx)^;
   Inc(Idx, SizeOf(LongWord));
 
-  For Result := 1 To numStatements Do Begin
-    ofs1 := pLongWord(Idx)^;
-    If Result = numStatements Then
-      ofs2 := Length(Tokens^)
-    Else
-      ofs2 := pLongWord(LongWord(Idx) + SizeOf(LongWord))^;
-    If (LongWord(Offset) >= Ofs1) And (LongWord(Offset) < Ofs2) Then
-      Exit;
-    Inc(Idx, SizeOf(LongWord));
-  End;
+  If NumStatements >= 1 Then Begin
+    For Result := 1 To numStatements Do Begin
+      ofs1 := pLongWord(Idx)^;
+      If Result = numStatements Then
+        ofs2 := Length(Tokens^)
+      Else
+        ofs2 := pLongWord(LongWord(Idx) + SizeOf(LongWord))^;
+      If (LongWord(Offset) >= Ofs1) And (LongWord(Offset) < Ofs2) Then
+        Exit;
+      Inc(Idx, SizeOf(LongWord));
+    End;
+  End Else
+    Result := 1;
 
 End;
 

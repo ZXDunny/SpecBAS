@@ -15,9 +15,7 @@
 //
 // You should have received a copy of the GNU General Public License
 // along with SpecBAS.  If not, see <http://www.gnu.org/licenses/>.
-
 program SpecBAS;
-
 uses
   Forms,
   MainForm in 'MainForm.pas' {Main},
@@ -70,7 +68,6 @@ uses
   SP_ProgressBarUnit in 'SP_ProgressBarUnit.pas';
 
 {$R *.res}
-
 begin
   Application.Initialize;
   Application.MainFormOnTaskbar := True;

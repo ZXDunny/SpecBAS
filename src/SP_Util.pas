@@ -1035,7 +1035,7 @@ Begin
   Ln := Length(Text);
   Result := False;
   Idx := 1;
-  While Idx < Ln Do Begin
+  While Idx <= Ln Do Begin
     c := Text[Idx];
     If c > #32 Then Begin
       Result := True;

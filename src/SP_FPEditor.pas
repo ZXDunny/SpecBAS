@@ -2712,11 +2712,11 @@ Begin
           While (CodeLine[dIdx] < ' ') and (CodeLine[dIdx] <> #5) Do Inc(dIdx, 5);
           cIdx := dIdx;
           If Not SP_WasPrevSoft(Idx) Then
-            While (cIdx < l) And (CodeLine[cIdx] in ['0'..'9']) Do Begin
+            While (cIdx <= l) And (CodeLine[cIdx] in ['0'..'9']) Do Begin
               HasNumber := True;
               Inc(Cpx);
               Inc(cIdx);
-              While (cIdx < l) And (CodeLine[cIdx] < ' ') and (CodeLine[cIdx] <> #5) Do Inc(cIdx, 5);
+              While (cIdx <= l) And (CodeLine[cIdx] < ' ') and (CodeLine[cIdx] <> #5) Do Inc(cIdx, 5);
             End;
           // If the line has a number, then draw it in the gutter.
           If HasNumber Then Begin

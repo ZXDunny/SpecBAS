@@ -2510,7 +2510,7 @@ Var
   SelectionStartsAt, Font, pClr, gClr, l, OldSt, ContIdx, llbpx, llbpy: Integer;
   HasNumber, ContainsSelection, Editing, DoneProgline, DontDoProgLine, IsProgLine, Highlight, DoDraw, DoDrawSt, InString,
   InREM, InClr, DrawnCONTLocation: Boolean;
-  CodeLine, NumberLine, EmptyGutter, s, IndStr, tempS: aString;
+  CodeLine, NumberLine, EmptyGutter, s, IndStr, tempS, selStr: aString;
   VertSB, HorzSB: pSP_ScrollBar;
   Sel: SP_SelectionInfo;
   Win: pSP_Window_Info;
@@ -2595,6 +2595,10 @@ Begin
       OfsX := -Trunc(HorzSB^.Position) + (FPGutterWidth * FPFw);
 
     SP_GetSelectionInfo(Sel);
+    If FocusedWindow = fwEditor Then
+      SelStr := SelClr
+    Else
+      SelStr := SelUFClr;
 
     // If this is a line beyond the listing's bounds then we might be erasing the last line in the program due
     // to a deleted line further up so draw the blank editor paper.
@@ -2674,16 +2678,16 @@ Begin
         // If this line is part of a selection then insert the necessary colour commands now
         ContainsSelection := False;
         SelectionStartsAt := 1;
-        If (Sel.Active) And (FocusedWindow = fwEditor) Then
+        If Sel.Active Then
           If (Idx >= Sel.StartL) And (Idx <= Sel.EndL) Then Begin
             If (Idx <> Sel.StartL) And (Idx <> Sel.EndL) Then Begin
-              CodeLine := SelClr + CodeLine;
+              CodeLine := SelStr + CodeLine;
               SelectionStartsAt := 1;
               ContainsSelection := True;
             End Else Begin
               If Idx = Sel.StartL Then Begin // Line containing Selection start?
                 Ps := SP_GetCharPos(CodeLine, Sel.StartP);
-                CodeLine := Copy(CodeLine, 1, Ps -1) + SelClr + Copy(CodeLine, Ps);
+                CodeLine := Copy(CodeLine, 1, Ps -1) + SelStr + Copy(CodeLine, Ps);
                 SelectionStartsAt := Ps;
                 ContainsSelection := True;
               End;
@@ -2695,7 +2699,7 @@ Begin
                 Else
                   CodeLine := Copy(CodeLine, 1, Ps -1) + BackClr + Copy(CodeLine, Ps);
                 If Idx <> Sel.StartL Then Begin
-                  CodeLine := SelClr + CodeLine;
+                  CodeLine := SelStr + CodeLine;
                   SelectionStartsAt := 1;
                   ContainsSelection := True;
                 End;
@@ -2743,13 +2747,13 @@ Begin
           // in the gutter or not.
           If ContainsSelection Then Begin
             If (Idx = Sel.EndL) And (Sel.EndP > Cpx) And Sel.Multiline Then
-              NumberLine := SelClr
+              NumberLine := SelStr
             Else
               If (Idx = Sel.EndL) And (SelectionStartsAt <= cIdx) And (Ps >= cIdx) Then
-                NumberLine := SelClr
+                NumberLine := SelStr
               Else
                 If (Idx >= Sel.StartL) And (Idx < Sel.EndL) And (SelectionStartsAt <= cIdx) Then
-                  NumberLine := SelClr
+                  NumberLine := SelStr
                 Else
                   NumberLine := '';
           End Else
@@ -9252,7 +9256,7 @@ Begin
               SP_GetSelectionInfo(Sel);
               Listing.FPCLine := FPFindResults[i].Line;
               Listing.FPCPos := FPFindResults[i].Position;
-              SP_FPClearSelection(Sel);
+              If Not LastFindWasReplace Then SP_FPClearSelection(Sel);
               FPCDes := Listing.FPCPos;
               FPCDesLine := Listing.FPCLine;
               Break;
@@ -9281,7 +9285,7 @@ Begin
               Else Begin
                 Listing.FPCLine := FPFindResults[j].Line;
                 Listing.FPCPos := FPFindResults[j].Position;
-                SP_FPClearSelection(Sel);
+                If Not LastFindWasReplace Then SP_FPClearSelection(Sel);
                 FPCDes := Listing.FPCPos;
                 FPCDesLine := Listing.FPCLine;
                 i := j;
@@ -9300,10 +9304,15 @@ Begin
         If soAll in FPSearchOptions Then Begin
           FPShowingSearchResults := False;
           i := 0;
-          While i < Length(FPFindResults) Do
+          While i < Length(FPFindResults) Do Begin
             PerformReplace(i);
-        End Else
+            Inc(i);
+          End;
+          SP_FPWrapProgram;
+        End Else Begin
           PerformReplace(i);
+          SP_FPWordWrapLine(FPFindResults[i].Line);
+        End;
         Listing.CompleteUndo;
       End;
 
@@ -9322,12 +9331,13 @@ End;
 
 Procedure PerformReplace(Var Idx: Integer);
 Var
-  j, p, l, l2, sl, line, posn: Integer;
+  i, j, p, l, l2, sl, line, posn, delta: Integer;
   old_opt: SP_SearchOptions;
   Error: TSP_ErrorCode;
   s: aString;
 Begin
 
+  delta := Length(FPReplaceTerm) - Length(FPSearchTerm);
   j := FPFindResults[idx].Line;
   p := FPFindResults[idx].Position;
   l := FPFindResults[idx].Length;
@@ -9338,27 +9348,16 @@ Begin
     s := Copy(s, 1, p -1) + FPReplaceTerm + Copy(s, p + l + l2);
     Listing[j] := Copy(s, 1, sl);
     Listing[j +1] := Copy(s, sl +1);
-    SP_FPWordWrapLine(j);
+    For i := 0 To Length(FPFindResults) -1 Do
+      If FPFindResults[i].Line = j+1 Then
+        Inc(FPFindResults[i].Position, delta);
   End Else Begin
     If (Idx > 0) And FPFindResults[Idx -1].Split Then Exit;
     Listing[j] := Copy(Listing[j], 1, p -1) + FPReplaceTerm + Copy(Listing[j], p + l);
-    SP_FPWordWrapLine(j);
+    For i := 0 To Length(FPFindResults) -1 Do
+      If (FPFindResults[i].Line = j) and (FPFindResults[i].Position >= (p + l)) Then
+        Inc(FPFindResults[i].Position, delta);
   End;
-
-  // Need to re-do all the search results due to possible line length changes.
-
-  old_opt := FPSearchOptions;
-  FPSearchOptions := FPSearchOptions - [soStart] + [soCursorPos];
-  line := Listing.FPCLine; Listing.FPCLine := j;
-  Posn := Listing.FPCPos; Listing.FPCPos := FPFindResults[Idx].Position + Length(FPReplaceTerm);
-
-  SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
-
-  FPSearchOptions := old_opt;
-  Listing.FPCLine := line;
-  Listing.FPCPos := posn;
-
-  idx := 0;
 
 End;
 
@@ -9654,6 +9653,7 @@ Begin
   mathClr     := #16#0#0#0#0#26#0#0#0#0#27#0#0#0#0;    // Math op
   labClr      := #16#1#0#0#0#26#1#0#0#0#27#0#0#0#0;    // Label
   SelClr      := #17#5#0#0#0#26#8#0#0#0#27#8#0#0#0;    // Selected text colour
+  SelUFClr    := #17#240#0#0#0#26#8#0#0#0#27#8#0#0#0;  // Selected text colour, unfocused
   SearchClr   := #17#208#0#0#0#26#8#0#0#0#27#8#0#0#0;  // Search term highlight
   NoSearchClr := #28#0#0#0#0#26#8#0#0#0#27#8#0#0#0;    // End of search term
   BraceHltClr := #17#6#0#0#0#26#8#0#0#0#27#8#0#0#0;    // Bracket highlight - applies to ()[]

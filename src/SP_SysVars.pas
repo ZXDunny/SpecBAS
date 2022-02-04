@@ -320,6 +320,7 @@ Var
   mathClr:                  aString;
   labClr:                   aString;
   SelClr:                   aString;
+  SelUFClr:                 aString;
   SearchClr:                aString;
   NoSearchClr:              aString;
   BraceClr:                 aString;
@@ -1552,7 +1553,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..243] of TSysVar =
+  SysVars: Array[0..244] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
@@ -1773,6 +1774,7 @@ Const
    (Name: 'MATHCLR'; svType: svString; Size: 0; Data: @mathClr),
    (Name: 'LABCLR'; svType: svString; Size: 0; Data: @labClr),
    (Name: 'SELCLR'; svType: svString; Size: 0; Data: @selClr),
+   (Name: 'SELUFCLR'; svType: svString; Size: 0; Data: @selUFClr),
    (Name: 'SEARCHCLR'; svType: svString; Size: 0; Data: @searchClr),
    (Name: 'NOSEARCHCLR'; svType: svString; Size: 0; Data: @noSearchClr),
    (Name: 'BRACEHLTCLR'; svType: svString; Size: 0; Data: @BraceHltClr),

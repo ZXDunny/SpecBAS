@@ -4705,13 +4705,11 @@ Procedure RefreshDirtyLines;
 Var
   i: Integer;
 Begin
-  CompilerLock.Enter;
   If Length(DirtyLines) > 0 Then
     While MaxDirtyLines >= 0 Do Begin
       i := DirtyLines[0];
       SP_DisplayFPListing(i);
     End;
-  CompilerLock.Leave;
 End;
 
 Procedure SP_ToggleEditorMark(i: Integer);

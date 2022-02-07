@@ -245,9 +245,9 @@ Begin
     GLMX := MOUSESTOREX; GLMY := MOUSESTOREY;
     GLMW := MOUSESTOREW; GLMH := MOUSESTOREH;
     {$ENDIF}
-    SP_RestoreMouseRegion;
     If (Not SCREENLOCK) or UPDATENOW Then Begin
       If SCMAXX >= SCMINX Then Begin
+        SP_RestoreMouseRegion;
         While SetDR Do Sleep(1); SetDR := True;
         X1 := SCMINX; Y1 := SCMINY; X2 := SCMAXX +1; Y2 := SCMAXY +1;
         {$IFDEF OPENGL}
@@ -263,24 +263,24 @@ Begin
         If Assigned(DISPLAYPOINTER) Then
           SP_Composite32(DISPLAYPOINTER, X1, Y1, X2, Y2);
         UPDATENOW := False;
+        MOUSEMOVED := False;
+        If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then Begin
+          SP_DrawMouseImage;
+          If (MOUSESTOREX <> GLMX) or (MOUSESTOREY <> GLMY) Then Begin
+            Mx2 := Max(GLMX + GLMW, MOUSESTOREX + MOUSESTOREW +1);
+            My2 := Max(GLMY + GLMH, MOUSESTOREY + MOUSESTOREH +1);
+            Mx1 := Min(GLMX, MOUSESTOREX);
+            My1 := Min(GLMY, MOUSESTOREY);
+            GLMX := Mx1; GLMY := My1; GLMW := Mx2-Mx1; GLMH := My2-My1;
+            MOUSEMOVED := True;
+            Result := True;
+          End;
+        End;
+        GLMX := Min(Max(GLMX, 0), DISPLAYWIDTH); GLMY := Min(Max(GLMY, 0), DISPLAYHEIGHT);
+        If GLMX + GLMW >= DISPLAYWIDTH  Then GLMW := DISPLAYWIDTH - GLMX;
+        If GLMY + GLMH >= DISPLAYHEIGHT Then GLMH := DISPLAYHEIGHT - GLMY;
       End;
     End;
-    MOUSEMOVED := False;
-    If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then Begin
-      SP_DrawMouseImage;
-      If (MOUSESTOREX <> GLMX) or (MOUSESTOREY <> GLMY) Then Begin
-        Mx2 := Max(GLMX + GLMW, MOUSESTOREX + MOUSESTOREW +1);
-        My2 := Max(GLMY + GLMH, MOUSESTOREY + MOUSESTOREH +1);
-        Mx1 := Min(GLMX, MOUSESTOREX);
-        My1 := Min(GLMY, MOUSESTOREY);
-        GLMX := Mx1; GLMY := My1; GLMW := Mx2-Mx1; GLMH := My2-My1;
-        MOUSEMOVED := True;
-        Result := True;
-      End;
-    End;
-    GLMX := Min(Max(GLMX, 0), DISPLAYWIDTH); GLMY := Min(Max(GLMY, 0), DISPLAYHEIGHT);
-    If GLMX + GLMW >= DISPLAYWIDTH  Then GLMW := DISPLAYWIDTH - GLMX;
-    If GLMY + GLMH >= DISPLAYHEIGHT Then GLMH := DISPLAYHEIGHT - GLMY;
   End;
   DRAWING := False;
 End;
@@ -688,9 +688,8 @@ begin
   // Ensure the mouse pointer is drawn at the new position
 
   If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then Begin
+    SP_SetDirtyRect(X, Y, X + GLMW, Y + GLMH);
     SP_NeedDisplayUpdate := True;
-    If PROGSTATE = SP_PR_STOP Then
-      UPDATENOW := True;
   End;
 
   If (CURMENU <> -1) And (ssRight in Shift) And MENUSHOWING Then Begin

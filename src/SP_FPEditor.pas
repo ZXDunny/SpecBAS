@@ -2762,10 +2762,13 @@ Begin
           IndStr := SP_StringOfChar(' ', Listing.Flags[Idx].Indent);
           If DoDraw Then
             If Highlight Then Begin
+              if ContainsSelection then i := LineClr Else i := -1;
               s := SP_StriphighlightedTrailingSpaces(Copy(CodeLine, cIdx));
-              SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + s, 0, LineClr, True, True);
-            End Else
-              SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + Copy(CodeLine, cIdx), 0, pClr, True, True);
+              SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + s, 0, i, True, True);
+            End Else Begin
+              if ContainsSelection then i := pClr Else i := -1;
+              SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + Copy(CodeLine, cIdx), 0, i, True, True);
+            End;
           T_CLIPX1 := FPClientLeft;
         End;
         // Clear scaling for drawing small font items
@@ -3024,22 +3027,22 @@ Begin
       While (s[Idx] < ' ') And (s[Idx] <> #5) Do Begin
         If s[Idx] = #26 Then Begin
           If Ord(s[Idx +1]) <> 8 Then
-            T_ITALIC := Ord(s[Idx +1])
+            CURSORITALIC := Ord(s[Idx +1])
         End Else
           If s[Idx] = #27 Then
             If Ord(s[Idx +1]) <> 8 Then
-              T_BOLD := Ord(s[Idx +1]);
+              CURSORBOLD := Ord(s[Idx +1]);
         Inc(Idx, 5);
       End;
       While Cpx < Listing.FPCPos Do Begin
         If (s[Idx] < ' ') and (s[Idx] <> #5) Then Begin
           If s[Idx] = #26 Then Begin
             If Ord(s[Idx +1]) <> 8 Then
-              T_ITALIC := Ord(s[Idx +1])
+              CURSORITALIC := Ord(s[Idx +1])
           End Else
             If s[Idx] = #27 Then
               If Ord(s[Idx +1]) <> 8 Then
-                T_BOLD := Ord(s[Idx +1]);
+                CURSORBOLD := Ord(s[Idx +1]);
           Inc(Idx, 5);
         End Else Begin
           If s[Idx] = #5 Then
@@ -3051,11 +3054,11 @@ Begin
       While (s[Idx] < ' ') and (s[Idx] <> #5) Do Begin
         If s[Idx] = #26 Then Begin
           If Ord(s[Idx +1]) <> 8 Then
-            T_ITALIC := Ord(s[Idx +1])
+            CURSORITALIC := Ord(s[Idx +1])
         End Else
           If s[Idx] = #27 Then
             If Ord(s[Idx +1]) <> 8 Then
-              T_BOLD := Ord(s[Idx +1]);
+              CURSORBOLD := Ord(s[Idx +1]);
         Inc(Idx, 5);
       End;
       If s[Idx] = #5 Then Inc(Idx);
@@ -3194,10 +3197,10 @@ Begin
   It := T_ITALIC;
   Bl := T_BOLD;
 
-//  SP_CalculateFPCursorPos;
   s := aChar(CURSORCHAR);
-  if CURSORCHAR < 32 Then
-    s := #5 + s;
+  if CURSORCHAR < 32 Then s := #5 + s;
+  If CURSORITALIC <> 0 Then s := #26 + LongWordToString(1) + s;
+  If CURSORBOLD <> 0 Then s := #27 + LongWordToString(1) + s;
   SP_TEXTOUT(-1, CURSORX, CURSORY, EdSc + s, Fg, Bg, True, True);
 
   SP_ClearEditorClipping;
@@ -7138,10 +7141,11 @@ Begin
 
     End;
 
-    If (CURSORPOS <= 0) or (CURSORPOS > Length(EDITLINE)) Then
-      CURSORCHAR := 32
-    Else
-      CURSORCHAR := Ord(EDITLINE[CURSORPOS]);
+    If FocusedWindow = fwDirect Then
+      If (CURSORPOS <= 0) or (CURSORPOS > Length(EDITLINE)) Then
+        CURSORCHAR := 32
+      Else
+        CURSORCHAR := Ord(EDITLINE[CURSORPOS]);
 
   End Else Begin
     PlayClick;
@@ -9632,7 +9636,7 @@ Begin
 
   // #16#1#0#0#0 will make blue INK. #17#4#0#0#0 will make green PAPER.
 
-  BackClr     := #17#7#0#0#0#26#0#0#0#0#27#0#0#0#0;    // Background colour
+  BackClr     := #17#7#0#0#0{#26#0#0#0#0#27#0#0#0#0};    // Background colour
   noClr       := #16#0#0#0#0#27#0#0#0#0#26#0#0#0#0;    // No highlight - black ink, no bold, no italic
   kwdClr      := #16#0#0#0#0#27#1#0#0#0#26#0#0#0#0;    // Keyword
   fnClr       := #16#0#0#0#0#27#1#0#0#0#26#0#0#0#0;    // Function

@@ -164,6 +164,8 @@ Var
   CURSORCHAR:               Byte;         // The character that is currently being covered by the cursor.
   CURSORFG:                 Longword;     // The foreground colour of the cursor
   CURSORBG:                 Longword;     // The background colour of the cursor. Flipped while flashing.
+  CURSORBOLD:               LongWord;     // Is the cursor on a BOLD char?
+  CURSORITALIC:             LongWord;     // Is the cursor on an ITALIC char?
   INPUTLINE:                aString;      // The current line of input
   INPUTCSR1:                LongWord;     // Two colours used by the INPUT cursor
   INPUTCSR2:                LongWord;

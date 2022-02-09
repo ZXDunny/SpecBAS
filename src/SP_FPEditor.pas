@@ -2509,7 +2509,7 @@ Var
   Idx, cIdx, dIdx, Cpx, OfsY, OfsX, Ps, st, LineNum, Window, cursLineNum, MinY, MaxY, ty, i, j: Integer;
   SelectionStartsAt, Font, pClr, gClr, l, OldSt, ContIdx, llbpx, llbpy: Integer;
   HasNumber, ContainsSelection, Editing, DoneProgline, DontDoProgLine, IsProgLine, Highlight, DoDraw, DoDrawSt, InString,
-  InREM, InClr, DrawnCONTLocation: Boolean;
+  InREM, InClr, DrawnCONTLocation, ShowingBraces: Boolean;
   CodeLine, NumberLine, EmptyGutter, s, IndStr, tempS, selStr: aString;
   VertSB, HorzSB: pSP_ScrollBar;
   Sel: SP_SelectionInfo;
@@ -2623,6 +2623,7 @@ Begin
 
     While (Idx < Listing.Count) And (OfsY <= MaxY) Do Begin
 
+      If (Line <> -1) And (Idx > Line) Then Break;
       DoDraw := OfsY >= MinY;
 
       tempS := Upper(Listing[Idx]) + ' ';
@@ -2638,6 +2639,9 @@ Begin
       DoDrawSt := OldSt <> St;
 
       If (Line < 0) or (Idx = Line) Then Begin
+
+        ShowingBraces := (FPBracket1Pos > 0) and (FPBracket2Pos > 0) and ((Idx = FPBracket1Line) or (Idx = FPBracket2Line));
+
         // Draw the gutter and paper for a single line
         cIdx := LineNum;
         If SP_WasPrevSoft(Idx) Then LineNum := 0 Else LineNum := SP_GetFPLineNumber(Idx);
@@ -2724,17 +2728,16 @@ Begin
             End;
           // If the line has a number, then draw it in the gutter.
           If HasNumber Then Begin
-            if Listing.Flags[Idx].State in [spLineError, spLineDuplicate] then
-              ps := LineErrClr
-            else
-              ps := 0;
             St := 1;
-            NumberLine := SP_StringOfChar(aChar(' '), FPGutterWidth - Cpx) + Copy(CodeLine, 1, cIdx -1);
+            NumberLine := Copy(CodeLine, 1, cIdx -1);
+            if Listing.Flags[Idx].State in [spLineError, spLineDuplicate] then
+              NumberLine[2] := aChar(LineErrClr);
+            NumberLine := SP_StringOfChar(aChar(' '), FPGutterWidth - Cpx) + NumberLine;
             If DoDraw Then
               If ContainsSelection Then
-                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, ps, gutterClr, True)
+                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, gutterClr, True)
               Else
-                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, ps, -1, True);
+                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, -1, True);
             DoDrawSt := False;
             Listing.Flags[Idx].Line := LineNum;
             Listing.Flags[Idx].Statement := 1;
@@ -2762,11 +2765,11 @@ Begin
           IndStr := SP_StringOfChar(' ', Listing.Flags[Idx].Indent);
           If DoDraw Then
             If Highlight Then Begin
-              if ContainsSelection then i := LineClr Else i := -1;
+              if ContainsSelection or ShowingBraces then i := LineClr Else i := -1;
               s := SP_StriphighlightedTrailingSpaces(Copy(CodeLine, cIdx));
               SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + s, 0, i, True, True);
             End Else Begin
-              if ContainsSelection then i := pClr Else i := -1;
+              if ContainsSelection or ShowingBraces then i := pClr Else i := -1;
               SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + Copy(CodeLine, cIdx), 0, i, True, True);
             End;
           T_CLIPX1 := FPClientLeft;
@@ -2999,6 +3002,8 @@ Var
   s: aString;
 Begin
 
+  CURSORITALIC := 0;
+  CURSORBOLD := 0;
   VertSB := @FPScrollBars[SP_FindScrollBar(FPVertSc)];
   Idx := Trunc(VertSB^.Position/FPFh);
   OfsY := -(Trunc(VertSB^.Position) Mod FPFh) + FPPaperTop;
@@ -3556,7 +3561,7 @@ Begin
         FPCDesLine := Listing.FPCLine;
         If KEYSTATE[K_SHIFT] = 0 Then SP_FPClearSelection(Sel);
         If IsDouble Then SP_SelectWord;
-        FPCDragging := True;
+        FPCDragging := MOUSEBTN = 1;
         FPMDFramesTarget := FRAMES + 10;
         SP_CalculateFPCursorPos;
         SP_CursorPosChanged;
@@ -3575,7 +3580,7 @@ Begin
           CURSORPOS := Min(Length(EDITLINE) +1, ((X - DWTextLeft) Div FPFw) + 1 + (((Y - DWPaperTop) Div FPFh) * DWTextWidth));
           If KEYSTATE[K_SHIFT] = 0 Then
             DWSelP := CURSORPOS;
-          DWCDragging := True;
+          DWCDragging := MOUSEBTN = 1;
           If IsDouble Then SP_SelectWord;
           SP_PlaySystem(CLICKCHAN, CLICKBANK);
           SP_EditorDisplayEditLine;
@@ -9333,9 +9338,7 @@ End;
 
 Procedure PerformReplace(Var Idx: Integer);
 Var
-  i, j, p, l, l2, sl, line, posn, delta: Integer;
-  old_opt: SP_SearchOptions;
-  Error: TSP_ErrorCode;
+  i, j, p, l, l2, sl, delta: Integer;
   s: aString;
 Begin
 

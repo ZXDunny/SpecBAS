@@ -175,7 +175,7 @@ Begin
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
-  Priority := tpHigher;
+  Priority := tpIdle;
   StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
 
@@ -557,7 +557,7 @@ Begin
   NameThreadForDebugging('Interpreter Thread');
 
   ThreadAlive := True;
-  Priority := tpNormal;
+  Priority := tpHigher;
   SP_MainLoop;
   ThreadAlive := False;
   Terminate;
@@ -954,6 +954,7 @@ begin
 
   SP_Init_Sound;
 
+  Setpriorityclass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
   SetProcessAffinityMask(GetCurrentProcess, $F);
 
   BASThread := TSpecBAS_Thread.Create(True);

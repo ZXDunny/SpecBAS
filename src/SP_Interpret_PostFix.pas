@@ -16302,7 +16302,7 @@ Begin
 
     OldProcStack := SP_ProcStackPtr;
     ResultIdx := SP_SetUpPROC(1, Token^.Cache, Error^);
-    If Error^.Code <> SP_ERR_OK Then Exit;
+    If Error^.Code <> SP_ERR_OK Then Exit Else Dec(INPROC);
 
     CurLine := NXTLINE;
     Error^.ReturnType := OldError.ReturnType;
@@ -16371,6 +16371,7 @@ Begin
 
   BailOut :
 
+    Dec(SP_GOSUB_STACKPTR);
     SP_StackPtr := OldSP;
     If ResultType = SP_NUMVAR Then Begin
       Inc(SP_StackPtr);

@@ -2697,7 +2697,8 @@ Begin
               End;
               If Idx = Sel.EndL Then Begin // Line ends the selection?
                 Ps := SP_GetCharPos(CodeLine, Sel.EndP);
-                Inc(ps, 1 + Ord(CodeLine[Ps] = #5));
+                if ps < Length(CodeLine) Then
+                  Inc(ps, 1 + Ord(CodeLine[Ps] = #5));
                 If Not Sel.Multiline And (Idx = Listing.FPCLine) Then
                   CodeLine := Copy(CodeLine, 1, Ps -1) + #17 + aChar(lineClr) + #0#0#0 + Copy(CodeLine, Ps)
                 Else

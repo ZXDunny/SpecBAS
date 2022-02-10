@@ -6576,7 +6576,7 @@ End;
 Function SP_Convert_DIM(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
   DimVarPos, DimVarIdx, DimVarSize, VarPos, VarIdx, VarSize, NumIndices, nSplits: LongWord;
-  DimVarName, VarName, BaseExpr, Expr, AutoExpr, LenExpr, SplitExpr: aString;
+  DimVarName, VarName, BaseExpr, Expr, AutoExpr, LenExpr, SplitExpr, DIMString: aString;
   VarType, DimVarType: Byte;
   Done, AutoArray, IsDynamic, IsSplit, SplitNot: Boolean;
 Label
@@ -6603,6 +6603,7 @@ Begin
 Next_DIM:
 
   LenExpr := '';
+  DIMString := '';
   DimVarType := Byte(Tokens[Position]);
   If Not (DimVarType in [SP_NUMVAR, SP_STRVAR]) Then Begin
     Error.Code := SP_ERR_MISSING_VAR;
@@ -6694,9 +6695,9 @@ Next_DIM:
               Exit;
             End Else Begin
               Inc(NumIndices);
-              Result := Expr + Result;
+              DIMString := Expr + DIMString;
               If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ')') Then Begin
-                Result := Result + CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(NumIndices);
+                DIMString := DIMString + CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(NumIndices);
                 Inc(Position, 2);
                 Break;
               End Else
@@ -6715,7 +6716,7 @@ Next_DIM:
       Done := False;
       Inc(Position, 2);
       While Not Done Do Begin
-        Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result;
+        DIMString := SP_Convert_Expr(Tokens, Position, Error, -1) + DIMString;
         If Error.Code <> SP_ERR_OK Then
           Done := True
         Else
@@ -6786,7 +6787,7 @@ Next_DIM:
           Inc(Position, SizeOf(LongWord));
           VarName := LowerNoSpaces(Copy(Tokens, Position, VarSize));
           Inc(Position, VarSize);
-          Result := CreateToken(SP_NUMVAR, VarPos, SizeOf(LongWord)+Length(VarName)) + LongWordToString(VarIdx) + VarName + Result;
+          DIMString := CreateToken(SP_NUMVAR, VarPos, SizeOf(LongWord)+Length(VarName)) + LongWordToString(VarIdx) + VarName + DIMString;
           If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
             Inc(Position, 2);
             Done := False;
@@ -6801,7 +6802,7 @@ Next_DIM:
                 Inc(Position, SizeOf(LongWord));
                 VarName := LowerNoSpaces(Copy(Tokens, Position, VarSize));
                 Inc(Position, VarSize);
-                Result := CreateToken(VarType, VarPos, SizeOf(LongWord)+Length(VarName)) + LongWordToString(VarIdx) + VarName + Result;
+                DIMString := CreateToken(VarType, VarPos, SizeOf(LongWord)+Length(VarName)) + LongWordToString(VarIdx) + VarName + DIMString;
                 If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '=') Then Begin
                   Inc(Position, 2);
                   Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
@@ -6816,7 +6817,7 @@ Next_DIM:
                         Error.Code := SP_ERR_SYNTAX_ERROR;
                         Exit;
                       End Else Begin
-                        Result := Expr + Result;
+                        DIMString := Expr + DIMString;
                         If Byte(Tokens[Position]) = SP_SYMBOL Then Begin
                            Inc(Position);
                            If Tokens[Position] = ')' Then Begin
@@ -6868,23 +6869,23 @@ Next_DIM:
   End;
 
   If AutoArray Then Begin
-    Result := Result + AutoExpr;
+    DIMString := DIMString + AutoExpr;
     KeyWordID := SP_KW_AUTODIM;
   End Else
     If IsDynamic Then
       KeyWordID := SP_KW_DYNAMIC_DIM;
 
   If IsSplit Then Begin
-    Result := Result + SplitExpr;
+    DIMString := DIMString + SplitExpr;
     KeyWordID := SP_KW_DIM_SPLIT;
     If SplitNOT Then
-      Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat))+aFloatToString(-1)
+      DIMString := DIMString + CreateToken(SP_VALUE, 0, SizeOf(aFloat))+aFloatToString(-1)
     Else
-      Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat))+aFloatToString(1)
+      DIMString := DIMString + CreateToken(SP_VALUE, 0, SizeOf(aFloat))+aFloatToString(1)
   End;
 
-  Result := Result + LenExpr + BaseExpr;
-  Result := Result + CreateToken(DimVarType, DimVarPos, SizeOf(LongWord)+Length(DimVarName)) + LongWordToString(DimVarIdx) + DimVarName;
+  DIMString := DIMString + LenExpr + BaseExpr;
+  Result := Result + DIMString + CreateToken(DimVarType, DimVarPos, SizeOf(LongWord)+Length(DimVarName)) + LongWordToString(DimVarIdx) + DimVarName;
 
   If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
     Result := Result + CreateToken(SP_KEYWORD, 0, SizeOf(LongWord)) + LongWordToString(KeyWordID);

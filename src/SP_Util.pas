@@ -1534,37 +1534,46 @@ Var
   ps, pd, pdb, psb: pByte;
 Begin
 
-  Result := 1;
-  pd := pByte(pNativeUInt(@SubStr)^);
-  ps := pByte(pNativeUInt(@s)^);
-  Inc(ps, StartAt -1);
-  pdb := pd;
-
-  l1 := Length(s);
   l2 := Length(SubStr);
-  l := NativeUInt(ps) + l1;
+  If l2 = 0 Then Begin
 
-  If l2 + StartAt -1 > l1 Then Begin
     Result := 0;
     Exit;
-  End Else
-    While NativeUint(ps) <= l Do Begin
-      If ps^ = pd^ Then Begin
-        psb := ps;
-        While (NativeUInt(psb) <= l) and (psb^ = pd^) Do Begin
-          Inc(psb);
-          Inc(pd);
-          If NativeUInt(pd) = NativeUInt(pdb) + l2 Then
-            Exit;
-        End;
-        pd := pdb;
-      End;
-      Inc(ps);
-      Inc(Result);
-    End;
 
-  If NativeUInt(ps) >= l Then
-    Result := 0;
+  End Else Begin
+
+    Result := 1;
+    pd := pByte(pNativeUInt(@SubStr)^);
+    ps := pByte(pNativeUInt(@s)^);
+    Inc(ps, StartAt -1);
+    pdb := pd;
+
+    l1 := Length(s);
+    l := NativeUInt(ps) + l1;
+
+    If l2 + StartAt -1 > l1 Then Begin
+      Result := 0;
+      Exit;
+    End Else
+      While NativeUint(ps) <= l Do Begin
+        If ps^ = pd^ Then Begin
+          psb := ps;
+          While (NativeUInt(psb) <= l) and (psb^ = pd^) Do Begin
+            Inc(psb);
+            Inc(pd);
+            If NativeUInt(pd) = NativeUInt(pdb) + l2 Then
+              Exit;
+          End;
+          pd := pdb;
+        End;
+        Inc(ps);
+        Inc(Result);
+      End;
+
+    If NativeUInt(ps) >= l Then
+      Result := 0;
+
+  End;
 
 End;
 

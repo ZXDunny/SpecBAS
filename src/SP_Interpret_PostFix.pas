@@ -2927,7 +2927,7 @@ End;
 Procedure SP_Interpret_SP_CHAR_COLON(Var Info: pSP_iInfo);
 Begin
   Inc(Info^.Error^.Statement);
-  SP_StackPtr := SP_StackStart;
+  //SP_StackPtr := SP_StackStart;
   DoPeriodicalEvents(Info^.Error^);
 End;
 
@@ -3709,7 +3709,9 @@ Begin
           Error.Position := SP_FindStatement(Tokens, 1);
         End;
         Info.StrPtr := Info.StrStart + Error.Position -1;
-        SP_StackPtr := SP_StackStart;
+{        if SP_StackPtr <> SP_StackStart Then
+          Log('Unbalanced Stack!');}
+        //SP_StackPtr := SP_StackStart;
         Error^.ReturnType := 0;
         Inc(NXTLINE);
         NXTSTATEMENT := -1;
@@ -7605,7 +7607,7 @@ Begin
           Str := #$F + Str;
         End;
         If (Str[2] = #255) or (nError.Code <> SP_ERR_OK) Then Begin
-          SP_StackPtr := SP_StackStart;
+          //SP_StackPtr := SP_StackStart;
           If nError.Code = SP_ERR_OK Then Error^.Code := SP_ERR_SYNTAX_ERROR Else Error^.Code := nError.Code;
         End;
       End Else
@@ -9743,6 +9745,7 @@ Begin
                     Error.ReturnType := SP_JUMP;
                   End Else Begin
                     Error.ReturnType := SP_VALUE;
+                    Dec(SP_StackPtr);
                     Exit;
                   End;
 
@@ -9755,6 +9758,7 @@ Begin
                     Error.ReturnType := SP_JUMP;
                   End Else Begin
                     Error.ReturnType := SP_VALUE;
+                    Dec(SP_StackPtr);
                     Exit;
                   End;
 
@@ -15897,6 +15901,7 @@ FoundIt:
           VarPosS := VarOffsetS;
           VarPosNA := VarOffsetNA;
           VarPosSA := VarOffsetSA;
+          StackPtr := SP_StackPtr;
         End;
 
         // Push the return address
@@ -15944,6 +15949,10 @@ FoundIt:
         NXTLINE := TempLine.Line;
         NXTSTATEMENT := TempLine.Statement;
         NXTST := TempLine.St;
+        If CALLType <> 0 Then Begin
+          Error.Line := NXTLINE;
+          Error.Statement := NXTST;
+        End;
         Error.ReturnType := SP_JUMP;
         Inc(INPROC);
         If INPROC > 1023 Then
@@ -15972,6 +15981,7 @@ Begin
     SP_ResizeStrVars(SP_ProcStack[SP_ProcStackPtr].VarPosS);
     SP_TruncateNumArrays(SP_ProcStack[SP_ProcStackPtr].VarPosNA);
     SP_TruncateStrArrays(SP_ProcStack[SP_ProcStackPtr].VarPosSA);
+    SP_StackPtr := SP_ProcStack[SP_ProcStackPtr].StackPtr;
     Dec(SP_ProcStackPtr);
 
     NXTLINE := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].Line;
@@ -15979,8 +15989,8 @@ Begin
     NXTST := SP_GOSUB_Stack[SP_GOSUB_STACKPTR -1].St;
     If SP_GOSUB_Stack[SP_GOSUB_STACKPTR -1].Source = SP_KW_ERROR Then IGNORE_ON_ERROR := False;
     Info^.Error^.Statement := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].St;
-    Dec(SP_GOSUB_STACKPTR);
 
+    Dec(SP_GOSUB_STACKPTR);
     Info^.Error^.ReturnType := SP_EXIT;
     Dec(INPROC);
 
@@ -16001,6 +16011,7 @@ Begin
     SP_ResizeStrVars(SP_ProcStack[SP_ProcStackPtr].VarPosS);
     SP_TruncateNumArrays(SP_ProcStack[SP_ProcStackPtr].VarPosNA);
     SP_TruncateStrArrays(SP_ProcStack[SP_ProcStackPtr].VarPosSA);
+    SP_StackPtr := SP_ProcStack[SP_ProcStackPtr].StackPtr;
     Dec(SP_ProcStackPtr);
 
     NXTLINE := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].Line;
@@ -16285,6 +16296,7 @@ Var
   OldError: TSP_ErrorCode;
   pTokens: paString;
   Tkns: aString;
+  oldStrPtr: Pointer;
   OldSp: pSP_StackItem;
   TempLine: TSP_Gosub_Item;
   ResultIdx, ResultType: Integer;
@@ -16295,6 +16307,7 @@ Begin
 
   With Info^ Do Begin
 
+    OldStrPtr := StrPtr;
     CopyMem(@OldError.Line, @Error^.Line, SizeOf(TSP_ErrorCode));
     OldNxtLine := NXTLINE;
     OldNxtStatement := NXTSTATEMENT;
@@ -16302,7 +16315,7 @@ Begin
 
     OldProcStack := SP_ProcStackPtr;
     ResultIdx := SP_SetUpPROC(1, Token^.Cache, Error^);
-    If Error^.Code <> SP_ERR_OK Then Exit Else Dec(INPROC);
+    If Error^.Code <> SP_ERR_OK Then Exit;
 
     CurLine := NXTLINE;
     Error^.ReturnType := OldError.ReturnType;
@@ -16315,7 +16328,7 @@ Begin
     ResultType := SP_ProcStack[SP_ProcStackPtr].CALLType;
     OldSp := SP_StackPtr;
 
-  NextStatement :
+  NextStatement:
 
     pTokens := @Tkns;
     SP_Interpret(pTokens, Error^.Position, Error^);
@@ -16371,7 +16384,7 @@ Begin
 
   BailOut :
 
-    Dec(SP_GOSUB_STACKPTR);
+    StrPtr := OldStrPtr;
     SP_StackPtr := OldSP;
     If ResultType = SP_NUMVAR Then Begin
       Inc(SP_StackPtr);
@@ -20035,7 +20048,7 @@ Begin
 
   SP_RestoreMouseRegion;
   SP_MousePointerFromDefault;
-  SP_StackPtr := SP_StackStart;
+  //SP_StackPtr := SP_StackStart;
 
 End;
 

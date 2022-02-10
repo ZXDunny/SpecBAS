@@ -137,6 +137,7 @@ Type
 
   TSP_ProcStackItem = Packed Record
     ProcIndex, NumVars, VarPosN, VarPosS, VarPosNA, VarPosSA, CALLType: Integer;
+    StackPtr: Pointer;
   End;
 
 Function  SP_FindNumVar(const Name: aString): Integer;

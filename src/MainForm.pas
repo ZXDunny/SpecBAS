@@ -1099,7 +1099,7 @@ begin
     End Else Begin
 
       kInfo.KeyChar := aStr[1];
-      kInfo.KeyCode := Key;
+      kInfo.KeyCode := Key And $7F;
       kInfo.NextFrameTime := FRAMES;
 
     End;
@@ -1122,8 +1122,8 @@ Procedure TMain.FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
 
   KEYSTATE[Key] := 0;
-  ControlKeyEvent(#0, Key, False, True);
-  SP_RemoveKey(Key);
+  ControlKeyEvent(#0, Key And $7F, False, True);
+  SP_RemoveKey(Key And $7F);
 
   If AltDown And (Key = $12) Then Begin
     AltDown := False;

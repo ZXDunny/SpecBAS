@@ -6054,8 +6054,8 @@ Begin
 
   s := InsertLiterals(EDITLINE);
   If DWSelP <> CURSORPOS Then Begin
-    SelS := SP_GetCharPos(s, SelS);
-    SelE := SP_GetCharPos(s, SelE);
+    SelS := Limited(SP_GetCharPos(s, SelS), 1, Length(EDITLINE));
+    SelE := Limited(SP_GetCharPos(s, SelE), 1, Length(EDITLINE));
     If s[SelE] = #5 Then Inc(SelE);
     EL_Text := Copy(s, 1, SelS -1) + selClr + Copy(s, SelS, (SelE - SelS) +1) + backClr + Copy(s, SelE +1)
   End Else Begin

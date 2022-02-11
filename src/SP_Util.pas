@@ -113,14 +113,16 @@ Function  StrPosPtr(Const Str: paString; Position: Integer): Pointer; inline;
 Function  Copy(Const Str: aString; Start, Len: Integer): aString; Overload;
 Function  Copy(Const Str: aString; Start: Integer): aString; Overload;
 {$ENDIF}
-Function ValidRect(r: TRect): Boolean;
-Function SP_ModCalc(v1, v2: aFloat): aFloat;
-Function SP_PartialMatch(const s1, s2: aString): Boolean; inline;
-Function SP_PartialMatchPtrs(ps, pd: pByte; l: Integer): Boolean;
-Function aFloatToStr(Value: aFloat): aString; inline;
-Function SP_Power(Base, Exponent: aFloat): aFloat; inline;
-Function SP_Max(A, B: Integer): Integer;
-Function InsertLiterals(Const s: aString): aString;
+Function  ValidRect(r: TRect): Boolean;
+Function  SP_ModCalc(v1, v2: aFloat): aFloat;
+Function  SP_PartialMatch(const s1, s2: aString): Boolean; inline;
+Function  SP_PartialMatchPtrs(ps, pd: pByte; l: Integer): Boolean;
+Function  aFloatToStr(Value: aFloat): aString; inline;
+Function  SP_Power(Base, Exponent: aFloat): aFloat; inline;
+Function  SP_Max(A, B: Integer): Integer;
+Function  InsertLiterals(Const s: aString): aString;
+Procedure Swap(Var a, b: Integer);
+Function  Limited(v, a, b: Integer): Integer;
 
 Var
 
@@ -1528,7 +1530,7 @@ Begin
     Result := B;
 End;
 
-Function  Pos(Const SubStr, s: aString; StartAt: Integer = 1): Integer; Overload;
+Function Pos(Const SubStr, s: aString; StartAt: Integer = 1): Integer; Overload;
 Var
   l, l1, l2: NativeUInt;
   ps, pd, pdb, psb: pByte;
@@ -1555,7 +1557,7 @@ Begin
       Result := 0;
       Exit;
     End Else
-      While NativeUint(ps) <= l Do Begin
+      While NativeUint(ps) < l Do Begin
         If ps^ = pd^ Then Begin
           psb := ps;
           While (NativeUInt(psb) <= l) and (psb^ = pd^) Do Begin
@@ -1599,6 +1601,24 @@ Begin
     End Else
       Inc(ps);
 
+End;
+
+Procedure Swap(Var a, b: Integer);
+Begin
+  a := a Xor b; b := a Xor b; a := a Xor b;
+End;
+
+Function Limited(v, a, b: Integer): Integer;
+Begin
+  If a > b Then
+    Swap(a, b);
+  If v < a Then
+    Result := a
+  Else
+    If v > b Then
+      Result := b
+    Else
+      Result := v;
 End;
 
 Procedure Delay(ms: Integer);

@@ -984,24 +984,26 @@ Begin
     If FileID <> -1 Then Begin
       Clear;
       Size := SP_FileSize(FileID, Error);
-      SetLength(FileBuffer, Size);
-      SP_FileRead(FileID, @FileBuffer[0], Length(FileBuffer), Error);
-      SP_FileClose(FileID, Error);
-      Idx := 0;
-      s := '';
-      While Idx < Length(FileBuffer) Do Begin
-        If FileBuffer[Idx] in [10, 13] Then Begin
-          Add(s);
-          s := '';
-          While (Idx < Length(FileBuffer)) And (FileBuffer[Idx] in [10, 13]) Do
+      If Size > 0 Then Begin
+        SetLength(FileBuffer, Size);
+        SP_FileRead(FileID, @FileBuffer[0], Length(FileBuffer), Error);
+        SP_FileClose(FileID, Error);
+        Idx := 0;
+        s := '';
+        While Idx < Length(FileBuffer) Do Begin
+          If FileBuffer[Idx] in [10, 13] Then Begin
+            Add(s);
+            s := '';
+            While (Idx < Length(FileBuffer)) And (FileBuffer[Idx] in [10, 13]) Do
+              Inc(Idx);
+          End Else Begin
+            s := s + AnsiChar(FileBuffer[Idx]);
             Inc(Idx);
-        End Else Begin
-          s := s + AnsiChar(FileBuffer[Idx]);
-          Inc(Idx);
+          End;
         End;
+        If (Count > 0) And (fStrings[Count -1] = '') Then
+          Delete(Count -1);
       End;
-      If (Count > 0) And (fStrings[Count -1] = '') Then
-        Delete(Count -1);
     End;
 
   End;

@@ -50,6 +50,8 @@ type
     procedure FormCreate(Sender: TObject);
     procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormKeyPress(Sender: TObject; var Key: Char);
+    procedure FormActivate(Sender: TObject);
+    procedure FormDeactivate(Sender: TObject);
   private
     { Private declarations }
     Minimised: Boolean;
@@ -109,6 +111,7 @@ var
   Bitmap: TBitmap = Nil;
   LastMouseX, LastMouseY: Integer;
   {$IFDEF OPENGL}
+    LastScaledMouseX, LastScaledMouseY: Integer;
     GLInitDone: Boolean;
     PixArray, DispArray: Array of Byte;
     RC: HGLRC;
@@ -118,7 +121,7 @@ var
   ScaleFactor: Integer = 1;
   ScaleMouseX, ScaleMouseY: aFloat;
   ScaledWidth, ScaledHeight: Integer;
-  MouseInForm, IgnoreNextMenuChar, AltDown: Boolean;
+  MouseInForm, IgnoreNextMenuChar, AltDown, FormActivated: Boolean;
   AltChars: aString;
 
 {$IFDEF OPENGL}
@@ -262,7 +265,6 @@ Begin
         DRAWING := True;
         If Assigned(DISPLAYPOINTER) Then
           SP_Composite32(DISPLAYPOINTER, X1, Y1, X2, Y2);
-        UPDATENOW := False;
         MOUSEMOVED := False;
         If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then Begin
           SP_DrawMouseImage;
@@ -279,6 +281,7 @@ Begin
         GLMX := Min(Max(GLMX, 0), DISPLAYWIDTH); GLMY := Min(Max(GLMY, 0), DISPLAYHEIGHT);
         If GLMX + GLMW >= DISPLAYWIDTH  Then GLMW := DISPLAYWIDTH - GLMX;
         If GLMY + GLMH >= DISPLAYHEIGHT Then GLMH := DISPLAYHEIGHT - GLMY;
+        UPDATENOW := False;
       End;
     End;
   End;
@@ -338,13 +341,15 @@ Begin
     glUseProgramObjectARB(0);
 
     If DoScale Then Begin
-      ScaleBuffers(GLX, GLX + GLW -1, GLY, GLY + GLH -1);
-      x := GLX * ScaleFactor;
-      y := GLY * ScaleFactor;
-      w := GLW * ScaleFactor;
-      h := GLH * ScaleFactor;
-      glPixelStorei(GL_UNPACK_ROW_LENGTH, ScaledWidth);
-      glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, W, H, GL_BGRA, GL_UNSIGNED_BYTE, @DispArray[X * 4 + ScaledWidth * 4 * Y]);
+      If (GLH > 0) And (GLW > 0) Then Begin
+        ScaleBuffers(GLX, GLX + GLW -1, GLY, GLY + GLH -1);
+        x := GLX * ScaleFactor;
+        y := GLY * ScaleFactor;
+        w := GLW * ScaleFactor;
+        h := GLH * ScaleFactor;
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, ScaledWidth);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, W, H, GL_BGRA, GL_UNSIGNED_BYTE, @DispArray[X * 4 + ScaledWidth * 4 * Y]);
+      End;
       If (GLMW > 0) And (GLMH > 0) And MOUSEMOVED Then Begin
         ScaleBuffers(GLMX, GLMX + GLMW -1, GLMY, GLMH + GLMY -1);
         x := GLMX * ScaleFactor;
@@ -573,88 +578,92 @@ Var
   Handled: Boolean;
 begin
 
-  SetCapture(Handle);
+  If FormActivated Then Begin
 
-  {$IFDEF OPENGL}
-  X := Round(X / ScaleMouseX);
-  Y := Round(Y / ScaleMouseY);
-  {$ENDIF}
+    SetCapture(Handle);
 
-  MOUSEX := X;
-  MOUSEY := Y;
-  Btn := Integer(ssLeft in Shift) + (2 * Integer(ssRight in Shift)) + (4 * Integer(ssMiddle in Shift));
+    {$IFDEF OPENGL}
+    X := Round(X / ScaleMouseX);
+    Y := Round(Y / ScaleMouseY);
+    {$ENDIF}
 
-  // Menus take precedence over everything
+    MOUSEX := X;
+    MOUSEY := Y;
+    Btn := Integer(ssLeft in Shift) + (2 * Integer(ssRight in Shift)) + (4 * Integer(ssMiddle in Shift));
 
-  If CURMENU <> -1 Then Begin
+    // Menus take precedence over everything
 
-    If (ssRight in Shift) Then
-      If Not (MENUSHOWING Or MENUBLOCK) Then Begin
+    If CURMENU <> -1 Then Begin
 
-        SP_DisplayMainMenu;
-        SP_SetMenuSelection(X, Y, CURMENU);
-        SP_InvalidateWholeDisplay;
-        MENU_SHOWFLAG := True;
-        Exit;
+      If (ssRight in Shift) Then
+        If Not (MENUSHOWING Or MENUBLOCK) Then Begin
 
-      End;
+          SP_DisplayMainMenu;
+          SP_SetMenuSelection(X, Y, CURMENU);
+          SP_InvalidateWholeDisplay;
+          MENU_SHOWFLAG := True;
+          Exit;
 
-    If (ssLeft in Shift) Then
-      If MENUSHOWING Then Begin
+        End;
 
-        SP_SetMenuSelection(X, Y, CURMENU);
-        mi := SP_WhichItem(X, Y);
-        LASTMENU := mi.MenuID;
-        LASTMENUITEM := mi.ItemIdx;
-        SP_DisplayMainMenu;
-        SP_InvalidateWholeDisplay;
-        Refresh_Display;
-        MENUBLOCK := True;
+      If (ssLeft in Shift) Then
+        If MENUSHOWING Then Begin
 
-        MENU_HIDEFLAG := True;
-        Exit;
+          SP_SetMenuSelection(X, Y, CURMENU);
+          mi := SP_WhichItem(X, Y);
+          LASTMENU := mi.MenuID;
+          LASTMENUITEM := mi.ItemIdx;
+          SP_DisplayMainMenu;
+          SP_InvalidateWholeDisplay;
+          Refresh_Display;
+          MENUBLOCK := True;
 
-      End;
+          MENU_HIDEFLAG := True;
+          Exit;
 
-  End;
+        End;
 
-  // Now check for controls under the mouse              *** make windowmenu appear when right-clicking if not visible
+    End;
 
-  Handled := False;
-  DisplaySection.Enter;
+    // Now check for controls under the mouse              *** make windowmenu appear when right-clicking if not visible
 
-  If ForceCapture Then Begin
-    If CaptureControl.CanFocus Then
-      CaptureControl.SetFocus(True);
-    p := CaptureControl.ScreenToClient(Point(X, Y));
-    SP_BaseComponent(CaptureControl).MouseDown(p.X, p.Y, Btn);
-    Handled := True;
-  End Else Begin
-    Win := WindowAtPoint(X, Y);
-    If Assigned(Win) Then Begin
-      Win := ControlAtPoint(Win, X, Y);
+    Handled := False;
+    DisplaySection.Enter;
+
+    If ForceCapture Then Begin
+      If CaptureControl.CanFocus Then
+        CaptureControl.SetFocus(True);
+      p := CaptureControl.ScreenToClient(Point(X, Y));
+      SP_BaseComponent(CaptureControl).MouseDown(p.X, p.Y, Btn);
+      Handled := True;
+    End Else Begin
+      Win := WindowAtPoint(X, Y);
       If Assigned(Win) Then Begin
-        CaptureControl := Win;
-        If CaptureControl.CanFocus Then
-          CaptureControl.SetFocus(True);
-        SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
-        Handled := True;
-      End Else Begin
-        If Assigned(CaptureControl) Then
+        Win := ControlAtPoint(Win, X, Y);
+        If Assigned(Win) Then Begin
+          CaptureControl := Win;
+          If CaptureControl.CanFocus Then
+            CaptureControl.SetFocus(True);
           SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
-        If Assigned(FocusedControl) Then
-          FocusedControl.SetFocus(False);
+          Handled := True;
+        End Else Begin
+          If Assigned(CaptureControl) Then
+            SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
+          If Assigned(FocusedControl) Then
+            FocusedControl.SetFocus(False);
+        End;
       End;
     End;
-  End;
 
-  DisplaySection.Leave;
+    DisplaySection.Leave;
 
-  // Finally, pass the mouse event to the interpreter
+    // Finally, pass the mouse event to the interpreter
 
-  If Not Handled Then Begin
-    MOUSEBTN := Btn;
-    M_DOWNFLAG := True;
+    If Not Handled Then Begin
+      MOUSEBTN := Btn;
+      M_DOWNFLAG := True;
+    End;
+
   End;
 
 end;
@@ -677,20 +686,21 @@ begin
     X := Round(X / ScaleMouseX);
   If ScaleMouseY > 0 Then
     Y := Round(Y / ScaleMouseY);
+  If (X = LastScaledMouseX) And (Y = LastScaledMouseY) Then Exit;
+  LastScaledMouseX := X;
+  LastScaledMouseY := Y;
   {$ENDIF}
+
+  // Ensure the mouse pointer is drawn at the new position
+
+  If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then
+    SP_InvalidateWholeDisplay;
 
   Btn := Integer(ssLeft in Shift) + (2 * Integer(ssRight in Shift)) + (4 * Integer(ssMiddle in Shift));
   M_DELTAX := X - MOUSEX;
   M_DELTAY := Y - MOUSEY;
   MOUSEX := X;
   MOUSEY := Y;
-
-  // Ensure the mouse pointer is drawn at the new position
-
-  If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then Begin
-    SP_SetDirtyRect(X, Y, X + GLMW, Y + GLMH);
-    SP_NeedDisplayUpdate := True;
-  End;
 
   If (CURMENU <> -1) And (ssRight in Shift) And MENUSHOWING Then Begin
 
@@ -826,7 +836,12 @@ begin
 
 end;
 
-procedure TMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
+Procedure TMain.FormActivate(Sender: TObject);
+begin
+  FormActivated := True;
+end;
+
+Procedure TMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
 
   If Not QUITMSG Then
@@ -977,7 +992,12 @@ begin
 
 end;
 
-procedure TMain.FormDestroy(Sender: TObject);
+procedure TMain.FormDeactivate(Sender: TObject);
+begin
+  FormActivated := False;
+end;
+
+Procedure TMain.FormDestroy(Sender: TObject);
 Var
   Error: TSP_ErrorCode;
 begin

@@ -105,6 +105,8 @@
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
+        <VerInfo_Build>1201</VerInfo_Build>
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=0.0.0.1201;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;Last Compile=2013-05-13 23:11</VerInfo_Keys>
         <DCC_ExeOutput>..\</DCC_ExeOutput>
         <Icon_MainIcon>SpecBAS_Icon.ico</Icon_MainIcon>
         <Manifest_File>None</Manifest_File>

@@ -2,7 +2,7 @@ unit SP_DebugPanel;
 
 interface
 
-uses Math, Classes, System.SyncObjs, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUnit, SP_ControlMsgs, SP_ButtonUnit, SP_Input, SP_ContainerUnit;
+uses Math, Classes, System.SyncObjs, SysUtils, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUnit, SP_ControlMsgs, SP_ButtonUnit, SP_Input, SP_ContainerUnit;
 
 Type
 

@@ -119,17 +119,17 @@ Begin
     If fBorder Then
       DrawRect(0, dy - 2, 3 + iFW, dY + IfH + 1, bClr);
     If Checked Then
-      PRINT(2, dy, #246, cClr, -1, iSX, iSY, False, False);
+      PRINT(2, dy, #246, cClr, -1, iSX, iSY, False, False, False);
   End Else Begin
     iSC := Min(iSX, iSY);
     iH := Min(iFW, iFH);
     If Checked Then
-      PRINT(2, dy + ((iFH - iH) Div 2), #241, cClr, -1, iSC, iSC, False, False)
+      PRINT(2, dy + ((iFH - iH) Div 2), #241, cClr, -1, iSC, iSC, False, False, False)
     Else
-      PRINT(2, dy + ((iFH - iH) Div 2), #242, cClr, -1, iSC, iSC, False, False);
+      PRINT(2, dy + ((iFH - iH) Div 2), #242, cClr, -1, iSC, iSC, False, False, False);
   End;
 
-  PRINT(dx + (iFW Div 2), dy, Caption, capClr, -1, iSX, iSY, False, False);
+  PRINT(dx + (iFW Div 2), dy, Caption, capClr, -1, iSX, iSY, False, False, False);
 
 End;
 

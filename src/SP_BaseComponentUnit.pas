@@ -212,7 +212,7 @@ SP_BaseComponent = Class
     Procedure DrawRect(r: TRect; Ink: Byte); Overload;
     Procedure FillRect(x1, y1, x2, y2: Integer; Ink: Byte); Overload;
     Procedure FillRect(r: TRect; Ink: Byte); Overload;
-    Procedure Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold: Boolean);
+    Procedure Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold, UseAccel: Boolean);
     Procedure DrawBtnFrame(Border, Pressed: Boolean); Overload;
     Procedure DrawBtnFrame(r: TRect; Border, Pressed: Boolean); Overload;
     Function  Components(Idx: Integer): SP_BaseComponent;
@@ -329,6 +329,7 @@ SP_BaseComponent = Class
     Property OnFocus: SP_FocusEvent             read fOnFocus       write SetOnFocus;
     Property Erase: Boolean                     read fErase         write fErase;
     Property Font: Integer                      read fCurFontID     write SetFont;
+    Property ParentWindowID: Integer            read fParentWindowID;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -552,7 +553,7 @@ Begin
 
 End;
 
-Procedure SP_BaseComponent.Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold: Boolean);
+Procedure SP_BaseComponent.Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold, UseAccel: Boolean);
 Var
   BankID, CharW, CharH, Idx, cCount, ItalicOffset: Integer;
   sx, sy, Cw, Ch, yp, xp, TC, t: Integer;
@@ -560,7 +561,10 @@ Var
   FontBank: pSP_Font_Info;
   Bank: pSP_Bank;
   Dst, Coord, Char, pIdx, lIdx: pByte;
+  curChar: aChar;
   IsScaled, SkipNextPaper, ForceNextChar: Boolean;
+Label
+  AbortChar;
 Begin
 
   ForceNextChar := False;
@@ -584,12 +588,24 @@ Begin
     End;
 
     Idx := 1;
+    AbortChar:
     While Idx <= Length(Text) Do Begin
 
-      If (Text[Idx] >= ' ') or ForceNextChar Then Begin
+      curChar := Text[Idx];
+      If (curChar >= ' ') or ForceNextChar Then Begin
 
         ForceNextChar := False;
-        Char := @Bank^.Memory[FontBank^.Font_Info[Byte(Text[Idx])].Data];
+        if curChar = '&' Then Begin
+          if UseAccel Then Begin
+            Char := @Bank^.Memory[FontBank^.Font_Info[239].Data];
+            Inc(Y);
+          End Else Begin
+            Inc(Idx);
+            Goto AbortChar;
+          End;
+        End Else
+          Char := @Bank^.Memory[FontBank^.Font_Info[Byte(curChar)].Data];
+
         If Italic Then
           ItalicOffset := (CharH Div ITALICSCALE) Shl 16
         Else
@@ -686,6 +702,11 @@ Begin
           CharH := FontBank^.Height;
           Dec(Y, CharH);
           Inc(X, CharW);
+        End;
+
+        If curChar = '&' Then Begin
+          Dec(X, CharW);
+          Dec(Y);
         End;
 
       End Else Begin
@@ -1236,6 +1257,8 @@ Begin
     Dec(ControlCount);
 
   SetLength(fProperties, 0);
+
+  DeleteOverrideControl(Self);
 
   Inherited;
 

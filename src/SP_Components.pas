@@ -62,10 +62,12 @@ SP_TimerEvent = Record
 End;
 pSP_TimerEvent = ^SP_TimerEvent;
 
+Procedure AddOverrideControl(c: SP_BaseComponent);
+Procedure DeleteOverrideControl(c: SP_BaseComponent);
 Function  ControlsAreInUse: Boolean;
 Function  ControlKeyEvent(aStr: aString; Key: Integer; Down, IsKey: Boolean): Boolean;
 
-Function  WindowAtPoint(Var x, y: Integer): Pointer;
+Function  WindowAtPoint(Var x, y, ID: Integer): Pointer;
 Function  ControlAtPoint(Window: Pointer; Var x, y: Integer): Pointer;
 
 Procedure DoTimerEvents;
@@ -116,6 +118,7 @@ Var
   cKeyRepeat: Integer;
   cLastKey, cLastKeyChar: Byte;
   ControlCount: Integer;
+  OverrideControls: Array of SP_BaseComponent;
 
 
 implementation
@@ -220,6 +223,41 @@ End;
 
 // Helper Procs for key events
 
+Procedure DeleteOverrideControl(c: SP_BaseComponent);
+Var
+  i, l: Integer;
+Begin
+  i := 0;
+  l := Length(OverrideControls);
+  While i < l Do Begin
+    If OverrideControls[i] = c Then Begin
+      For i := i To l -2 Do
+        OverrideControls[i] := OverrideControls[i +1];
+      SetLength(OverrideControls, l -1);
+      Exit;
+    End Else
+      Inc(i);
+  End;
+End;
+
+Procedure AddOverrideControl(c: SP_BaseComponent);
+var
+  i, l: Integer;
+Begin
+  i := 0;
+  l := Length(OverrideControls);
+  While i < l Do Begin
+    If OverrideControls[i] = c Then Begin
+      DeleteOverrideControl(c);
+      Dec(l);
+      Break;
+    End Else
+      Inc(i);
+  End;
+  SetLength(OverrideControls, l +1);
+  OverrideControls[l] := c;
+End;
+
 Function ControlsAreInUse: Boolean;
 Begin
 
@@ -238,8 +276,10 @@ End;
 
 Function ControlKeyEvent(aStr: aString; Key: Integer; Down, IsKey: Boolean): Boolean;
 Var
+  i, j, w: Integer;
   c: SP_BaseComponent;
   cList: Array of SP_BaseComponent;
+  windows: Array of Integer;
 
   Procedure AddComp(c: SP_BaseComponent);
   Var
@@ -269,12 +309,87 @@ Var
 
   End;
 
+  Function SendKey(var ctrl: SP_BaseComponent): Boolean;
+  Begin
+    If Down Then Begin
+      cLastKeyChar := Ord(aStr[1]);
+      cLastKey := Key;
+      If IsKey Then KEYSTATE[Key] := 1;
+      ctrl.KeyDown(Key, Result);
+    End Else Begin
+      cLastKey := Key;
+      If IsKey then KEYSTATE[Key] := 0;
+      ctrl.KeyUp(Key, Result);
+      If Result Then Begin
+        cLastKeyChar := 0;
+        cLastKey := 0;
+      End;
+    End;
+  End;
+
 Begin
 
   Result := False;
-  If Assigned(FocusedControl) Then
-    c := GetOwnerControl(FocusedControl)
-  Else Begin
+
+  // First handle overrides - controls that get first look at key messages. Currently these are
+  // Window menus and popupmenus, for the ALT accelerators.
+
+  i := Length(OverrideControls) -1;
+  if i >= 0 Then Begin
+    If ModalWindow > -1 Then Begin
+      SetLength(windows, 1);
+      windows[0] := ModalWindow;
+    End Else
+      If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT] Then Begin
+        SetLength(windows, 2);
+        Windows[0] := fwEditor;
+        WIndows[1] := fwDirect;
+      End Else Begin
+        SetLength(windows, 1);
+        windows[0] := FocusedWindow;
+      End;
+
+    While i >= 0 Do Begin
+      w := OverrideControls[i].ParentWindowID;
+      if OverrideControls[i].Visible Then
+        For j := 0 To High(windows) do
+          If w = Windows[j] Then Begin
+            Result := SendKey(OverrideControls[i]);
+            If Key <> K_ALT Then Exit;
+          End;
+      Dec(i);
+    End;
+    if Result Then Exit;
+  End;
+
+  // Now, if we didn't trigger any overrides, we hand the key message to the active control. If that doesn't handle it,
+  // we drop down through the hierarchy.
+
+  If Assigned(FocusedControl) Then Begin
+
+    c := GetOwnerControl(FocusedControl);
+
+    While Not Result Do Begin
+
+      AddComp(c);
+      If Down and c.Canfocus Then
+        c.SetFocus(True);
+
+      Result := SendKey(c);
+      If Not Result Then
+        If Assigned(c.ChainControl) And Not IsCompInList(c.ChainControl) Then
+          c := c.ChainControl
+        Else
+          Exit;
+
+    End;
+
+  end Else Begin
+
+    // If there is no focused control then just set our lastkey variables so that
+    // any controls that are idle processing can pick them up. This can be popupmenus or windowmenus currently as they
+    // don't steal focus.
+
     If Down Then Begin
       cLastKeyChar := Ord(aStr[1]);
       cLastKey := Key;
@@ -287,47 +402,11 @@ Begin
     Exit;
   End;
 
-
-  While Not Result Do Begin
-
-    AddComp(c);
-
-    If Down Then Begin
-
-      If c.Canfocus Then
-        c.SetFocus(True);
-
-      cLastKeyChar := Ord(aStr[1]);
-      cLastKey := Key;
-      If IsKey Then KEYSTATE[Key] := 1;
-
-      c.KeyDown(Key, Result);
-
-    End Else Begin
-
-      cLastKey := Key;
-      If IsKey then KEYSTATE[Key] := 0;
-      c.KeyUp(Key, Result);
-      If Result Then Begin
-        cLastKeyChar := 0;
-        cLastKey := 0;
-      End;
-
-    End;
-
-    If Not Result Then
-      If Assigned(c.ChainControl) And Not IsCompInList(c.ChainControl) Then
-        c := c.ChainControl
-      Else
-        Exit;
-
-  End;
-
 End;
 
 // Helper procs for mouse work
 
-Function WindowAtPoint(Var x, y: Integer): Pointer;
+Function WindowAtPoint(Var x, y, ID: Integer): Pointer;
 Var
   Idx: Integer;
 Label
@@ -351,6 +430,7 @@ Begin
           If PtInRect(Rect(Left, Top, Left + Width, Top + Height), Point(X, Y)) Then Begin
             Dec(X, Left);
             Dec(Y, Top);
+            ID := SP_BankList[Idx].ID;
             Exit;
           End;
         Dec(Idx);

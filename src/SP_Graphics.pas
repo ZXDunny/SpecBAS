@@ -699,6 +699,7 @@ Begin
 
   // UI UDGs - slope and arrows for scrollbars
 
+  SP_SetSpeccyStyleChar(ID, Byte(aChar(#239)), @MenuUnderline[0]);
   SP_SetSpeccyStyleChar(ID, Byte(aChar(#240)), @EditGlyph[0]);
   SP_SetSpeccyStyleChar(ID, Byte(aChar(#241)), @RadioOff[0]);
   SP_SetSpeccyStyleChar(ID, Byte(aChar(#242)), @RadioOn[0]);

@@ -2648,7 +2648,7 @@ Begin
                 While CharW > 0 Do Begin
                   If FontBank^.FontType = SP_FONT_TYPE_MONO Then Begin
                     // 8 Bpp, mono (INK and PAPER)
-                    If (CPos = Idx) And (SYSTEMSTATE in [SS_INPUT, SS_EDITOR]) Then Begin
+                    If (CPos = Idx) And (SYSTEMSTATE in [SS_INPUT, SS_EDITOR, SS_DIRECT]) Then Begin
                       If pByte(NativeUInt(pIdx) + (xp Shr 16))^ = FLASHSTATE Then
                         Coord^ := CURSORFG
                       Else
@@ -2688,7 +2688,7 @@ Begin
               While CharH > 0 Do Begin
                 While CharW > 0 Do Begin
                   If FontBank^.FontType = SP_FONT_TYPE_MONO Then Begin
-                    If (CPos = Idx) And (SYSTEMSTATE in [SS_INPUT, SS_EDITOR]) Then Begin
+                    If (CPos = Idx) And (SYSTEMSTATE in [SS_INPUT, SS_EDITOR, SS_DIRECT]) Then Begin
                       If Char^ = FLASHSTATE Then
                         Coord^ := CURSORFG
                       Else
@@ -3318,7 +3318,7 @@ Begin
                 Inc(pIdx, FONTWIDTH * (yp Shr 16));
                 While CharW > 0 Do Begin
                   If FontBank^.FontType = SP_FONT_TYPE_MONO Then Begin
-                    If (CPos = Idx) And (SYSTEMSTATE in [SS_INPUT, SS_EDITOR]) Then Begin
+                    If (CPos = Idx) And (SYSTEMSTATE in [SS_INPUT, SS_EDITOR, SS_DIRECT]) Then Begin
                       If pByte(NativeUInt(pIdx) + (xp Shr 16))^ = FLASHSTATE Then
                         Coord^ := CURSORFG
                       Else
@@ -3357,7 +3357,7 @@ Begin
               While CharH > 0 Do Begin
                 While CharW > 0 Do Begin
                   If FontBank^.FontType = SP_FONT_TYPE_MONO Then Begin
-                    If (CPos = Idx) And (SYSTEMSTATE in [SS_INPUT, SS_EDITOR]) Then Begin
+                    If (CPos = Idx) And (SYSTEMSTATE in [SS_INPUT, SS_EDITOR, SS_DIRECT]) Then Begin
                       If Char^ = FLASHSTATE Then
                         Coord^ := CURSORFG
                       Else

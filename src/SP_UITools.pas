@@ -145,6 +145,7 @@ Begin
   CITALIC := 0;
   CBOLD := 0;
   SP_GetWindowDetails(Result, Win, Error);
+
   For Idx := 0 To 255 Do Win^.Palette[Idx] := DefaultPalette[Idx];
 
   SP_Decorate_Window(Result, Caption, True, False, True);
@@ -417,7 +418,7 @@ End;
 
 Function SP_FindReplace.Open(Mode: Boolean): Integer;
 Var
-  Font, FW, FH, w, h, tp, cw, OldFocus: Integer;
+  Font, FW, FH, w, h, tp, cw: Integer;
   Caption: aString;
   Win: pSP_Window_Info;
   Error: TSP_ErrorCode;
@@ -534,7 +535,6 @@ Begin
   expChk.Checked := soExpression in FPSearchOptions;
   expChk.OnCheck := expChkChange;
 
-
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
   cw := Fw * (Length(caBtn.Caption) +2);
@@ -571,8 +571,6 @@ Begin
 
   // Now run the dialog
 
-  OldFocus := FocusedWindow;
-  FocusedWindow := -1;
   SP_SetDrawingWindow(DefaultWindow);
   SP_DisplayFPListing(-1);
 
@@ -591,7 +589,6 @@ Begin
   SP_SetSystemFont(Font, Error);
   SP_DeleteWindow(FDWindowID, Error);
   SP_InvalidateWholeDisplay;
-  FocusedWindow := OldFocus;
 
 End;
 
@@ -705,7 +702,7 @@ End;
 
 Function SP_TextRequester.Open(Caption, DefaultText: aString; Kind: Integer; Evaluate: Boolean; Var Error: TSP_ErrorCode): aString;
 Var
-  Font, w, h, cw, OldFocus: Integer;
+  Font, w, h, cw: Integer;
   win: pSP_Window_Info;
 Begin
 
@@ -759,8 +756,7 @@ Begin
 
   // Now run the dialog
 
-  OldFocus := FocusedWindow;
-  FocusedWindow := -1;
+  SwitchFocusedWindow(-1);
   SP_DisplayFPListing(-1);
   SP_SetDrawingWindow(DefaultWindow);
 
@@ -772,7 +768,6 @@ Begin
   SP_SetSystemFont(Font, Error);
   SP_DeleteWindow(FDWindowID, Error);
   SP_InvalidateWholeDisplay;
-  FocusedWindow := OldFocus;
 
 End;
 
@@ -894,7 +889,7 @@ End;
 
 Procedure SP_BreakpointWindow.Open(BpIndex, BpType, Line, Statement, PassCount: Integer; Caption, Condition: aString);
 Var
-  Font, w, h, OldFocus: Integer;
+  Font, w, h: Integer;
   win: pSP_Window_Info;
   Error: TSP_ErrorCode;
 begin
@@ -995,8 +990,7 @@ begin
   // Now run the dialog
 
   Accepted := False;
-  OldFocus := FocusedWindow;
-  FocusedWindow := -1;
+  SwitchFocusedWindow(-1);
   SP_DisplayFPListing(-1);
   SP_SetDrawingWindow(DefaultWindow);
 
@@ -1031,7 +1025,6 @@ begin
   SP_DeleteWindow(FDWindowID, Error);
   SP_DisplayFPListing(-1);
   SP_InvalidateWholeDisplay;
-  FocusedWindow := OldFocus;
 
 end;
 

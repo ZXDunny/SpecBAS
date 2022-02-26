@@ -63,7 +63,7 @@ Type
 
   SP_Window_Info = Record
     ID, Width, Height, Stride, Inverse, Over, Italic, Bold,
-    Left, Top, FontBankID, SpriteCount, scrollcnt, bpp, Menu, CaptionHeight: Integer;
+    Left, Top, FontBankID, SpriteCount, scrollcnt, bpp, Menu, CaptionHeight, PrevWin: Integer;
     heading, orgx, orgy, orgw, orgh, winscalex, winscaley, scalex, scaley: aFloat;
     clipx1, clipy1, clipx2, clipy2: Integer; winscale, winorigin, flip: Boolean;
     Visible, AlphaEnabled, FontTrans, System: Boolean;
@@ -598,7 +598,7 @@ Begin
 
               If BankType = 'Window Bank' Then Begin
 
-                // Load a screen bank, which contains windows. Create a new bank, and assign a screen type to it
+                // Load a window bank. Create a new bank, and assign a screen type to it
 
                 Bank^.DataType := SP_WINDOW_BANK;
                 SetLength(Bank^.Info, SizeOf(SP_Window_Info));
@@ -645,6 +645,7 @@ Begin
                 Window^.Transparent := INIReadWord(INI, 'Info', 'Transparent', $FFFF);
                 Window^.Ink := INIReadLong(INI, 'Info', 'Ink', 0);
                 Window^.Paper := INIReadLong(INI, 'Info', 'Paper', 8);
+                Window^.PrevWin := FocusedWindow;
                 Window^.CaptionHeight := 0;
                 Window^.Component := Nil; // TO DO: Save/load components in a window? Worth the bother?
                 Buffer := '';

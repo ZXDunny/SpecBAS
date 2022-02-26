@@ -271,6 +271,8 @@ Var
 
   LOGGING:                  Boolean;      // enable debug logging?
 
+  FWEDITOR:                 Integer;
+  FWDIRECT:                 Integer;
   LISTWINDOW:               Integer;      // The Window Index of the Listing window
   COMMANDWINDOW:            Integer;      // The Window ID of the direct command window
   SPLITSTATEMENTS:          Boolean;      // Split statements in the editor?
@@ -419,7 +421,6 @@ Var
   COUTSTRM:                 Integer;
   COUTMODE:                 Integer;      // OUT redirects to screen (0), variable (1) or stream (2)
 
-
   DRPOSX:                   aFloat;       // The x-coordinate of the last point plotted
   DRPOSY:                   aFloat;       // The y-coordinate of the last point plotted
   DRHEADING:                aFloat;       // The heading of the "turtle", in whichever angular system is in use (deg, rad)
@@ -448,6 +449,7 @@ Var
   USERMOUSEVISIBLE:         Boolean = True;
   REALSCREENWIDTH,
   REALSCREENHEIGHT:         LongWord;
+  FocusedWindow:            Integer;
 
   NEWPROGNAME:              aString;      // The default project name
 
@@ -479,6 +481,9 @@ Const
      15, 15, 15, 15, 255, 255, 255, 255,
      240, 240, 240, 240, 255, 255, 255, 255,
      255, 255, 255, 255, 255, 255, 255, 255);
+
+  MenuUnderline: Array[0..7] of Byte =
+    (0, 0, 0, 0, 0, 0, 0, 170);
 
   TickMark: Array[0..7] of Byte =
     (0, 3, 6, 12, 216, 112, 32, 0);

@@ -279,10 +279,10 @@ Begin
     Drawline(0, Height -1, Width -1, Height -1, fBorderClr);
     Drawline(0, yo, 0, Height -1, fBorderClr);
     If fCaption <> '' Then
-      PRINT(ifW, 0, fCaption, fFontClr, -1, iSX, iSY, False, False);
+      PRINT(ifW, 0, fCaption, fFontClr, -1, iSX, iSY, False, False, False);
   End Else Begin
     If fCaption <> '' Then
-      PRINT(0, 0, fCaption, fFontClr, -1, iSX, iSY, False, False);
+      PRINT(0, 0, fCaption, fFontClr, -1, iSX, iSY, False, False, False);
   End;
 
   For i := 0 To Length(fItems) -1 Do

@@ -2,7 +2,7 @@ unit SP_MenuActions;
 
 interface
 
-Uses System.SyncObjs, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_LabelUnit, SP_Interpret_PostFix;
+Uses System.SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_LabelUnit, SP_Interpret_PostFix;
 
 Type
 
@@ -124,24 +124,24 @@ Begin
   FPMenu.Name := 'windowmenu';
   FPMenu.BackgroundClr := 251;
 
-  FPMenu.AddItem(CreateItem('File', True, True, False, False, FPFileMenu, Nil));
-  FPMenu.AddItem(CreateItem('Edit', True, True, False, False, FPEditMenu, Nil));
-  FPMenu.AddItem(CreateItem('View', True, True, False, False, FPViewMenu, Nil));
-  FPMenu.AddItem(CreateItem('Run', True, True, False, False, FPRunMenu, Nil));
-  FPMenu.AddItem(CreateItem('Tools', True, True, False, False, FPToolsMenu, Nil));
-  FPMenu.AddItem(CreateItem('Help', True, True, False, False, FPHelpMenu, Nil));
+  FPMenu.AddItem(CreateItem('&File', True, True, False, False, FPFileMenu, Nil));
+  FPMenu.AddItem(CreateItem('&Edit', True, True, False, False, FPEditMenu, Nil));
+  FPMenu.AddItem(CreateItem('&View', True, True, False, False, FPViewMenu, Nil));
+  FPMenu.AddItem(CreateItem('&Run', True, True, False, False, FPRunMenu, Nil));
+  FPMenu.AddItem(CreateItem('&Tools', True, True, False, False, FPToolsMenu, Nil));
+  FPMenu.AddItem(CreateItem('&Help', True, True, False, False, FPHelpMenu, Nil));
 
   // File menu
 
-  FPFileMenu.AddItem(CreateItem('New', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_NEW));
-  FPFileMenu.AddItem(CreateItem('LOAD ""', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_LOADQQ));
-  FPFileMenu.AddItem(CreateItem('MERGE ""', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_MERGEQQ));
+  FPFileMenu.AddItem(CreateItem('&New', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_NEW));
+  FPFileMenu.AddItem(CreateItem('&LOAD ""', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_LOADQQ));
+  FPFileMenu.AddItem(CreateItem('&MERGE ""', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_MERGEQQ));
   FPFileMenu.AddItem(CreateItem('Recent Files', Length(SP_RecentFiles) > 0, True, False, False, FPRecentMenu, Nil));
   FPFileMenu.AddItem(CreateItem('-', True, True, False, False, Nil, Nil));
-  FPFileMenu.AddItem(CreateItem('SAVE "' + SP_ExtractFileName(PROGNAME) + '"', FILENAMED, True, False, False, Nil, SP_MenuActionProcs.FPMenu_SAVE));
-  FPFileMenu.AddItem(CreateItem('Save as...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_SAVEQQ));
+  FPFileMenu.AddItem(CreateItem('&SAVE "' + SP_ExtractFileName(PROGNAME) + '"', FILENAMED, True, False, False, Nil, SP_MenuActionProcs.FPMenu_SAVE));
+  FPFileMenu.AddItem(CreateItem('S&ave as...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_SAVEQQ));
   FPFileMenu.AddItem(CreateItem('-', True, True, False, False, Nil, Nil));
-  FPFileMenu.AddItem(CreateItem('Quit', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_QUIT));
+  FPFileMenu.AddItem(CreateItem('&Quit', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_QUIT));
 
   // Recent Files
 
@@ -153,80 +153,80 @@ Begin
 
   // Edit menu
 
-  FPEditMenu.AddItem(CreateItem('Undo', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Undo));
-  FPEditMenu.AddItem(CreateItem('Redo', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Redo));
+  FPEditMenu.AddItem(CreateItem('&Undo', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Undo));
+  FPEditMenu.AddItem(CreateItem('R&edo', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Redo));
   FPEditMenu.AddItem(CreateItem('-', True, True, False, False, Nil, Nil));
-  FPEditMenu.AddItem(CreateItem('Cut', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Cut));
-  FPEditMenu.AddItem(CreateItem('Copy', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Copy));
-  FPEditMenu.AddItem(CreateItem('Paste', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Paste));
-  FPEditMenu.AddItem(CreateItem('Delete', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Delete));
-  FPEditMenu.AddItem(CreateItem('Select all', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_SelAll));
-  FPEditMenu.AddItem(CreateItem('Select none', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_SelNone));
+  FPEditMenu.AddItem(CreateItem('&Cut', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Cut));
+  FPEditMenu.AddItem(CreateItem('C&opy', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Copy));
+  FPEditMenu.AddItem(CreateItem('&Paste', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Paste));
+  FPEditMenu.AddItem(CreateItem('&Delete', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Delete));
+  FPEditMenu.AddItem(CreateItem('Select &all', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_SelAll));
+  FPEditMenu.AddItem(CreateItem('Select &none', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_SelNone));
   FPEditMenu.AddItem(CreateItem('-', True, True, False, False, Nil, Nil));
-  FPEditMenu.AddItem(CreateItem('Find...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Find));
-  FPEditMenu.AddItem(CreateItem('Replace...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Replace));
-  SP_FindNextItem := CreateItem('Find next', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_FindNext);
+  FPEditMenu.AddItem(CreateItem('&Find...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Find));
+  FPEditMenu.AddItem(CreateItem('&Replace...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Replace));
+  SP_FindNextItem := CreateItem('Find ne&xt', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_FindNext);
   FPEditMenu.AddItem(SP_FindNextItem);
-  FPEditMenu.AddItem(CreateItem('Markers', True, True, False, False, FPMarkerMenu, Nil));
+  FPEditMenu.AddItem(CreateItem('&Markers', True, True, False, False, FPMarkerMenu, Nil));
   FPEditMenu.AddItem(CreateItem('-', True, True, False, False, Nil, Nil));
   FPEditMenu.AddItem(CreateItem('GO TO last error', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_GOTOError));
-  FPEditMenu.AddItem(CreateItem('GO TO Line...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_GOTOLine));
+  FPEditMenu.AddItem(CreateItem('&GO TO Line...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_GOTOLine));
   FPEditMenu.OnPopUp := SP_MenuActionProcs.FPMenu_Edit_PopUp;
 
   // Markers submenu
 
-  FPMarkerMenu.AddItem(CreateItem('Set', True, True, False, False, FPSetMarkerMenu, Nil));
-  FPMarkerMenu.AddItem(CreateItem('Jump', True, True, False, False, FPJumpMarkerMenu, Nil));
-  FPMarkerMenu.AddItem(CreateItem('Clear all', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_ClearMarkers));
+  FPMarkerMenu.AddItem(CreateItem('&Set', True, True, False, False, FPSetMarkerMenu, Nil));
+  FPMarkerMenu.AddItem(CreateItem('&Jump', True, True, False, False, FPJumpMarkerMenu, Nil));
+  FPMarkerMenu.AddItem(CreateItem('Clear &all', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_ClearMarkers));
   FPSetMarkerMenu.OnPopUp := SP_MenuActionProcs.FPMenu_MarkerSetPopUp;
   FPJumpMarkerMenu.OnPopUp := SP_MenuActionProcs.FPMenu_MarkerJumpPopUp;
 
   For i := 0 To 9 Do Begin
-    Item := CreateItem('Marker ' + IntToString(i+1), True, True, True, False, Nil, SP_MenuActionProcs.FPMenu_SetMarker);
+    Item := CreateItem('Marker &' + IntToString(i+1), True, True, True, False, Nil, SP_MenuActionProcs.FPMenu_SetMarker);
     Item.Tag := i;
     FPSetMarkerMenu.AddItem(Item);
-    Item := CreateItem('Marker ' + IntToString(i+1), True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_JumpMarker);
+    Item := CreateItem('Marker &' + IntToString(i+1), True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_JumpMarker);
     Item.Tag := i;
     FPJumpMarkerMenu.AddItem(Item);
   End;
 
   // View menu
 
-  SP_SwitchMenuItem := CreateItem('Switch to Direct Mode', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Switch);
+  SP_SwitchMenuItem := CreateItem('&Switch to Direct Mode', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_Switch);
   FPViewMenu.AddItem(SP_SwitchMenuItem);
   FPViewMenu.AddItem(CreateItem('-', True, True, False, False, Nil, Nil));
-  FPViewMenu.AddItem(CreateItem('Show screen', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_ShowScreen));
-  SP_DebugPanelItem := CreateItem('Show debug panel', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_DebugPanel);
+  FPViewMenu.AddItem(CreateItem('Show s&creen', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_ShowScreen));
+  SP_DebugPanelItem := CreateItem('Show &debug panel', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_DebugPanel);
   FPViewMenu.AddItem(SP_DebugPanelItem);
   FPViewMenu.OnPopUp := SP_MenuActionProcs.FPMenu_View_Popup;
 
   // RUN menu
 
-  FPRunMenu.AddItem(CreateItem('RUN', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_RUN));
-  FPRunMenu.AddItem(CreateItem('CONTINUE', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_CONTINUE));
-  FPRunMenu.AddItem(CreateItem('GO TO cursor', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_GOTO));
+  FPRunMenu.AddItem(CreateItem('&RUN', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_RUN));
+  FPRunMenu.AddItem(CreateItem('&CONTINUE', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_CONTINUE));
+  FPRunMenu.AddItem(CreateItem('&GO TO cursor', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_GOTO));
   FPRunMenu.AddItem(CreateItem('-', True, True, False, False, Nil, Nil));
-  FPRunMenu.AddItem(CreateItem('Single step', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_SingleStep));
-  FPRunMenu.AddItem(CreateItem('Step over', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_StepOver));
-  FPRunMenu.AddItem(CreateItem('CONTINUE to cursor', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_CONTINUE_Cursor));
-  FPRunMenu.AddItem(CreateItem('Add breakpoint...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_BreakpointAdd));
-  FPRunMenu.AddItem(CreateItem('Add watch...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_AddWatch));
+  FPRunMenu.AddItem(CreateItem('&Single step', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_SingleStep));
+  FPRunMenu.AddItem(CreateItem('S&tep over', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_StepOver));
+  FPRunMenu.AddItem(CreateItem('C&ONTINUE to cursor', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_CONTINUE_Cursor));
+  FPRunMenu.AddItem(CreateItem('Add &breakpoint...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_BreakpointAdd));
+  FPRunMenu.AddItem(CreateItem('Add &watch...', True, True, False, False, Nil, SP_MenuActionProcs.FPMenu_AddWatch));
 
   // Tools menu
 
-  FPToolsMenu.AddItem(CreateItem('Dialog creator', False, True, False, False, Nil, Nil));
-  FPToolsMenu.AddItem(CreateItem('Palette editor', False, True, False, False, Nil, Nil));
-  FPToolsMenu.AddItem(CreateItem('Sprite editor', False, True, False, False, Nil, Nil));
-  FPToolsMenu.AddItem(CreateItem('Font editor', False, True, False, False, Nil, Nil));
-  FPToolsMenu.AddItem(CreateItem('ASCII Table', False, True, False, False, Nil, Nil));
-  FPToolsMenu.AddItem(CreateItem('Renumber...', False, True, False, False, Nil, Nil));
+  FPToolsMenu.AddItem(CreateItem('&Dialog creator', False, True, False, False, Nil, Nil));
+  FPToolsMenu.AddItem(CreateItem('&Palette editor', False, True, False, False, Nil, Nil));
+  FPToolsMenu.AddItem(CreateItem('&Sprite editor', False, True, False, False, Nil, Nil));
+  FPToolsMenu.AddItem(CreateItem('&Font editor', False, True, False, False, Nil, Nil));
+  FPToolsMenu.AddItem(CreateItem('&ASCII Table', False, True, False, False, Nil, Nil));
+  FPToolsMenu.AddItem(CreateItem('&Renumber...', False, True, False, False, Nil, Nil));
 
   // Help menu
 
-  FPHelpMenu.AddItem(CreateItem('Contents', False, True, False, False, Nil, Nil));
-  FPHelpMenu.AddItem(CreateItem('Keyword help', False, True, False, False, Nil, Nil));
+  FPHelpMenu.AddItem(CreateItem('&Contents', False, True, False, False, Nil, Nil));
+  FPHelpMenu.AddItem(CreateItem('&Keyword help', False, True, False, False, Nil, Nil));
   FPHelpMenu.AddItem(CreateItem('-', True, True, False, False, Nil, Nil));
-  FPHelpMenu.AddItem(CreateItem('About', False, True, False, False, Nil, Nil));
+  FPHelpMenu.AddItem(CreateItem('&About', False, True, False, False, Nil, Nil));
 
   FPEditorStatusLabel := SP_Label.Create(FPMenu);
   FPEditorStatusLabel.SetBounds(FPMenu.Width - Integer(BSize), 3, 0, 0);
@@ -292,11 +292,11 @@ Begin
     Enabled := FPSearchTerm <> '';
     If Enabled Then Begin
       If LastFindwasReplace Then
-        Caption := 'Replace next'
+        Caption := 'Replace ne&xt'
       Else
-        Caption := 'Find next';
+        Caption := 'Find ne&xt';
     End Else
-      Caption := 'Find next';
+      Caption := 'Find ne&xt';
   End;
 End;
 
@@ -449,13 +449,13 @@ End;
 Class Procedure SP_MenuActionProcs.FPMenu_View_Popup(Sender: SP_BaseComponent);
 Begin
   If FocusedWindow = fwDirect then
-    SP_SwitchMenuItem.Caption := 'Switch to Editor'
+    SP_SwitchMenuItem.Caption := '&Switch to Editor'
   Else
-    SP_SwitchMenuItem.Caption := 'Switch to Direct command';
+    SP_SwitchMenuItem.Caption := '&Switch to Direct command';
   If FPDebugPanelVisible Then
-    SP_DebugPanelItem.Caption := 'Hide debug panel'
+    SP_DebugPanelItem.Caption := 'Hide &debug panel'
   Else
-    SP_DebugPanelItem.Caption := 'Show debug panel';
+    SP_DebugPanelItem.Caption := 'Show &debug panel';
 End;
 
 Class Procedure SP_MenuActionProcs.FPMenu_Switch(Sender: SP_BaseComponent);

@@ -295,7 +295,6 @@ Var
   CompileList: Array of Integer;
   MaxCompileLines: Integer;
   // Editor system
-  FocusedWindow: Integer;
   EditorMarks: Array[0..9] of LongWord;
   EditorHistory: Array of aString;
   HistoryPos: Integer;
@@ -361,8 +360,6 @@ Const
   spSoftReturn = 2;
 
   fwNone =  -1;
-  fwDirect = 0;
-  fwEditor = 1;
 
   Seps = [' ', '(', ')', ',', ';', '"', #39, '=', '+', '-', '/', '*', '^', '%', '$', '|', '&', ':', '>', '<'];
 
@@ -661,7 +658,7 @@ Begin
 
   SP_DisplayFPListing(-1);
 
-  FocusedWindow := fwDirect;
+  SwitchFocusedWindow(fwDirect);
   SP_SwitchFocus(FocusedWindow);
   SP_FPCycleEditorWindows(2);
 
@@ -839,6 +836,7 @@ Begin
   CBOLD := 0;
   SP_GetWindowDetails(DWWindowID, Win, Error);
   For Idx := 0 To 255 Do Win^.Palette[Idx] := DefaultPalette[Idx];
+  fwDirect := DWWindowID;
 
   DWPaperLeft := 1 + BSize;
   DWPaperTop := FPCaptionHeight + BSize;
@@ -1065,6 +1063,7 @@ Begin
   SP_GetWindowDetails(FPWindowID, Win, Error);
   Win^.CaptionHeight := FPCaptionHeight;
   SP_CreateEditorMenu;
+  fwEditor := FPWIndowID;
 
   // Dimensions. Client area is the inner part of the window excluding border ( 1 pixel ) and caption.
   // Page area is the area that the text is rendered to.
@@ -1126,54 +1125,44 @@ Begin
   // Remove the focus from the current window
 
   OldFocus := FocusedWindow;
-  FocusedWindow := FocusMode;
-  Case OldFocus of
-    fwDirect:
-      Begin
-        SP_Decorate_Window(DWWindowID, 'Direct command', True, False, False);
-        SP_EditorDisplayEditLine;
-      End;
-    fwEditor:
-      Begin
-        SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, False);
-        Ln := Listing.FPCLine;
-        PROGLINE := SP_GetLineNumberFromIndex(Ln);
-      End;
-  End;
+  SwitchFocusedWindow(FocusMode);
+  If OldFocus = fwDirect Then Begin
+    SP_Decorate_Window(DWWindowID, 'Direct command', True, False, False);
+    SP_EditorDisplayEditLine;
+  End Else
+    If OldFocus = fwEditor Then Begin
+      SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, False);
+      Ln := Listing.FPCLine;
+      PROGLINE := SP_GetLineNumberFromIndex(Ln);
+    End;
 
   // Now set focus.
 
-  Case FocusMode of
-    fwDirect:
-      Begin
-        SP_ClearEditorClipping;
-        SP_Decorate_Window(DWWindowID, 'Direct command', True, False, True);
-        SP_DisplayDWCursor;
-        SP_EditorDisplayEditLine;
+  If FocusMode = fwDirect Then Begin
+    SP_ClearEditorClipping;
+    SP_Decorate_Window(DWWindowID, 'Direct command', True, False, True);
+    SP_DisplayDWCursor;
+    SP_EditorDisplayEditLine;
+  End Else
+    If FocusMode = fwEditor Then Begin
+      If FPWIndowMode = 0 Then Begin
+        FPWindowMode := 2;
+        SP_FPCycleEditorWindows(2);
       End;
-    fwEditor:
-      Begin
-        If FPWIndowMode = 0 Then Begin
-          FPWindowMode := 2;
-          SP_FPCycleEditorWindows(2);
-        End;
-        SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, True);
-        If Listing.FPCLine >= Listing.Count Then Begin
-          Listing.FPCLine := Listing.Count -1;
-          Listing.FPCPos := 1;
-          FPCDes := Listing.FPCPos;
-          FPCDesLine := Listing.FPCLine;
-        End;
+      SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, True);
+      If Listing.FPCLine >= Listing.Count Then Begin
+        Listing.FPCLine := Listing.Count -1;
+        Listing.FPCPos := 1;
+        FPCDes := Listing.FPCPos;
+        FPCDesLine := Listing.FPCLine;
       End;
-    fwNone:
-      Begin
-        SP_Decorate_Window(DWWindowID, 'Direct command', True, False, False);
-        SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, False);
-        SP_EditorDisplayEditLine;
-        Ln := Listing.FPCLine;
-        PROGLINE := SP_GetLineNumberFromIndex(Ln);
-      End;
-  End;
+    End Else Begin
+      SP_Decorate_Window(DWWindowID, 'Direct command', True, False, False);
+      SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, False);
+      SP_EditorDisplayEditLine;
+      Ln := Listing.FPCLine;
+      PROGLINE := SP_GetLineNumberFromIndex(Ln);
+    End;
 
   SP_CalculateFPCursorPos;
   SP_CursorPosChanged;
@@ -4032,66 +4021,63 @@ Var
   CodeLine: aString;
 Begin
 
-  Case FocusedWindow of
-    fwEditor:
-      Begin
-        SP_GetSelectionInfo(Sel);
-        If Sel.Active Then Begin
+  If FocusedWindow = fwEditor Then Begin
+    SP_GetSelectionInfo(Sel);
+    If Sel.Active Then Begin
 
-          If Sel.StartL = Sel.EndL Then Begin
+      If Sel.StartL = Sel.EndL Then Begin
 
-            CodeLine := Listing[Sel.StartL];
-            If Sel.Dir = 1 Then
-              CodeLine := Copy(CodeLine, 1, Sel.StartP -1) + Copy(CodeLine, Sel.EndP +1)
-            Else
-              CodeLine := Copy(CodeLine, 1, Sel.StartP -1) + Copy(CodeLine, Sel.EndP);
-            Listing[Sel.StartL] := CodeLine;
-            SP_FPWordWrapLine(Sel.StartL);
-            SP_MarkAsDirty(Sel.StartL);
-            SP_FPApplyHighlighting(Sel.StartL);
+        CodeLine := Listing[Sel.StartL];
+        If Sel.Dir = 1 Then
+          CodeLine := Copy(CodeLine, 1, Sel.StartP -1) + Copy(CodeLine, Sel.EndP +1)
+        Else
+          CodeLine := Copy(CodeLine, 1, Sel.StartP -1) + Copy(CodeLine, Sel.EndP);
+        Listing[Sel.StartL] := CodeLine;
+        SP_FPWordWrapLine(Sel.StartL);
+        SP_MarkAsDirty(Sel.StartL);
+        SP_FPApplyHighlighting(Sel.StartL);
 
-          End Else Begin
+      End Else Begin
 
-            Flag := Listing.Flags[Sel.EndL].ReturnType;
-            If Sel.Dir = 1 Then
-              Listing[Sel.StartL] := Copy(Listing[Sel.StartL], 1, Sel.StartP -1) + Copy(Listing[Sel.EndL], Sel.EndP +1)
-            Else
-              Listing[Sel.StartL] := Copy(Listing[Sel.StartL], 1, Sel.StartP -1) + Copy(Listing[Sel.EndL], Sel.EndP);
-            SP_FPApplyHighlighting(Sel.StartL);
+        Flag := Listing.Flags[Sel.EndL].ReturnType;
+        If Sel.Dir = 1 Then
+          Listing[Sel.StartL] := Copy(Listing[Sel.StartL], 1, Sel.StartP -1) + Copy(Listing[Sel.EndL], Sel.EndP +1)
+        Else
+          Listing[Sel.StartL] := Copy(Listing[Sel.StartL], 1, Sel.StartP -1) + Copy(Listing[Sel.EndL], Sel.EndP);
+        SP_FPApplyHighlighting(Sel.StartL);
 
-            Idx := Sel.StartL +1;
-            While Sel.EndL >= Idx Do Begin
-              SP_DeleteLine(Idx);
-              Dec(Sel.EndL);
-            End;
-            Listing.Flags[Sel.StartL].ReturnType := Flag;
-            SP_FPWordWrapLine(Sel.StartL);
-            SP_MarkAsDirty(Sel.StartL);
-
-          End;
-
-          Listing.FPCLine := Sel.StartL;
-          Listing.FPCPos := Sel.StartP;
-          SP_CursorPosChanged;
-
+        Idx := Sel.StartL +1;
+        While Sel.EndL >= Idx Do Begin
+          SP_DeleteLine(Idx);
+          Dec(Sel.EndL);
         End;
+        Listing.Flags[Sel.StartL].ReturnType := Flag;
+        SP_FPWordWrapLine(Sel.StartL);
+        SP_MarkAsDirty(Sel.StartL);
 
-        SP_FPClearSelection(Sel);
-        If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
       End;
-    fwDirect:
-      Begin
-        If DWSelP <> CURSORPOS Then Begin
-          SelS := Min(DWSelP, CURSORPOS);
-          SelE := Max(DWSelP, CURSORPOS);
-          DWStoreEditorState;
-          EDITLINE := Copy(EDITLINE, 1, SelS -1) + Copy(EDITLINE, SelE);
-          CURSORPOS := SelS;
-          DWSelP := CURSORPOS;
-          SP_EditorDisplayEditLine;
-        End;
+
+      Listing.FPCLine := Sel.StartL;
+      Listing.FPCPos := Sel.StartP;
+      SP_CursorPosChanged;
+
+    End;
+
+    SP_FPClearSelection(Sel);
+    If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
+  End Else
+    If FocusedWindow = fwDirect Then Begin
+      If DWSelP <> CURSORPOS Then Begin
+        SelS := Min(DWSelP, CURSORPOS);
+        SelE := Max(DWSelP, CURSORPOS);
+        DWStoreEditorState;
+        EDITLINE := Copy(EDITLINE, 1, SelS -1) + Copy(EDITLINE, SelE);
+        CURSORPOS := SelS;
+        DWSelP := CURSORPOS;
+        SP_EditorDisplayEditLine;
       End;
-  End;
+    End;
+
 End;
 
 Function  IsSelActive: Boolean;
@@ -4109,45 +4095,41 @@ Var
   Sel: SP_SelectionInfo;
 Begin
 
-  Case FocusedWindow of
-    fwEditor:
-      Begin
-        SP_GetSelectionInfo(Sel);
-        If Sel.Active Then
-          If Sel.Multiline Then Begin
-            If Listing.Flags[Sel.StartL].ReturnType = spHardReturn Then
-              s := Copy(Listing[Sel.StartL], Sel.StartP) + #13#10
+  If FocusedWindow = fwEditor Then Begin
+    SP_GetSelectionInfo(Sel);
+    If Sel.Active Then
+      If Sel.Multiline Then Begin
+        If Listing.Flags[Sel.StartL].ReturnType = spHardReturn Then
+          s := Copy(Listing[Sel.StartL], Sel.StartP) + #13#10
+        Else
+          s := Copy(Listing[Sel.StartL], Sel.StartP);
+        If Sel.EndL > Sel.StartL Then Begin
+          Idx := Sel.StartL +1;
+          While Idx <> Sel.EndL Do Begin
+            If Listing.Flags[Idx].ReturnType = spHardReturn Then
+              s := s + Listing[Idx] + #13#10
             Else
-              s := Copy(Listing[Sel.StartL], Sel.StartP);
-            If Sel.EndL > Sel.StartL Then Begin
-              Idx := Sel.StartL +1;
-              While Idx <> Sel.EndL Do Begin
-                If Listing.Flags[Idx].ReturnType = spHardReturn Then
-                  s := s + Listing[Idx] + #13#10
-                Else
-                  s := s + Listing[Idx];
-                Inc(Idx);
-              End;
-            End;
-            If Sel.Dir = 1 Then
-              s := s + Copy(Listing[Sel.EndL], 1, Sel.EndP)
-            Else
-              s := s + Copy(Listing[Sel.EndL], 1, Sel.EndP -1);
-          End Else
-            If Sel.Dir = 1 Then
-              s := Copy(Listing[Sel.StartL], Sel.StartP, (Sel.EndP - Sel.StartP) +1)
-            Else
-              s := Copy(Listing[Sel.StartL], Sel.StartP, (Sel.EndP - Sel.StartP));
-      End;
-    fwDirect:
-      Begin
-        If DWSelP <> CURSORPOS Then Begin
-          SelS := Min(DWSelP, CURSORPOS);
-          SelE := Max(DWSelP, CURSORPOS);
-          s := Copy(EDITLINE, SelS, (SelE - SelS));
+              s := s + Listing[Idx];
+            Inc(Idx);
+          End;
         End;
+        If Sel.Dir = 1 Then
+          s := s + Copy(Listing[Sel.EndL], 1, Sel.EndP)
+        Else
+          s := s + Copy(Listing[Sel.EndL], 1, Sel.EndP -1);
+      End Else
+        If Sel.Dir = 1 Then
+          s := Copy(Listing[Sel.StartL], Sel.StartP, (Sel.EndP - Sel.StartP) +1)
+        Else
+          s := Copy(Listing[Sel.StartL], Sel.StartP, (Sel.EndP - Sel.StartP));
+  End Else
+    If FocusedWindow = fwDirect Then Begin
+      If DWSelP <> CURSORPOS Then Begin
+        SelS := Min(DWSelP, CURSORPOS);
+        SelE := Max(DWSelP, CURSORPOS);
+        s := Copy(EDITLINE, SelS, (SelE - SelS));
       End;
-  End;
+    End;
 
   Clipboard.AsText := String(s);
 
@@ -4158,23 +4140,19 @@ Var
   Sel: SP_SelectionInfo;
 Begin
 
-  Case FocusedWindow Of
-    fwEditor:
-      Begin
-        SP_GetSelectionInfo(Sel);
-        SP_CopySelection;
-        SP_FPDeleteSelection(Sel);
-        FPCDes := Listing.FPCPos;
-        FPCDesLine := Listing.FPCLine;
-        SP_FPClearSelection(Sel);
-      End;
-    fwDirect:
-      Begin
-        SP_CopySelection;
-        SP_FPDeleteSelection(Sel);
-      End;
+  If FocusedWindow = fwEditor Then Begin
+    SP_GetSelectionInfo(Sel);
+    SP_CopySelection;
+    SP_FPDeleteSelection(Sel);
+    FPCDes := Listing.FPCPos;
+    FPCDesLine := Listing.FPCLine;
+    SP_FPClearSelection(Sel);
+  End Else
+    If FocusedWindow = fwDirect Then Begin
+      SP_CopySelection;
+      SP_FPDeleteSelection(Sel);
+    End;
   End;
-End;
 
 Procedure SP_PasteSelection;
 Var
@@ -4196,102 +4174,94 @@ Var
 
 Begin
 
-  Case FocusedWindow of
-    fwEditor:
-      Begin
+  If FocusedWindow = fwEditor Then Begin
 
-        SP_GetSelectionInfo(Sel);
+    SP_GetSelectionInfo(Sel);
 
-        If Sel.Active Then
-          SP_FPDeleteSelection(Sel);
+    If Sel.Active Then
+      SP_FPDeleteSelection(Sel);
 
-        Strings := TStringlist.Create;
-        Strings.Text := aString(Clipboard.AsText);
+    Strings := TStringlist.Create;
+    Strings.Text := aString(Clipboard.AsText);
 
-        If Strings.Count > 0 Then Begin
-          nCPos := Length(Strings[Strings.Count -1]);
-          If Strings.Count = 1 Then Begin
-            txt := Listing[Listing.FPCLine];
-            t := Strings[0];
-            ProcessTabs(t);
-            txt := Copy(txt, 1, Listing.FPCPos -1) + t + Copy(Txt, Listing.FPCPos);
-            Listing[Listing.FPCLine] := txt;
-            Listing.FPCPos := Listing.FPCPos + nCPos;
-            SP_FPWordWrapLine(Listing.FPCLine);
-            SP_MarkAsDirty(Listing.FPCLine);
-            SP_FPApplyHighlighting(Listing.FPCLine);
-            AddDirtyLine(Listing.FPCLine);
-          End Else Begin
-            CompilerLock.Enter;
-            txt := Listing[Listing.FPCLine];
-            Strings[Strings.Count -1] := Strings[Strings.Count -1] + Copy(txt, Listing.FPCPos);
-            t := Strings[0];
-            ProcessTabs(t);
-            txt := Copy(txt, 1, Listing.FPCPos -1) + t;
-            Listing[Listing.FPCLine] := txt;
-            For Idx := Strings.Count -1 DownTo 1 Do Begin
-              t := Strings[Idx];
-              ProcessTabs(t);
-              SP_InsertLine(Listing.FPCLine +1, t, '', '');
-              Listing.Flags[Listing.FPCLine +1].ReturnType := spHardReturn;
-            End;
-            For Idx := Listing.FPCLine To Listing.FPCLine + Strings.Count -1 Do Begin
-              SP_FPWordWrapLine(Idx);
-              SP_MarkAsDirty(Idx);
-              SP_FPApplyHighlighting(Idx);
-            End;
-            Inc(Listing.FPCLine, Strings.Count);
-            Listing.FPCPos := nCPos +1;
-            CompilerLock.Leave;
-          End;
-          SP_FPClearSelection(Sel);
-        End;
-        SP_CursorPosChanged;
-        If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
-        Strings.Free;
-      End;
-    fwDirect:
-      Begin
-        If DWSelP <> CURSORPOS Then Begin
-          SP_FPDeleteSelection(Sel);
-        End;
-        Strings := TAnsiStringlist.Create;
-        Strings.Text := aString(Clipboard.AsText);
-        If Strings.Count > 0 Then Begin
-          t := Strings[0];
+    If Strings.Count > 0 Then Begin
+      nCPos := Length(Strings[Strings.Count -1]);
+      If Strings.Count = 1 Then Begin
+        txt := Listing[Listing.FPCLine];
+        t := Strings[0];
+        ProcessTabs(t);
+        txt := Copy(txt, 1, Listing.FPCPos -1) + t + Copy(Txt, Listing.FPCPos);
+        Listing[Listing.FPCLine] := txt;
+        Listing.FPCPos := Listing.FPCPos + nCPos;
+        SP_FPWordWrapLine(Listing.FPCLine);
+        SP_MarkAsDirty(Listing.FPCLine);
+        SP_FPApplyHighlighting(Listing.FPCLine);
+        AddDirtyLine(Listing.FPCLine);
+      End Else Begin
+        CompilerLock.Enter;
+        txt := Listing[Listing.FPCLine];
+        Strings[Strings.Count -1] := Strings[Strings.Count -1] + Copy(txt, Listing.FPCPos);
+        t := Strings[0];
+        ProcessTabs(t);
+        txt := Copy(txt, 1, Listing.FPCPos -1) + t;
+        Listing[Listing.FPCLine] := txt;
+        For Idx := Strings.Count -1 DownTo 1 Do Begin
+          t := Strings[Idx];
           ProcessTabs(t);
-          DWStoreEditorState;
-          EditLine := Copy(EDITLINE, 1, CURSORPOS -1) + t + Copy(EDITLINE, CURSORPOS);
-          Inc(CURSORPOS, Length(Strings[0]));
-          DWSelP := CURSORPOS;
+          SP_InsertLine(Listing.FPCLine +1, t, '', '');
+          Listing.Flags[Listing.FPCLine +1].ReturnType := spHardReturn;
         End;
-        Strings.Free;
+        For Idx := Listing.FPCLine To Listing.FPCLine + Strings.Count -1 Do Begin
+          SP_FPWordWrapLine(Idx);
+          SP_MarkAsDirty(Idx);
+          SP_FPApplyHighlighting(Idx);
+        End;
+        Inc(Listing.FPCLine, Strings.Count);
+        Listing.FPCPos := nCPos +1;
+        CompilerLock.Leave;
       End;
-  End;
+      SP_FPClearSelection(Sel);
+    End;
+    SP_CursorPosChanged;
+    If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
+    Strings.Free;
+  End Else
+    If FocusedWindow = fwDirect Then Begin
+      If DWSelP <> CURSORPOS Then Begin
+        SP_FPDeleteSelection(Sel);
+      End;
+      Strings := TAnsiStringlist.Create;
+      Strings.Text := aString(Clipboard.AsText);
+      If Strings.Count > 0 Then Begin
+        t := Strings[0];
+        ProcessTabs(t);
+        DWStoreEditorState;
+        EditLine := Copy(EDITLINE, 1, CURSORPOS -1) + t + Copy(EDITLINE, CURSORPOS);
+        Inc(CURSORPOS, Length(Strings[0]));
+        DWSelP := CURSORPOS;
+      End;
+      Strings.Free;
+    End;
 
 End;
 
 Procedure SP_SelectAll;
 Begin
 
-  Case FocusedWindow of
-    fwEditor:
-      Begin
-        Listing.FPSelLine := 0;
-        Listing.FPSelPos := 1;
-        Listing.FPCLine := Listing.Count -1;
-        Listing.FPCPos := Length(Listing[Listing.FPCLine]) +1;
-        SP_CursorPosChanged;
-        SP_ScrollInView;
-        SP_DisplayFPListing(-1);
-      End;
-    fwDirect:
-      Begin
-        DWSelP := 1;
-        CURSORPOS := Length(EDITLINE) +1;
-        SP_EditorDisplayEditLine;
-      End;
-  End;
+  If FocusedWindow = fwEditor Then Begin
+    Listing.FPSelLine := 0;
+    Listing.FPSelPos := 1;
+    Listing.FPCLine := Listing.Count -1;
+    Listing.FPCPos := Length(Listing[Listing.FPCLine]) +1;
+    SP_CursorPosChanged;
+    SP_ScrollInView;
+    SP_DisplayFPListing(-1);
+  End Else
+    If FocusedWindow = fwDirect Then Begin
+      DWSelP := 1;
+      CURSORPOS := Length(EDITLINE) +1;
+      SP_EditorDisplayEditLine;
+    End;
 
 End;
 
@@ -4300,26 +4270,22 @@ Var
   Sel: SP_SelectionInfo;
 Begin
 
-  Case FocusedWindow of
-    fwEditor:
-      Begin
-        SP_GetSelectionInfo(Sel);
-        If Sel.StartL > -1 Then Begin
-          Listing.FPCLine := Sel.EndL;
-          Listing.FPCPos := Sel.EndP;
-          Listing.FPSelLine := Sel.EndL;
-          Listing.FPSelPos := Sel.EndP;
-          SP_CursorPosChanged;
-          SP_ScrollInView;
-          SP_DisplayFPListing(-1);
-        End;
-      End;
-    fwDirect:
-      Begin
-        DWSelP := CURSORPOS;
-        SP_EditorDisplayEditLine;
-      End;
-  End;
+  If FocusedWindow = fwEditor Then Begin
+    SP_GetSelectionInfo(Sel);
+    If Sel.StartL > -1 Then Begin
+      Listing.FPCLine := Sel.EndL;
+      Listing.FPCPos := Sel.EndP;
+      Listing.FPSelLine := Sel.EndL;
+      Listing.FPSelPos := Sel.EndP;
+      SP_CursorPosChanged;
+      SP_ScrollInView;
+      SP_DisplayFPListing(-1);
+    End;
+  End Else
+    If FocusedWindow = fwDirect Then Begin
+      DWSelP := CURSORPOS;
+      SP_EditorDisplayEditLine;
+    End;
 
 End;
 
@@ -4329,34 +4295,30 @@ Var
   t: Integer;
 Begin
 
-  Case FocusedWindow Of
-    fwEditor:
-      Begin
-        s := Listing[Listing.FPCLine];
-        // Find the start of the word:
-        While (Listing.FPCPos > 1) And (s[Listing.FPCPos] in Seps) Do Listing.FPCPos := Listing.FPCPos -1;
-        While (Listing.FPCPos > 1) And Not (s[Listing.FPCPos] in Seps) Do Listing.FPCPos := Listing.FPCPos -1;
-        If (Listing.FPCPos < Length(s)) And (s[Listing.FPCPos] in Seps) Then Listing.FPCPos := Listing.FPCPos +1;
-        // Find the end of the Word:
-        Listing.FPSelLine := Listing.FPCLine;
-        Listing.FPSelPos := Listing.FPCPos;
-        While (Listing.FPSelPos < Length(s)) And Not (s[Listing.FPSelPos] in Seps) Do Inc(Listing.FPSelPos);
-        t := Listing.FPSelPos; Listing.FPSelPos := Listing.FPCPos; Listing.FPCPos := t;
-        SP_CursorPosChanged;
-        If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
-      End;
-    fwDirect:
-      Begin
-        While (CURSORPOS > 1) And (EDITLINE[CURSORPOS] in Seps) Do Dec(CURSORPOS);
-        While (CURSORPOS > 1) And Not (EDITLINE[CURSORPOS] in Seps) Do Dec(CURSORPOS);
-        If (CURSORPOS < Length(EDITLINE)) and (EDITLINE[CURSORPOS] in Seps) Then Inc(CURSORPOS);
-        // Find the end of the Word:
-        DWSelP := CURSORPOS;
-        While (DWSelP < Length(EDITLINE)) And Not (EDITLINE[DWSelP] in Seps) Do Inc(DWSelP);
-        t := DWSelP; DWSelP := CURSORPOS; CURSORPOS := t;
-        SP_EditorDisplayEditLine;
-      End;
-  End;
+  If FocusedWindow = fwEditor Then Begin
+    s := Listing[Listing.FPCLine];
+    // Find the start of the word:
+    While (Listing.FPCPos > 1) And (s[Listing.FPCPos] in Seps) Do Listing.FPCPos := Listing.FPCPos -1;
+    While (Listing.FPCPos > 1) And Not (s[Listing.FPCPos] in Seps) Do Listing.FPCPos := Listing.FPCPos -1;
+    If (Listing.FPCPos < Length(s)) And (s[Listing.FPCPos] in Seps) Then Listing.FPCPos := Listing.FPCPos +1;
+    // Find the end of the Word:
+    Listing.FPSelLine := Listing.FPCLine;
+    Listing.FPSelPos := Listing.FPCPos;
+    While (Listing.FPSelPos < Length(s)) And Not (s[Listing.FPSelPos] in Seps) Do Inc(Listing.FPSelPos);
+    t := Listing.FPSelPos; Listing.FPSelPos := Listing.FPCPos; Listing.FPCPos := t;
+    SP_CursorPosChanged;
+    If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
+  End Else
+    If FocusedWindow = fwDirect Then Begin
+      While (CURSORPOS > 1) And (EDITLINE[CURSORPOS] in Seps) Do Dec(CURSORPOS);
+      While (CURSORPOS > 1) And Not (EDITLINE[CURSORPOS] in Seps) Do Dec(CURSORPOS);
+      If (CURSORPOS < Length(EDITLINE)) and (EDITLINE[CURSORPOS] in Seps) Then Inc(CURSORPOS);
+      // Find the end of the Word:
+      DWSelP := CURSORPOS;
+      While (DWSelP < Length(EDITLINE)) And Not (EDITLINE[DWSelP] in Seps) Do Inc(DWSelP);
+      t := DWSelP; DWSelP := CURSORPOS; CURSORPOS := t;
+      SP_EditorDisplayEditLine;
+    End;
 
 End;
 
@@ -4367,18 +4329,14 @@ Var
 Begin
 
   p1 := 0;
-  Case FocusedWindow Of
-    fwEditor:
-      Begin
-        s := Listing[Listing.FPCLine] + ' ';
-        p1 := Listing.FPCPos;
-      End;
-    fwDirect:
-      Begin
-        s := EDITLINE + ' ';
-        p1 := CURSORPOS;
-      End;
-  End;
+  If FocusedWindow = fwEditor Then Begin
+    s := Listing[Listing.FPCLine] + ' ';
+    p1 := Listing.FPCPos;
+  End Else
+    If FocusedWindow = fwDirect Then Begin
+      s := EDITLINE + ' ';
+      p1 := CURSORPOS;
+    End;
 
   p2 := p1;
   If Backwards Then Begin
@@ -4396,23 +4354,19 @@ Begin
   s := Copy(s, 1, Length(s) -1);
   s := Copy(s, 1, p1-1) + Copy(S, p2);
 
-  Case FocusedWindow Of
-    fwEditor:
-      Begin
-        Listing[Listing.FPCLine] := s;
-        SP_FPWordWrapLine(Listing.FPCLine);
-        Listing.FPCPos := p1;
-        SP_CursorPosChanged;
-        Listing.FPSelPos := Listing.FPCPos;
-      End;
-    fwDirect:
-      Begin
-        DWStoreEditorState;
-        EDITLINE := s;
-        CURSORPOS := p1;
-        DWSelP := CURSORPOS;
-      End;
-  End;
+  If FocusedWindow = fwEditor Then Begin
+    Listing[Listing.FPCLine] := s;
+    SP_FPWordWrapLine(Listing.FPCLine);
+    Listing.FPCPos := p1;
+    SP_CursorPosChanged;
+    Listing.FPSelPos := Listing.FPCPos;
+  End Else
+    If FocusedWindow = fwDirect Then Begin
+      DWStoreEditorState;
+      EDITLINE := s;
+      CURSORPOS := p1;
+      DWSelP := CURSORPOS;
+    End;
 
 End;
 
@@ -6011,7 +5965,7 @@ End;
 
 Procedure SP_EditorDisplayEditLine;
 Var
-  Idx, WorkW, NewW, NewH, TLen, SelS, SelE: Integer;
+  Idx, WorkW, NewW, NewH, TLen, SelS, SelE, l: Integer;
   EditLen, X, Y, WindowID, Font: Integer;
   CText, EL_Text, s: aString;
   StartWithSel: Boolean;
@@ -6053,10 +6007,11 @@ Begin
   Y := DWPaperTop;
 
   s := InsertLiterals(EDITLINE);
+  l := Length(s);
   If DWSelP <> CURSORPOS Then Begin
-    SelS := Limited(SP_GetCharPos(s, SelS), 1, Length(EDITLINE));
-    SelE := Limited(SP_GetCharPos(s, SelE), 1, Length(EDITLINE));
-    If s[SelE] = #5 Then Inc(SelE);
+    SelS := Limited(SP_GetCharPos(s, SelS), 1, l);
+    SelE := Limited(SP_GetCharPos(s, SelE), 1, l);
+    If (SelE < l) and (s[SelE] = #5) Then Inc(SelE);
     EL_Text := Copy(s, 1, SelS -1) + selClr + Copy(s, SelS, (SelE - SelS) +1) + backClr + Copy(s, SelE +1)
   End Else Begin
     EL_Text := s;
@@ -7731,7 +7686,7 @@ Begin
   SP_CreateDirectWindow;
   SP_CreateFPWindow;
   SP_DisplayFPListing(-1);
-  FocusedWindow := fwDirect;
+  SwitchFocusedWindow(fwDirect);
   SP_SwitchFocus(FocusedWindow);
   SP_FPCycleEditorWindows(2);
 

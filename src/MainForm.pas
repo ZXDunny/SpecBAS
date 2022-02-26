@@ -542,6 +542,8 @@ procedure TMain.OnAppMessage(var Msg: TMsg; var Handled: Boolean);
 begin
 
   case Msg.message of
+    WM_SYSCHAR:
+      Handled := aChar(Msg.wParam) in ['a'..'z', 'A'..'Z', '0'..'9'];
     WM_KEYDOWN:
       begin
         if (Msg.lParam shr 30) = 1 then begin
@@ -573,12 +575,12 @@ procedure TMain.FormMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShi
 Var
   mi: SP_MenuSelection;
   Win: Pointer;
-  Btn: Integer;
+  Btn, ID: Integer;
   p: TPoint;
   Handled: Boolean;
 begin
 
-  If FormActivated Then Begin
+  If FormActivated or True Then Begin
 
     SetCapture(Handle);
 
@@ -625,7 +627,8 @@ begin
 
     End;
 
-    // Now check for controls under the mouse              *** make windowmenu appear when right-clicking if not visible
+    // Now check for controls under the mouse
+    // *** TO DO make windowmenu appear when right-clicking if not visible ***
 
     Handled := False;
     DisplaySection.Enter;
@@ -637,8 +640,10 @@ begin
       SP_BaseComponent(CaptureControl).MouseDown(p.X, p.Y, Btn);
       Handled := True;
     End Else Begin
-      Win := WindowAtPoint(X, Y);
+      Win := WindowAtPoint(X, Y, ID);
       If Assigned(Win) Then Begin
+        If Not (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT]) and (MODALWINDOW = -1) Then
+          SwitchFocusedWindow(ID); // The editor handles this.
         Win := ControlAtPoint(Win, X, Y);
         If Assigned(Win) Then Begin
           CaptureControl := Win;
@@ -649,7 +654,7 @@ begin
         End Else Begin
           If Assigned(CaptureControl) Then
             SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
-          If Assigned(FocusedControl) Then
+          If Assigned(FocusedControl) And (MODALWINDOW = -1) Then
             FocusedControl.SetFocus(False);
         End;
       End;
@@ -672,7 +677,7 @@ procedure TMain.FormMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Integer
 Var
   Win: Pointer;
   p: TPoint;
-  LMenu, LItem, Btn, tX, tY: Integer;
+  LMenu, LItem, Btn, tX, tY, ID: Integer;
   Handled: Boolean;
 begin
 
@@ -723,7 +728,7 @@ begin
         Handled := False;
 
         tX := X; tY := Y;
-        Win := WindowAtPoint(tX, tY);
+        Win := WindowAtPoint(tX, tY, ID);
         If Assigned(Win) Then Begin
           Win := ControlAtPoint(Win, tX, tY);
           If MouseControl <> SP_BaseComponent(Win) Then
@@ -766,7 +771,7 @@ procedure TMain.FormMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShift
 Var
   mi: SP_MenuSelection;
   Win: Pointer;
-  Btn: Integer;
+  Btn, ID: Integer;
   p: TPoint;
   Handled: Boolean;
 begin
@@ -811,7 +816,7 @@ begin
         CaptureControl := Nil;
       Handled := True;
     End Else Begin
-      Win := WindowAtPoint(X, Y);
+      Win := WindowAtPoint(X, Y, ID);
       If Assigned(Win) Then Begin
         Win := ControlAtPoint(Win, X, Y);
         If Assigned(Win) Then Begin
@@ -1086,8 +1091,12 @@ begin
 
   aStr := aString(GetCharFromVirtualKey(Key));
   If (aStr = '') or (aStr[1] < ' ') Then aStr := #0;
+
   kInfo.CanRepeat := True;
   kInfo.IsKey := True;
+  kInfo.KeyChar := aStr[1];
+  kInfo.KeyCode := Key And $7F;
+  kInfo.NextFrameTime := FRAMES;
 
   If Key = $12 Then Begin // ALT went down
 
@@ -1098,14 +1107,13 @@ begin
 
     If AltDown then Begin
 
-      If aStr[1] in ['0'..'9'] Then Begin
+      If Key in [K_NUMPAD0..K_NUMPAD9] Then Begin
 
         IgnoreNextMenuChar := True;
-        AltChars := AltChars + aStr[1];
+        AltChars := AltChars + IntToString(Key - K_NUMPAD0);
         If Length(AltChars) = 3 Then Begin
           kInfo.KeyCode := StringToInt(AltChars);
           kInfo.keyChar := aChar(kInfo.KeyCode);
-          kInfo.NextFrameTime := FRAMES;
           kInfo.CanRepeat := False;
           kInfo.IsKey := False;
           ALtChars := '';
@@ -1116,23 +1124,17 @@ begin
 
       End;
 
-    End Else Begin
-
-      kInfo.KeyChar := aStr[1];
-      kInfo.KeyCode := Key And $7F;
-      kInfo.NextFrameTime := FRAMES;
-
     End;
 
-    If ControlsAreInUse Then Begin
-      DisplaySection.Enter;
-      If Not ControlKeyEvent(kInfo.KeyChar, kInfo.KeyCode, True, kInfo.IsKey) Then
-        SP_AddKey(kInfo);
-      DisplaySection.Leave;
-    End Else
-      SP_AddKey(kInfo);
-
   End;
+
+  If ControlsAreInUse Then Begin
+    DisplaySection.Enter;
+    If Not ControlKeyEvent(kInfo.KeyChar, kInfo.KeyCode, True, kInfo.IsKey) Then
+      SP_AddKey(kInfo);
+    DisplaySection.Leave;
+  End Else
+    SP_AddKey(kInfo);
 
   Key := 0;
 
@@ -1157,7 +1159,7 @@ procedure TMain.FormMouseWheelDown(Sender: TObject; Shift: TShiftState; MousePos
 Var
   p: TPoint;
   Win: Pointer;
-  X, Y, Btn: Integer;
+  X, Y, Btn, ID: Integer;
 begin
 
   X := MOUSEX;
@@ -1171,7 +1173,7 @@ begin
     p := CaptureControl.ScreenToClient(Point(x, y));
     CaptureControl.MouseMove(p.x, p.y, Btn);
   End Else Begin
-    Win := WindowAtPoint(X, Y);
+    Win := WindowAtPoint(X, Y, ID);
     If Assigned(Win) Then Begin
       Win := ControlAtPoint(Win, X, Y);
       If Assigned(Win) Then Begin
@@ -1194,7 +1196,7 @@ procedure TMain.FormMouseWheelUp(Sender: TObject; Shift: TShiftState; MousePos: 
 Var
   p: TPoint;
   Win: Pointer;
-  X, Y, Btn: Integer;
+  X, Y, Btn, ID: Integer;
 begin
 
   X := MOUSEX;
@@ -1208,7 +1210,7 @@ begin
     p := CaptureControl.ScreenToClient(Point(x, y));
     CaptureControl.MouseMove(p.x, p.y, Btn);
   End Else Begin
-    Win := WindowAtPoint(X, Y);
+    Win := WindowAtPoint(X, Y, ID);
     If Assigned(Win) Then Begin
       Win := ControlAtPoint(Win, X, Y);
       If Assigned(Win) Then Begin

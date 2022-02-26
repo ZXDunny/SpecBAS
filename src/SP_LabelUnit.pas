@@ -195,9 +195,9 @@ Begin
           End;
       End;
       If fEnabled Then
-        PRINT(x, y, fLines[i], fFontClr, -1, iSX, iSY, False, False)
+        PRINT(x, y, fLines[i], fFontClr, -1, iSX, iSY, False, False, False)
       Else
-        PRINT(x, y, fLines[i], fDisabledFontClr, -1, iSX, iSY, False, False);
+        PRINT(x, y, fLines[i], fDisabledFontClr, -1, iSX, iSY, False, False, False);
       Inc(y, iFH);
 
     End;
@@ -216,9 +216,9 @@ Begin
        1: x := (fWidth - bOffs) - (fCaplen * iFW);
     End;
     If fEnabled Then
-      PRINT(x, y, fCaption, fFontClr, -1, iSX, iSY, False, False)
+      PRINT(x, y, fCaption, fFontClr, -1, iSX, iSY, False, False, False)
     Else
-      PRINT(x, y, fCaption, fDisabledFontClr, -1, iSX, iSY, False, False);
+      PRINT(x, y, fCaption, fDisabledFontClr, -1, iSX, iSY, False, False, False);
 
   End;
 

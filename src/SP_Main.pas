@@ -115,7 +115,7 @@ Begin
 
   If FRAMES Mod FLASHINTERVAL = 0 Then Begin
     FLASHSTATE := 1 - FLASHSTATE;
-    If SYSTEMSTATE in [SS_EDITOR, SS_INPUT] Then
+    If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_INPUT] Then
       SP_NeedDisplayUpdate := True;
   End;
 

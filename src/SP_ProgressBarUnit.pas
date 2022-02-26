@@ -135,7 +135,7 @@ Begin
         ty := Height - 1 - fIntPos + fH;
       tx := (Width - iFW) Div 2;
     End;
-    PRINT(tx, ty, fCaption, cl, -1, iSX, iSY, False, False);
+    PRINT(tx, ty, fCaption, cl, -1, iSX, iSY, False, False, False);
   End;
 
   If fBorder Then

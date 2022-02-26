@@ -122,6 +122,7 @@ Type
   Procedure SP_SetWindowDefaults(Bank: pSP_Bank; Window: pSP_Window_Info; Left, Top, Width, Height, TransIdx, Bpp, Alpha: Integer);
   Function  SP_Add_Window(Left, Top, Width, Height, TransIdx, Bpp, Alpha: Integer; Var Error: TSP_ErrorCode): Integer;
   Procedure SP_SetWindowVisible(WindowID: Integer; Vis: Boolean; Error: TSP_ErrorCode);
+  Procedure SwitchFocusedWindow(ID: Integer);
 
   Function  SP_Program_Bank_Create(Name: aString): Integer;
   Procedure SP_AddLine(BankID: Integer; Line: aString; Var Error: TSP_ErrorCode);
@@ -588,6 +589,8 @@ Begin
         SCREENBANK := -1;
         SP_SetDrawingWindow(0);
       End;
+      If (FocusedWindow = SP_BankList[Index]^.ID) And (SP_BankList[Index]^.DataType = SP_WINDOW_BANK) Then
+        SwitchFocusedWindow(pSP_Window_Info(@SP_BankList[Index]^.Info[0])^.PrevWin);
 
       Dispose(SP_BankList[Index]);
       For Idx := Index To Length(SP_BankList) -2 Do
@@ -1115,6 +1118,11 @@ Begin
 
 End;
 
+Procedure SwitchFocusedWindow(ID: Integer);
+Begin
+  FocusedWindow := ID;
+End;
+
 Function SP_Add_Window(Left, Top, Width, Height, TransIdx, Bpp, Alpha: Integer; Var Error: TSP_ErrorCode): Integer;
 Var
   Idx: Integer;
@@ -1134,6 +1142,8 @@ Begin
   Window := @Bank^.Info[0];
 
   SP_SetWindowDefaults(Bank, Window, Left, Top, Width, Height, TransIdx, Bpp, Alpha);
+  Window^.PrevWin := FocusedWindow;
+  SwitchFocusedWindow(Bank^.ID);
 
   If Window^.bpp in [8, 32] Then Begin
 

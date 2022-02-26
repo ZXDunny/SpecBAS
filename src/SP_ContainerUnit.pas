@@ -89,10 +89,10 @@ Begin
       yo := Round(iFH/2);
     DrawRect(0, yo, Width -1, Height -1, fBorderClr);
     If fCaption <> '' Then
-      PRINT(ifW, 0, ' '+fCaption+' ', c, fBackgroundClr, iSX, iSY, False, False);
+      PRINT(ifW, 0, ' '+fCaption+' ', c, fBackgroundClr, iSX, iSY, False, False, False);
   End Else Begin
     If fCaption <> '' Then
-      PRINT(0, 0, ' '+fCaption+' ', c, -1, iSX, iSY, False, False);
+      PRINT(0, 0, ' '+fCaption+' ', c, -1, iSX, iSY, False, False, False);
   End;
 
 End;

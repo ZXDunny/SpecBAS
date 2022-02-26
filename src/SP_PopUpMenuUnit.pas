@@ -53,6 +53,7 @@ SP_PopupMenu = Class(SP_BaseComponent)
     fSepClr: Byte;
     fClicked: SP_MenuItem;
     PrevFocusedControl: SP_BaseComponent;
+    fAltDown: Boolean;
     Procedure CalculateSizes;
     Procedure Draw; Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
@@ -77,6 +78,8 @@ SP_PopupMenu = Class(SP_BaseComponent)
     Procedure SetSubMenu(Index: Integer; SubMenu: SP_PopUpMenu);
     Procedure Close;
     Procedure CloseAll;
+    Procedure ExecuteItem(Item: Integer);
+    Function  IsShortCut(Chr: aChar): Integer;
 
     Property  Count: Integer read fCount;
     Property  MenuItems[Index: Integer]: SP_MenuItem read GetItem write SetItem;
@@ -149,6 +152,8 @@ Begin
     fHighlightClr := SP_UISelection;
     fBackgroundClr := SP_UIBackground;
   End;
+  AddOverrideControl(Self);
+  fAltDown := False;
 
 End;
 
@@ -238,6 +243,7 @@ Begin
             Inc(x, iFW);
           End;
         Inc(w, StripLen(Caption) * iFW);
+        if SP_Util.Pos('&', Caption) > 0 Then Dec(w, iFW);
         If x > mx Then mx := x;
         If w > mw Then mw := w;
       End;
@@ -320,15 +326,15 @@ Begin
           DrawRect(e, c);
         End;
       End;
-      If Checked Then PRINT(5, Extents.Top +1, #246, ic, -1, iSX, iSY, False, False);
+      If Checked Then PRINT(5, Extents.Top +1, #246, ic, -1, iSX, iSY, False, False, False);
       If Caption <> '-' Then
-        PRINT(Extents.Left, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False)
+        PRINT(Extents.Left, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, fAltDown And fEnabled)
       Else Begin
         y := Trunc(((Extents.Bottom - Extents.Top)/2) + Extents.Top);
         DrawLine(Extents.Left, y, Extents.Right, y, fSepClr);
       End;
       If Assigned(SubMenu) Then
-        PRINT(Extents.Right - iFW * 2, Extents.Top +1, #247, ic, -1, iSX, iSY, False, False);
+        PRINT(Extents.Right - iFW * 2, Extents.Top +1, #247, ic, -1, iSX, iSY, False, False, False);
 
     End;
 
@@ -356,6 +362,7 @@ Begin
     If fItems[i].Enabled And Assigned(fItems[i].SubMenu) And ShowSubMenu Then Begin
       p := Point(fLeft + fItems[i].Extents.right - iFW * 2, fTop + fItems[i].Extents.Top + 4);
       fItems[i].SubMenu.fParentMenu := Self;
+      fItems[i].SubMenu.fAltDown := fAltDown;
       fItems[i].SubMenu.PopUp(p.x, p.y);
     End;
   End;
@@ -679,11 +686,53 @@ Begin
 
 End;
 
+Function SP_PopupMenu.IsShortCut(Chr: aChar): Integer;
+Var
+  i, p: Integer;
+  s: aString;
+Begin
+  i := 0;
+  Result := -1;
+  While i < Length(fItems) do Begin
+    s := Lower(fItems[i].Caption);
+    p := Pos('&', s);
+    if (p > 0) and (p < Length(s)) and (s[p +1] = Chr) Then Begin
+      Result := i;
+      Exit;
+    End Else
+      Inc(i);
+  End;
+End;
+
+Procedure SP_PopUpMenu.ExecuteItem(Item: Integer);
+Begin
+  If fItems[Item].Checkable Then
+    fItems[Item].Checked := Not fItems[Item].Checked;
+  CloseAll;
+  If Assigned(fItems[Item].OnClick) And fItems[Item].Enabled Then
+    fItems[Item].OnClick(SP_BaseComponent(fItems[Item]));
+  Paint;
+End;
+
 Procedure SP_PopUpMenu.PerformKeyDown(Var Handled: Boolean);
 Var
-  i, j: Integer;
+  i, j, Item: Integer;
   NewChar: Byte;
 Begin
+
+  If cLastKey = K_ALT Then Begin
+    fAltDown := True;
+    Paint;
+  End Else
+    If fAltDown Then Begin
+      Item := IsShortCut(aChar(DecodeKey(cLastKey)));
+      If Item >= 0 Then Begin
+        SetFocus(True);
+        SelectItem(Item, True);
+        Handled := True;
+        Exit;
+      End;
+    End;
 
   If fSelected <> -1 Then Begin
     If Assigned(fItems[fSelected].SubMenu) And fItems[fSelected].SubMenu.Visible Then Begin
@@ -802,14 +851,8 @@ Begin
       K_RETURN:
         Begin
           SP_PlaySystem(CLICKCHAN, CLICKBANK);
-          If fSelected <> -1 Then Begin
-            If fItems[fSelected].Checkable Then
-              fItems[fSelected].Checked := Not fItems[fSelected].Checked;
-            CloseAll;
-            If Assigned(fItems[fSelected].OnClick) And fItems[fSelected].Enabled Then
-              fItems[fSelected].OnClick(SP_BaseComponent(fItems[fSelected]));
-            Paint;
-          End;
+          If fSelected <> -1 Then
+            ExecuteItem(fSelected);
         End;
 
     Else
@@ -839,7 +882,19 @@ Begin
 End;
 
 Procedure SP_PopUpMenu.PerformKeyUp(Var Handled: Boolean);
+Var
+  Item: Integer;
 Begin
+
+  If cLastKey = K_ALT Then Begin
+    fAltDown := False;
+    Paint;
+  End;
+
+  Item := IsShortCut(aChar(DecodeKey(cLastKey)));
+  If (Item >= 0) And (Item = fSelected) And fAltDown Then
+    If Not Assigned(fItems[Item].SubMenu) Then
+      ExecuteItem(Item);
 
   Handled := True;
 

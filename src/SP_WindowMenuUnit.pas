@@ -17,6 +17,7 @@ SP_WindowMenu = Class(SP_BaseComponent)
     fHighlightClr: Byte;
     fPermanent: Boolean;
     fAutoOpen: Boolean;
+    fAltDown: Boolean;
     Procedure CalculateSizes;
     Procedure Draw; Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
@@ -37,6 +38,7 @@ SP_WindowMenu = Class(SP_BaseComponent)
     Procedure CancelSelection;
     Procedure SetSubMenu(Index: Integer; SubMenu: SP_PopUpMenu);
     Function  GetCount: Integer;
+    Function  IsShortCut(Chr: aChar): Integer;
 
     Property  MenuItems[Index: Integer]: SP_MenuItem read GetItem write SetItem;
     Property  HightlightColour: Byte read fHighlightClr write SetHighlightClr;
@@ -69,6 +71,8 @@ Begin
   fTransparent := False;
   fHighlightClr := 5;
   fPermanent := False;
+  AddOverrideControl(Self);
+  fAltDown := False;
 
 End;
 
@@ -145,6 +149,7 @@ Begin
   For i := 0 To Length(fItems) -1 Do Begin
 
     l := StripLen(fItems[i].Caption)+2;
+    if SP_Util.Pos('&', fItems[i].Caption) > 0 Then Dec(l);
     With r Do Begin
       Left := x;
       Right := x + (iFW * l);
@@ -195,7 +200,7 @@ Begin
         If (Focused or PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp)) And Not MouseInSubMenu Then
           DrawRect(e, SP_UISelectionOutline);
       End;
-      PRINT(Extents.Left + iFW -2, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False);
+      PRINT(Extents.Left + iFW -2, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, fAltDown And fEnabled);
 
     End;
 
@@ -213,6 +218,7 @@ Begin
   fSelected := i;
   If fItems[i].Enabled And Assigned(fItems[i].SubMenu) And ShowSubMenu Then Begin
     p := Point(fLeft+fItems[i].Extents.Left, fTop+fItems[i].Extents.Bottom);
+    fItems[i].SubMenu.fAltDown := fAltDown;
     fItems[i].SubMenu.PopUp(p.x, p.y);
   End;
   Paint;
@@ -381,6 +387,7 @@ Begin
       If Assigned(fItems[i].SubMenu) And fItems[i].Enabled Then Begin
         p := Point(fLeft+fItems[i].Extents.Left, fTop+fItems[i].Extents.Bottom);
         If Not fItems[i].SubMenu.Visible Then Begin
+          fItems[i].SubMenu.fAltDown := fAltDown;
           fItems[i].SubMenu.PopUp(p.x, p.y);
           fItems[i].SubMenu.fIgnoreMouseUp := True;
         End Else Begin
@@ -402,15 +409,48 @@ Begin
 
 End;
 
+Function SP_WindowMenu.IsShortCut(Chr: aChar): Integer;
+Var
+  i, p: Integer;
+  s: aString;
+Begin
+  i := 0;
+  Result := -1;
+  While i < Length(fItems) do Begin
+    s := Lower(fItems[i].Caption);
+    p := Pos('&', s);
+    if (p > 0) and (p < Length(s)) and (s[p +1] = Chr) Then Begin
+      Result := i;
+      Exit;
+    End Else
+      Inc(i);
+  End;
+End;
+
 Procedure SP_WindowMenu.PerformKeyDown(Var Handled: Boolean);
 Var
-  i: Integer;
+  i, Item: Integer;
   NewChar: Byte;
   b: Boolean;
   p: TPoint;
 Label
   AutoOpenSubMenu;
 Begin
+
+  If cLastKey = K_ALT Then Begin
+    fAltDown := True;
+    Paint;
+  End Else
+    If fAltDown Then Begin
+      Item := IsShortCut(aChar(DecodeKey(cLastKey)));
+      If Item >= 0 Then Begin
+        Activated := True;
+        SetFocus(True);
+        SelectItem(Item, True);
+        Handled := True;
+        Exit;
+      End;
+    End;
 
   if Not fActivated Then Begin
     Handled := False;
@@ -442,8 +482,10 @@ Begin
                 AutoOpenSubMenu:
                 If (i >= 0) And Assigned(fItems[i].SubMenu) Then Begin
                   p := Point(fLeft+fItems[i].Extents.Left, fTop+fItems[i].Extents.Bottom);
-                  If Not fItems[i].SubMenu.Visible Then
+                  If Not fItems[i].SubMenu.Visible Then Begin
+                    fItems[i].SubMenu.fAltDown := fAltDown;
                     fItems[i].SubMenu.PopUp(p.x, p.y);
+                  End;
                   Exit;
                 End;
               End;
@@ -516,6 +558,11 @@ End;
 
 Procedure SP_WindowMenu.PerformKeyUp(Var Handled: Boolean);
 Begin
+
+  If cLastKey = K_ALT Then Begin
+    fAltDown := False;
+    Paint;
+  End;
 
   if Not fActivated Then
     Handled := True;

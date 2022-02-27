@@ -4745,6 +4745,16 @@ Begin
     Case Key.KeyCode of
       K_F1..K_F10:
         Begin // F1 to F9 set markers (CTRL+Shift) and jump to markers (CTRL)
+          {$IFNDEF DARWIN}
+          If KEYSTATE[K_CONTROL] = 1 Then Begin
+            If KEYSTATE[K_SHIFT] = 1 Then Begin
+              SP_ToggleEditorMark(Key.KeyCode - K_F1);
+            End Else Begin
+              SP_JumpToMark(Key.KeyCode - K_F1);
+            End;
+            SP_FPClearSelection(Sel);
+          End Else
+          {$ENDIF}
           Case Key.KeyCode of
             K_F1:
               Begin

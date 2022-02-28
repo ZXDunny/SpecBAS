@@ -105,8 +105,8 @@
         <DCC_DebugInformation>0</DCC_DebugInformation>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <VerInfo_Build>1201</VerInfo_Build>
-        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=0.0.0.1201;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;Last Compile=2013-05-13 23:11</VerInfo_Keys>
+        <VerInfo_Build>1202</VerInfo_Build>
+        <VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=0.0.0.1202;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=;Last Compile=2013-05-13 23:11</VerInfo_Keys>
         <DCC_ExeOutput>..\</DCC_ExeOutput>
         <Icon_MainIcon>SpecBAS_Icon.ico</Icon_MainIcon>
         <Manifest_File>None</Manifest_File>
@@ -114,9 +114,9 @@
     <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
         <DCC_SYMBOL_PLATFORM>false</DCC_SYMBOL_PLATFORM>
         <DCC_ExeOutput>..\</DCC_ExeOutput>
-        <VerInfo_Build>1201</VerInfo_Build>
+        <VerInfo_Build>1202</VerInfo_Build>
         <Icon_MainIcon>SpecBAS_Icon.ico</Icon_MainIcon>
-        <VerInfo_Keys>CompanyName=;FileVersion=0.0.0.1201;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=;FileVersion=0.0.0.1202;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
         <VerInfo_Locale>1033</VerInfo_Locale>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
@@ -143,10 +143,10 @@
         <DCC_Alignment>8</DCC_Alignment>
         <DCC_MinimumEnumSize>1</DCC_MinimumEnumSize>
         <AppEnableRuntimeThemes>true</AppEnableRuntimeThemes>
-        <VerInfo_Build>1205</VerInfo_Build>
+        <VerInfo_Build>1207</VerInfo_Build>
         <VerInfo_AutoIncVersion>true</VerInfo_AutoIncVersion>
         <Icon_MainIcon>SpecBAS_Icon.ico</Icon_MainIcon>
-        <VerInfo_Keys>CompanyName=;FileVersion=0.0.0.1205;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
+        <VerInfo_Keys>CompanyName=;FileVersion=0.0.0.1207;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductVersion=1.0.0.0;Comments=;ProgramID=com.embarcadero.$(MSBuildProjectName);FileDescription=$(MSBuildProjectName);ProductName=$(MSBuildProjectName)</VerInfo_Keys>
         <Manifest_File>None</Manifest_File>
         <VerInfo_Locale>1033</VerInfo_Locale>
         <BT_BuildType>Debug</BT_BuildType>
@@ -158,55 +158,6 @@
         <DCCReference Include="MainForm.pas">
             <Form>Main</Form>
         </DCCReference>
-        <DCCReference Include="SP_Graphics.pas"/>
-        <DCCReference Include="SP_SysVars.pas"/>
-        <DCCReference Include="SP_BankManager.pas"/>
-        <DCCReference Include="SP_Util.pas"/>
-        <DCCReference Include="SP_FileIO.pas"/>
-        <DCCReference Include="SP_Errors.pas"/>
-        <DCCReference Include="SP_Main.pas"/>
-        <DCCReference Include="SP_Input.pas"/>
-        <DCCReference Include="SP_Tokenise.pas"/>
-        <DCCReference Include="SP_Variables.pas"/>
-        <DCCReference Include="SP_InfixToPostFix.pas"/>
-        <DCCReference Include="SP_Interpret_PostFix.pas"/>
-        <DCCReference Include="SP_Streams.pas"/>
-        <DCCReference Include="SP_Sound.pas"/>
-        <DCCReference Include="SP_Editor.pas"/>
-        <DCCReference Include="SP_Package.pas"/>
-        <DCCReference Include="SP_Math.pas"/>
-        <DCCReference Include="SP_Help.pas"/>
-        <DCCReference Include="SP_Graphics32.pas"/>
-        <DCCReference Include="SP_Strings.pas"/>
-        <DCCReference Include="SP_Menu.pas"/>
-        <DCCReference Include="SP_FPEditor.pas"/>
-        <DCCReference Include="SP_Samples.pas"/>
-        <DCCReference Include="SP_BankFiling.pas"/>
-        <DCCReference Include="SP_Components.pas"/>
-        <DCCReference Include="SP_UITools.pas"/>
-        <DCCReference Include="SP_AnsiStringlist.pas"/>
-        <DCCReference Include="SP_ButtonUnit.pas"/>
-        <DCCReference Include="SP_BaseComponentUnit.pas"/>
-        <DCCReference Include="SP_ScrollBarUnit.pas"/>
-        <DCCReference Include="SP_PopUpMenuUnit.pas"/>
-        <DCCReference Include="SP_ListBoxUnit.pas"/>
-        <DCCReference Include="SP_FileListBoxUnit.pas"/>
-        <DCCReference Include="SP_EditUnit.pas"/>
-        <DCCReference Include="SP_CheckBoxUnit.pas"/>
-        <DCCReference Include="SP_WindowMenuUnit.pas"/>
-        <DCCReference Include="SP_LabelUnit.pas"/>
-        <DCCReference Include="SP_ComboBoxUnit.pas"/>
-        <DCCReference Include="SP_RadioGroupUnit.pas"/>
-        <DCCReference Include="SP_CheckListUnit.pas"/>
-        <DCCReference Include="SP_ContainerUnit.pas"/>
-        <DCCReference Include="SP_TabBarUnit.pas"/>
-        <DCCReference Include="SP_MenuActions.pas"/>
-        <DCCReference Include="SP_ControlMsgs.pas"/>
-        <DCCReference Include="SP_DebugPanel.pas">
-            <Form>$R *.res</Form>
-        </DCCReference>
-        <DCCReference Include="SP_SliderUnit.pas"/>
-        <DCCReference Include="SP_ProgressBarUnit.pas"/>
         <BuildConfiguration Include="Debug">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -291,6 +242,12 @@
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="..\SpecBAS.exe" Configuration="Debug" Class="ProjectOutput"/>
+                <DeployFile LocalName="..\SpecBAS.exe" Configuration="Release" Class="ProjectOutput">
+                    <Platform Name="Win32">
+                        <RemoteName>SpecBAS.exe</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
                 <DeployFile LocalName="SpecBAS.exe" Configuration="Release" Class="ProjectOutput"/>
                 <DeployFile LocalName="SpecBAS.exe" Configuration="Debug" Class="ProjectOutput"/>
                 <DeployClass Name="Android_SplashImage470">
@@ -975,17 +932,17 @@
                         <Operation>1</Operation>
                     </Platform>
                 </DeployClass>
-                <ProjectRoot Platform="iOSSimulator" Name="$(PROJECTNAME).app"/>
+                <ProjectRoot Platform="Linux64" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="Android" Name="$(PROJECTNAME)"/>
-                <ProjectRoot Platform="OSX32" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="iOSDevice32" Name="$(PROJECTNAME).app"/>
                 <ProjectRoot Platform="Win32" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="OSX64" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="OSXARM64" Name="$(PROJECTNAME)"/>
                 <ProjectRoot Platform="iOSDevice64" Name="$(PROJECTNAME).app"/>
                 <ProjectRoot Platform="Android64" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="OSX32" Name="$(PROJECTNAME)"/>
+                <ProjectRoot Platform="iOSSimulator" Name="$(PROJECTNAME).app"/>
                 <ProjectRoot Platform="Win64" Name="$(PROJECTNAME)"/>
-                <ProjectRoot Platform="Linux64" Name="$(PROJECTNAME)"/>
-                <ProjectRoot Platform="iOSDevice32" Name="$(PROJECTNAME).app"/>
             </Deployment>
         </BorlandProject>
         <ProjectFileVersion>12</ProjectFileVersion>

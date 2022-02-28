@@ -20,6 +20,7 @@ SP_MenuItem = Class
   fExtents: TRect;
   fSubMenu: SP_PopupMenu;
   fTag: Integer;
+  fShortcut: Longword;
   Owner: SP_BaseComponent;
   IsWindowMenu: Boolean;
 
@@ -34,6 +35,7 @@ SP_MenuItem = Class
   Property Selected: Boolean read fSelected write fSelected;
   Property Extents: TRect read fExtents write fExtents;
   Property SubMenu: SP_PopupMenu read fSubMenu write fSubMenu;
+  Property Shortcut: Longword read fShortcut write fShortcut;
   Property Tag: Integer read fTag write fTag;
 
 End;
@@ -79,7 +81,8 @@ SP_PopupMenu = Class(SP_BaseComponent)
     Procedure Close;
     Procedure CloseAll;
     Procedure ExecuteItem(Item: Integer);
-    Function  IsShortCut(Chr: aChar): Integer;
+    Function  IsAccelerator(Chr: aChar): Integer;
+    Function  CheckShortcuts: Boolean;
 
     Property  Count: Integer read fCount;
     Property  MenuItems[Index: Integer]: SP_MenuItem read GetItem write SetItem;
@@ -94,7 +97,9 @@ SP_PopupMenu = Class(SP_BaseComponent)
 
 End;
 
-Function CreateItem(Caption: aString; Enabled, Visible, Checkable, Checked: Boolean; SubMenu: SP_PopUpMenu; OnClick: SP_MenuClickEvent): SP_MenuItem;
+Function CreateItem(Caption: aString; Enabled, Visible, Checkable, Checked: Boolean; Shortcut: aString; SubMenu: SP_PopUpMenu; OnClick: SP_MenuClickEvent): SP_MenuItem;
+Function ShortcutStrToInt(Shortcut: aString): LongWord;
+Function ShortCutToString(i: Integer): aString;
 
 implementation
 
@@ -102,7 +107,7 @@ Uses Math, SP_WindowMenuUnit, SP_BankFiling, SP_Components, SP_Graphics, SP_Inpu
 
 // SP_PopupMenu
 
-Function CreateItem(Caption: aString; Enabled, Visible, Checkable, Checked: Boolean; SubMenu: SP_PopUpMenu; OnClick: SP_MenuClickEvent): SP_MenuItem;
+Function CreateItem(Caption: aString; Enabled, Visible, Checkable, Checked: Boolean; Shortcut: aString; SubMenu: SP_PopUpMenu; OnClick: SP_MenuClickEvent): SP_MenuItem;
 Begin
 
   Result := SP_MenuItem.Create;
@@ -113,6 +118,7 @@ Begin
   Result.Checked := Checked;
   Result.OnClick := OnClick;
   Result.SubMenu := SubMenu;
+  Result.Shortcut := ShortcutStrToInt(Shortcut);
 
 End;
 
@@ -243,6 +249,7 @@ Begin
             Inc(x, iFW);
           End;
         Inc(w, StripLen(Caption) * iFW);
+        If Shortcut <> 0 Then Inc(w, Length(ShortcutToString(ShortCut) + '  ') * iFW);
         if SP_Util.Pos('&', Caption) > 0 Then Dec(w, iFW);
         If x > mx Then mx := x;
         If w > mw Then mw := w;
@@ -290,9 +297,10 @@ End;
 
 Procedure SP_PopUpMenu.Draw;
 Var
-  y, i, c, ic: Integer;
   MouseInSubMenu: Boolean;
+  y, i, c, ic: Integer;
   mp, rp: TPoint;
+  s: aString;
   e: TRect;
 Begin
 
@@ -327,9 +335,13 @@ Begin
         End;
       End;
       If Checked Then PRINT(5, Extents.Top +1, #246, ic, -1, iSX, iSY, False, False, False);
-      If Caption <> '-' Then
-        PRINT(Extents.Left, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, fAltDown And fEnabled)
-      Else Begin
+      If Caption <> '-' Then Begin
+        PRINT(Extents.Left, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, fAltDown And fEnabled);
+        If Shortcut <> 0 Then Begin
+          s := ShortcutToString(Shortcut) + '  ';
+          PRINT(Extents.Right - iFW * Length(s), Extents.Top +1, s, fSepClr, -1, iSX, iSY, False, False, False);
+        End;
+      End Else Begin
         y := Trunc(((Extents.Bottom - Extents.Top)/2) + Extents.Top);
         DrawLine(Extents.Left, y, Extents.Right, y, fSepClr);
       End;
@@ -686,7 +698,7 @@ Begin
 
 End;
 
-Function SP_PopupMenu.IsShortCut(Chr: aChar): Integer;
+Function SP_PopupMenu.IsAccelerator(Chr: aChar): Integer;
 Var
   i, p: Integer;
   s: aString;
@@ -725,7 +737,7 @@ Begin
     Paint;
   End Else
     If fAltDown Then Begin
-      Item := IsShortCut(aChar(DecodeKey(cLastKey)));
+      Item := IsAccelerator(aChar(DecodeKey(cLastKey)));
       If Item >= 0 Then Begin
         SetFocus(True);
         SelectItem(Item, True);
@@ -891,7 +903,7 @@ Begin
     Paint;
   End;
 
-  Item := IsShortCut(aChar(DecodeKey(cLastKey)));
+  Item := IsAccelerator(aChar(DecodeKey(cLastKey)));
   If (Item >= 0) And (Item = fSelected) And fAltDown Then
     If Not Assigned(fItems[Item].SubMenu) Then
       ExecuteItem(Item);
@@ -900,5 +912,88 @@ Begin
 
 End;
 
+Function ShortcutStrToInt(Shortcut: aString): LongWord;
+Var
+  p: Integer;
+  i: Longword;
+  s: aString;
+Begin
+  // Converts a string of chars into a shortcut longword. K_CTRL,K_Z for undo for example.
+  // Hi Word = modifier status - 01 = Ctrl, 02 = Shift, 04 = Alt
+  // Lo word = Key code (K_Whatever)
+  Result := 0;
+  Shortcut := Shortcut + ',';
+  p := Pos(',', Shortcut);
+  While p > 0 Do Begin
+    s := Upper(Copy(Shortcut, 1, p -1));
+    Shortcut := Copy(Shortcut, p+1);
+    p := Pos(',', Shortcut);
+    i := 0;
+    While i <= High(VKStr) Do
+      If VKStr[i] = s Then
+        Break
+      Else
+        Inc(i);
+    If i > High(VKStr) Then
+      Exit
+    Else Begin
+      If s = 'K_CTRL' Then
+        Result := Result or (1 Shl 16)
+      Else
+        If s = 'K_SHIFT' Then
+          Result := Result or (2 Shl 16)
+        Else
+          If (s = 'K_ALT') or (s = 'K_ALTGR') Then
+            Result := Result or (4 Shl 16)
+          Else
+            Result := (Result And $FFFF0000) or i;
+    End;
+  End;
+
+End;
+
+Function ShortCutToString(i: Integer): aString;
+Var
+  j: Integer;
+Begin
+
+  Result := '';
+  j := i Shr 16;
+  If j And 1 = 1 Then
+    Result := 'CTRL+';
+  If j And 2 = 2 Then
+    Result := Result + 'SHIFT+';
+  If j And 4 = 4 Then
+    Result := Result + 'ALT+';
+  Result := Result + Copy(VKSTR[i And $FFFF], 3);
+
+End;
+
+Function SP_PopupMenu.CheckShortcuts: Boolean;
+Var
+  c, a, s: Boolean;
+  i: Integer;
+  v: LongWord;
+Begin
+  Result := False;
+  c := cKEYSTATE[K_CONTROL] =1;
+  s := cKEYSTATE[K_SHIFT] = 1;
+  a := (cKEYSTATE[K_ALT] = 1) or (cKEYSTATE[K_ALTGR] = 1);
+  For i := 0 To Length(fItems) -1 Do
+    With fItems[i] Do Begin
+      if fShortcut > 0 Then Begin
+        Result := True;
+        v := fShortcut Shr 16;
+        if v and 1 = 1 Then Result := Result And c Else Result := Result And Not c;
+        if v and 2 = 2 Then Result := Result And s Else Result := Result And Not s;
+        if v and 4 = 4 Then Result := Result And a Else Result := Result And Not a;
+        Result := Result And (cKEYSTATE[fShortcut And $FFFF] = 1);
+        If Result Then Begin
+          ExecuteItem(i);
+          Exit;
+        End;
+      End;
+    End;
+End;
 
 end.

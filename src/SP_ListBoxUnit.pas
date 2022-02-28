@@ -981,7 +981,7 @@ Begin
 
         If fMultiSelect Then Begin
 
-          If (KEYSTATE[K_CONTROL] = 1) Then Begin
+          If (cKEYSTATE[K_CONTROL] = 1) Then Begin
 
             fSelected[i] := Not fSelected[i];
             If fSelected[i] Then
@@ -989,7 +989,7 @@ Begin
 
           End Else
 
-            If KEYSTATE[K_SHIFT] = 1 Then Begin
+            If cKEYSTATE[K_SHIFT] = 1 Then Begin
 
               For j := 0 To fCount -1 Do fSelected[j] := False;
               For j := Min(fLastSelected, i) To Max(fLastSelected, i) Do
@@ -1093,7 +1093,7 @@ Begin
             For j := 0 To fCount -1 Do fSelected[j] := False;
             k := fSelectAnchor;
             fLastSelected := Max(Min(fLastSelected + i, fCount -1), 0);
-            If fMultiSelect and (KEYSTATE[K_SHIFT] = 1) Then Begin
+            If fMultiSelect and (cKEYSTATE[K_SHIFT] = 1) Then Begin
               For j := Min(k, fLastSelected) To Max(k, fLastSelected) Do
                 fSelected[j] := True;
             End Else Begin

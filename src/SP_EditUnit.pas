@@ -308,7 +308,7 @@ Begin
 
       K_ALT, K_ALTGR:
         Begin
-          If KEYSTATE[K_SHIFT] = 1 Then Begin
+          If cKEYSTATE[K_SHIFT] = 1 Then Begin
             fGfxLock := 1-fGfxLock;
             SP_PlaySystem(CLICKCHAN, CLICKBANK);
           End;
@@ -318,7 +318,7 @@ Begin
       K_LEFT:
         Begin
           If fCursorPos > 1 Then
-            If KEYSTATE[K_CONTROL] = 1 Then Begin
+            If cKEYSTATE[K_CONTROL] = 1 Then Begin
               If fText <> '' Then Begin
                 If fText[fCursorPos -1] in Seps Then Dec(fCursorPos);
                 While (fCursorPos > 1) And ((fCursorPos > Length(fText)) or (fText[fCursorPos] in Seps)) Do Dec(fCursorPos);
@@ -329,7 +329,7 @@ Begin
             End Else Begin
               Dec(fCursorPos);
             End;
-          If KEYSTATE[K_SHIFT] = 0 Then
+          If cKEYSTATE[K_SHIFT] = 0 Then
             fSelStart := fCursorPos;
           SP_PlaySystem(CLICKCHAN, CLICKBANK);
           Handled := True;
@@ -338,7 +338,7 @@ Begin
       K_RIGHT:
         Begin
           If fCursorPos <= Length(fText) Then Begin
-            If KEYSTATE[K_CONTROL] = 1 Then Begin
+            If cKEYSTATE[K_CONTROL] = 1 Then Begin
               While (fCursorPos < Length(fText)+1) and (fText[fCursorPos] in Seps) Do Inc(fCursorPos);
               While (fCursorPos < Length(fText)+1) and (Not (fText[fCursorPos] in Seps)) Do Inc(fCursorPos);
               If (fCursorPos < Length(fText)) and (fText[fCursorPos] in Seps) Then Inc(fCursorPos);
@@ -350,7 +350,7 @@ Begin
               fText := fGhostText;
               fCursorPos := Length(Text) + 1;
             End;
-          If KEYSTATE[K_SHIFT] = 0 Then
+          If cKEYSTATE[K_SHIFT] = 0 Then
             fSelStart := fCursorPos;
           SP_PlaySystem(CLICKCHAN, CLICKBANK);
           Handled := True;
@@ -359,7 +359,7 @@ Begin
       K_HOME:
         Begin
           fCursorPos := 1;
-          If KEYSTATE[K_SHIFT] = 0 Then
+          If cKEYSTATE[K_SHIFT] = 0 Then
             fSelStart := fCursorPos;
           SP_PlaySystem(CLICKCHAN, CLICKBANK);
           Handled := True;
@@ -368,7 +368,7 @@ Begin
       K_END:
         Begin
           fCursorPos := Length(fText)+1;
-          If KEYSTATE[K_SHIFT] = 0 Then
+          If cKEYSTATE[K_SHIFT] = 0 Then
             fSelStart := fCursorPos;
           SP_PlaySystem(CLICKCHAN, CLICKBANK);
           Handled := True;
@@ -376,7 +376,7 @@ Begin
 
       K_BACK:
         Begin
-          If KEYSTATE[K_CONTROL] = 1 Then
+          If cKEYSTATE[K_CONTROL] = 1 Then
             DeleteWord(True)
           Else
             If fSelStart <> fCursorPos Then Begin
@@ -395,7 +395,7 @@ Begin
       K_DELETE:
         Begin
           If fText <> '' Then Begin
-            If KEYSTATE[K_CONTROL] = 1 Then
+            If cKEYSTATE[K_CONTROL] = 1 Then
               DeleteWord(False)
             Else
               If fSelStart <> fCursorPos Then Begin
@@ -432,7 +432,7 @@ Begin
     End;
 
   End Else Begin
-    If KEYSTATE[K_CONTROL] = 0 Then Begin
+    If cKEYSTATE[K_CONTROL] = 0 Then Begin
       If fSelStart <> fCursorPos Then
         DeleteSelection
       Else
@@ -456,7 +456,7 @@ Begin
       Case aChar(NewChar) of
         'z':
           Begin
-            If KEYSTATE[K_ALT] = 0 Then
+            If cKEYSTATE[K_ALT] = 0 Then
               PerformUndo
             Else
               PerformRedo;
@@ -665,7 +665,7 @@ Begin
   fMouseIsDown := True;
   SetFocus(True);
   CursorPos := Min(Max((X Div iFW) +1, 0), Length(fText)+1);
-  If KEYSTATE[K_SHIFT] = 0 Then
+  If cKEYSTATE[K_SHIFT] = 0 Then
     fSelStart := fCursorPos;
   SP_PlaySystem(CLICKCHAN, CLICKBANK);
   Paint;

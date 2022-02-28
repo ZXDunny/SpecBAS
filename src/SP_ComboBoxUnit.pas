@@ -204,7 +204,7 @@ End;
 Procedure SP_ComboBox.AddItem(Caption: aString);
 Begin
 
-  Menu.AddItem(CreateItem(Caption, True, True, False, False, Nil, OnMenuSelect));
+  Menu.AddItem(CreateItem(Caption, True, True, False, False, '', Nil, OnMenuSelect));
   If Menu.fCount = 1 Then ItemIndex := 0;
   Btn.Enabled := Menu.fCount > 1;
   Paint;
@@ -214,7 +214,7 @@ End;
 Procedure SP_ComboBox.InsertItem(Caption: aString; Index: Integer);
 Begin
 
-  Menu.InsertItem(CreateItem(Caption, True, True, False, False, Nil, OnMenuSelect), Index);
+  Menu.InsertItem(CreateItem(Caption, True, True, False, False, '', Nil, OnMenuSelect), Index);
   If Menu.fCount = 1 Then ItemIndex := 0;
   Btn.Enabled := Menu.fCount > 1;
   Paint;

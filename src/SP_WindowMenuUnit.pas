@@ -38,7 +38,7 @@ SP_WindowMenu = Class(SP_BaseComponent)
     Procedure CancelSelection;
     Procedure SetSubMenu(Index: Integer; SubMenu: SP_PopUpMenu);
     Function  GetCount: Integer;
-    Function  IsShortCut(Chr: aChar): Integer;
+    Function  IsAccelerator(Chr: aChar): Integer;
 
     Property  MenuItems[Index: Integer]: SP_MenuItem read GetItem write SetItem;
     Property  HightlightColour: Byte read fHighlightClr write SetHighlightClr;
@@ -409,7 +409,7 @@ Begin
 
 End;
 
-Function SP_WindowMenu.IsShortCut(Chr: aChar): Integer;
+Function SP_WindowMenu.IsAccelerator(Chr: aChar): Integer;
 Var
   i, p: Integer;
   s: aString;
@@ -442,7 +442,7 @@ Begin
     Paint;
   End Else
     If fAltDown Then Begin
-      Item := IsShortCut(aChar(DecodeKey(cLastKey)));
+      Item := IsAccelerator(aChar(DecodeKey(cLastKey)));
       If Item >= 0 Then Begin
         Activated := True;
         SetFocus(True);
@@ -568,6 +568,5 @@ Begin
     Handled := True;
 
 End;
-
 
 end.

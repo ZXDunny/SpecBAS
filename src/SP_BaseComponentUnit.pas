@@ -1970,13 +1970,13 @@ Begin
   Result := cLastKeyChar;
   CB_GetKeyLockState;
 
-  If KEYSTATE[K_SHIFT] <> 0 Then
+  If cKEYSTATE[K_SHIFT] <> 0 Then
     Modifier := 1
   Else
     Modifier := 0;
 
   If KB_IN_USE Then
-    If (KEYSTATE[K_CONTROL] <> 0) And (CharStr[Char] <> '') Then
+    If (cKEYSTATE[K_CONTROL] <> 0) And (CharStr[Char] <> '') Then
       cLastKeyChar := Ord(CharStr[Char][Modifier + 1]);
 
   If (Not KB_IN_USE) And (NUMLOCK = 1) And (Char in [K_NUMPAD0..K_NUMPAD9, K_DECIMAL]) Then
@@ -2039,7 +2039,7 @@ Begin
      ((Result = 98) And (cLastKey = 37)) Or    // cmd+right
      ((Result = 56) And (cLastKey = 8)) Or     // cmd+backspace
      ((Result = 99) And (cLastKey = 39)) And   // cmd+left
-     (KEYSTATE[K_CONTROL] = 1) Then
+     (cKEYSTATE[K_CONTROL] = 1) Then
       Result := 0;
   If ((Result = 77) And (cLastKey = 13)) Or    // Shift+Enter
      ((Result = 40) And (cLastKey = 46)) Or    // Fn+Backspace
@@ -2055,7 +2055,7 @@ Begin
   {$ENDIF}
 
   {$IFDEF SPECCYKEYS}
-  If (cLastKey = K_1) And (KEYSTATE[K_SHIFT] = 1) Then Begin
+  If (cLastKey = K_1) And (cKEYSTATE[K_SHIFT] = 1) Then Begin
     cLastKey := K_TAB;
     Result := 0;
   End;

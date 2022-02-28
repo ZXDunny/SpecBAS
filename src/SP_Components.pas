@@ -119,11 +119,12 @@ Var
   cLastKey, cLastKeyChar: Byte;
   ControlCount: Integer;
   OverrideControls: Array of SP_BaseComponent;
+  cKEYSTATE: Array[0..255] of Byte;
 
 
 implementation
 
-Uses SP_Main, SP_Sound, SP_Errors, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Graphics32, SP_Input;
+Uses SP_Main, SP_Sound, SP_Errors, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Graphics32, SP_Input, SP_PopupMenuUnit, SP_WindowMenuUnit;
 
 // Timer Functions
 
@@ -314,11 +315,11 @@ Var
     If Down Then Begin
       cLastKeyChar := Ord(aStr[1]);
       cLastKey := Key;
-      If IsKey Then KEYSTATE[Key] := 1;
+      If IsKey Then cKEYSTATE[Key] := 1;
       ctrl.KeyDown(Key, Result);
     End Else Begin
       cLastKey := Key;
-      If IsKey then KEYSTATE[Key] := 0;
+      If IsKey then cKEYSTATE[Key] := 0;
       ctrl.KeyUp(Key, Result);
       If Result Then Begin
         cLastKeyChar := 0;
@@ -334,6 +335,7 @@ Begin
   // First handle overrides - controls that get first look at key messages. Currently these are
   // Window menus and popupmenus, for the ALT accelerators.
 
+  If IsKey Then cKEYSTATE[Key] := Ord(Down);
   i := Length(OverrideControls) -1;
   if i >= 0 Then Begin
     If ModalWindow > -1 Then Begin
@@ -350,13 +352,20 @@ Begin
       End;
 
     While i >= 0 Do Begin
-      w := OverrideControls[i].ParentWindowID;
-      if OverrideControls[i].Visible Then
-        For j := 0 To High(windows) do
-          If w = Windows[j] Then Begin
-            Result := SendKey(OverrideControls[i]);
-            If Key <> K_ALT Then Exit;
-          End;
+      c := OverrideControls[i];
+      w := c.ParentWindowID;
+      For j := 0 To High(windows) do
+        If w = Windows[j] Then Begin
+          if c is SP_PopupMenu Then
+            Result := SP_PopUpMenu(c).CheckShortcuts;
+          If Result Then
+            Exit
+          Else
+            if c.Visible Then Begin
+              Result := SendKey(c);
+              If Key <> K_ALT Then Exit;
+            End;
+        End;
       Dec(i);
     End;
     if Result Then Exit;
@@ -393,9 +402,9 @@ Begin
     If Down Then Begin
       cLastKeyChar := Ord(aStr[1]);
       cLastKey := Key;
-      If IsKey Then KEYSTATE[Key] := 1;
+      If IsKey Then cKEYSTATE[Key] := 1;
     End Else Begin
-      If IsKey Then KEYSTATE[Key] := 0;
+      If IsKey Then cKEYSTATE[Key] := 0;
       cLastKeyChar := 0;
       cLastKey := 0;
     End;

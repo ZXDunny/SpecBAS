@@ -766,7 +766,7 @@ initialization
   VKStr[10] := 'K_ALTGR';
   VKStr[11] := '';
   VKStr[12] := 'K_CLEAR';
-  VKStr[13] := 'K_RETURN';
+  VKStr[13] := 'K_ENTER';
   VKStr[14] := '';
   VKStr[15] := '';
   VKStr[16] := 'K_SHIFT';

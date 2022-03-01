@@ -2226,7 +2226,8 @@ Begin
                 If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
                   Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
                   TC := FontBank^.Transparent And $FF;
-                End;
+                End Else
+                  Transparent := T_TRANSPARENT;
               End;
               Inc(Idx, SizeOf(LongWord));
             End;
@@ -4997,11 +4998,12 @@ Begin
               Begin // TRANSPARENT control
                 t := pLongWord(@Text[Idx+1])^;
                 If t <> 8 Then Begin
-                  Transparent := t > 0;
+                  T_TRANSPARENT := t > 0;
                   If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
                     Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
                     TC := FontBank^.Transparent And $FF;
-                  End;
+                  End Else
+                    Transparent := T_TRANSPARENT;
                 End;
                 Inc(Idx, SizeOf(LongWord));
               End;

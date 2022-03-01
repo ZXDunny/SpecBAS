@@ -48,6 +48,7 @@ Type
     Class Procedure FPMenu_DebugPanel(Sender: SP_BaseComponent);
     Class Procedure FPMenu_BreakpointAdd(Sender: SP_BaseComponent);
     Class Procedure FPMenu_AddWatch(Sender: SP_BaseComponent);
+    Class Procedure FPMenu_FullScreen(Sender: SP_BaseComponent);
 
     Class Procedure GrabberMouseDown(X, Y, Btn: Integer);
     Class Procedure GrabberMouseMove(X, Y, Btn: Integer);
@@ -76,7 +77,7 @@ Uses SP_BankManager, SP_BankFiling, SP_Errors, SP_Graphics, SP_FileIO, SP_Input,
 
 Var
 
-  SP_FindNextItem, SP_SwitchMenuItem, SP_DebugPanelItem: SP_MenuItem;
+  SP_FindNextItem, SP_SwitchMenuItem, SP_DebugPanelItem, SP_FullScreenMenuItem: SP_MenuItem;
 
 Procedure SP_CreateEditorMenu;
 Var
@@ -192,10 +193,12 @@ Begin
 
   // View menu
 
+  SP_FullScreenMenuItem := CreateItem('&Full Screen', True, True, False, False, 'K_ALT,K_ENTER', Nil, SP_MenuActionProcs.FPMenu_FullScreen);
   SP_SwitchMenuItem := CreateItem('&Switch to Direct Mode', True, True, False, False, 'K_ESC', Nil, SP_MenuActionProcs.FPMenu_Switch);
   FPViewMenu.AddItem(SP_SwitchMenuItem);
   FPViewMenu.AddItem(CreateItem('-', True, True, False, False, '', Nil, Nil));
-  FPViewMenu.AddItem(CreateItem('Show s&creen', True, True, False, False, 'K_CTRL,K_SHIFT,K_RETURN', Nil, SP_MenuActionProcs.FPMenu_ShowScreen));
+  FPViewMenu.AddItem(SP_FullScreenMenuItem);
+  FPViewMenu.AddItem(CreateItem('Show s&creen', True, True, False, False, 'K_CTRL,K_SHIFT,K_ENTER', Nil, SP_MenuActionProcs.FPMenu_ShowScreen));
   SP_DebugPanelItem := CreateItem('Show &debug panel', True, True, False, False, 'K_CTRL,K_B', Nil, SP_MenuActionProcs.FPMenu_DebugPanel);
   FPViewMenu.AddItem(SP_DebugPanelItem);
   FPViewMenu.OnPopUp := SP_MenuActionProcs.FPMenu_View_Popup;
@@ -529,6 +532,17 @@ Class Procedure SP_MenuActionProcs.GrabberMouseUp(X, Y, Btn: Integer);
 Begin
   DisplaySection.Leave;
   AddControlMsg(clGrabberMouseUp, '');
+End;
+
+Class Procedure SP_MenuActionProcs.FPMenu_FullScreen(Sender: SP_BaseComponent);
+Begin
+  If SPFULLSCREEN Then Begin
+    SP_FullScreenMenuItem.Caption := 'Full screen';
+    AddControlMsg(clInterpretCommand, 'SCREEN WINDOW');
+  End Else Begin
+    SP_FullScreenMenuItem.Caption := 'Windowed';
+    AddControlMsg(clInterpretCommand, 'SCREEN FULL');
+  End;
 End;
 
 end.

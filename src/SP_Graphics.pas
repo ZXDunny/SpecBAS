@@ -2467,13 +2467,13 @@ begin
     x3 := Round(x2);
     y3 := Round(y2);
 
+    DrX := x2;
+    DrY := y2;
+
     If y2 < y1 then Begin
       y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
       x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
     End;
-
-    DrX := x2;
-    DrY := y2;
 
     If SP_LineClip(x1, y1, x3, y3, T_CLIPX1, T_CLIPY1, T_CLIPX2, T_CLIPY2) Then Begin
 

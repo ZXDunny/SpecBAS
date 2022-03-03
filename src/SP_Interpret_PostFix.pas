@@ -10618,19 +10618,19 @@ Begin
     dYPos := (SCREENHEIGHT - 1) - dYPos;
   End;
 
-  DRPOSX := XPos;
-  DRPOSY := YPos;
+  DRPOSX := dXPos;
+  DRPOSY := dYPos;
 
   If SCREENBPP = 8 Then Begin
     If NumParams = 2 Then
-      SP_DrawLine(dXPos - XPos, dYPos - YPos)
+      SP_DrawLine(XPos - dXPos, YPos - dYPos)
     Else
-      SP_DrawSpeccyCurve(dXPos - XPos, dYPos - YPos, Angle);
+      SP_DrawSpeccyCurve(XPos - dXPos, YPos - dYPos, Angle);
   End Else Begin
     If NumParams = 2 Then
-      SP_DrawLine32(dXPos - XPos, dYPos - YPos)
+      SP_DrawLine32(XPos - dXPos, YPos - dYPos)
     Else
-      SP_DrawSpeccyCurve32(dXPos - XPos, dYPos - YPos, Angle);
+      SP_DrawSpeccyCurve32(XPos - dXPos, YPos - dYPos, Angle);
   End;
 
   SP_NeedDisplayUpdate := True;

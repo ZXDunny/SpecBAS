@@ -796,9 +796,9 @@ Class Procedure SP_DebugPanelActionProcs.SetFocus(Sender: SP_BaseComponent; Will
 Begin
 
   If WillFocus Then Begin
-    If FocusedWindow <> fwNone then
+    If FocusedWindow > fwNone then
       DebugCurWindow := FocusedWindow;
-    SP_SwitchFocus(fwNone);
+    SP_SwitchFocus(fwDebugPanel);
     If Not Sender.CanFocus Then
       FocusedControl := nil;
   End Else Begin

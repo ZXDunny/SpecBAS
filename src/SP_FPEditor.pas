@@ -359,7 +359,8 @@ Const
   spHardReturn = 1;
   spSoftReturn = 2;
 
-  fwNone =  -1;
+  fwNone =       -1;
+  fwDebugPanel = -2;
 
   Seps = [' ', '(', ')', ',', ';', '"', #39, '=', '+', '-', '/', '*', '^', '%', '$', '|', '&', ':', '>', '<'];
 
@@ -2755,15 +2756,16 @@ Begin
           IndStr := SP_StringOfChar(' ', Listing.Flags[Idx].Indent);
           If DoDraw Then
             If Highlight Then Begin
-              if ContainsSelection or ShowingBraces then i := LineClr Else i := -1;
+              if ContainsSelection or ShowingBraces or FPShowingSearchResults then i := LineClr Else i := -1;
               s := SP_StriphighlightedTrailingSpaces(Copy(CodeLine, cIdx));
               SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + s, 0, i, True, True);
             End Else Begin
-              if ContainsSelection or ShowingBraces then i := pClr Else i := -1;
+              if ContainsSelection or ShowingBraces or FPShowingSearchResults then i := pClr Else i := -1;
               SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + Copy(CodeLine, cIdx), 0, i, True, True);
             End;
           T_CLIPX1 := FPClientLeft;
         End;
+
         // Clear scaling for drawing small font items
         If DoDraw Then Begin
           fy := T_SCALEY;
@@ -3362,7 +3364,7 @@ Begin
 
     SP_FPWaitForUserEvent(KeyInfo, LocalFlashState);
     If Assigned(KeyInfo) Then Begin
-      If FocusedWindow = fwEditor Then
+      If (FocusedWindow = fwEditor) or (FocusedWindow = fwDebugPanel) Then
         SP_FPEditorPerformEdit(KeyInfo)
       Else
         If FocusedWindow = fwDirect Then

@@ -322,7 +322,7 @@ end;
 Procedure Refresh_Display;
 Var
   DC: hDc;
-  x, y, w, h: Integer;
+  x, y, w, h, tmp: Integer;
 Begin
 
   {$IFDEF OPENGL}
@@ -372,7 +372,10 @@ Begin
     glTexCoord2D(0, 1); glVertex2D(0, ScaleHeight);
     glEnd;
 
+    glGetIntegerv(GL_UNPACK_ROW_LENGTH, @tmp);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     SwapBuffers(DC);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, tmp); //DISPLAYWIDTH);
 
   {$ELSE}
     InvalidateRect(Main.Handle, iRect, False);

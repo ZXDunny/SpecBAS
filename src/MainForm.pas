@@ -170,7 +170,7 @@ End;
 
 Procedure TRefreshThread.Execute;
 Var
-  StartTime, LastFrames: Integer;
+  StartTime, LastFrames: NativeUint;
   p: TPoint;
 Begin
 

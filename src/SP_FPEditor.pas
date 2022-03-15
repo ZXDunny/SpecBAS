@@ -4744,6 +4744,9 @@ Begin
     If Not (Key.KeyCode in [K_BACK, K_DELETE]) And Listing.UndoInProgress Then
       Listing.CompleteUndo;
 
+    FPBracket1Pos := -1; // Clear bracket highlight in case line length changes.
+    FPBracket2Pos := -1; // Don't worry, we'll set them back if necessary later on.
+
     Case Key.KeyCode of
       K_F1..K_F10:
         Begin // F1 to F9 set markers (CTRL+Shift) and jump to markers (CTRL)
@@ -7280,7 +7283,7 @@ Var
   ErrorFPS, t2, EMove, ETop, TargetTicks: aFloat;
   ERRORWINDOW, WinW, WinH, WinX, WinY, MaxW, Lines, Cnt, Idx, MaxLen,
   Font, Window, ofs, x, sz: Integer;
-  t, t3: Integer;
+  t, t3: NativeUInt;
   IsNew, WasTab: Boolean;
   fp: TPoint;
 Const

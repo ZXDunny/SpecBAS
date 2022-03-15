@@ -1845,7 +1845,7 @@ Begin
           // could be a string var if numindices = 1. Cannot have a structure evaluation at this point.
           Idx := Integer(SP_StackPtr^.tPos);
           If (Idx <> -1) And (NUMCONSTS > 0) Then Begin
-            If (NumIndices > 1) or (NumIndices = 0) Or (pInteger(@gbIndices[1])^ > Length(Constants[Idx].Str)) Then Begin
+            If (NumIndices > 1) or (NumIndices = 0) Or (pLongWord(@gbIndices[1])^ > LongWord(Length(Constants[Idx].Str))) Then Begin
               Error.Code := SP_ERR_SUBSCRIPT_WRONG;
               Error.Position := Token^.TokenPos;
               Exit;
@@ -1858,7 +1858,7 @@ Begin
           End Else Begin
             Idx := SP_FindStrVar(StringFromPtrB(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
             If Idx > -1 Then Begin
-              If (NumIndices > 1) or (NumIndices = 0) Or (pInteger(@gbIndices[1])^ = 0) Or (pInteger(@gbIndices[1])^ > Length(StrVars[Idx]^.ContentPtr^.Value)) Then Begin
+              If (NumIndices > 1) or (NumIndices = 0) Or (pLongWord(@gbIndices[1])^ = 0) Or (pLongWord(@gbIndices[1])^ > LongWord(Length(StrVars[Idx]^.ContentPtr^.Value))) Then Begin
                 Error.Code := SP_ERR_SUBSCRIPT_WRONG;
                 Error.Position := Token^.TokenPos;
                 Exit;
@@ -1877,7 +1877,7 @@ Begin
         End;
       End Else Begin
         If SP_StackPtr^.OpType = SP_STRING Then Begin
-          If (NumIndices > 1) or (NumIndices = 0) or (pInteger(@gbIndices[1])^ > Length(SP_StackPtr^.Str)) Then Begin
+          If (NumIndices > 1) or (NumIndices = 0) or (pLongWord(@gbIndices[1])^ > LongWord(Length(SP_StackPtr^.Str))) Then Begin
             Error.Code := SP_ERR_SUBSCRIPT_WRONG;
             Error.Position := Token^.TokenPos;
             Exit;
@@ -8788,7 +8788,7 @@ Begin
     End;
 
     Dec(SP_StackPtr);
-    TokenStart := pByte(pNativeUInt(@gbIndices)^ + (Nl - SizeOf(LongWord)));
+    TokenStart := pByte(pLongWord(@gbIndices)^ + (Nl - SizeOf(LongWord)));
     While NumIndices > 0 Do Begin
       pInteger(TokenStart)^ := Round(SP_StackPtr^.Val);
       Dec(TokenStart, SizeOf(LongWord));
@@ -8961,7 +8961,7 @@ Begin
               Idx := SP_FindStrVar(SP_StackPtr^.Str);
               If Idx > -1 Then Begin
                 If SliceFlags = 0 Then Begin
-                  SliceFrom := pInteger(@gbIndices[1])^;
+                  SliceFrom := pLongWord(@gbIndices[1])^;
                   SliceTo := SliceFrom;
                 End Else
                   If SliceFrom = -1 Then SliceFrom := 1;

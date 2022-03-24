@@ -838,6 +838,8 @@ Begin
   CINVERSE := 0;
   CITALIC := 0;
   CBOLD := 0;
+  CURSORPOS := 1;
+  DWSelP := 1;
   SP_GetWindowDetails(DWWindowID, Win, Error);
   For Idx := 0 To 255 Do Win^.Palette[Idx] := DefaultPalette[Idx];
   fwDirect := DWWindowID;
@@ -3226,7 +3228,7 @@ Begin
   Over := T_OVER;
   T_OVER := 0;
 
-  CURSORPOS := Max(CURSORPOS, 1);
+  CURSORPOS := Min(Max(CURSORPOS, 1), Length(EDITLINE) +1);
 
   Cp := CURSORPOS -1;
   CURSORX := DWTextLeft + ((Cp Mod DWTextWidth) * FPFw);
@@ -4261,10 +4263,9 @@ Begin
       Strings.Text := aString(Clipboard.AsText);
       If Strings.Count > 0 Then Begin
         t := Strings[0];
-        ProcessTabs(t);
         DWStoreEditorState;
         EditLine := Copy(EDITLINE, 1, CURSORPOS -1) + t + Copy(EDITLINE, CURSORPOS);
-        Inc(CURSORPOS, Length(Strings[0]));
+        Inc(CURSORPOS, Length(t));
         DWSelP := CURSORPOS;
       End;
       Strings.Free;
@@ -4748,7 +4749,6 @@ Begin
 
   lc := Listing.Count;
   GfxMode := GFXLOCK;
-
 
   Changed := False;
   SP_GetSelectionInfo(Sel);
@@ -6005,7 +6005,7 @@ End;
 
 Procedure SP_EditorDisplayEditLine;
 Var
-  Idx, WorkW, NewW, NewH, TLen, SelS, SelE, l: Integer;
+  Idx, WorkW, NewW, NewH, TLen, SelS, SelE, l, cnt: Integer;
   EditLen, Y, WindowID, Font: Integer;
   CText, s: aString;
   InSel: Boolean;
@@ -6047,23 +6047,16 @@ Begin
 
   s := InsertLiterals(EDITLINE);
 
-  l := Length(s);
-  If DWSelP <> CURSORPOS Then Begin
-    SelS := Limited(SP_GetCharPos(s, SelS), 1, l);
-    SelE := Limited(SP_GetCharPos(s, SelE), 1, l);
-    If (SelE < l) and (s[SelE] = #5) Then Inc(SelE);
-  End Else Begin
-    SelS := -1;
-    SelE := -1;
-  End;
+  l := Length(EDITLINE);
 
   Idx := 1;
+  cnt := 1;
   InSel := False;
-  While Idx <= l Do Begin
-    TLen := Min(DWTextWidth, l - Idx + 1);
+  While cnt <= l Do Begin
+    TLen := Min(DWTextWidth, l - cnt + 1);
     If InSel Then cText := SelClr Else cText := '';
     While Tlen > 0 Do Begin
-      If Idx = SelS Then Begin
+      If cnt = SelS Then Begin
         InSel := True;
         CText := CText + SelClr;
       End;
@@ -6072,10 +6065,11 @@ Begin
         CText := CText + #5;
       End;
       Ctext := CText + s[Idx];
-      If Idx = SelE Then Begin
+      If cnt = SelE Then Begin
         InSel := False;
         CText := CText + backClr;
       End;
+      Inc(cnt);
       Inc(Idx);
       Dec(TLen);
     End;
@@ -6846,14 +6840,6 @@ Begin
           End;
         End;
 
-      K_ALT, K_ALTGR:
-        Begin
-          If KEYSTATE[K_SHIFT] = 1 Then Begin
-            GFXLOCK := 1-GFXLOCK;
-            PlayClick;
-          End;
-        End;
-
       K_TAB:
         Begin
           // Bring the current PROGLINE down into the editline
@@ -6906,11 +6892,7 @@ Begin
       K_UP:
         Begin
           If KEYSTATE[K_CONTROL] = 0 Then Begin
-            Cnt := (DWWindowWidth - (10+FPFw) - FPFh - Max(FPFw Div 2, FPFh Div 2)) Div FPFw;
-            While (Cnt > -1) And (CURSORPOS > 1) Do Begin
-              Dec(CURSORPOS);
-              Dec(Cnt);
-            End;
+            CURSORPOS := Max(1, CURSORPOS - DWTextWidth);
             If KEYSTATE[K_SHIFT] = 0 Then
               DWSelP := CURSORPOS;
           End Else Begin
@@ -6956,11 +6938,7 @@ Begin
       K_DOWN:
         Begin
           If KEYSTATE[K_CONTROL] = 0 Then Begin
-            Cnt := (DWWindowWidth - (10+FPFw) - FPFh - Max(FPFw Div 2, FPFh Div 2)) Div FPFw;
-            While (Cnt > -1) And (CURSORPOS < Length(EDITLINE)+1) Do Begin
-              Inc(CURSORPOS);
-              Dec(Cnt);
-            End;
+            CURSORPOS := Min(Length(EDITLINE) +1, CURSORPOS + DWTextWidth);
             If KEYSTATE[K_SHIFT] = 0 Then
               DWSelP := CURSORPOS;
           End Else Begin
@@ -7009,7 +6987,7 @@ Begin
           If KEYSTATE[K_CONTROL] = 1 Then
             CURSORPOS := 1
           Else
-            Dec(CURSORPOS, (CURSORX -2) Div FPFw);
+            CURSORPOS := ((CURSORPOS -1) Div DWTextWidth) * DWTextWidth +1;
           If CURSORPOS < 1 Then
             CURSORPOS := 1;
           If KEYSTATE[K_SHIFT] = 0 Then
@@ -7022,21 +7000,7 @@ Begin
           If KEYSTATE[K_CONTROL] = 1 Then
             CURSORPOS := Length(EDITLINE)+1
           Else Begin
-            Cnt := CURSORX;
-            Idx := CURSORPOS;
-            While Cnt < DWWindowWidth -18 Do Begin
-              If Idx <= Length(EDITLINE) Then Begin
-                If EDITLINE[Idx] >= ' ' Then Begin
-                  Inc(Idx);
-                  Inc(Cnt, FPFw);
-                End Else
-                  Inc(Idx);
-              End Else Begin
-                Inc(Idx, 2);
-                Break;
-              End;
-            End;
-            CURSORPOS := Idx -2;
+            CURSORPOS := (CURSORPOS Div DWTextWidth) * DWTextWidth + DWTextWidth;
             If CURSORPOS > Length(EDITLINE) Then
               CURSORPOS := Length(EDITLINE)+1;
           End;
@@ -7126,6 +7090,8 @@ Begin
           If EDITLINE <> '' Then Begin
             DWStoreEditorState;
             EDITLINE := '';
+            DWSELP := 1;
+            CURSORPOS := 1;
           End Else
             SP_SwitchFocus(fwEditor);
           PlayClick;
@@ -9971,7 +9937,7 @@ Begin
   if (Error.Code = SP_ERR_OK) or (Error.Code = SP_ERR_MISSING_VAR) Then Begin
     if (tStr <> '') Then Begin
       If tStr <> Result.Hint Then
-        Result.Hint := Result.Hint + '=' + #16#1#0#0#0 + tStr
+        Result.Hint := Result.Hint + '=' + #16#1#0#0#0 + InsertLiterals(tStr)
       Else Begin
         Result.Hint := '';
         Exit;
@@ -10056,7 +10022,7 @@ Begin
               If Idx2 < StrArrays[Idx].NumIndices -1 Then
                 Result.Hint := Result.Hint + ',';
             End;
-            Result.Hint := Result.Hint + ')=' + SP_StrArrayToString(Idx, -1);
+            Result.Hint := Result.Hint + ')=' + InsertLiterals(SP_StrArrayToString(Idx, -1));
           End Else Begin
             Idx := SP_FindStrVar(Lower(Copy(Result.Hint, 1, Length(Result.Hint) -1)));
             If Idx > -1 Then Begin

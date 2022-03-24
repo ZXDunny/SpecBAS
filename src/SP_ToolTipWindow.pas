@@ -61,7 +61,9 @@ End;
 Procedure FormatTip(var Tip: aString);
 Var
   c: aChar;
-  i, cnt, dw, h, LastSep: Integer;
+  i, cnt, dw, h, LastSep, LastBreakAt: Integer;
+Const
+  Seps = [' ', '(', ')', ',', ';', '"', #39, '=', '+', '-', '/', '*', '^', '|', '&', ':', '>', '<'];
 Begin
 
   // Inserts #13 chars into a string ready for displaying as a tooltip.
@@ -110,15 +112,35 @@ Begin
             Inc(i);
           End;
     End;
-    If cnt > dw Then Begin
+    If cnt >= dw Then Begin
       If i - LastSep < 10 Then i := LastSep;
-      Tip := Copy(Tip, 1, i) + #13 + Copy(Tip, i+1);
+      LastBreakAt := i +1;
+      Tip := Copy(Tip, 1, i -1) + #13 + Copy(Tip, i);
       Inc(i);
       Inc(h);
-      If h > 8 Then Begin
-        Tip := Copy(Tip, 1, i -4) + '...';
+      If h > 10 Then Begin
+        If cnt >= dw Then Begin
+          i := LastBreakAt;
+          While cnt > 3 Do Begin
+            c := Tip[i];
+            Case Ord(c) of
+              5: Begin Inc(i, 2); Dec(cnt); End;
+              6, 8, 9, 10, 11: Inc(i);
+              16..20, 23, 26, 27: Inc(i, 1 + SizeOf(LongWord));
+              21, 22: Inc(i, 1 + (SizeOf(LongWord) * 2));
+              25: Inc(i, 1 + (SizeOf(aFloat) * 2));
+            Else
+              Begin
+                Inc(i);
+                Dec(cnt);
+              End;
+            End;
+          End;
+        End;
+        Tip := Copy(Tip, 1, i) + '...';
         Exit;
       End;
+      cnt := 0;
     End;
   End;
 

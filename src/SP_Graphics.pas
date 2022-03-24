@@ -3730,7 +3730,7 @@ Begin
     If Bits32 Then
       SP_TextOut32(-1, 0, 0, Result, T_INK, T_PAPER, True)
     Else
-      SP_TextOut(-1, 0, 0, Result, T_INK, T_PAPER, False);
+      SP_TextOut(-1, 0, 0, Result, T_INK, T_PAPER, False, UseLiterals);
 
     SCREENPOINTER := SP;
     SCREENWIDTH := SW;

@@ -1398,46 +1398,55 @@ End;
 Function  StripLen(Text: aString): Integer;
 Var
   Idx: Integer;
+  LiteralChar: Boolean;
 Begin
 
   Idx := 1;
   Result := 0;
+  LiteralChar := False;
   While Idx <= Length(Text) Do Begin
-    Case Ord(Text[Idx]) of
-      5: // Literal char
+    If LiteralChar Then Begin
+      Inc(Result);
+      Inc(Idx);
+      LiteralChar := False;
+    End Else Begin
+      Case Ord(Text[Idx]) of
+        5: // Literal char
+          Begin
+            LiteralChar := True;
+            // The following char should be counted so do nothing
+          End;
+        16, 17:
+          Begin // INK, PAPER control
+            Inc(Idx, SizeOf(LongWord));
+          End;
+        18, 19, 20:
+          Begin // OVER control
+            Inc(Idx);
+          End;
+        21, 22:
+          Begin // MOVE, AT control
+            Inc(Idx, SizeOf(Integer) * 2);
+          End;
+        23:
+          Begin // TAB control
+            Inc(Idx, SizeOf(Integer));
+          End;
+        24:
+          Begin // CENTRE control
+            Inc(Idx, SizeOf(Integer));
+          End;
+        25:
+          Begin // SCALE control
+            Inc(Idx, SizeOf(aFloat) * 2);
+          End;
+      Else
         Begin
-          // The following char should be counted so do nothing
+          Inc(Result);
         End;
-      16, 17:
-        Begin // INK, PAPER control
-          Inc(Idx, SizeOf(LongWord));
-        End;
-      18, 19, 20:
-        Begin // OVER control
-          Inc(Idx);
-        End;
-      21, 22:
-        Begin // MOVE, AT control
-          Inc(Idx, SizeOf(Integer) * 2);
-        End;
-      23:
-        Begin // TAB control
-          Inc(Idx, SizeOf(Integer));
-        End;
-      24:
-        Begin // CENTRE control
-          Inc(Idx, SizeOf(Integer));
-        End;
-      25:
-        Begin // SCALE control
-          Inc(Idx, SizeOf(aFloat) * 2);
-        End;
-    Else
-      Begin
-        Inc(Result);
       End;
+      Inc(Idx);
     End;
-    Inc(Idx);
   End;
 
 End;

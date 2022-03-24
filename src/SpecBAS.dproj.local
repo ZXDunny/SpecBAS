@@ -5,5 +5,12 @@
     <Transaction>2021/04/02 22:58:27.000.139,D:\Projects\SpecBAS\src\SP_SliderUnit.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2021/05/23 13:23:13.000.064,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2021/05/23 13:23:38.000.563,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_ProgressBarUnit.pas</Transaction>
+    <Transaction>2022/03/18 13:55:53.000.131,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2022/03/18 13:56:12.000.812,D:\Projects\SpecBAS\src\SP_ToolTipWindow.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
   </Transactions>
+	<ProjectSortOrder AutoSort="0" SortType="0">
+    <File Path="MainForm.pas"/>
+    <File Path="MainForm.dfm"/>
+    <File Path="SP_ToolTipWindow.pas"/>
+  </ProjectSortOrder>
 </BorlandProject>

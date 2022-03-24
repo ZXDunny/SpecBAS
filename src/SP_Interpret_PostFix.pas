@@ -965,6 +965,7 @@ Var
   MENUHIDE_lineNum, MENUHIDE_Statement, MENUHIDE_St: Integer;
   MENUITEM_lineNum, MENUITEM_Statement, MENUITEM_St: Integer;
   OnActive: Word;
+  LastRand: aFloat;
 
 Const
 
@@ -6227,7 +6228,10 @@ End;
 
 Procedure SP_Interpret_FN_CALL(Var Info: pSP_iInfo);
 Begin
-  SP_Interpret_CALL(Info);
+  If SYSTEMSTATE = SS_EVALUATE Then
+    Info^.Error^.Code := SP_ERR_PARAMETER_ERROR
+  Else
+    SP_Interpret_CALL(Info);
 End;
 
 Procedure SP_Interpret_FN_FN(Var Info: pSP_iInfo);
@@ -6451,7 +6455,12 @@ Procedure SP_Interpret_FN_RND(Var Info: pSP_iInfo);
 Begin
   Inc(SP_StackPtr);
   With SP_StackPtr^ Do Begin
-    Val := Random;
+    if SYSTEMSTATE = SS_EVALUATE Then
+      Val := LastRand
+    Else Begin
+      Val := Random;
+      LastRand := Val;
+    End;
     OpType := SP_VALUE;
   End;
 End;
@@ -9451,7 +9460,7 @@ RunIt :
     SP_CloseEditorWindows;
     STEPMODE := 0;
   End;
-  SP_PreParse(True, Info^.Error^);
+  SP_PreParse(True, True, Info^.Error^);
   SP_GetDebugStatus(dbgVariables or dbgWatches);
 
 End;
@@ -13745,7 +13754,7 @@ End;
 Procedure SP_Interpret_CLEAR(Var Info: pSP_iInfo);
 Begin
 
-  SP_PreParse(True, Info^.Error^);
+  SP_PreParse(True, False, Info^.Error^);
   SP_CLS(CPAPER);
 
 End;
@@ -22322,7 +22331,7 @@ Begin
   End;
 
   If Err.Code = SP_ERR_OK Then
-    SP_PreParse(False, Err);
+    SP_PreParse(False, False, Err);
 
   // Propagate any errors from the above out to the calling stack, to preserve line numbers.
 

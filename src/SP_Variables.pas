@@ -214,7 +214,7 @@ Function  SP_SliceString(const Str: aString; SliceFrom, SliceTo: Integer): aStri
 Procedure SP_SliceAssign(Var Dst: aString; const Src: aString; sFrom, sTo: Integer; Var Error: TSP_ErrorCode); inline;
 
 Procedure SP_RESTORE;
-Procedure SP_PreParse(ClearVars: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_PreParse(ClearVars, Restore: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_FixStatementList(Var Tokens: aString; Position, Displacement: Integer);
 Procedure SP_TestConsts(Var Tokens: aString; lIdx: Integer; Var Error: TSP_ErrorCode; Preserve: Boolean);
 Procedure SP_ClearVarIndices;
@@ -2224,7 +2224,7 @@ Begin
 
 End;
 
-Procedure SP_PreParse(ClearVars: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_PreParse(ClearVars, Restore: Boolean; Var Error: TSP_ErrorCode);
 Type
   VarType = Packed Record
     ID: Byte;
@@ -2266,7 +2266,7 @@ Begin
     SP_ClearStructs;
     SP_TruncateNumArrays(-1);
     SP_TruncateStrArrays(-1);
-    SP_DATA_Line.Line := -1;
+    If Restore Then SP_DATA_Line.Line := -1;
     BASE := 1;
     MOUSEWHEEL := 0;
     SP_CaseListPtr := -1;
@@ -2683,11 +2683,12 @@ Begin
     If INCLUDEFROM > -1 Then
       SP_DeleteIncludes;
 
-    If (SP_DATA_Line.Line = -1) and (DATALine >= 0) Then Begin
-      SP_DATA_Line := SP_ConvertLineStatement(DATALine, DATAStatement);
-      Inc(SP_DATA_Line.Statement, SizeOf(TToken) + SizeOf(LongWord));
-      SP_DATA_Tokens := @SP_Program[DATALine];
-    End;
+    If Restore Then
+      If (SP_DATA_Line.Line = -1) and (DATALine >= 0) Then Begin
+        SP_DATA_Line := SP_ConvertLineStatement(DATALine, DATAStatement);
+        Inc(SP_DATA_Line.Statement, SizeOf(TToken) + SizeOf(LongWord));
+        SP_DATA_Tokens := @SP_Program[DATALine];
+      End;
 
   End;
 

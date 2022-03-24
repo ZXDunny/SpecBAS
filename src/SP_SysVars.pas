@@ -463,6 +463,7 @@ Const
   SS_EDITOR =           5;
   SS_NEW =              6;
   SS_DIRECT =           7;
+  SS_EVALUATE =         8;
 
   BlockGraphics: Array[0..127] of Byte =
     (0, 0, 0, 0, 0, 0, 0, 0,

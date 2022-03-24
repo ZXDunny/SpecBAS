@@ -546,10 +546,12 @@ Begin
 
       K_SPACE:
         Begin
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
-          If fItems[fSelected].Checkable Then
-            fItems[fSelected].Checked := Not fItems[fSelected].Checked;
-          Paint;
+          if fSelected >= 0 Then Begin
+            SP_PlaySystem(CLICKCHAN, CLICKBANK);
+            If fItems[fSelected].Checkable Then
+              fItems[fSelected].Checked := Not fItems[fSelected].Checked;
+            Paint;
+          End;
         End;
 
     End;

@@ -166,7 +166,7 @@ Begin
   SP_GOSUB_STACKPTR := 0;
   SP_GOSUB_STACKLEN := 1024;
   SetLength(SP_GOSUB_STACK, SP_GOSUB_STACKLEN);
-  SP_PreParse(True, Error);
+  SP_PreParse(True, True, Error);
 
   MATHMODE := 0;
   AutoFramecount := 0;

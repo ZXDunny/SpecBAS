@@ -408,6 +408,8 @@ Begin
         r := Extents;
         r.Left := 0;
         r.Right := fWidth;
+        if Selected then
+          r.Bottom := r.Bottom + 2;
         If PtInRect(r, p) Then Begin
           Result := i;
           Exit;
@@ -880,11 +882,13 @@ Begin
 
       K_SPACE:
         Begin
-          SP_PlaySystem(CLICKCHAN, CLICKBANK);
-          If fItems[fSelected].Checkable And fItems[fSelected].Enabled Then
-            fItems[fSelected].Checked := Not fItems[fSelected].Checked;
-          Paint;
-          Handled := True;
+          If fSelected >= 0 Then Begin
+            SP_PlaySystem(CLICKCHAN, CLICKBANK);
+            If fItems[fSelected].Checkable And fItems[fSelected].Enabled Then
+              fItems[fSelected].Checked := Not fItems[fSelected].Checked;
+            Paint;
+            Handled := True;
+          End;
         End;
 
     End;

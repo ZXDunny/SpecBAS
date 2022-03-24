@@ -124,7 +124,7 @@ Begin
       Else
         CurLine := NXTLINE;
       If CurLine = -1 Then CurLine := 0;
-      SP_PreParse(True, Error);
+      SP_PreParse(True, True, Error);
       SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
       SP_Execute('RUN '+IntToString(CurLine), Error);
     End;
@@ -149,7 +149,7 @@ Begin
       Error.Position := 1;
       PROGNAME := NEWPROGNAME;
       FILENAMED := False;
-      SP_PreParse(True, Error);
+      SP_PreParse(True, True, Error);
     End;
 
     If Not FILENAMED Then

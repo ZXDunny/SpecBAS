@@ -62,7 +62,7 @@ interface
 Uses Types, Classes, Clipbrd, SyncObjs, SysUtils, Math{$IFNDEF FPC}, Windows{$ENDIF},
      SP_Graphics, SP_BankManager, SP_SysVars, SP_Errors, SP_Main, SP_Tokenise, SP_BankFiling, SP_UITools,
      SP_Input, SP_Sound, SP_InfixToPostFix, SP_Interpret_PostFix, SP_FileIO, SP_Package, SP_Variables, SP_Components, SP_Menu, SP_AnsiStringlist,
-     SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_CheckListUnit, SP_MenuActions, SP_Util, SP_ProgressBarUnit;
+     SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_CheckListUnit, SP_MenuActions, SP_Util, SP_ProgressBarUnit, SP_ToolTipWindow;
 
 Type
 
@@ -120,6 +120,7 @@ Procedure SP_CompiledListingDelete(Idx: Integer);
 Procedure SP_CompiledListingInsert(Idx: Integer; const s: aString);
 Procedure SP_CompiledListingClear;
 Function  SP_GetLineExtents(Idx: Integer; FindStart: Boolean = False): TPoint;
+Function  SP_GetLineY(Line: Integer): Integer;
 Function  SP_LineFlags(Index: Integer): pLineFlags;
 Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1);
 Procedure SP_CreateMetrics;
@@ -177,6 +178,7 @@ Procedure SP_DeleteAllEvents(eventType: Integer);
 Procedure SP_LaunchEvent(Event: pSP_EditorEvent);
 Procedure SP_CheckEvents;
 Procedure SP_SelectWord;
+Function  SP_PtInSelection(Sel: SP_SelectionInfo; p: TPoint): Boolean;
 Procedure SP_FPClearSelection(Var Sel: SP_SelectionInfo);
 Procedure SP_FPDeleteSelection(Var Sel: SP_SelectionInfo);
 Procedure SP_FPEditorPerformEdit(Key: pSP_KeyInfo);
@@ -258,7 +260,8 @@ Procedure SP_SingleStep;
 Function  SP_StepOver: Boolean;
 Procedure SP_ClearBreakPoints;
 Procedure SP_GetDebugStatus(StatType: Integer);
-
+Function  SP_FPGetHint(X, Y: Integer): SP_Hint;
+Function  SP_DWGetHint(X, Y: Integer): SP_Hint;
 
 Var
   // Editor window
@@ -1182,7 +1185,7 @@ Begin
   SP_AddLine('', '', '');
   SP_ClearBreakpoints;
   Listing.Flags[0].ReturnType := spHardReturn;
-  SP_PreParse(True, Error);
+  SP_PreParse(True, True, Error);
   CURSORCHAR := 32;
   SP_FPRethinkScrollBars;
   Listing.FPCLine := 0;
@@ -3602,7 +3605,9 @@ Begin
   If (MOUSEBTN = 0) And (FPCDragging or DWCDragging or FPScrolling) Then Begin
     SP_FPEditorHandleMouseUp(MOUSEX, MOUSEY);
     Exit;
-  End;
+  End Else
+    If MOUSEBTN = 0 Then // Check for tooltip hoverings
+      CheckForTip(x, y);
 
   // This really only needs to be responded to for scrollbar purposes, and for selections in the editor.
 
@@ -3665,7 +3670,9 @@ Begin
     End;
 
   If Assigned(Window) Then
-    wIdx := Window^.ID;
+    wIdx := Window^.ID
+  Else
+    CloseTipWindow;
 
   If Idx >= 0 Then
 
@@ -3716,6 +3723,8 @@ Var
   c, Idx, NewPosition: Integer;
   Window: pSP_Window_Info;
 Begin
+
+  CloseTipWindow;
 
   Window := nil;
   Idx := NUMBANKS -1;
@@ -4002,6 +4011,20 @@ Begin
 
 End;
 
+Function  SP_PtInSelection(Sel: SP_SelectionInfo; p: TPoint): Boolean;
+Begin
+  If Sel.MultiLine Then Begin
+    If p.y = Sel.StartL Then
+      Result := p.X >= Sel.StartP
+    Else
+      If p.y = Sel.EndL Then
+        Result := p.x <= Sel.EndP
+      Else
+        Result := (p.y > Sel.StartL) and (p.Y < Sel.EndL);
+  End Else
+    Result := (p.y = Sel.StartL) and (p.x >= Sel.StartP) and (p.x <= Sel.EndP);
+End;
+
 Procedure SP_FPClearSelection(Var Sel: SP_SelectionInfo);
 Var
   Idx, St, Ed: Integer;
@@ -4090,50 +4113,52 @@ Begin
     Result := DWSelP <> CURSORPOS;
 End;
 
-Procedure SP_CopySelection;
+Function SP_GetSelectionAsString: aString;
 Var
   Idx, SelS, SelE: Integer;
-  s: aString;
   Sel: SP_SelectionInfo;
 Begin
-
   If FocusedWindow = fwEditor Then Begin
     SP_GetSelectionInfo(Sel);
     If Sel.Active Then
       If Sel.Multiline Then Begin
         If Listing.Flags[Sel.StartL].ReturnType = spHardReturn Then
-          s := Copy(Listing[Sel.StartL], Sel.StartP) + #13#10
+          Result := Copy(Listing[Sel.StartL], Sel.StartP) + #13#10
         Else
-          s := Copy(Listing[Sel.StartL], Sel.StartP);
+          Result := Copy(Listing[Sel.StartL], Sel.StartP);
         If Sel.EndL > Sel.StartL Then Begin
           Idx := Sel.StartL +1;
           While Idx <> Sel.EndL Do Begin
             If Listing.Flags[Idx].ReturnType = spHardReturn Then
-              s := s + Listing[Idx] + #13#10
+              Result := Result + Listing[Idx] + #13#10
             Else
-              s := s + Listing[Idx];
+              Result := Result + Listing[Idx];
             Inc(Idx);
           End;
         End;
         If Sel.Dir = 1 Then
-          s := s + Copy(Listing[Sel.EndL], 1, Sel.EndP)
+          Result := Result + Copy(Listing[Sel.EndL], 1, Sel.EndP)
         Else
-          s := s + Copy(Listing[Sel.EndL], 1, Sel.EndP -1);
+          Result := Result + Copy(Listing[Sel.EndL], 1, Sel.EndP -1);
       End Else
         If Sel.Dir = 1 Then
-          s := Copy(Listing[Sel.StartL], Sel.StartP, (Sel.EndP - Sel.StartP) +1)
+          Result := Copy(Listing[Sel.StartL], Sel.StartP, (Sel.EndP - Sel.StartP) +1)
         Else
-          s := Copy(Listing[Sel.StartL], Sel.StartP, (Sel.EndP - Sel.StartP));
+          Result := Copy(Listing[Sel.StartL], Sel.StartP, (Sel.EndP - Sel.StartP));
   End Else
     If FocusedWindow = fwDirect Then Begin
       If DWSelP <> CURSORPOS Then Begin
         SelS := Min(DWSelP, CURSORPOS);
         SelE := Max(DWSelP, CURSORPOS);
-        s := Copy(EDITLINE, SelS, (SelE - SelS));
+        Result := Copy(EDITLINE, SelS, (SelE - SelS));
       End;
     End;
+End;
 
-  Clipboard.AsText := String(s);
+Procedure SP_CopySelection;
+Begin
+
+  Clipboard.AsText := String(SP_GetSelectionAsString);
 
 End;
 
@@ -5981,11 +6006,10 @@ End;
 Procedure SP_EditorDisplayEditLine;
 Var
   Idx, WorkW, NewW, NewH, TLen, SelS, SelE, l: Integer;
-  EditLen, X, Y, WindowID, Font: Integer;
-  CText, EL_Text, s: aString;
-  StartWithSel: Boolean;
+  EditLen, Y, WindowID, Font: Integer;
+  CText, s: aString;
+  InSel: Boolean;
   Err: TSP_ErrorCode;
-  c: aChar;
 Begin
 
   SelS := CURSORPOS; SelE := CURSORPOS;
@@ -6022,48 +6046,40 @@ Begin
   Y := DWPaperTop;
 
   s := InsertLiterals(EDITLINE);
+
   l := Length(s);
   If DWSelP <> CURSORPOS Then Begin
     SelS := Limited(SP_GetCharPos(s, SelS), 1, l);
     SelE := Limited(SP_GetCharPos(s, SelE), 1, l);
     If (SelE < l) and (s[SelE] = #5) Then Inc(SelE);
-    EL_Text := Copy(s, 1, SelS -1) + selClr + Copy(s, SelS, (SelE - SelS) +1) + backClr + Copy(s, SelE +1)
   End Else Begin
-    EL_Text := s;
-    If EL_Text = '' Then Begin
-      EL_Text := ' ';
-      CURSORPOS := 1;
-      DWSelP := 1;
-    End;
+    SelS := -1;
+    SelE := -1;
   End;
 
-  // At this point we have #5 literals possibly included, as well as whatever selClr and backClr contain (colour changing control codes).
-  // All < #32 (aside from #5) are five-byte markers and should be excluded from character counts.
-
-  StartWithSel := False;
-  While EL_Text <> '' Do Begin
-    Idx := 1;
-    TLen := DWTextWidth;
-    X := DWTextLeft;
-    If StartWithSel Then CText := selClr Else CText := '';
-    While (TLen > 0) and (Idx <= Length(EL_Text)) Do Begin
-      c := EL_Text[Idx];
-      CText := CText + c;
-      if c = #5 Then Begin
-        Dec(TLen);
+  Idx := 1;
+  InSel := False;
+  While Idx <= l Do Begin
+    TLen := Min(DWTextWidth, l - Idx + 1);
+    If InSel Then cText := SelClr Else cText := '';
+    While Tlen > 0 Do Begin
+      If Idx = SelS Then Begin
+        InSel := True;
+        CText := CText + SelClr;
+      End;
+      If s[Idx] = #5 Then Begin
         Inc(Idx);
-        CText := CText + EL_Text[Idx];
-      End Else
-        If c < ' ' Then Begin
-          If c = #17 Then
-            StartWithSel := Not StartWithSel;
-          Inc(TLen, 5);
-        End Else
-          Dec(TLen);
+        CText := CText + #5;
+      End;
+      Ctext := CText + s[Idx];
+      If Idx = SelE Then Begin
+        InSel := False;
+        CText := CText + backClr;
+      End;
       Inc(Idx);
+      Dec(TLen);
     End;
-    SP_TextOut(-1, X, Y, EdSc + CText, 0 + (8 * Ord(FocusedWindow <> fwDirect)), 7, True, True);
-    EL_Text := Copy(EL_Text, Length(CText) - (5 * Ord((CText[1] = #17) And (EL_Text[1] <> #17))) +1);
+    SP_TextOut(-1, DWTextLeft, Y, EdSc + cText, 0 + (8 * Ord(FocusedWindow <> fwDirect)), 7, True, True);
     Inc(Y, FPFh);
   End;
 
@@ -7784,10 +7800,14 @@ End;
 
 Function SP_FPExecuteAnyExpression(Const Expr: aString; var Error: TSP_ErrorCode): aString;
 Var
+  sbnk: Integer;
   Backup: Pointer;
 Begin
 
+  Result := '';
+  sBnk := SCREENBANK;
   Backup := SP_StackPtr;
+  SP_SetDrawingWindow(FPEditorDefaultWindow);
   SP_FPExecuteExpression(Expr, Error);
   If Error.Code = SP_ERR_OK Then
     If SP_StackPtr^.OpType = SP_VALUE Then
@@ -7795,12 +7815,13 @@ Begin
     Else
       Result := SP_StackPtr^.Str;
   SP_StackPtr := pSP_StackItem(Backup);
+  SP_SetDrawingWindow(sBnk);
 
 End;
 
 Procedure SP_FPExecuteExpression(Const Expr: aString; var Error: TSP_ErrorCode);
 Var
-  Position: Integer;
+  Position, state: Integer;
   ValTkn: paString;
   Str1, ValTokens: aString;
 Begin
@@ -7809,25 +7830,31 @@ Begin
   // Executes a line of BASIC as an expression. Calling functions can deal with the result and any errors.
 
   Position := 1;
-  If Expr[1] <> #$F Then Begin
-    Str1 := SP_TokeniseLine(Expr, True, False) + #255;
-    ValTokens := SP_Convert_Expr(Str1, Position, Error, -1) + #255;
-    SP_RemoveBlocks(ValTokens);
-    SP_TestConsts(ValTokens, 1, Error, False);
-    SP_AddHandlers(ValTokens);
-  End Else
-    ValTokens := Copy(Expr, 2);
+  State := SYSTEMSTATE;
+  SYSTEMSTATE := SS_EVALUATE;
+  If Expr <> '' Then Begin
+    If Expr[1] <> #$F Then Begin
+      Str1 := SP_TokeniseLine(Expr, True, False) + #255;
+      ValTokens := SP_Convert_Expr(Str1, Position, Error, -1) + #255;
+      SP_RemoveBlocks(ValTokens);
+      SP_TestConsts(ValTokens, 1, Error, False);
+      SP_AddHandlers(ValTokens);
+    End Else
+      ValTokens := Copy(Expr, 2);
 
-  If ValTokens = #255 Then Begin
-    Error.Code := SP_ERR_SYNTAX_ERROR;
-    Exit;
-  End;
+    If ValTokens = #255 Then Begin
+      Error.Code := SP_ERR_SYNTAX_ERROR;
+      SYSTEMSTATE := State;
+      Exit;
+    End;
 
-  If Error.Code = SP_ERR_OK Then Begin
-    Position := 1;
-    ValTkn := @ValTokens;
-    SP_InterpretCONTSafe(ValTkn, Position, Error);
+    If Error.Code = SP_ERR_OK Then Begin
+      Position := 1;
+      ValTkn := @ValTokens;
+      SP_InterpretCONTSafe(ValTkn, Position, Error);
+    End;
   End;
+  SYSTEMSTATE := State;
 
 End;
 
@@ -7891,7 +7918,7 @@ Begin
         SP_StackPtr := SP_StackStart;
         Tokens := @TokensStr;
         SP_DeleteIncludes;
-        SP_PreParse(False, Error);
+        SP_PreParse(False, False, Error);
         PreParseErrorCode := Error.Code;
         PreParseErrorLine := Error.Line;
         PreParseErrorStatement := Error.Statement;
@@ -7955,7 +7982,7 @@ Begin
           SP_StackPtr := SP_StackStart;
           Tokens := @TokensStr;
           SP_DeleteIncludes;
-          SP_PreParse(False, Error);
+          SP_PreParse(False, False, Error);
           PreParseErrorCode := Error.Code;
           Error.Code := SP_ERR_OK;
           PROGSTATE := SP_PR_RUN;
@@ -8402,7 +8429,7 @@ Begin
   NXTSTATEMENT := -1;
   NXTLINE := -1;
   SP_StackPtr := SP_StackStart;
-  SP_PreParse(False, Error);
+  SP_PreParse(False, False, Error);
   PROGSTATE := SP_PR_RUN;
   SP_Interpreter(Tokens, Error.Position, Error, Error.Code);
 
@@ -9806,7 +9833,7 @@ Begin
   SP_DisplayFPListing(-1);
   SP_WaitForSync;
 
-  SP_Preparse(False, Error);
+  SP_Preparse(False, False, Error);
   SP_Interpret_CONTINUE(Inf);
   If Error.Code = SP_ERR_OK Then Begin
     Tokens := nil;
@@ -9932,6 +9959,266 @@ Begin
   If (StatType = -1) or (FPDebugPanelVisible And (StatType And (1 Shl FPDebugCombo.ItemIndex) <> 0)) Then
     SP_FillDebugPanel;
 
+End;
+
+Procedure EvaluateHint(Var Result: SP_Hint);
+Var
+  Error: TSP_ErrorCode;
+  tStr: aString;
+Begin
+  Error.Code := SP_ERR_OK;
+  tStr := SP_FPExecuteAnyExpression(Result.Hint, Error);
+  if (Error.Code = SP_ERR_OK) or (Error.Code = SP_ERR_MISSING_VAR) Then Begin
+    if (tStr <> '') Then Begin
+      If tStr <> Result.Hint Then
+        Result.Hint := Result.Hint + '=' + #16#1#0#0#0 + tStr
+      Else Begin
+        Result.Hint := '';
+        Exit;
+      End;
+    End else
+      Result.Hint := Result.Hint + ' ' + #16#2#0#0#0 + 'Not found';
+  End Else
+    If SP_IsReserved(Upper(Result.Hint)) Then Begin
+      Result.Hint := '';
+      Exit;
+    End Else
+      Result.Hint := Result.Hint + '=' + #16#2#0#0#0 + ProcessErrorMessage(ErrorMessages[Error.Code]);
+End;
+
+Function ProcessHint(Var s: aString; cPos: Integer; var i, j: Integer): SP_Hint;
+Var
+  InString, CanREM, Found: Boolean;
+  l, t, Idx, Idx2: Integer;
+  nVar: pSP_NumVarContent;
+  sVar: pSP_StrVarContent;
+  NewWord, tStr: aString;
+Const
+  Seps = [' ', '(', ')', ',', ';', '"', #39, '=', '+', '-', '/', '*', '^', '|', '&', ':', '>', '<'];
+Begin
+  InString := False;
+  Found := False;
+  CanREM := True;
+  s := s + ' ';
+
+  i := 1;
+  While i <= cPos Do Begin
+    If s[i] = '"' Then Begin
+      InString := Not InString;
+      Inc(i);
+    End Else
+      If Not Instring Then Begin
+        If s[i] = ':' Then Begin
+          CanREM := True;
+          Inc(i);
+        End Else Begin
+          NewWord := '';
+          While (i <= Length(s)) and (s[i] in ['A'..'Z']) Do Begin
+            NewWord := NewWord + s[i];
+            Inc(i);
+          End;
+          If (NewWord = 'THEN') or (NewWord = 'ELSE') Then
+            CanREM := True
+          Else
+            If CanREM and (NewWord = 'REM') Then
+              Exit;
+          If NewWord = '' Then
+            Inc(i);
+        End;
+      End Else
+        Inc(i);
+  End;
+
+  If Not InString Then Begin
+    i := cPos;
+    l := Length(s);
+    While (i > 1) And (s[i] in Seps) Do Dec(i);
+    While (i > 1) And Not (s[i] in Seps) Do Dec(i);
+    If (i <= l) And (s[i] in Seps) Then Inc(i);
+    j := i;
+    While (j <= l) And Not (s[j] in Seps) Do Inc(j);
+    If (j <= l) and (s[j] = '$') Then Inc(j);
+    Result.Hint := Copy(s, i, j - i);
+
+    If Result.Hint <> '' Then Begin
+      t := SP_IsConstant(Result.Hint);
+      if t >= 0 Then Begin
+        Result.Hint := #16#1#0#0#0 + AFloatToStr(SP_Constants[t].Value);
+      End Else Begin
+        If Result.Hint[Length(Result.Hint)] = '$' Then Begin
+          Idx := SP_FindStrArray(Lower(Copy(Result.Hint, 1, Length(Result.Hint) -1)));
+          Idx2 := SP_FindStrVar(Lower(Copy(Result.Hint, 1, Length(Result.Hint) -1)));
+          If ((Idx > -1) And (s[j] = '(')) or ((Idx > -1) And (Idx2 = -1) And (s[j] <> '(')) Then Begin
+            Found := True;
+            Result.Hint := Result.Hint + '(';
+            For Idx2 := 0 To StrArrays[Idx].NumIndices -1 Do Begin
+              Result.Hint := Result.Hint + IntToString(StrArrays[Idx].Indices[Idx2]);
+              If Idx2 < StrArrays[Idx].NumIndices -1 Then
+                Result.Hint := Result.Hint + ',';
+            End;
+            Result.Hint := Result.Hint + ')=' + SP_StrArrayToString(Idx, -1);
+          End Else Begin
+            Idx := SP_FindStrVar(Lower(Copy(Result.Hint, 1, Length(Result.Hint) -1)));
+            If Idx > -1 Then Begin
+              Found := True;
+              Result.Hint := '';
+              sVar := StrVars[Idx]^.ContentPtr;
+              If StrVars[Idx]^.ProcVar Then
+                For Idx2 := SP_ProcStackPtr DownTo 0 Do
+                  If Idx >= SP_ProcStack[Idx2].VarPosS Then Begin
+                    Result.Hint := '['+SP_ProcsList[SP_ProcStack[Idx2].ProcIndex].Name+']' + #13;
+                    Break;
+                  End;
+              tStr := sVar^.Value;
+              Result.Hint := Result.Hint + StrVars[Idx]^.Name + '$="' + InsertLiterals(tStr);
+              Result.Hint := Result.Hint + '"';
+            End;
+          End;
+        End Else Begin
+          Idx := SP_FindNumVar(Lower(Result.Hint));
+          If (Idx > -1) And (s[j] <> '(') Then Begin
+            Found := True;
+            Result.Hint := '';
+            nVar := NumVars[Idx]^.ContentPtr;
+            If NumVars[Idx]^.ProcVar Then
+              For Idx2 := SP_ProcStackPtr DownTo 0 Do
+                If Idx >= SP_ProcStack[Idx2].VarPosN Then Begin
+                  Result.Hint := '['+SP_ProcsList[SP_ProcStack[Idx2].ProcIndex].Name+']' + #13;
+                  Break;
+                End;
+            Result.Hint := Result.Hint + NumVars[Idx]^.Name + '=';
+            If nVar^.VarType = SP_FORVAR Then Begin
+              Result.Hint := Result.Hint + aString(aFloatToStr(nVar^.Value) + ', FOR ' + aFloatToStr(nVar^.InitVal) + ' TO ' + aFloatToStr(nVar^.EndAt));
+              If nVar^.Step <> 1 Then
+                Result.Hint := Result.Hint + ' STEP ' + aString(aFloatToStr(nVar^.Step));
+              If (nVar^.LoopLine >= 0) And (nVar^.LoopLine < SP_Program_Count) Then
+                Result.Hint := Result.Hint + ', NEXT at ' + IntToString(pInteger(@SP_Program[nVar^.LoopLine][2])^) + ':' + IntToString(nVar^.St)
+              Else
+                Result.Hint := Result.Hint + ', NEXT Statement lost';
+            End Else
+              Result.Hint := Result.Hint + aString(aFloatToStr(nVar^.Value));
+          End Else Begin
+            Idx := SP_FindNumArray(Lower(Result.Hint));
+            If Idx > -1 Then Begin
+              Found := True;
+              Result.Hint := Result.Hint + '(';
+              For Idx2 := 0 To NumArrays[Idx].NumIndices -1 Do Begin
+                Result.Hint := Result.Hint + IntToString(NumArrays[Idx].Indices[Idx2]);
+                If Idx2 < NumArrays[Idx].NumIndices -1 Then
+                  Result.Hint := Result.Hint + ',';
+              End;
+              Result.Hint := Result.Hint + ')=' + SP_NumArrayToString(Idx, -1);
+            End;
+          End;
+        End;
+
+        If Not Found Then Begin
+          If i > 1 Then
+            if s[i-1] in ['%', '$'] Then
+              Result.Hint := s[i-1] + Result.Hint;
+          EvaluateHint(Result);
+        End;
+
+      End;
+
+    End;
+
+  End;
+
+End;
+
+Function SP_FPGetHint(X, Y: Integer): SP_Hint;
+var
+  c: aChar;
+  p: TPoint;
+  Sel: SP_SelectionInfo;
+  s: aString;
+  lMin, lMax, i, j, t: Integer;
+Label
+  Finish;
+Begin
+  i := 1; j := 1;
+  Result.Hint := '';
+  // First find the line we're on.
+  p := SP_FPCharAtPos(X, Y);
+  If (p.Y >= 0) and (p.x <= Length(Listing[p.y])) Then Begin // line = y, char = x
+
+    SP_GetSelectionInfo(Sel);
+    If Sel.Active and SP_PtInSelection(Sel, p) Then Begin
+      Result.Hint := SP_GetSelectionAsString;
+      If Result.Hint <> '' Then EvaluateHint(Result);
+      Goto Finish;
+    End;
+    c := Lower(Listing[p.y][p.x])[1];
+
+    If c in ['0'..'9', '_', '$', 'a'..'z'] Then Begin
+      lMin := p.Y;
+      While (lMin > 0) And SP_WasPrevSoft(lMin) Do Dec(lMin);
+      lMax := lMin;
+      While (lMax < Listing.Count -1) And (Listing.Flags[lMax].ReturnType = spSoftReturn) Do Inc(lMax);
+      lMax := Min(lMax, p.Y);
+      For i := lMin to lMax Do Begin
+        if i = lMax Then Inc(p.X, Length(s));
+        s := s + Listing[i];
+      End;
+      Result := ProcessHint(s, p.x, i, j);
+    End;
+
+  Finish:
+    t := FPGutterWidth + 1 + Listing.Flags[p.y].Indent - SP_LineNumberSize(p.y);
+    y := SP_GetLineY(p.y) + FPWIndowTop;
+    Result.HotRect := Rect(FPWindowLeft + ((i + t) * FPFw), y, FPWindowLeft + ((j + t) * FpfW), y + FpFH);
+
+  End;
+
+End;
+
+Function SP_DWGetHint(X, Y: Integer): SP_Hint;
+Var
+  c: aChar;
+  s: aString;
+  i, j, SelS, SelE, ps: Integer;
+Label
+  Finish;
+Begin
+  i := 1; j := 1;
+  Result.Hint := '';
+
+  If PtInRect(Rect(DWPaperLeft, DWPaperTop, DWPaperLeft + DWPaperWidth -1, DWPaperTop + DWPaperHeight -1), Point(X, Y)) Then Begin
+    ps := Min(Length(EDITLINE) +1, ((X - DWTextLeft) Div FPFw) + 1 + (((Y - DWPaperTop) Div FPFh) * DWTextWidth));
+    If (ps >= 1) and (ps <= Length(EDITLINE)) Then Begin
+      SelS := Min(DWSelP, CURSORPOS);
+      SelE := Max(DWSelP, CURSORPOS);
+      If (SelS <> SelE) and (ps >= SelS) and (ps <= SelE) Then Begin
+        Result.Hint := SP_GetSelectionAsString;
+        If Result.Hint <> '' Then EvaluateHint(Result);
+        Goto Finish;
+      End;
+      s := EDITLINE;
+      c := Lower(s[ps])[1];
+      If c in ['0'..'9', '_', '$', 'a'..'z'] Then Begin
+        Result := ProcessHint(s, ps, i, j);
+      End;
+    Finish:
+      y := DWWindowTop + DWPaperTop + ((ps Div DWTextWidth) * fpFH);
+      i := i Mod DWTextWidth;
+      j := j Mod DWTextWidth;
+      Result.HotRect := Rect(DWWindowLeft + DWTextLeft + (i * FPFw) - FpFW, y, DWWindowLeft + DWTextLeft + (j * FPFw) - FPFw, y + FpFH);
+    End;
+
+  End;
+
+End;
+
+Function  SP_GetLineY(Line: Integer): Integer;
+Var
+  VertSB: pSP_Scrollbar;
+  Idx, Ofsy: Integer;
+Begin
+  VertSB := @FPScrollBars[SP_FindScrollBar(FPVertSc)];
+  Idx := Trunc(VertSB^.Position/FPFh);
+  OfsY := -(Trunc(VertSB^.Position) Mod FPFh) + FPPaperTop;
+  Result := OfsY + ((Line - Idx) * FPFh);
 End;
 
 Initialization

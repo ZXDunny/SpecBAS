@@ -44,6 +44,7 @@ Type
   End;
 
 Function  SP_TokeniseLine(Line: aString; IsExpression, AddLineNum: Boolean): aString;
+Function  SP_IsReserved(Line: aString): Boolean;
 Function  SP_IsConstant(Line: aString): Integer;
 Function  SP_IsKeyWord(Line: aString): Integer;
 Function  SP_IsFunction(Line: aString): Integer;
@@ -1700,6 +1701,13 @@ Begin
       Result := Idx;
       Exit;
     End;
+
+End;
+
+Function  SP_IsReserved(Line: aString): Boolean;
+Begin
+
+  Result := (SP_IsKeyWord(Line) >= 0) or (SP_IsFunction(Line) >= 0) or (SP_IsFunctionEx(Line) >= 0);
 
 End;
 

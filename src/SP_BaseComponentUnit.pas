@@ -125,6 +125,7 @@ SP_BaseComponent = Class
     ControlID: Integer;
     Dbl: Boolean;
     fCurFontID: Integer;
+    fHint: aString;
     User_OnMouseMove: aString;
     User_OnMouseDown: aString;
     User_OnMouseUp: aString;
@@ -188,6 +189,7 @@ SP_BaseComponent = Class
     Procedure SetOnFocus(e: SP_FocusEvent); Virtual;
     Procedure SetOverrideScaling(b: Boolean);
     Procedure SetFont(ID: Integer);
+    Function  GetHint: aString; Virtual;
 
     Procedure DoErase;
     Function  DecodeKey(Var Char: Byte): Byte;
@@ -218,6 +220,7 @@ SP_BaseComponent = Class
     Function  Components(Idx: Integer): SP_BaseComponent;
     Procedure KeyDown(Key: Integer; Var Handled: Boolean); Virtual;
     Procedure KeyUp(Key: Integer; Var Handled: Boolean); Virtual;
+    Procedure PreMouseMove(X, Y, Btn: Integer);
     Procedure MouseDown(X, Y, Btn: Integer); Virtual;
     Procedure MouseUp(X, Y, Btn: Integer); Virtual;
     Procedure MouseMove(X, Y, Btn: Integer); Virtual;
@@ -240,7 +243,7 @@ SP_BaseComponent = Class
 
     {User Properties}
 
-    Procedure RegisterProperties;
+    Procedure RegisterProperties; Virtual;
     Procedure Set_Align(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Align: aString;
     Procedure Set_Anchors(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Anchors: aString;
     Procedure Set_BackgroundClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_BackgroundClr: aString;
@@ -260,6 +263,7 @@ SP_BaseComponent = Class
     Procedure Set_MaxHeight(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_MaxHeight: aString;
     Function  Get_Canvas: aString;
     Procedure Set_Transparent(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Transparent: aString;
+    Procedure Set_Hint(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Hint: aString;
 
     Procedure Set_OnMouseMove(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseMove: aString;
     Procedure Set_OnMouseDown(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseDown: aString;
@@ -282,7 +286,7 @@ SP_BaseComponent = Class
     Property Align:         Integer             read fAlign         write SetAlign;
     Property Anchors:       SP_AnchorSet        read fAnchors       write fAnchors;
     Property Name:          aString             read fName          write fName;
-    Property Count:         Integer             read fNumComponents;
+    Property ControlCount:  Integer             read fNumComponents;
     Property OnMouseMove:   SP_MouseEvent       read fOnMouseMove   write fOnMouseMove;
     Property OnMouseDown:   SP_MouseEvent       read fOnMouseDown   write fOnMouseDown;
     Property OnMouseUp:     SP_MouseEvent       read fOnMouseUp     write fOnMouseUp;
@@ -330,6 +334,7 @@ SP_BaseComponent = Class
     Property Erase: Boolean                     read fErase         write fErase;
     Property Font: Integer                      read fCurFontID     write SetFont;
     Property ParentWindowID: Integer            read fParentWindowID;
+    Property Hint: aString                      read GetHint        write fHint;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -356,7 +361,7 @@ implementation
 Uses
 
   SP_Main, SP_Input, SP_Graphics, SP_BankFiling, SP_BankManager, SP_SysVars,
-  SP_PopUpMenuUnit, SP_Components, SP_Interpret_PostFix;
+  SP_PopUpMenuUnit, SP_Components, SP_Interpret_PostFix, SP_ToolTipWindow;
 
 // All controls should register their extra properties via this routine in the base class.
 // These are properties that the user can change or read.
@@ -526,6 +531,13 @@ begin
   UnLock;
 
 end;
+
+Function SP_BaseComponent.GetHint: aString;
+Begin
+
+  Result := fHint;
+
+End;
 
 Procedure SP_BaseComponent.SetTransparent(Value: Boolean);
 Begin
@@ -1187,8 +1199,9 @@ Begin
   cKeyRepeat := -1;
   fAnchors := [aLeft, aTop];
   fAlign := SP_AlignNone;
-  If Assigned(fParentControl) Then Inc(ControlCount);
+  If Assigned(fParentControl) Then Inc(GlobalControlCount);
   fPrevFocus := nil;
+  fHint := '';
 
 End;
 
@@ -1211,6 +1224,7 @@ Begin
   RemoveTimer(Self);
 
   // And ensure that mouse and keyboard events don't try to reference this control
+
 
   If CaptureControl = Self Then
     CaptureControl := nil;
@@ -1254,7 +1268,7 @@ Begin
       Inc(Idx);
 
   If Assigned(fParentControl) Then
-    Dec(ControlCount);
+    Dec(GlobalControlCount);
 
   SetLength(fProperties, 0);
 
@@ -2141,6 +2155,21 @@ Begin
 
 End;
 
+Procedure SP_BaseComponent.PreMouseMove(X, Y, Btn: Integer);
+Var
+  p: TPoint;
+Begin
+
+  // All controls can pop up a hint window if they want.
+  If ((fHint <> '') And (MOUSEBTN = 0)) or (TipWindowID <> -1) Then Begin
+    p := ClientToScreen(Point(X, Y));
+    CheckForTip(p.x, p.y);
+  End;
+
+  MouseMove(X, Y, Btn);
+
+End;
+
 Procedure SP_BaseComponent.MouseMove(X, Y, Btn: Integer);
 Begin
 
@@ -2317,6 +2346,16 @@ Begin
   Compiled_OnMouseMove := SP_ConvertToTokens(s, Error);
   If Compiled_OnMouseMove <> '' Then
     User_OnMouseMove := s;
+End;
+
+Procedure SP_BaseComponent.Set_Hint(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  fHint := s;
+End;
+
+Function SP_BaseComponent.Get_Hint: aString;
+Begin
+  Result := fHint;
 End;
 
 Function  SP_BaseComponent.Get_OnMouseMove: aString;

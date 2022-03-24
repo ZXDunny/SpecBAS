@@ -133,7 +133,7 @@ Const
 
 implementation
 
-Uses SP_FPEditor;
+Uses SP_FPEditor, SP_ToolTipWindow;
 
 {$R *.dfm}
 
@@ -635,6 +635,7 @@ begin
 
     Handled := False;
     DisplaySection.Enter;
+    CloseTipWindow;
 
     If ForceCapture Then Begin
       If CaptureControl.CanFocus Then
@@ -649,7 +650,7 @@ begin
           SwitchFocusedWindow(ID); // The editor handles this.
         Win := ControlAtPoint(Win, X, Y);
         If Assigned(Win) Then Begin
-          CaptureControl := Win;
+          CaptureControl := pSP_BaseComponent(Win)^;
           If CaptureControl.CanFocus Then
             CaptureControl.SetFocus(True);
           SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
@@ -731,24 +732,25 @@ begin
         Handled := False;
 
         tX := X; tY := Y;
+        If TipWindowID <> -1 Then CheckForTip(tx, ty);
         Win := WindowAtPoint(tX, tY, ID);
         If Assigned(Win) Then Begin
           Win := ControlAtPoint(Win, tX, tY);
-          If MouseControl <> SP_BaseComponent(Win) Then
+          If Assigned(Win) And (MouseControl <> pSP_BaseComponent(Win)^) Then
             If Assigned(MouseControl) Then
               MouseControl.MouseExit;
         End;
         If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
           p := CaptureControl.ScreenToClient(Point(x, y));
-          CaptureControl.MouseMove(p.x, p.y, Btn);
+          CaptureControl.PreMouseMove(p.x, p.y, Btn);
         End Else Begin
           If Assigned(Win) Then Begin
-            If MouseControl <> SP_BaseComponent(Win) Then Begin
-              MouseControl := Win;
+            If MouseControl <> pSP_BaseComponent(Win)^ Then Begin
+              MouseControl := pSP_BaseComponent(Win)^;
               p := MouseControl.ScreenToClient(Point(tX, tY));
               MouseControl.MouseEnter(p.X, p.Y);
             End;
-            SP_BaseComponent(Win).MouseMove(tX, tY, Btn);
+            pSP_BaseComponent(Win)^.PreMouseMove(tX, tY, Btn);
             Handled := True;
           End Else
             If Assigned(MouseControl) Then
@@ -823,7 +825,7 @@ begin
       If Assigned(Win) Then Begin
         Win := ControlAtPoint(Win, X, Y);
         If Assigned(Win) Then Begin
-          SP_BaseComponent(Win).MouseUp(X, Y, Btn);
+          pSP_BaseComponent(Win)^.MouseUp(X, Y, Btn);
           Handled := True;
         End;
       End;
@@ -1180,7 +1182,7 @@ begin
     If Assigned(Win) Then Begin
       Win := ControlAtPoint(Win, X, Y);
       If Assigned(Win) Then Begin
-        SP_BaseComponent(Win).MouseWheel(X, Y, Btn, 1);
+        pSP_BaseComponent(Win)^.MouseWheel(X, Y, Btn, 1);
         Handled := True;
       End;
     End;
@@ -1217,7 +1219,7 @@ begin
     If Assigned(Win) Then Begin
       Win := ControlAtPoint(Win, X, Y);
       If Assigned(Win) Then Begin
-        SP_BaseComponent(Win).MouseWheel(X, Y, Btn, -1);
+        pSP_BaseComponent(Win)^.MouseWheel(X, Y, Btn, -1);
         Handled := True;
       End;
     End;

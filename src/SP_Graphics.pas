@@ -101,7 +101,7 @@ Procedure SP_DrawCurve(CurveStartX, CurveStartY, X, Y, CurveEndX, CurveEndY: aFl
 Procedure SP_GetRegion(Src: pByte; SrcW, SrcH: LongWord; Var Dest: aString; rX, rY, rW, rH, T: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_PutRegion(Dst: pByte; dX, dY: Integer; dW, dH: LongWord; Src: pByte; SrcLen: Integer; RotAngle, Scale: aFloat; Var cX1, cY1, cX2, cY2: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_PutRegion_NO_OVER(Dst: pByte; dX, dY: Integer; dW, dH: LongWord; Src: pByte; SrcLen: Integer; Var cX1, cY1, cX2, cY2: Integer; Var Error: TSP_ErrorCode);
-Function  SP_StringToTexture(const Str: aString): aString;
+Function  SP_StringToTexture(const Str: aString; UseLiterals: Boolean = False): aString;
 Function  SP_FindUDG(ChrIndex: Integer; Var Error: TSP_ErrorCode): Integer;
 Procedure SP_VScroll(Dst: pByte; Width, Height, Amount: Integer; Wrap: Boolean);
 Procedure SP_HScroll(Dst: pByte; Width, Height, Bpp, Amount: Integer; Wrap: Boolean);
@@ -3661,10 +3661,10 @@ Begin
 End;
 
 
-Function SP_StringToTexture(Const Str: aString): aString;
+Function SP_StringToTexture(Const Str: aString; UseLiterals: Boolean = False): aString;
 Var
   SP: Pointer;
-  SW, SH, SS, Idx, Width, Height: Integer;
+  SW, SH, SS, Idx, Width, Height, mw: Integer;
   Surface: aString;
   Bits32: Boolean;
 Begin
@@ -3679,14 +3679,16 @@ Begin
     // First, strip out location command codes. Codes to change INK and PAPER etc are fine.
     // Also figure out how big the resulting graphic is going to be.
 
+    mw := 0;
     Width := 0;
     Height := 1;
     Idx := 1;
     While Idx <= Length(Str) Do Begin
 
       Case Ord(Str[Idx]) of
+        5: If UseLiterals Then Begin Result := Result + Copy(Str, Idx, 2); Inc(Idx, 2); Inc(Width); End Else Begin Result := Result + Str[Idx]; Inc(Idx); Inc(Width); End;
         6, 8, 9, 10, 11: Begin Inc(Idx); End; // PRINT comma, Cursor moves
-        13: Begin Inc(Height); Result := Result + Str[Idx]; Inc(Idx); End; // Carriage return
+        13: Begin Inc(Height); Result := Result + Str[Idx]; Inc(Idx); mw := Max(Width, mw); Width := 0; End; // Carriage return
        16, 17, 18, 19, 20: Begin Result := Result + Copy(Str, Idx, 5); Inc(Idx, 1 + SizeOf(LongWord)); End;
        21, 22: Begin Inc(Idx, 1+(SizeOf(LongWord) * 2)); End;
        25: Begin Result := Result + Copy(Str, Idx, 1 + (SizeOf(aFloat) * 2)); Inc(Idx, 1 + (SizeOf(aFloat) * 2)); End;
@@ -3698,6 +3700,7 @@ Begin
       End;
 
     End;
+    Width := Max(mw, Width);
 
     // Create a "surface" that we can draw to
 
@@ -3712,6 +3715,7 @@ Begin
     SS := SCREENSTRIDE;
     SH := SCREENHEIGHT;
 
+
     SCREENPOINTER := @Surface[1];
     SCREENWIDTH := Round(Width * Integer(FONTWIDTH) * T_SCALEX);
     If Bits32 Then
@@ -3719,6 +3723,7 @@ Begin
     Else
       SCREENSTRIDE := Round(Width * Integer(FONTWIDTH) * T_SCALEX);
     SCREENHEIGHT := Round(Integer(FONTHEIGHT) * Height * T_SCALEY);
+    FillMem(SCREENPOINTER, Length(Surface), T_PAPER);
 
     T_CLIPX1 := 0; T_CLIPY1 := 0; T_CLIPX2 := SCREENWIDTH; T_CLIPY2 := SCREENHEIGHT;
 

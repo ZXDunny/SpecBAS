@@ -1174,7 +1174,7 @@ Begin
               If pList = nil Then Begin
                 NXTLINE := SP_FindLine(0, False);
                 Error.ReturnType := SP_JUMP;
-                SP_PreParse(True, Error);
+                SP_PreParse(True, True, Error);
               End;
             End;
           End;
@@ -1403,7 +1403,7 @@ Finish:
       If (AutoStart <> -1) And Not Merge Then Begin
         NXTLINE := SP_FindLine(AutoStart, False);
         Error.ReturnType := SP_JUMP;
-        SP_PreParse(True, Error);
+        SP_PreParse(True, True, Error);
         FileID := -1;
       End;
       If Not Merge Then Begin

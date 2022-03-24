@@ -418,7 +418,7 @@ Begin
       {$ENDIF}
 
       DstPtr := Dest;
-      If (sPtr^.SpriteCount > 0) or (sPtr^.Component.Count > 0) Then Begin
+      If (sPtr^.SpriteCount > 0) or (sPtr^.Component.ControlCount > 0) Then Begin
         If sPtr^.ID <> LastWindowID Then Begin
           tw := sPtr^.Width * sPtr^.Height;
           If Length(SP_BackBuffer32) <> tw Then
@@ -457,7 +457,7 @@ Begin
         // Render any controls the window may have attached
 
         If sPtr^.ID <> LastWindowID Then
-          If sPtr^.Component.Count > 0 Then
+          If sPtr^.Component.ControlCount > 0 Then
             sPtr^.Component.Render(pByte(srcPtr), sPtr^.Width, sPtr^.Height);
 
         Inc(pByte(SrcPtr), ((by1 - sPtr^.Top) * sPtr^.Stride));

@@ -68,7 +68,7 @@ Function  ControlsAreInUse: Boolean;
 Function  ControlKeyEvent(aStr: aString; Key: Integer; Down, IsKey: Boolean): Boolean;
 
 Function  WindowAtPoint(Var x, y, ID: Integer): Pointer;
-Function  ControlAtPoint(Window: Pointer; Var x, y: Integer): Pointer;
+Function  ControlAtPoint(Window: Pointer; Var x, y: Integer): pSP_BaseComponent;
 
 Procedure DoTimerEvents;
 Function  AddTimer(Sender: TObject; Interval: Integer; ObjProc: SP_TimerProc; DoNow: Boolean): pSP_TimerEvent;
@@ -117,7 +117,7 @@ Var
   TimerList: Array of SP_TimerEvent;
   cKeyRepeat: Integer;
   cLastKey, cLastKeyChar: Byte;
-  ControlCount: Integer;
+  GlobalControlCount: Integer;
   OverrideControls: Array of SP_BaseComponent;
   cKEYSTATE: Array[0..255] of Byte;
 
@@ -132,6 +132,9 @@ Procedure DoTimerEvents;
 Var
   i: Integer;
 Begin
+
+  TimerSection.Enter;
+
   i := 0;
   While i < Length(TimerList) Do Begin
     With TimerList[i] Do Begin
@@ -142,6 +145,9 @@ Begin
     End;
     Inc(i);
   End;
+
+  TimerSection.Leave;
+
 End;
 
 Function AddTimer(Sender: TObject; Interval: Integer; ObjProc: SP_TimerProc; DoNow: Boolean): pSP_TimerEvent;
@@ -262,7 +268,7 @@ End;
 Function ControlsAreInUse: Boolean;
 Begin
 
-  Result := ControlCount > 0;
+  Result := GlobalControlCount > 0;
 
 End;
 
@@ -448,24 +454,24 @@ Begin
 
 End;
 
-Function ControlAtPoint(Window: Pointer; Var x, y: Integer): Pointer;
+Function ControlAtPoint(Window: Pointer; Var x, y: Integer): pSP_BaseComponent;
 Var
-  cp: SP_BaseComponent;
+  cp: pSP_BaseComponent;
   Idx, lt, tp: Integer;
 
-  Function CheckChildren(c: SP_BaseComponent; Var x, y: Integer): Pointer;
+  Function CheckChildren(c: pSP_BaseComponent; Var x, y: Integer): pSP_BaseComponent;
   Var
     i, l, t: Integer;
-    ct: SP_BaseComponent;
+    ct: pSP_BaseComponent;
   Begin
     i := 0;
     Result := c;
-    While i < c.Count Do Begin
-      ct := c.Components(i);
+    While i < c^.ControlCount Do Begin
+      ct := @c^.fComponentList[i];
       If Assigned(ct) then Begin
-        l := ct.Left;
-        t := ct.Top;
-        If PtInRect(Rect(l, t, l+ct.width, t+ct.height), Point(x, y)) And ct.Visible Then Begin
+        l := ct^.Left;
+        t := ct^.Top;
+        If PtInRect(Rect(l, t, l+ct^.width, t+ct^.height), Point(x, y)) And ct^.Visible Then Begin
           Dec(x, l); Dec(y, t);
           Result := CheckChildren(ct, x, y);
           Exit;
@@ -479,14 +485,14 @@ Var
 Begin
 
   With pSP_Window_Info(Window)^ Do
-    If Component.Count > 0 Then Begin
+    If Component.ControlCount > 0 Then Begin
       Idx := 0;
-      While Idx < Component.Count Do Begin
-        cp := Component.Components(Idx);
+      While Idx < Component.ControlCount Do Begin
+        cp := @Component.fComponentList[Idx];
         If Assigned(cp) Then Begin
-          lt := cp.Left;
-          tp := cp.Top;
-          If PtInRect(Rect(Lt, Tp, lt+cp.width, tp+cp.height), Point(x, y)) And cp.Visible Then Begin
+          lt := cp^.Left;
+          tp := cp^.Top;
+          If PtInRect(Rect(Lt, Tp, lt+cp^.width, tp+cp^.height), Point(x, y)) And cp^.Visible Then Begin
             Dec(x, lt); Dec(y, tp);
             Result := CheckChildren(cp, x, y);
             Exit;
@@ -508,7 +514,7 @@ Initialization
 
   ControlSection := TCriticalSection.Create;
   TimerSection := TCriticalSection.Create;
-  ControlCount := 0;
+  GlobalControlCount := 0;
 
 Finalization
 

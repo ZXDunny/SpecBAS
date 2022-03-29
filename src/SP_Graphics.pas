@@ -7012,6 +7012,10 @@ Begin
         c1^ := T_PAPER And $FF
       Else
         c1^ := T_INK And $FF;
+   12: // Add - limited
+      c1^ := Min(c1^ + c2^, 255);
+   13: // Subtract - limited
+      c1^ := Max(c1^ - c2^, 0);
   End;
 
 End;
@@ -7045,6 +7049,10 @@ Begin
         c1^ := T_PAPER
       Else
         c1^ := T_INK;
+   12: // Add - limited
+      c1^ := Min(c1^ + c2^, $FFFFFFFF);
+   13: // Subtract - limited
+      c1^ := Max(c1^ - c2^, 0);
   End;
 
 End;
@@ -7078,6 +7086,10 @@ Begin
         c1^ := T_PAPER And $FF
       Else
         c1^ := T_INK And $FF;
+   12: // Add - limited
+      c1^ := Min(c1^ + c2, 255);
+   13: // Subtract - limited
+      c1^ := Max(c1^ - c2, 0);
   End;
 
 End;

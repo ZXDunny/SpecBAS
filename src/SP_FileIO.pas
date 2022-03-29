@@ -41,6 +41,7 @@ Type
 Procedure SP_FindAll(Path: aString; var List: TAnsiStringList; Var Sizes: TAnsiStringList);
 Function  WildComp(const mask: aString; const target: aString): Boolean;
 
+Function  SP_FilterMatch(Filename, Filter: aString): Boolean;
 Function  SP_ConvertFilenameToHost(const Filename: aString; var Error: TSP_ErrorCode): aString;
 Function  SP_ConvertHostFilename(const Filename: aString; Var Error: TSP_ErrorCode): aString;
 Function  SP_FileOpen(Filename: aString; Create: Boolean; Var Error: TSP_ErrorCode): Integer;
@@ -1073,6 +1074,72 @@ Begin
     INCLUDEFROM := -1;
 
   End;
+
+End;
+
+Function SP_FilterMatch(Filename, Filter: aString): Boolean;
+var
+  b: Boolean;
+  fDirectory, t, s2, FilterOut, Buffer: aString;
+  MaxContentLen, ps, ps2, i, j: Integer;
+  Error: TSP_ErrorCode;
+  filterlist: TAnsiStringlist;
+
+  Function IsMatch(fn, fl: aString): Boolean;
+  var
+    f: Integer;
+  Begin
+    Result := False;
+    If Fl[1] = #0 Then // Mask
+      Result := WildComp(Copy(Fl, 2), Fn)
+    Else
+      If Fl[1] = #1 Then Begin // File content
+        If Not b Then Begin
+          f := SP_FileOpen(fDirectory + Fn, False, Error);
+          SP_FileRead(f, @Buffer[1], MaxContentLen, Error);
+          SP_FileClose(f, Error);
+          b := True;
+        End;
+        t := Copy(Fl, 6);
+        Result := Copy(Buffer, pLongWord(@Fl[2])^, Length(t)) = t;
+      End;
+  End;
+
+Begin
+
+  Result := False;
+  If Filter <> '' Then Begin
+    b := False;
+    fDirectory := SP_ExtractFileDir(Filename);
+    FilterList := TStringlist.Create;
+    Repeat
+      ps := Pos(';', Filter);
+      If ps = 0 Then ps := Length(Filter) + 2;
+      If Filter[1] = '0' Then // File mask
+        FilterOut := #0 + Copy(Filter, 2, ps - 2)
+      Else
+        If Filter[1] = '1' Then Begin // File contents
+          s2 := Copy(Filter, 2, ps -2);
+          ps2 := Pos(':', s2);
+          If ps2 = 0 Then
+            Exit
+          Else Begin
+            i := StringToLong(Copy(s2, 1, ps2 - 1));
+            s2 := Copy(s2, ps2 + 1);
+            FilterOut := #1 + LongwordToString(i) + s2;
+            MaxContentLen := SP_Max(i + Length(s2), MaxContentLen);
+          End;
+        End;
+      Filter := Copy(Filter, ps + 1);
+      FilterList.Add(FilterOut);
+    Until Filter = '';
+    For j := 0 To FilterList.Count -1 Do Begin
+      Result := IsMatch(FileName, FilterList[j]);
+      If Result Then Break;
+    End;
+    FilterList.Free;
+  End;
+
 
 End;
 

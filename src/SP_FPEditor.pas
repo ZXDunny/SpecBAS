@@ -179,6 +179,7 @@ Procedure SP_LaunchEvent(Event: pSP_EditorEvent);
 Procedure SP_CheckEvents;
 Procedure SP_SelectWord;
 Function  SP_PtInSelection(Sel: SP_SelectionInfo; p: TPoint): Boolean;
+Procedure SP_PasteSelection;
 Procedure SP_FPClearSelection(Var Sel: SP_SelectionInfo);
 Procedure SP_FPDeleteSelection(Var Sel: SP_SelectionInfo);
 Procedure SP_FPEditorPerformEdit(Key: pSP_KeyInfo);
@@ -891,7 +892,7 @@ Begin
 
   Sp := (Win^.Width - ((FPFw * 4)) - FPFh *2) - FPFw;
   If FPFw * Length(Title) > Sp Then
-    Title := Copy(Title, 1, Sp Div FPFw);
+    Title := SP_CopyClrs(Title, 1, Sp Div FPFw);
 
   If Focused Then T_INK := 0;
   SP_DrawRectangle(0, 0, Win^.Width -1, Win^.Height -1);
@@ -6634,7 +6635,7 @@ End;
 
 Procedure SP_DWPerformEdit(Key: pSP_KeyInfo);
 Var
-  Idx, Cnt, LineNum, GfxMode, c: Integer;
+  Idx, LineNum, GfxMode, c: Integer;
   Sel: SP_SelectionInfo;
   Error: TSP_ErrorCode;
   SB: pSP_ScrollBar;

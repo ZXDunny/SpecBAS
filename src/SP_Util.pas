@@ -58,6 +58,7 @@ Procedure WriteLinuxFile(Filename, Value: aString);
 Function  GetCRC32FromString(Str: aString): LongWord;
 Function  SP_Copy(Const Src: aString; Start, Len: Integer): aString; overload; inline;
 Function  SP_Copy(Const Src: aString; Start: Integer): aString; overload; inline;
+Function  SP_CopyClrs(Const Src: aString; Start, Len: Integer): aString;
 Function  StringCopy(Str: paString; Start, Len: Integer): aString; inline;
 Function  StringFromPtr(Ptr: pByte; Len: Integer): aString; inline;
 Function  StringFromPtrB(Ptr: pByte; Len: Integer): aString; inline;
@@ -320,6 +321,49 @@ End;
 Function  StrPosPtr(Const Str: paString; Position: Integer): Pointer; inline;
 Begin
   Result := pByte(pNativeUInt(Str)^) + Position -1;
+End;
+
+Function SP_CopyClrs(Const Src: aString; Start, Len: Integer): aString;
+Var
+  s: aString;
+  Ink, Paper, Italic, Bold, i, l, p: Integer;
+Begin
+  Ink := -1; Paper := -1; Italic := -1; Bold := -1;
+  i := 1; p := 1;
+  l := Length(Src);
+  While (p < Start) and (i <= l) Do Begin
+    Case Src[i] of
+      #5:  Begin Inc(i, 2); Inc(p); End;
+      #16: Begin Ink := pLongWord(@Src[i+1])^; Inc(i, 6); End;
+      #17: Begin Paper := pLongWord(@Src[i+1])^; Inc(i, 6); End;
+      #26: Begin Italic := pLongWord(@Src[i+1])^; Inc(i, 6); End;
+      #27: Begin Bold := pLongWord(@Src[i+1])^; Inc(i, 6); End;
+    Else
+      Inc(i);
+      Inc(p);
+    End;
+  End;
+  if i <= l Then Begin
+    While (Len >= 0) And (i < l) Do Begin
+      Case Src[i] of
+        #5: Begin Result := Result + Copy(Src, i, 2); Inc(i, 2); Dec(Len); End;
+       #16: Begin Result := Result + Copy(Src, i, 6); Inc(i, 6); End;
+       #17: Begin Result := Result + Copy(Src, i, 6); Inc(i, 6); End;
+       #26: Begin Result := Result + Copy(Src, i, 6); Inc(i, 6); End;
+       #27: Begin Result := Result + Copy(Src, i, 6); Inc(i, 6); End;
+      Else
+        Result := Result + Src[i];
+        Inc(i);
+        Dec(Len);
+      End;
+    End;
+    If Ink >= 0 Then s := #16 + LongWordToString(Ink) Else s := '';
+    If Paper >= 0 Then s := s + #17 + LongWordToString(Paper);
+    If Italic >= 0 Then s := s + #26 + LongWordToString(Italic);
+    If Bold >= 0 Then s := s + #27 + LongWordToString(Bold);
+    Result := s + Result;
+  End Else
+    Result := '';
 End;
 
 Function SP_Copy(Const Src: aString; Start, Len: Integer): aString; overload; inline;

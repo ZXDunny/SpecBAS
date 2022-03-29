@@ -24,10 +24,10 @@ unit MainForm;
 interface
 
 uses
-  System.Types, SHFolder, Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math,
+  System.Types, ShellAPI, SHFolder, Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math,
   Dialogs, System.SyncObjs, SP_SysVars, SP_Graphics, SP_Graphics32, SP_BankManager, SP_Util, SP_Main, SP_FileIO,
   ExtCtrls, SP_Input, MMSystem, SP_Errors, SP_Sound, Bass, SP_Tokenise, SP_Menu, PNGImage,
-  GIFImg{$IFDEF OPENGL}, dglOpenGL{$ENDIF}, SP_Components, SP_BaseComponentUnit;
+  GIFImg{$IFDEF OPENGL}, dglOpenGL{$ENDIF}, SP_Components, SP_BaseComponentUnit, Clipbrd;
 
 Const
 
@@ -61,7 +61,8 @@ type
     procedure WMMenuChar(var MessageRec: TWMMenuChar); message WM_MENUCHAR;
   public
     { Public declarations }
-    Function GetCharFromVirtualKey(Var Key: Word): astring;
+    Function  GetCharFromVirtualKey(Var Key: Word): astring;
+    procedure DropFiles(var msg: TMessage ); message WM_DROPFILES;
   end;
 
   TSpecBAS_Thread = Class(TThread)
@@ -359,8 +360,10 @@ Begin
         glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, W, H, GL_BGRA, GL_UNSIGNED_BYTE, @DispArray[X * 4 + ScaledWidth * 4 * Y]);
       End;
     End Else Begin
-      glPixelStorei(GL_UNPACK_ROW_LENGTH, DISPLAYWIDTH);
-      glTexSubImage2D(GL_TEXTURE_2D, 0, GLX, GLY, GLW, GLH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLX * 4 + DISPLAYWIDTH * 4 * GLY]);
+      if (GLH > 0) And (GLW > 0) Then Begin
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, DISPLAYWIDTH);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, GLX, GLY, GLW, GLH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLX * 4 + DISPLAYWIDTH * 4 * GLY]);
+      End;
       If (GLMW > 0) And (GLMH > 0) And MOUSEMOVED Then
         glTexSubImage2D(GL_TEXTURE_2D, 0, GLMX, GLMY, GLMW, GLMH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLMX * 4 + DISPLAYWIDTH * 4 * GLMY]);
     End;
@@ -634,7 +637,6 @@ begin
     // *** TO DO make windowmenu appear when right-clicking if not visible ***
 
     Handled := False;
-    DisplaySection.Enter;
     CloseTipWindow;
 
     If ForceCapture Then Begin
@@ -663,8 +665,6 @@ begin
         End;
       End;
     End;
-
-    DisplaySection.Leave;
 
     // Finally, pass the mouse event to the interpreter
 
@@ -728,37 +728,32 @@ begin
 
       // Now check for controls under the mouse
 
-      If DisplaySection.TryEnter Then Begin
-        Handled := False;
+      Handled := False;
 
-        tX := X; tY := Y;
-        If TipWindowID <> -1 Then CheckForTip(tx, ty);
-        Win := WindowAtPoint(tX, tY, ID);
+      tX := X; tY := Y;
+      If TipWindowID <> -1 Then CheckForTip(tx, ty);
+      Win := WindowAtPoint(tX, tY, ID);
+      If Assigned(Win) Then Begin
+        Win := ControlAtPoint(Win, tX, tY);
+        If Assigned(Win) And (MouseControl <> pSP_BaseComponent(Win)^) Then
+          If Assigned(MouseControl) Then
+            MouseControl.MouseExit;
+      End;
+      If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
+        p := CaptureControl.ScreenToClient(Point(x, y));
+        CaptureControl.PreMouseMove(p.x, p.y, Btn);
+      End Else Begin
         If Assigned(Win) Then Begin
-          Win := ControlAtPoint(Win, tX, tY);
-          If Assigned(Win) And (MouseControl <> pSP_BaseComponent(Win)^) Then
-            If Assigned(MouseControl) Then
-              MouseControl.MouseExit;
-        End;
-        If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
-          p := CaptureControl.ScreenToClient(Point(x, y));
-          CaptureControl.PreMouseMove(p.x, p.y, Btn);
-        End Else Begin
-          If Assigned(Win) Then Begin
-            If MouseControl <> pSP_BaseComponent(Win)^ Then Begin
-              MouseControl := pSP_BaseComponent(Win)^;
-              p := MouseControl.ScreenToClient(Point(tX, tY));
-              MouseControl.MouseEnter(p.X, p.Y);
-            End;
-            pSP_BaseComponent(Win)^.PreMouseMove(tX, tY, Btn);
-            Handled := True;
-          End Else
-            If Assigned(MouseControl) Then
-              MouseControl.MouseExit;
-        End;
-
-        DisplaySection.Leave;
-
+          If MouseControl <> pSP_BaseComponent(Win)^ Then Begin
+            MouseControl := pSP_BaseComponent(Win)^;
+            p := MouseControl.ScreenToClient(Point(tX, tY));
+            MouseControl.MouseEnter(p.X, p.Y);
+          End;
+          pSP_BaseComponent(Win)^.PreMouseMove(tX, tY, Btn);
+          Handled := True;
+        End Else
+          If Assigned(MouseControl) Then
+            MouseControl.MouseExit;
       End;
 
     End;
@@ -811,8 +806,6 @@ begin
 
     // Now check for controls under the mouse
 
-    DisplaySection.Enter;
-
     Handled := False;
     If Assigned(CaptureControl) Then Begin
       p := CaptureControl.ScreenToClient(Point(x, y));
@@ -830,8 +823,6 @@ begin
         End;
       End;
     End;
-
-    DisplaySection.Leave;
 
     // Finally, pass the mouse event to the interpreter
 
@@ -870,6 +861,8 @@ Var
   idx: Integer;
   p: TPoint;
 begin
+
+  DragAcceptFiles(Handle, True);
 
   INSTARTUP := True;
   DisplaySection.Enter;
@@ -1656,6 +1649,40 @@ Begin
   End;
 }
 End;
+
+procedure TMain.DropFiles(var msg: TMessage);
+var
+  i, count, j: integer;
+  dropFileName: array [0..511] of Char;
+  MAXFILENAME: integer;
+  sl: TStringlist;
+  paste, s: aString;
+begin
+  MAXFILENAME := 511;
+  count := DragQueryFile(msg.WParam, $FFFFFFFF, dropFileName, MAXFILENAME);
+  for i := 0 to count - 1 do
+  begin
+    DragQueryFile(msg.WParam, i, dropFileName, MAXFILENAME);
+    sl := TStringlist.Create;
+    sl.LoadFromFile(aString(dropFilename));
+    Paste := '';
+    If sl.Count > 0 Then Begin
+      if sl[0] = 'ZXASCII' Then Begin
+        for j := 0 To sl.Count -1 Do Begin
+          s := aString(sl[j]);
+          If (Copy(s, 1, 7) <> 'ZXASCII') and (Copy(s, 1, 4) <> 'AUTO') and (Copy(s, 1, 4) <> 'PROG') and (Copy(s, 1, 7) <> 'CHANGED') Then
+            paste := paste + s + #13#10;
+        End;
+      End;
+      Clipboard.AsText := String(paste);
+      SP_SwitchFocus(FPWindowID);
+      SP_PasteSelection;
+    End;
+    sl.Free;
+  end;
+  DragFinish(msg.WParam);
+end;
+
 
 Initialization
 

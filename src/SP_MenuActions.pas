@@ -77,7 +77,7 @@ Uses SP_BankManager, SP_BankFiling, SP_Errors, SP_Graphics, SP_FileIO, SP_Input,
 
 Var
 
-  SP_FindNextItem, SP_SwitchMenuItem, SP_DebugPanelItem, SP_FullScreenMenuItem: SP_MenuItem;
+  SP_FindNextItem, SP_SwitchMenuItem, SP_DebugPanelItem, SP_FullScreenMenuItem, SP_GotoErrorItem: SP_MenuItem;
 
 Procedure SP_CreateEditorMenu;
 Var
@@ -170,7 +170,8 @@ Begin
   FPEditMenu.AddItem(SP_FindNextItem);
   FPEditMenu.AddItem(CreateItem('&Markers', True, True, False, False, '', FPMarkerMenu, Nil));
   FPEditMenu.AddItem(CreateItem('-', True, True, False, False, '', Nil, Nil));
-  FPEditMenu.AddItem(CreateItem('GO TO last error', True, True, False, False, 'K_CTRL,K_SHIFT,K_G', Nil, SP_MenuActionProcs.FPMenu_GOTOError));
+  SP_GotoErrorItem := CreateItem('GO TO last error', True, True, False, False, 'K_CTRL,K_SHIFT,K_G', Nil, SP_MenuActionProcs.FPMenu_GOTOError);
+  FPEditMenu.AddItem(SP_GotoErrorItem);
   FPEditMenu.AddItem(CreateItem('&GO TO Line...', True, True, False, False, 'K_CTRL,K_G', Nil, SP_MenuActionProcs.FPMenu_GOTOLine));
   FPEditMenu.OnPopUp := SP_MenuActionProcs.FPMenu_Edit_PopUp;
 
@@ -301,6 +302,7 @@ Begin
     End Else
       Caption := 'Find ne&xt';
   End;
+  SP_GotoErrorItem.Enabled := LASTERRORLINE >= 0;
 End;
 
 Class Procedure SP_MenuActionProcs.FPMenu_NEW(Sender: SP_BaseComponent);

@@ -166,6 +166,8 @@ Begin
   AUTOSAVE := aSave;
   MOUSEVISIBLE := True;
   INSTARTUP := False;
+  LASTERRORLINE := -1;
+  LASTERRORSTATEMENT := -1;
 
   SP_FPEditorLoop;
   SP_SaveRecentFiles;

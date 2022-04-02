@@ -18,8 +18,7 @@
 program SpecBAS;
 uses
   Forms,
-  MainForm in 'MainForm.pas' {Main},
-  SP_ToolTipWindow in 'SP_ToolTipWindow.pas';
+  MainForm in 'MainForm.pas' {Main};
 
 {$R *.res}
 begin

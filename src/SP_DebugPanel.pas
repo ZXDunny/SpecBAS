@@ -18,6 +18,7 @@ Type
     Class Procedure ButtonClick(Sender: SP_BaseComponent);
     Class Procedure SelectItem(Sender: SP_BaseComponent; Index: Integer);
     Class Procedure SetFocus(Sender: SP_BaseComponent; WillFocus: Boolean);
+    Class Procedure PaintGrabber;
 
   End;
 
@@ -109,7 +110,8 @@ Begin
       SP_GetWindowDetails(FPWindowID, Win, Error);
       FPDebugCombo.SetBounds(Win^.Width - BSize - FPDebugPanelWidth, FPClientTop + BSize, Trunc(FPDebugPanelWidth * EDFONTSCALEX), FH);
       FPDebugPanel.SetBounds(FPDebugCombo.Left, FPDebugPanel.Top, FPDebugPanelWidth, FPDebugPanel.Height);
-      FPSizeGrabber.SetBounds(FPDebugCombo.Left - BSize, FPDebugCombo.Top, BSize, FPDebugPanel.Height + BSize + FPDebugCombo.Height);
+      FPSizeGrabber.SetBounds(FPDebugCombo.Left - BSize, FPDebugCombo.Top, BSize, FPPaperHeight);
+
       SP_UpdateAfterDebug;
       DisplaySection.Leave;
     End;
@@ -174,7 +176,7 @@ Begin
     FPDebugBPDel.OnClick := SP_DebugPanelActionProcs.ButtonClick;
     FPDebugBPAdd := SP_Button.Create(Win^.Component);
     FPDebugBPAdd.OnClick := SP_DebugPanelActionProcs.ButtonClick;
-    FPSizeGrabber.SetBounds(Left - BSize, Top, BSize, FPDebugPanel.Height + BSize + Height);
+    FPSizeGrabber.SetBounds(Left - BSize, Top, BSize, FPPaperHeight);
     FPSizeGRabber.Border := False;
     FPSizeGrabber.Caption := '';
     FPSizeGrabber.Erase := True;
@@ -183,6 +185,8 @@ Begin
     FPSizeGrabber.OnMouseMove := SP_MenuActionProcs.GrabberMouseMove;
     FPSizeGrabber.OnMouseUp := SP_MenuActionProcs.GrabberMouseUp;
     FPSizeGrabber.OnFocus := SP_DebugPanelActionProcs.SetFocus;
+    FPSizeGrabber.OnPaintAfter := SP_DebugPanelActionProcs.PaintGrabber;
+    FPSizeGrabber.Paint;
   End;
   FocusedControl := Nil;
 
@@ -789,6 +793,20 @@ Begin
       Begin
       End;
   End;
+
+End;
+
+Class Procedure SP_DebugPanelActionProcs.PaintGrabber;
+var
+  i, y, x: Integer;
+Begin
+
+  With FPSizeGrabber do Begin
+    x := (Width Div 2) -2;
+    y := (Height Div 2) - 5;
+    for i := 0 to 2 do
+      FillRect(x, y+(i * 4), x + 2, y+2+(i*4), fDisabledFontClr);
+  end;
 
 End;
 

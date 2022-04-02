@@ -5244,6 +5244,8 @@ Begin
         Tokens := CreateToken(SP_VALUE, tPos, SizeOf(aFloat)) + aFloatToString(SP_StackPtr^.Val);
       SP_STRING:
         Tokens := CreateToken(SP_STRING, tPos, Length(SP_StackPtr^.Str)) + SP_StackPtr^.Str;
+    Else
+      Error.Code := SP_ERR_SYNTAX_ERROR;
     End;
     Dec(SP_StackPtr);
   End;

@@ -9233,7 +9233,12 @@ Begin
 
   SetLength(Splitters, SplitCnt);
   For Idx := 1 To SplitCnt Do Begin
-    Splitters[Idx -1] := SP_StackPtr^.Str;
+    If SP_StackPtr^.Str <> '' Then
+      Splitters[Idx -1] := SP_StackPtr^.Str
+    Else Begin
+      Info^.Error^.Code := SP_ERR_INVALID_SEPARATOR;
+      Exit;
+    End;
     Dec(SP_StackPtr);
   End;
 

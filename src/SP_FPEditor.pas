@@ -1183,7 +1183,6 @@ Procedure SP_FPNewProgram;
 Var
   Error: TSP_ErrorCode;
 Begin
-
   SP_ClearListing;
   SP_AddLine('', '', '');
   SP_ClearBreakpoints;
@@ -1205,8 +1204,9 @@ Begin
   Listing.CompleteUndo;
   DWCommenceUndo;
   DWCompleteUndo;
+  LASTERRORLINE := -1;
+  LASTERRORSTATEMENT := -1;
   FILECHANGED := False;
-
 End;
 
 Function SP_WasPrevSoft(Idx: Integer): Boolean; Inline;
@@ -3230,6 +3230,7 @@ Begin
   T_OVER := 0;
 
   CURSORPOS := Min(Max(CURSORPOS, 1), Length(EDITLINE) +1);
+  DWSelP := Min(Max(DWSelP, 1), Length(EDITLINE) +1);
 
   Cp := CURSORPOS -1;
   CURSORX := DWTextLeft + ((Cp Mod DWTextWidth) * FPFw);

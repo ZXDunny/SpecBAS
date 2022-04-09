@@ -402,7 +402,7 @@ Begin
                 Matched := SP_Match(SubExpr, Text, 1, tIdx, SubMatch, Error);
                 If Not Matched Then tIdx := Idx Else SubExprs[Length(SubExprs)] := SubMatch;
               End;
-            Until Not Matched;
+            Until (Not Matched) or (tIdx > Length(Text));
           Inc(rIdx);
         End;
       '+': // Match at least one of the preceding item.
@@ -420,7 +420,7 @@ Begin
                 If Not Matched Then tIdx := Idx Else SubExprs[Length(SubExprs)] := SubMatch;
               End;
             If Matched Then Inc(Count);
-          Until Not Matched;
+          Until (Not Matched) or (tIdx > Length(Text));
           If Count = 0 Then Goto NextOption;
           Inc(rIdx);
         End;
@@ -833,7 +833,6 @@ Begin
                 Result := Result + TempStr;
                 GotField := False;
               End;
-              Result := Result + ']';
             End;
           End;
 

@@ -720,6 +720,7 @@ Procedure SP_Interpret_MULTIPLOT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PROJECT3D(Var Info: pSP_iInfo);
 Procedure SP_Interpret_RAINBOW(Var Info: pSP_iInfo);
 Procedure SP_Interpret_KEYBOARD(Var Info: pSP_iInfo);
+Procedure SP_Interpret_WIN_ORG_FLIP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_WIN_ORIGIN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_GFX_ORIGIN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_WIN_ORG_NO_EXT(Var Info: pSP_iInfo);
@@ -729,6 +730,7 @@ Procedure SP_Interpret_GFX_ORG_OFF(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CLIP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CLIP_OFF(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ORIGIN(Var Info: pSP_iInfo);
+Procedure SP_Interpret_ORIGIN_FLIP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ORG_OFF(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ORG_NO_EXT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_WIN_CLIP(Var Info: pSP_iInfo);
@@ -2613,7 +2615,7 @@ End;
 
 Procedure SP_Interpret_SP_CHAR_STR_MUL1(Var Info: pSP_iInfo);
 Var
-  Len, Idx, Lim: Integer;
+  Len, Idx, Lim: NativeUInt;
   PtrS, PtrD, Start: pByte;
 Begin
 
@@ -2623,7 +2625,7 @@ Begin
   Dec(SP_StackPtr);
   Len := Length(Str1);
 
-  If SP_StackPtr^.Val < 0 Then Begin
+  If (SP_StackPtr^.Val < 0) or (SP_StackPtr^.Val > MAXINT) Then Begin
     Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
     Exit;
   End Else
@@ -2656,43 +2658,41 @@ End;
 
 Procedure SP_Interpret_SP_CHAR_STR_MUL2(Var Info: pSP_iInfo);
 Var
-  Len, Idx, Lim: Integer;
+  Len, Idx, Lim: NativeUInt;
   PtrS, PtrD, Start: pByte;
 Begin
 
   // ... and the reverse - a$*2.
 
-  Lim := Round(SP_StackPtr^.Val);
-  Dec(SP_StackPtr);
+  if (SP_StackPtr^.Val < 0) or (SP_StackPtr^.Val > MAXINT) Then
+    Info^.Error.Code := SP_ERR_INTEGER_OUT_OF_RANGE
+  Else Begin
+    Lim := Round(SP_StackPtr^.Val);
+    Dec(SP_StackPtr);
 
-  If Lim < 0 Then Begin
-    Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-    Exit;
-  End Else Begin
     Len := Length(SP_StackPtr^.Str);
     If (Lim = 0) or (Len = 0) Then Begin
       SP_StackPtr^.Str := '';
       Exit;
     End;
+      Lim := Lim * Len;
+    SetLength(SP_StackPtr^.Str, Lim);
+    PtrS := pByte(pNativeUInt(@SP_StackPtr^.Str)^);
+    PtrD := PtrS;
+    If Len > 1 Then Begin
+      Inc(PtrD, Len);
+      Start := PtrS;
+      Idx := Len +1;
+      While Idx <= Lim Do Begin
+        PtrD^ := PtrS^;
+        Inc(PtrD);
+        Inc(PtrS);
+        Inc(Idx);
+        If Idx Mod Len = 1 Then PtrS := Start;
+      End;
+    End Else
+      FillMem(PtrD, Lim, PtrS^);
   End;
-
-  Lim := Lim * Len;
-  SetLength(SP_StackPtr^.Str, Lim);
-  PtrS := pByte(pNativeUInt(@SP_StackPtr^.Str)^);
-  PtrD := PtrS;
-  If Len > 1 Then Begin
-    Inc(PtrD, Len);
-    Start := PtrS;
-    Idx := Len +1;
-    While Idx <= Lim Do Begin
-      PtrD^ := PtrS^;
-      Inc(PtrD);
-      Inc(PtrS);
-      Inc(Idx);
-      If Idx Mod Len = 1 Then PtrS := Start;
-    End;
-  End Else
-    FillMem(PtrD, Lim, PtrS^);
 
 End;
 
@@ -5544,7 +5544,7 @@ Begin
 
   If SP_StackPtr^.Val >= 0 Then Begin
     Bt := Round(SP_StackPtr^.Val);
-    SP_StackPtr^.Val := ((Bt And $F0) Shl 4) + ((Bt Shr 4) And $0F);
+    SP_StackPtr^.Val := ((Bt And $0F) Shl 4) + ((Bt Shr 4) And $0F);
   End Else Begin
     Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
   End;
@@ -7202,7 +7202,10 @@ Begin
     If Val1 = 0 Then
       Str := '0'
     Else Begin
-      Str := '';
+      if Val1 < 0 Then
+        Str := '-'
+      else
+        Str := '';
       While Val1 > 0 Do Begin
         Str := aString('0123456789ABCDEF')[(Round(Val1) And $F) + 1] + Str;
         Val1 := Round(Val1) Shr 4;
@@ -7221,7 +7224,10 @@ Begin
     If Val1 = 0 Then
       Str := '0'
     Else Begin
-      Str := '';
+      if Val1 < 0 Then
+        Str := '-'
+      else
+        Str := '';
       While Val1 > 0 Do Begin
         Str := aString('01')[(Round(Val1) And 1) + 1] + Str;
         Val1 := Round(Val1) Shr 1;
@@ -21827,6 +21833,36 @@ Begin
 
 End;
 
+Procedure SP_Interpret_WIN_ORG_FLIP(Var Info: pSP_iInfo);
+Var
+  WinID: Integer;
+  Win: pSP_Window_Info;
+Begin
+  // set the flipped var for the specified window/gfx bank
+  WinID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  SP_GetWindowDetails(SCREENBANK, Win, Info^.Error^);
+  If Info^.Error^.Code = SP_ERR_OK Then Begin
+    Win^.Flip := True;
+    If WinID = SCREENBANK Then
+      WINFLIPPED := True;
+  End;
+
+End;
+
+Procedure SP_Interpret_ORIGIN_FLIP(Var Info: pSP_iInfo);
+Var
+  Win: pSP_Window_Info;
+Begin
+  // Set the flipped var for the current window
+  SP_GetWindowDetails(SCREENBANK, Win, Info^.Error^);
+  If Info^.Error^.Code = SP_ERR_OK Then Begin
+    Win^.Flip := True;
+    WINFLIPPED := True;
+  End;
+End;
+
 Procedure SP_Interpret_WINDOW_FLIP(Var Info: pSP_iInfo);
 Var
   WinID: Integer;
@@ -25602,6 +25638,8 @@ Initialization
   InterpretProcs[SP_KW_TRANSFORM2D] := @SP_Interpret_TRANSFORM2D;
   InterpretProcs[SP_KW_RAINBOW] := @SP_Interpret_RAINBOW;
   InterpretProcs[SP_KW_KEYBOARD] := @SP_Interpret_KEYBOARD;
+  InterpretProcs[SP_KW_WIN_ORG_FLIP] := @SP_Interpret_WIN_ORG_FLIP;
+  InterpretProcs[SP_KW_ORIGIN_FLIP] := @SP_Interpret_ORIGIN_FLIP;
   InterpretProcs[SP_KW_WIN_ORIGIN] := @SP_Interpret_WIN_ORIGIN;
   InterpretProcs[SP_KW_YIELD] := @SP_Interpret_YIELD;
   InterpretProcs[SP_KW_GFX_ORIGIN] := @SP_Interpret_GFX_ORIGIN;

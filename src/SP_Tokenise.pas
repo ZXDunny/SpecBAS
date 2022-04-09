@@ -711,10 +711,12 @@ Const
   SP_KW_PAL_EGA             = 4393;
   SP_KW_PAL_CGA             = 4394;
   SP_KW_WINDOW_ADDCTRL      = 4395;
+  SP_KW_ORIGIN_FLIP         = 4396;
+  SP_KW_WIN_ORG_FLIP        = 4397;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..344] of aString =
+  SP_Keyword_Names: Array[0..346] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -763,7 +765,7 @@ Const
      'MAT INTERP', 'FLIP GFXSTR', 'MIRROR GFXSTR', 'WINDOW FLIP', 'WINDOW MIRROR', 'PR ITALIC', 'PR BOLD',
      'SPRITE FRONT', 'SPRITE BACK', 'SPRITE FRONT ADD', 'SPRITE BACK DEC', 'CHANNEL RATE STRING', 'GFX SCALE XY',
      'GFX SCALE TO', 'SCREEN SAVE', 'GRAPHIC SAVE', 'WAIT KEY', 'WAIT KEY PRESS', 'PALETTE EGA', 'PALETTE CGA',
-     'WINDOW ADD CONTROL');
+     'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.

@@ -23,19 +23,22 @@ SP_MenuItem = Class
   fShortcut: Longword;
   Owner: SP_BaseComponent;
   IsWindowMenu: Boolean;
+  fGroupID: Integer;
 
   Procedure SetCaption(s: aString);
+  Procedure SetChecked(b: Boolean);
 
   Property Caption: aString read fCaption write SetCaption;
   Property OnClick: SP_MenuClickEvent read fOnClick write fOnClick;
   Property Enabled: Boolean read fEnabled write fEnabled;
   Property Visible: Boolean read fVisible write fVisible;
   Property Checkable: Boolean read fCheckable write fCheckable;
-  Property Checked: Boolean read fChecked write fChecked;
+  Property Checked: Boolean read fChecked write SetChecked;
   Property Selected: Boolean read fSelected write fSelected;
   Property Extents: TRect read fExtents write fExtents;
   Property SubMenu: SP_PopupMenu read fSubMenu write fSubMenu;
   Property Shortcut: Longword read fShortcut write fShortcut;
+  Property GroupID: Integer read fGroupID write fGroupID;
   Property Tag: Integer read fTag write fTag;
 
 End;
@@ -134,6 +137,30 @@ Begin
     Owner.Paint;
   End;
 
+End;
+
+Procedure SP_MenuItem.SetChecked(b: Boolean);
+Var
+  i, gi: Integer;
+Begin
+  // Handles group IDs. If checked and the group ID is > 0 then all other items WITH THAT GROUP ID will
+  // uncheck. You cannot uncheck a groupID'd item - you have to check another in the same group.
+  gi := fGroupID;
+  if (Not IsWindowMenu) and (gi > 0) Then Begin
+    if b And Assigned(Owner) Then Begin
+      fChecked := b;
+      With SP_PopUpMenu(Owner) Do Begin
+        for i := 0 To Count -1 Do
+          if MenuItems[i] <> Self Then
+            if (MenuItems[i].GroupID = gi) and MenuItems[i].fChecked Then Begin
+              MenuItems[i].fChecked := False;
+              If MenuItems[i].Enabled And Assigned(MenuItems[i].OnClick) Then
+                MenuItems[i].OnClick(SP_BaseComponent(MenuItems[i]));
+            End;
+      End;
+    End;
+  End Else
+    fChecked := b;
 End;
 
 Constructor SP_PopUpMenu.Create(Owner: SP_BaseComponent; ParentMenu: SP_BaseComponent);
@@ -279,8 +306,8 @@ Begin
 
   l := Left;
   t := Top;
-  w := mw + mx + iFW + (Ord(SubsPresent)*iFW);
-  h := y + 2;
+  w := mw + mx + iFW + (Ord(SubsPresent)*iFW) + Ord(fBorder);
+  h := y + 2 + Ord(fBorder);
 
   Win := GetWindowDetails;
   If l + w > Win^.Width - BSize Then l := Win^.Width - w - BSize;
@@ -300,13 +327,16 @@ Var
   MouseInSubMenu: Boolean;
   y, i, c, ic: Integer;
   mp, rp: TPoint;
+  cChar: aChar;
   s: aString;
   e: TRect;
 Begin
 
   FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
-  if fBorder Then
+  if fBorder Then Begin
     DrawRect(0, 0, fWidth -1, fHeight -1, fBorderClr);
+    DrawRect(0, 0, fWidth -2, fHeight -2, fBorderClr);
+  End;
 
   mp := Point(MOUSEX, MOUSEY);
   rp := ScreenToClient(mp);
@@ -323,7 +353,7 @@ Begin
         ic := fDisabledFontClr;
       End;
       If Selected Then Begin
-        e := Rect(2, Extents.Top, Width -3, Extents.Bottom +1);
+        e := Rect(2, Extents.Top, Width -4, Extents.Bottom +1);
         FillRect(e, c);
         MouseInSubMenu := Assigned(SubMenu) And SubMenu.Visible And PtInRect(Rect(0, 0, SubMenu.Width, SubMenu.Height), SubMenu.ScreenToClient(mp));
         If (Focused or PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp)) And Not MouseInSubMenu Then Begin
@@ -334,7 +364,10 @@ Begin
           DrawRect(e, c);
         End;
       End;
-      If Checked Then PRINT(5, Extents.Top +1, #246, ic, -1, iSX, iSY, False, False, False);
+      If Checked Then Begin
+        If fGroupID = 0 Then cChar := #246 else cChar := #244;
+        PRINT(5, Extents.Top +1, cChar, ic, -1, iSX, iSY, False, False, False);
+      End;
       If Caption <> '-' Then Begin
         PRINT(Extents.Left, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, fAltDown And fEnabled);
         If Shortcut <> 0 Then Begin

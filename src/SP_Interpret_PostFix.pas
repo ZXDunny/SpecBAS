@@ -8488,18 +8488,26 @@ Begin
 
   // Temporary INK assignment. Add a CHR$ 16, followed by a byte INK value
 
+  With SP_StackPtr^ Do Begin
 
-  Ink := Round(SP_StackPtr^.Val);
-  Dec(SP_StackPtr);
+    If (Val >= 0) and (Val <= $FFFFFFFF) Then Begin
 
-  If OUTSET Then
-    OUTBUFFER := OUTBUFFER + aChar(16) + LongWordToString(Ink)
-  Else
-    IF T_CENTRE Then
-      T_CENTRETEXT := T_CENTRETEXT + aChar(16) + LongWordToString(Ink)
-    Else Begin
-      T_INK := Ink;
-    End;
+      Ink := Round(SP_StackPtr^.Val);
+      Dec(SP_StackPtr);
+
+      If OUTSET Then
+        OUTBUFFER := OUTBUFFER + aChar(16) + LongWordToString(Ink)
+      Else
+        IF T_CENTRE Then
+          T_CENTRETEXT := T_CENTRETEXT + aChar(16) + LongWordToString(Ink)
+        Else Begin
+          T_INK := Ink;
+        End;
+    End Else
+      Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+
+  End;
+
 End;
 
 Procedure SP_Interpret_PR_PAPER(Var Info: pSP_iInfo);
@@ -8507,17 +8515,26 @@ Var
   Paper: Integer;
 Begin
 
-  Paper := Round(SP_StackPtr^.Val);
-  Dec(SP_StackPtr);
+  With SP_StackPtr^ Do Begin
 
-  If OUTSET Then
-    OUTBUFFER := OUTBUFFER + aChar(17) + LongWordToString(Paper)
-  Else
-    IF T_CENTRE Then
-      T_CENTRETEXT := T_CENTRETEXT + aChar(17) + LongWordToString(Paper)
-    Else Begin
-      T_PAPER := Paper;
-    End;
+    If (Val >= 0) and (Val <= $FFFFFFFF) Then Begin
+
+      Paper := Round(SP_StackPtr^.Val);
+      Dec(SP_StackPtr);
+
+      If OUTSET Then
+        OUTBUFFER := OUTBUFFER + aChar(17) + LongWordToString(Paper)
+      Else
+        IF T_CENTRE Then
+          T_CENTRETEXT := T_CENTRETEXT + aChar(17) + LongWordToString(Paper)
+        Else Begin
+          T_PAPER := Paper;
+        End;
+
+    End Else
+      Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+
+  End;
 
 End;
 

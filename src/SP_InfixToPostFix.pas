@@ -991,7 +991,7 @@ Begin
                 If StackPtr >= 0 Then
                   Stack[StackPtr] := SP_VALUE;
               End;
-            SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR:
+            SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR:
               Begin
                 Dec(StackPtr);
                 If (StackPtr >= 0) And (Stack[StackPtr] = SP_NUMVAR) Then
@@ -2328,7 +2328,7 @@ Begin
       If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ')') Then Begin
         IsArray := True;
         PosBeforeSlice := Length(Result);
-        If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR]) Then
+        If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR]) Then
           Result := Result + FnResult + CreateToken(SP_NUM_ARRAY_PTR, Position, SizeOf(LongWord)) + LongWordToString(0)
         Else
           Result := Result + FnResult + CreateToken(SP_ARRAY, Position, SizeOf(LongWord)) + LongWordToString(0);
@@ -2371,7 +2371,7 @@ Begin
           IsArray := True;
           PosBeforeSlice := Length(Result);
           If FirstRun Then Begin
-            If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR]) Then
+            If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR]) Then
               Result := Result + FnResult + CreateToken(SP_NUM_ARRAY_PTR, Position, SizeOf(LongWord)) + LongWordToString(NumIndices)
             Else
               Result := Result + FnResult + CreateToken(SP_ARRAY, Position, SizeOf(LongWord)) + LongWordToString(NumIndices);
@@ -2395,7 +2395,7 @@ Begin
           // or a close-bracket. First, we need to stack any array parameters we may have found.
           If NumIndices > 0 Then Begin
             If Not Preserve Then
-              If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR]) Then
+              If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR]) Then
                 Result := Result + FnResult + CreateToken(SP_NUM_ARRAY_PTR, Position, SizeOf(LongWord)) + LongWordToString(NumIndices)
               Else
                 Result := Result + CreateToken(SP_ARRAY, Position, SizeOf(LongWord)) + LongWordToString(NumIndices);
@@ -2782,7 +2782,7 @@ Begin
             Name := LowerNoSpaces(Copy(Tokens, Position, NameLen));
             Content := LongWordToString(Length(Name)) + Name;
             Inc(Position, NameLen);
-            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in ['(', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR]) Then Begin
+            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in ['(', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR]) Then Begin
               If Tokens[Position +1] = '(' Then
                 Content := LongWordToString(0) + Content;
               OpType := SP_NUMVAR
@@ -4891,7 +4891,7 @@ Begin
             SP_CHAR_NUM_DNE, SP_CHAR_STR_DNE, SP_CHAR_NUM_GTE, SP_CHAR_STR_GTE, SP_CHAR_NUM_GTR,
             SP_CHAR_STR_GTR, SP_CHAR_NUM_AND, SP_CHAR_STR_AND, SP_CHAR_MUL, SP_CHAR_DIV, SP_CHAR_INCVAR,
             SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR,
-            SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOT, SP_CHAR_EQV, SP_CHAR_IMP:
+            SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOT, SP_CHAR_NOTVAR, SP_CHAR_EQV, SP_CHAR_IMP:
               Begin
 
                 // Operators - basically, pop old operators off the stack until the priority of the current
@@ -6336,7 +6336,7 @@ Next_Assign:
       End Else
         RT := Error.ReturnType;
     RTs[Length(RTs) -1] := RT;
-    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in ['=', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_ORVAR, SP_CHAR_XORVAR]) Then Begin
+    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in ['=', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_XORVAR]) Then Begin
       EquateType := Tokens[Position +1];
       Done := True;
     End Else
@@ -6352,7 +6352,7 @@ Next_Assign:
 
   KeyWordID := SP_KW_LET;
 
-  If Not ((Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] in ['=', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_ORVAR, SP_CHAR_XORVAR])) Then Begin
+  If Not ((Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] in ['=', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_XORVAR])) Then Begin
     Error.Code := SP_ERR_MISSING_EQU;
     Exit;
   End Else
@@ -6374,6 +6374,7 @@ Next_Assign:
           SP_CHAR_MODVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_MOD + Copy(Tokens, Position, 999999);
           SP_CHAR_ANDVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '&' + Copy(Tokens, Position, 999999);
           SP_CHAR_ORVAR:  ArTokens := TempStr + aChar(SP_SYMBOL) + '|' + Copy(Tokens, Position, 999999);
+          SP_CHAR_NOTVAR:  ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_NOTVAR + Copy(Tokens, Position, 999999);
           SP_CHAR_XORVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_XOR + Copy(Tokens, Position, 999999);
         End;
         If ArTokens <> '' Then
@@ -6408,6 +6409,8 @@ Next_Assign:
                 pToken(@VarExpr[Idx][1])^.Token := SP_ANDVAR;
               SP_CHAR_ORVAR:
                 pToken(@VarExpr[Idx][1])^.Token := SP_ORVAR;
+              SP_CHAR_NOTVAR:
+                pToken(@VarExpr[Idx][1])^.Token := SP_NOTVAR;
               SP_CHAR_XORVAR:
                 pToken(@VarExpr[Idx][1])^.Token := SP_XORVAR;
             End;

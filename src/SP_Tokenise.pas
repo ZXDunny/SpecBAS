@@ -1170,7 +1170,8 @@ Const
   SP_NUMVARSQ               = 74;
   SP_BLOCK_OPT              = 75;
   SP_RESTORECOLOURS         = 76;
-  SP_IJMP                   = 77;
+  SP_NOTVAR                 = 77;
+  SP_IJMP                   = 78;
   SP_JUMP                   = 100;
   SP_RUN                    = 101;
   SP_EXIT                   = -1;
@@ -1229,6 +1230,7 @@ Const
   SP_CHAR_EQV               = #208;
   SP_CHAR_IMP               = #207;
   SP_CHAR_SEMICOLON         = #206;
+  SP_CHAR_NOTVAR            = #205;
 
   SP_CHAR_PLUS              = '+';
   SP_CHAR_MINUS             = '-';
@@ -1640,6 +1642,7 @@ Begin
                         '&': Result[Length(Result)] := SP_CHAR_ANDVAR;
                         '|': Result[Length(Result)] := SP_CHAR_ORVAR;
                         '~': Result[Length(Result)] := SP_CHAR_XORVAR;
+                        '!': Result[Length(Result)] := SP_CHAR_NOTVAR;
                       Else
                         If Line[Idx] > #127 Then
                           Result := Result + aChar(SP_LITERAL_SYMBOL) + Line[Idx]
@@ -2200,6 +2203,7 @@ Begin
             SP_CHAR_MODVAR: NewWord := '%=';
             SP_CHAR_ANDVAR: NewWord := '&=';
             SP_CHAR_ORVAR:  NewWord := '|=';
+            SP_CHAR_NOTVAR: NewWord := '!=';
             SP_CHAR_XORVAR: NewWord := '~=';
             SP_CHAR_NOT: NewWord := 'NOT ';
             SP_CHAR_EQV: NewWord := ' EQV ';

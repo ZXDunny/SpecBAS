@@ -869,6 +869,7 @@ Procedure SP_Interpret_SP_MODVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_ANDVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_XORVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_ORVAR(Var Info: pSP_iInfo);
+Procedure SP_Interpret_SP_NOTVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_INT_PLUS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_NUM_PLUS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_STR_PLUS(Var Info: pSP_iInfo);
@@ -927,6 +928,7 @@ Procedure SP_Interpret_SP_CHAR_MODVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_ANDVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_XORVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_ORVAR(Var Info: pSP_iInfo);
+Procedure SP_Interpret_SP_CHAR_NOTVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_RESTORECOLOURS(Var Info: pSP_iInfo);
 
 Var
@@ -2271,6 +2273,21 @@ Begin
 
 End;
 
+Procedure SP_Interpret_SP_NOTVAR(Var Info: pSP_iInfo);
+Begin
+
+  With Info^ Do Begin
+    If pLongWord(StrPtr)^ <> 0 Then
+      SP_NotNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
+    Else
+      SP_NotNumVar(pLongWord(StrPtr)^,
+                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
+    Dec(SP_StackPtr);
+  End;
+
+End;
+
 Procedure SP_Interpret_SP_XORVAR(Var Info: pSP_iInfo);
 Begin
 
@@ -3313,6 +3330,44 @@ Begin
         Idx := SP_OrNumVar(Ptr^, Str, n, Error^, Ptr);
       End Else Begin
         SP_OrNumVarIndex(Ptr^, n);
+        Dec(Idx);
+      End;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
+    End;
+
+  End;
+
+End;
+
+Procedure SP_Interpret_SP_CHAR_NOTVAR(Var Info: pSP_iInfo);
+Var
+  vl: NativeUInt;
+  Idx: Integer;
+  n: aFloat;
+Begin
+
+  n := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+
+  If SP_StackPtr^.OpType = SP_NUM_ARRAY_PTR Then Begin
+    vl := Round(SP_StackPtr^.Val);
+    if vl = 0 then
+      pSP_NumVarContent(vl)^.Value := 1
+    else
+      pSP_NumVarContent(vl)^.Value := 0;
+    SP_StackPtr^.OpType := SP_VALUE;
+    SP_StackPtr^.Val := pSP_NumVarContent(vl)^.Value;
+  End Else Begin
+
+    With Info^, SP_StackPtr^ Do Begin
+      Idx := Ptr^;
+      If Idx = 0 Then Begin
+        Idx := SP_NotNumVar(Ptr^, Str, n, Error^, Ptr);
+      End Else Begin
+        SP_NotNumVarIndex(Ptr^, n);
         Dec(Idx);
       End;
       If Idx >= 0 Then Begin
@@ -20182,6 +20237,12 @@ Begin
           Inc(StrPtr, Token^.TokenLen);
         End;
 
+      SP_NOTVAR:
+        Begin
+          nOutput := 'NOT VAR ['+StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)) + SizeOf(LongWord), Token^.TokenLen - SizeOf(LongWord))+']';
+          Inc(StrPtr, Token^.TokenLen);
+        End;
+
       SP_XORVAR:
         Begin
           nOutput := 'XOR VAR ['+StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)) + SizeOf(LongWord), Token^.TokenLen - SizeOf(LongWord))+']';
@@ -20691,6 +20752,10 @@ Begin
             SP_CHAR_ORVAR:
               Begin
                 nOutput := 'OPERATOR [Bitwise OR and Assign]';
+              End;
+            SP_CHAR_NOTVAR:
+              Begin
+                nOutput := 'OPERATOR [NOT and Assign]';
               End;
           Else
             nOutput := aString('SYMBOL [')+aChar(StrPtr^)+aString(']');
@@ -26094,6 +26159,7 @@ Initialization
   InterpretProcs[SP_MODVAR] := @SP_Interpret_SP_MODVAR;
   InterpretProcs[SP_ANDVAR] := @SP_Interpret_SP_ANDVAR;
   InterpretProcs[SP_ORVAR] := @SP_Interpret_SP_ORVAR;
+  InterpretProcs[SP_NOTVAR] := @SP_Interpret_SP_NOTVAR;
   InterpretProcs[SP_XORVAR] := @SP_Interpret_SP_XORVAR;
   InterpretProcs[SP_STRUCT_MEMBER_N] := @SP_Interpret_SP_STRUCT_MEMBER_N;
   InterpretProcs[SP_STRUCT_MEMBER_ASS] := @SP_Interpret_SP_STRUCT_MEMBER_ASS;
@@ -26183,6 +26249,7 @@ Initialization
   InterpretProcs[6000 + Ord(SP_CHAR_ANDVAR)] := @SP_Interpret_SP_CHAR_ANDVAR;
   InterpretProcs[6000 + Ord(SP_CHAR_XORVAR)] := @SP_Interpret_SP_CHAR_XORVAR;
   InterpretProcs[6000 + Ord(SP_CHAR_ORVAR)] := @SP_Interpret_SP_CHAR_ORVAR;
+  InterpretProcs[6000 + Ord(SP_CHAR_NOTVAR)] := @SP_Interpret_SP_CHAR_NOTVAR;
   InterpretProcs[6000 + Ord(SP_CHAR_NOT)] := @SP_Interpret_FN_NOT; // NOT is an operator of very low priority in Sinclair BASIC
 
   Il := 0;

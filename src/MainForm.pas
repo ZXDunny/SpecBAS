@@ -179,7 +179,7 @@ Begin
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
-  Priority := tpIdle;
+  Priority := tpNormal;
   StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
 
@@ -1083,6 +1083,7 @@ End;
 
 procedure TMain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 Var
+  k: Word;
   aStr: aString;
   kInfo: SP_KeyInfo;
 begin
@@ -1096,6 +1097,15 @@ begin
   kInfo.KeyCode := Key And $7F;
   kInfo.NextFrameTime := FRAMES;
 
+  If ControlsAreInUse Then Begin
+    DisplaySection.Enter;
+    If ControlKeyEvent(kInfo.KeyChar, kInfo.KeyCode, True, kInfo.IsKey) Then Begin
+      DisplaySection.Leave;
+      Exit;
+    End Else
+      DisplaySection.Leave;
+  End;
+
   If Key = $12 Then Begin // ALT went down
 
     AltDown := True;
@@ -1105,10 +1115,15 @@ begin
 
     If AltDown then Begin
 
-      If Key in [K_NUMPAD0..K_NUMPAD9] Then Begin
+      If Key in [K_NUMPAD0..K_NUMPAD9, K_0..K_9] Then Begin
+
+        if Key in [K_NUMPAD0..K_NUMPAD9] Then
+          k := Key - K_NUMPAD0
+        else
+          k := Key - K_0;
 
         IgnoreNextMenuChar := True;
-        AltChars := AltChars + IntToString(Key - K_NUMPAD0);
+        AltChars := AltChars + IntToString(k);
         If Length(AltChars) = 3 Then Begin
           kInfo.KeyCode := StringToInt(AltChars);
           kInfo.keyChar := aChar(kInfo.KeyCode);
@@ -1126,13 +1141,7 @@ begin
 
   End;
 
-  If ControlsAreInUse Then Begin
-    DisplaySection.Enter;
-    If Not ControlKeyEvent(kInfo.KeyChar, kInfo.KeyCode, True, kInfo.IsKey) Then
-      SP_AddKey(kInfo);
-    DisplaySection.Leave;
-  End Else
-    SP_AddKey(kInfo);
+  SP_AddKey(kInfo);
 
   Key := 0;
 

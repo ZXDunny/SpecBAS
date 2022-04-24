@@ -4676,7 +4676,7 @@ Begin
   // If false, we add the diversion to TOKENLEN and exit.
 
   Dec(SP_StackPtr);
-  If SP_StackPtr^.Val > 0 Then Begin
+  If SP_StackPtr^.Val <> 0 Then Begin
 
     // True, restore the size of the jump, and continue.
 
@@ -11436,8 +11436,6 @@ Begin
     CSCALEY := 1;
     SP_SetFPS(DEFAULTFPS);
     SP_Reset_Temp_Colours;
-    CPAPER := 8;
-    CINK := 0;
     If Filename <> 's:autosave' Then
       SP_CLS(CPAPER);
     If EDITORREADY Then Begin
@@ -14050,9 +14048,9 @@ Begin
   X1 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
-  SP_ConvertToOrigin_d(X1, Y1);
   X2 := X1 + W -1;
   Y2 := Y1 + H -1;
+  SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
   If WINFLIPPED Then Begin
     Y1 := (SCREENHEIGHT - 1) - Y1;
@@ -14177,9 +14175,9 @@ Begin
   X1 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
-  SP_ConvertToOrigin_d(X1, Y1);
   X2 := X1 + W -1;
   Y2 := Y1 + H -1;
+  SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
   If WINFLIPPED Then Begin
     Y1 := (SCREENHEIGHT - 1) - Y1;
@@ -20629,8 +20627,7 @@ Begin
                     nOutput := #13+aString(Statements[0]);
                     PosStr := '';
                     Statements.Delete(0);
-                  End Else
-                    nOutput := #13'Hidden code follows'#13;
+                  End;
                 End;
               End;
             '=':

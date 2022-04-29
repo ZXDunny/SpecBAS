@@ -8372,8 +8372,8 @@ Begin
   End;
 
   If PrItem <> '' Then Begin
-    If PrItem[Length(PrItem)] = #13 Then
-      AddReturn := False;
+    If AddReturn and (PRItem[Length(PRItem)] <> #13) Then
+      prItem := PrItem + #13;
 
     If Not T_CENTRE Then Begin
       If SCREENBPP = 8 Then Begin
@@ -8391,23 +8391,7 @@ Begin
     End Else Begin
       T_CENTRETEXT := T_CENTRETEXT + PrItem;
     End;
-    if AddReturn Then Begin
-      PRPOSX := 0;
-      PRPOSY := PRPOSY + FONTHEIGHT;
-    End;
-  End Else
-    If AddReturn Then Begin
-      If PRPOSY + FONTHEIGHT > SCREENHEIGHT Then
-        If Not SP_TestScroll(FONTHEIGHT, Info^.Error^) Then Begin
-          Info^.Error^.Code := SP_ERR_BREAK;
-          Exit;
-        End Else
-          Repeat
-            PRPOSY := PRPOSY - FONTHEIGHT;
-          Until PRPOSY + FONTHEIGHT < SCREENHEIGHT;
-      PRPOSX := 0;
-      PRPOSY := PRPOSY + FONTHEIGHT;
-    End;
+  End;
 
   If OUTSET Then SP_FlushOUTBuffer(Info);
 
@@ -8512,12 +8496,12 @@ Begin
       End;
       if AddReturn Then Begin
         PRPOSX := 0;
-        PRPOSY := PRPOSY + FONTHEIGHT;
+        PRPOSY := PRPOSY + Round(FONTHEIGHT * T_SCALEY);
       End;
   End Else
     If AddReturn Then Begin
       PRPOSX := 0;
-      PRPOSY := PRPOSY + FONTHEIGHT;
+      PRPOSY := PRPOSY + Round(FONTHEIGHT * T_SCALEY);
     End;
 
   T_OUTMODE := COUTMODE;

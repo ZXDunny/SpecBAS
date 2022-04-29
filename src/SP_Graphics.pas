@@ -1556,7 +1556,7 @@ Var
 Begin
 
   For Idx := Index To Index + High(Colours) Do
-    SP_SetWindowPalette(Idx, Colours[Idx].R, Colours[Idx].G, Colours[Idx].B);
+    SP_SetWindowPalette(Idx, Colours[Idx - Index].R, Colours[Idx - Index].G, Colours[Idx - Index].B);
 
   SP_NeedDisplayUpdate := True;
 
@@ -2848,9 +2848,9 @@ Var
 Begin
 
   If T_INVERSE = 0 Then
-    Ink := T_INK
+    Ink := T_INK and $FF
   Else
-    Ink := T_PAPER;
+    Ink := T_PAPER and $FF;
   xr := Round(X); yr := Round(Y);
   If (xr >= T_CLIPX1) And (xr < T_CLIPX2) And (yr >= T_CLIPY1) And (yr < T_CLIPY2) Then Begin
     Ptr := pByte(NativeUInt(SCREENPOINTER)+(LongWord(yr * SCREENSTRIDE) + LongWord(xr)));
@@ -2871,9 +2871,9 @@ Var
 Begin
 
   If T_INVERSE = 0 Then
-    Ink := T_INK
+    Ink := T_INK and $FF
   Else
-    Ink := T_PAPER;
+    Ink := T_PAPER and $FF;
   IF T_OVER = 0 Then
     Ptr^ := Ink
   Else

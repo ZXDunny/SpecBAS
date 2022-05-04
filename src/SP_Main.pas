@@ -374,30 +374,33 @@ Var
 Begin
 
   Tokens := @SP_Program[Line];
-  Idx := pByte(pNativeUInt(Tokens)^);
+  if Assigned(Tokens) Then Begin
+    Idx := pByte(pNativeUInt(Tokens)^);
 
-  If pByte(Idx)^ = SP_LINE_NUM Then
-    Inc(Idx, 1 + SizeOf(LongWord));
+    If pByte(Idx)^ = SP_LINE_NUM Then
+      Inc(Idx, 1 + SizeOf(LongWord));
 
-  If pByte(Idx)^ = SP_STATEMENTS Then
-    Inc(Idx);
+    If pByte(Idx)^ = SP_STATEMENTS Then
+      Inc(Idx);
 
-  NumStatements := pLongWord(Idx)^;
-  Inc(Idx, SizeOf(LongWord));
+    NumStatements := pLongWord(Idx)^;
+    Inc(Idx, SizeOf(LongWord));
 
-  If NumStatements >= 1 Then Begin
-    For Result := 1 To numStatements Do Begin
-      ofs1 := pLongWord(Idx)^;
-      If Result = numStatements Then
-        ofs2 := Length(Tokens^)
-      Else
-        ofs2 := pLongWord(LongWord(Idx) + SizeOf(LongWord))^;
-      If (LongWord(Offset) >= Ofs1) And (LongWord(Offset) < Ofs2) Then
-        Exit;
-      Inc(Idx, SizeOf(LongWord));
-    End;
+    If NumStatements >= 1 Then Begin
+      For Result := 1 To numStatements Do Begin
+        ofs1 := pLongWord(Idx)^;
+        If Result = numStatements Then
+          ofs2 := Length(Tokens^)
+        Else
+          ofs2 := pLongWord(LongWord(Idx) + SizeOf(LongWord))^;
+        If (LongWord(Offset) >= Ofs1) And (LongWord(Offset) < Ofs2) Then
+          Exit;
+        Inc(Idx, SizeOf(LongWord));
+      End;
+    End Else
+      Result := 1;
   End Else
-    Result := 1;
+    Result := -1;
 
 End;
 

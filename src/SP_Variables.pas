@@ -216,7 +216,7 @@ Function  SP_SliceString(const Str: aString; SliceFrom, SliceTo: Integer): aStri
 Procedure SP_SliceAssign(Var Dst: aString; const Src: aString; sFrom, sTo: Integer; Var Error: TSP_ErrorCode); inline;
 
 Procedure SP_RESTORE;
-Procedure SP_PreParse(ClearVars, Restore: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_PreParse(ClearVars, Restore: Boolean; Var Error: TSP_ErrorCode; Var CmdTokens: aString);
 Procedure SP_FixStatementList(Var Tokens: aString; Position, Displacement: Integer);
 Procedure SP_TestConsts(Var Tokens: aString; lIdx: Integer; Var Error: TSP_ErrorCode; Preserve: Boolean);
 Procedure SP_ClearVarIndices;
@@ -2207,7 +2207,6 @@ Begin
   If sFrom = -1 Then sliceFrom := 1 Else sliceFrom := sFrom;
   If sTo = -1 Then sliceTo := Length(Dst) Else sliceTo := sTo;
   If sliceFrom > Length(Dst) Then Begin
-    ERRStr := '';
     Error.Code := SP_ERR_SUBSCRIPT_WRONG;
     Exit;
   End;
@@ -2259,7 +2258,7 @@ Begin
 
 End;
 
-Procedure SP_PreParse(ClearVars, Restore: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_PreParse(ClearVars, Restore: Boolean; Var Error: TSP_ErrorCode; Var CmdTokens: aString);
 Type
   VarType = Packed Record
     ID: Byte;
@@ -2322,7 +2321,11 @@ Begin
 
   SP_CompileProgram;
 
-  Idx := -1;
+  if CmdTokens <> '' then
+    Idx := -2
+  else
+    Idx := -1;
+
   While True Do Begin
 
     NextLine:
@@ -2330,7 +2333,10 @@ Begin
     Inc(Idx);
     If Idx = SP_Program_Count Then Break;
 
-    Tokens := SP_Program[Idx];
+    if Idx = -1 then
+      Tokens := CmdTokens
+    else
+      Tokens := SP_Program[Idx];
 
     Changed := False;
     Idx3 := 1;
@@ -2626,11 +2632,19 @@ Begin
       End;
 
       If Changed Then Begin
-        SetLength(SP_Program[Idx], Length(Tokens));
-        CopyMem(@SP_Program[Idx][1], @Tokens[1], Length(Tokens));
+        if Idx = -1 then Begin
+          SetLength(CmdTokens, Length(Tokens));
+          CopyMem(@CmdTokens[1], @Tokens[1], Length(Tokens));
+        End Else Begin
+          SetLength(SP_Program[Idx], Length(Tokens));
+          CopyMem(@SP_Program[Idx][1], @Tokens[1], Length(Tokens));
+        End;
       End;
 
-      SP_TestConsts(SP_Program[Idx], Idx, Error, False);
+      If idx = -1 then
+        SP_TestConsts(CmdTokens, Idx, Error, False)
+      Else
+        SP_TestConsts(SP_Program[Idx], Idx, Error, False);
       If Error.Code <> SP_ERR_OK Then Error.Line := Idx;
 
     End;

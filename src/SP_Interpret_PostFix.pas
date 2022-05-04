@@ -8898,6 +8898,7 @@ Begin
   Dec(Sp1);
   Sp2 := Sp1;
   Dec(Sp2);
+  ERRStr := Sp2^.Str;
 
   With SP_StackPtr^ Do
     Case OpType of
@@ -8909,6 +8910,7 @@ Begin
 
       SP_STRVARPTR:
         Begin
+          ERRStr := ERRStr + '$';
           SP_SetStructMember(pSP_StrVarContent(Ptr), Sp1^.Str, Sp2^.Str, Sp2^.Val, Info^.Error^);
           Dec(SP_StackPtr, 3);
         End;
@@ -8917,6 +8919,7 @@ Begin
         Begin
           // If we reach here, we're assigning a structure to a simple string variable
           sName := Sp1^.Str;
+          ERRStr := ERRStr + '$';
           SP_AssignStruct(Round(Val), Str, sName, Info^.Error^, Ptr);
           StrPtr := SP_GetStrVarPtr(Round(Val), Str, Info^.Error^, Ptr);
           Dec(SP_StackPtr, 2);
@@ -8953,6 +8956,7 @@ Begin
 
       SP_SLICE_ASSIGN:
         Begin
+          ERRStr := ERRStr + '$';
           SliceFlags := Byte(Str[1]);
           NumIndices := Round(Val);
           Dec(SP_StackPtr);
@@ -9468,6 +9472,7 @@ Procedure SP_Interpret_RUN(Var Info: pSP_iInfo);
 Var
   LineNum, Idx, ProgLen: Integer;
   nLabel: TSP_Label;
+  tStr: aString;
 Label
   RunIt;
 Begin
@@ -9527,7 +9532,8 @@ RunIt :
     SP_CloseEditorWindows;
     STEPMODE := 0;
   End;
-  SP_PreParse(True, True, Info^.Error^);
+  tStr := '';
+  SP_PreParse(True, True, Info^.Error^, tStr);
   SP_GetDebugStatus(dbgVariables or dbgWatches);
 
 End;
@@ -13817,9 +13823,12 @@ Begin
 End;
 
 Procedure SP_Interpret_CLEAR(Var Info: pSP_iInfo);
+var
+  tStr: aString;
 Begin
 
-  SP_PreParse(True, False, Info^.Error^);
+  tStr := '';
+  SP_PreParse(True, False, Info^.Error^, tStr);
   SP_CLS(CPAPER);
 
 End;
@@ -22410,6 +22419,7 @@ Procedure SP_Interpret_INCLUDE(Var Info: pSP_iInfo);
 Var
   FileCount, LastLine: Integer;
   Err: TSP_ErrorCode;
+  tStr: aString;
 Begin
 
   CopyMem(@Err.Line, @Info^.Error^.Line, SizeOf(TSP_ErrorCode));
@@ -22434,8 +22444,9 @@ Begin
 
   End;
 
+  tStr := '';
   If Err.Code = SP_ERR_OK Then
-    SP_PreParse(False, False, Err);
+    SP_PreParse(False, False, Err, tStr);
 
   // Propagate any errors from the above out to the calling stack, to preserve line numbers.
 

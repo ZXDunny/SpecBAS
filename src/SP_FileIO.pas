@@ -1146,7 +1146,7 @@ End;
 Procedure SP_LoadProgram(Filename: aString; Merge, DirtyFile: Boolean; Const pList: TAnsiStringList; Var Error: TSP_ErrorCode);
 Var
   cPos, FileID, FileSize, LineCount, AutoStart, NameLen, Idx, lIdx, LineLen, i: Integer;
-  pName, ProgLine, PlainCode, s, Dir: aString;
+  pName, ProgLine, PlainCode, s, Dir, tStr: aString;
   Done, changed, isAutoSaved: Boolean;
   Buffer: Array of Byte;
   NewProg: array of aString;
@@ -1241,7 +1241,8 @@ Begin
               If pList = nil Then Begin
                 NXTLINE := SP_FindLine(0, False);
                 Error.ReturnType := SP_JUMP;
-                SP_PreParse(True, True, Error);
+                tStr := '';
+                SP_PreParse(True, True, Error, tStr);
               End;
             End;
           End;
@@ -1470,7 +1471,8 @@ Finish:
       If (AutoStart <> -1) And Not Merge Then Begin
         NXTLINE := SP_FindLine(AutoStart, False);
         Error.ReturnType := SP_JUMP;
-        SP_PreParse(True, True, Error);
+        tStr := '';
+        SP_PreParse(True, True, Error, tStr);
         FileID := -1;
       End;
       If Not Merge Then Begin

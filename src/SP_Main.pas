@@ -140,6 +140,7 @@ End;
 Procedure SP_MainLoop;
 Var
   Error: TSP_ErrorCode;
+  tStr: aString;
 Begin
 
   SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
@@ -166,7 +167,8 @@ Begin
   SP_GOSUB_STACKPTR := 0;
   SP_GOSUB_STACKLEN := 1024;
   SetLength(SP_GOSUB_STACK, SP_GOSUB_STACKLEN);
-  SP_PreParse(True, True, Error);
+  tStr := '';
+  SP_PreParse(True, True, Error, tStr);
 
   MATHMODE := 0;
   AutoFramecount := 0;

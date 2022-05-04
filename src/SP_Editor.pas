@@ -71,6 +71,7 @@ Var
   CurLine: Integer;
   pInfo: pSP_iInfo;
   Info: TSP_iInfo;
+  tStr: aString;
 Label
   RunTimeExit;
 Begin
@@ -115,6 +116,7 @@ Begin
   // Check if the user supplied any parameters. If so, use the first as the mandatory filename,
   // and the second as the optional line number to start from.
 
+  tStr := '';
   If PCOUNT > 0 Then Begin
     NXTLINE := -1;
     SP_LoadProgram(aString(PARAMS[1]), False, True, nil, Error);
@@ -124,7 +126,7 @@ Begin
       Else
         CurLine := NXTLINE;
       If CurLine = -1 Then CurLine := 0;
-      SP_PreParse(True, True, Error);
+      SP_PreParse(True, True, Error, tStr);
       SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
       SP_Execute('RUN '+IntToString(CurLine), Error);
     End;
@@ -149,7 +151,7 @@ Begin
       Error.Position := 1;
       PROGNAME := NEWPROGNAME;
       FILENAMED := False;
-      SP_PreParse(True, True, Error);
+      SP_PreParse(True, True, Error, tStr);
     End;
 
     If Not FILENAMED Then

@@ -1182,12 +1182,14 @@ End;
 Procedure SP_FPNewProgram;
 Var
   Error: TSP_ErrorCode;
+  tStr: aString;
 Begin
+  tStr := '';
   SP_ClearListing;
   SP_AddLine('', '', '');
   SP_ClearBreakpoints;
   Listing.Flags[0].ReturnType := spHardReturn;
-  SP_PreParse(True, True, Error);
+  SP_PreParse(True, True, Error, tStr);
   CURSORCHAR := 32;
   SP_FPRethinkScrollBars;
   Listing.FPCLine := 0;
@@ -7886,7 +7888,7 @@ Begin
         SP_StackPtr := SP_StackStart;
         Tokens := @TokensStr;
         SP_DeleteIncludes;
-        SP_PreParse(False, False, Error);
+        SP_PreParse(False, False, Error, Tokens^);
         PreParseErrorCode := Error.Code;
         PreParseErrorLine := Error.Line;
         PreParseErrorStatement := Error.Statement;
@@ -7950,7 +7952,7 @@ Begin
           SP_StackPtr := SP_StackStart;
           Tokens := @TokensStr;
           SP_DeleteIncludes;
-          SP_PreParse(False, False, Error);
+          SP_PreParse(False, False, Error, Tokens^);
           PreParseErrorCode := Error.Code;
           Error.Code := SP_ERR_OK;
           PROGSTATE := SP_PR_RUN;
@@ -8397,7 +8399,7 @@ Begin
   NXTSTATEMENT := -1;
   NXTLINE := -1;
   SP_StackPtr := SP_StackStart;
-  SP_PreParse(False, False, Error);
+  SP_PreParse(False, False, Error, Tokens^);
   PROGSTATE := SP_PR_RUN;
   SP_Interpreter(Tokens, Error.Position, Error, Error.Code);
 
@@ -9779,6 +9781,7 @@ Var
   Tokens: paString;
   Position: Integer;
   Error: TSP_ErrorCode;
+  tStr: aString;
 Label
   WasActuallyAnError;
 Begin
@@ -9801,7 +9804,8 @@ Begin
   SP_DisplayFPListing(-1);
   SP_WaitForSync;
 
-  SP_Preparse(False, False, Error);
+  tStr := '';
+  SP_Preparse(False, False, Error, tStr);
   SP_Interpret_CONTINUE(Inf);
   If Error.Code = SP_ERR_OK Then Begin
     Tokens := nil;

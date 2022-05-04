@@ -8970,12 +8970,14 @@ Begin
             End Else Begin
               If SliceFlags And 1 = 1 Then Begin
                 SliceTo := Round(SP_StackPtr^.Val);
+                if SliceTo < 0 then Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
                 Dec(SP_StackPtr);
               End Else
                 SliceTo := -1;
               If SliceFlags And 2 = 2 Then Begin
                 If SP_StackPtr^.OpType = SP_VALUE Then Begin
                   SliceFrom := Round(SP_StackPtr^.Val);
+                  if SliceFrom < 0 then Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
                   Dec(SP_StackPtr);
                 End Else
                   SliceFrom := SliceTo;
@@ -9031,6 +9033,7 @@ Begin
               Il := SizeOf(LongWord);
             End;
 
+          ERRStr := SP_StackPtr^.Str + '$';
           If SP_FindStrArray(SP_StackPtr^.Str) = -1 Then Begin
             If Integer(SP_StackPtr^.tPos) = -1 Then Begin
               Idx := SP_FindStrVar(SP_StackPtr^.Str);
@@ -9043,18 +9046,16 @@ Begin
                 If SliceTo > -1 Then
                   SliceTo := Min(SliceTo, Length(StrVars[Idx]^.ContentPtr^.Value));
                 If SliceFrom < 1  Then Begin
-                  ERRStr := Str;
                   Info^.Error^.Code := SP_ERR_SUBSCRIPT_WRONG;
                   Exit;
                 End Else Begin
                   Sp1 := SP_StackPtr;
                   Dec(Sp1);
-                  SP_SliceAssign(StrVars[Idx]^.ContentPtr^.Value, Sp1^.Str, SliceFrom, SliceTo, Info^.Error^);
+                  If Info^.Error^.Code = SP_ERR_OK Then
+                    SP_SliceAssign(StrVars[Idx]^.ContentPtr^.Value, Sp1^.Str, SliceFrom, SliceTo, Info^.Error^);
                 End;
-              End Else Begin
-                ERRStr := SP_StackPtr^.Str;
+              End Else
                 Info^.Error^.Code := SP_ERR_MISSING_VAR;
-              End;
             End Else
               Info^.Error^.Code := SP_ERR_CONST_IN_ASSIGNMENT;
           End Else Begin
@@ -9074,13 +9075,13 @@ Begin
                   If SliceFlags <> 0 Then Begin
                     Content := SP_GetStructMemberS(StrPtr, Sp1^.Str, Info^.Error^);
                     If (SliceTo < 1) or (SliceTo > Length(Content)) Then Begin
-                      ERRStr := Str;
                       Info^.Error^.Code := SP_ERR_SUBSCRIPT_WRONG;
                       Exit;
-                    End Else Begin
-                      SP_SliceAssign(Content, Sp2^.Str, SliceFrom, SliceTo, Info^.Error^);
-                      SP_SetStructMember(StrPtr, Sp1^.Str, Content, 0, Info^.Error^);
-                    End;
+                    End Else
+                      If Info^.Error^.Code = SP_ERR_OK Then Begin
+                        SP_SliceAssign(Content, Sp2^.Str, SliceFrom, SliceTo, Info^.Error^);
+                        SP_SetStructMember(StrPtr, Sp1^.Str, Content, 0, Info^.Error^);
+                      End;
                   End Else
                     SP_SetStructMember(StrPtr, Sp1^.Str, Sp2^.Str, Sp2^.Val, Info^.Error^);
                 End;

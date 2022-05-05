@@ -9029,7 +9029,7 @@ Begin
               Inc(SP_StackPtr);
               SP_StackToString(NumIndices);
             End Else Begin
-              gbIndices := LongWordToString(SliceTo);
+              gbIndices := LongWordToString(Longword(SliceTo));
               Il := SizeOf(LongWord);
             End;
 

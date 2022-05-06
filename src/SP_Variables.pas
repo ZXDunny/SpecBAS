@@ -2268,7 +2268,7 @@ Type
   pVarType = ^VarType;
 Var
   Tkn, Tkn2: pToken;
-  Idx, Idx2, Idx3, pStatement,
+  Idx, Idx2, Idx3, sIdx, pStatement,
   LabelPos, LabelLen, ProcIdx, LastStrAt, LastStrLen, DATALine, DATAStatement: Integer;
   Tokens, Name, s: aString;
   Changed, Reference, NewStatement: Boolean;
@@ -2321,6 +2321,7 @@ Begin
 
   SP_CompileProgram;
 
+  sIdx := -1;
   if CmdTokens <> '' then
     Idx := -2
   else
@@ -2514,6 +2515,13 @@ Begin
 
       End;
 
+      If (TknType = $FF) and (Idx2 = 1) Then Begin // Is this a direct command with no statement list table?
+        Idx2 := Idx3;
+        While Tokens[Idx2] = #$FF Do
+          Inc(Idx2);
+        sIdx := Idx2;
+      End;
+
       pStatement := 1;
 
       // Check through the tokenised code now
@@ -2641,9 +2649,15 @@ Begin
         End;
       End;
 
-      If idx = -1 then
-        SP_TestConsts(CmdTokens, Idx, Error, False)
-      Else
+      If idx = -1 then Begin
+        If sIdx = -1 Then
+          SP_TestConsts(CmdTokens, Idx, Error, False)
+        Else Begin
+          s := Copy(CmdTokens, sIdx);
+          SP_TestConsts(s, Idx, Error, False);
+          CmdTokens := Copy(CmdTokens, 1, sIdx -1) + s;
+        End;
+      End Else
         SP_TestConsts(SP_Program[Idx], Idx, Error, False);
       If Error.Code <> SP_ERR_OK Then Error.Line := Idx;
 

@@ -194,11 +194,13 @@ End;
 
 Procedure CloseTipWindow;
 Var
+  ID: Integer;
   Error: TSP_ErrorCode;
 Begin
   If TipWindowID >= 0 Then Begin
-    SP_DeleteWindow(TipWindowID, Error);
+    ID := TipWindowID;
     TipWindowID := -1;
+    SP_DeleteWindow(ID, Error);
   End;
 End;
 

@@ -545,7 +545,7 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components;
+Uses SP_Main, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components, SP_ToolTipWindow;
 
 Procedure SP_ForceScreenUpdate;
 Var
@@ -1324,6 +1324,7 @@ Var
 Begin
 
   Error.Code := SP_ERR_OK;
+  DisplaySection.Enter;
 
   BankIdx := SP_FindBankID(WindowID);
   If BankIdx > -1 Then Begin
@@ -1332,7 +1333,6 @@ Begin
 
     If Bank^.DataType = SP_WINDOW_BANK Then Begin
 
-      DisplaySection.Enter;
       SP_GetWindowDetails(WindowID, Window, Error);
       Window^.Component.Free;
 
@@ -1340,6 +1340,8 @@ Begin
         SCREENBANK := -1;
         SP_SetDrawingWindow(0);
       end;
+      If TipWindowID = WindowID Then
+        TipWindowID := -1;
 
       If WindowID = MODALWINDOW Then
         MODALWINDOW := -1;
@@ -1363,13 +1365,13 @@ Begin
 
       End;
 
-      DisplaySection.Leave;
-
     End Else
 
       Error.Code := SP_ERR_WINDOW_NOT_FOUND;
 
   End;
+
+  DisplaySection.Leave;
 
 End;
 

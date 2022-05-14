@@ -2342,6 +2342,7 @@ Begin
     Changed := False;
     Idx3 := 1;
     Idx2 := 1;
+    TknType := 0;
     If Byte(Tokens[Idx3]) = SP_LINE_NUM Then Begin
       If pLongWord(@Tokens[Idx3 +1])^ > MaxLineNum Then
         MaxLineNum := pLongWord(@Tokens[Idx3 +1])^;

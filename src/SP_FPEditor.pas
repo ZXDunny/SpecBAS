@@ -3096,8 +3096,11 @@ Begin
 End;
 
 Procedure SP_CursorPosChanged;
+Var
+  Sel: SP_SelectionInfo;
 Begin
-  If (FPBracket1Pos > 0) or (FPBracket2Pos > 0) Then Begin
+  SP_GetSelectionInfo(Sel);
+  If (Sel.Active) or ((FPBracket1Pos > 0) or (FPBracket2Pos > 0)) Then Begin
     FPBracket1Pos := -1;
     FPBracket2Pos := -1;
     SP_FPApplyHighlighting(FPBracket1Line);
@@ -3108,7 +3111,7 @@ Begin
     End;
   End;
   If (FocusedWindow = fwEditor) Then Begin
-    If SP_Util.Pos(aChar(CursorChar), '()[]{}') > 0 Then Begin
+    If (Not Sel.Active) And (SP_Util.Pos(aChar(CursorChar), '()[]{}') > 0) Then Begin
       SP_SetBracketPositions(aChar(CursorChar), Listing.FPCLine, Listing.FPCPos);
       SP_FPApplyHighlighting(FPBracket1Line);
       AddDirtyLine(FPBracket1Line);

@@ -935,9 +935,9 @@ Var
 
   SP_CaseList: Array[0..1023] of TSP_CaseItem;
   SP_CaseListPtr: Integer;
-  SP_ProcsList: Array [0 .. 1023] of TSP_ProcItem;
+  SP_ProcsList: Array [0..1023] of TSP_ProcItem;
   SP_ProcsListPtr: Integer;
-  SP_Stack: Array [0 .. 63] of SP_StackItem;
+  SP_Stack: Array [0..1023] of SP_StackItem;
   SP_StackPtr, SP_StackStart: pSP_StackItem;
   SP_EveryItems: Array of TSP_EveryItem;
   SP_EveryCount: Integer = 0;

@@ -421,9 +421,9 @@ Begin
     if Assigned(fItems[fSelected].SubMenu) And fItems[fSelected].SubMenu.Visible Then
       fItems[fSelected].SubMenu.Close;
     fItems[fSelected].Selected := False;
+    fSelected := -1;
+    Paint;
   End;
-  fSelected := -1;
-  Paint;
 End;
 
 Function SP_PopUpMenu.ItemAtPos(x, y: Integer): Integer;
@@ -634,6 +634,9 @@ Procedure SP_PopUpMenu.Close;
 Var
   i: Integer;
 Begin
+
+  If MouseControl = Self Then
+    MouseControl := nil;
 
   For i := 0 To Length(fItems) -1 Do
     if Assigned(fItems[i].SubMenu) And fItems[i].SubMenu.Visible Then

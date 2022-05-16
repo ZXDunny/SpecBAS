@@ -108,6 +108,7 @@ Type
   End;
 
 Procedure SP_InitFPEditor;
+Procedure SetAllToCompile;
 Procedure SP_ForceCompile;
 Procedure SP_StopCompiler;
 Procedure SP_AddLine(Const l, s, c: aString);

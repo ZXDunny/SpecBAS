@@ -126,8 +126,10 @@ Begin
       Else
         CurLine := NXTLINE;
       If CurLine = -1 Then CurLine := 0;
-      SP_PreParse(True, True, Error, tStr);
+      SetAllToCompile;
+      CompilerThread := TCompilerThread.Create(False);
       SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
+      SP_Interpreter_Ready := True;
       SP_Execute('RUN '+IntToString(CurLine), Error);
     End;
     SP_Interpret_QUIT(pInfo);

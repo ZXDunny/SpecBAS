@@ -1180,7 +1180,10 @@ Begin
   isAutoSaved := (Lower(Filename) = 's:autosave') or (Lower(Filename) = 's:oldprog');
 
   Dir := SP_ExtractFileDir(Filename);
-  SP_SetCurrentDir(Dir, Error);
+  If DirtyFile Then
+    SetCurrentDirectory(pWideChar(Dir))
+  else
+    SP_SetCurrentDir(Dir, Error);
   If Error.Code <> SP_ERR_OK Then Goto Finish;
 
   If pList = Nil Then Begin
@@ -1476,7 +1479,7 @@ Finish:
         FileID := -1;
       End;
       If Not Merge Then Begin
-        If SP_FileExists(pName) Then Begin
+        If SP_FileExists(pName) and Not DirtyFile Then Begin
           SP_SetCurrentDir(SP_ExtractFileDir(pName), Error);
           PROGNAME := Lower(SP_ConvertPathToAssigns(pName));
           If Not INSTARTUP Then

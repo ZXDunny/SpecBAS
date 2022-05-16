@@ -586,7 +586,7 @@ Var
   Handled: Boolean;
 begin
 
-  If FormActivated or True Then Begin
+  If ScaleMouseX > 0 Then Begin
 
     SetCapture(Handle);
 
@@ -685,7 +685,7 @@ Var
   Handled: Boolean;
 begin
 
-  If ((X = LastMouseX) And (Y = LastMouseY)) or SIZINGMAIN Then Exit;
+  If ((X = LastMouseX) And (Y = LastMouseY)) or SIZINGMAIN or (ScaleMouseX = 0) Then Exit;
 
   Handled := False;
   LastMouseX := X;
@@ -777,6 +777,7 @@ Var
 begin
 
   ReleaseCapture;
+  If ScaleMouseX = 0 Then Exit;
 
   {$IFDEF OPENGL}
   X := Round(X / ScaleMouseX);
@@ -909,7 +910,7 @@ begin
 
   End Else Begin
 
-    Main.Caption := String(SP_GetProgName(PROGNAME));
+    Main.Caption := ExtractFileName(String(PARAMS[1]));
     HOMEFOLDER := aString(ExtractFileDir(String(PARAMS[1])));
     If HOMEFOLDER = '' Then
       HOMEFOLDER := aString(GetCurrentDir);

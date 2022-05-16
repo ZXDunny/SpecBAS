@@ -7433,7 +7433,7 @@ Begin
 
     If IsNew Then Begin
 
-      If ParamCount = 0 Then Begin
+      If PCOUNT = 0 Then Begin
 
         If SIGSAMPLEBANK = -1 Then Begin
 
@@ -7637,7 +7637,7 @@ Begin
     End;
   SP_ClearAllKeys;
 
-  If IsNew And (ParamCount = 0) Then
+  If IsNew And (PCOUNT = 0) Then
     SP_CLS(CPAPER);
 
   OUTSET := FPEditorOutSet;

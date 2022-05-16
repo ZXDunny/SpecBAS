@@ -121,7 +121,7 @@ Begin
     NXTLINE := -1;
     SP_LoadProgram(aString(PARAMS[1]), False, True, nil, Error);
     If Error.Code = SP_ERR_OK Then Begin
-      If ParamCount > 1 Then
+      If PCOUNT > 1 Then
         CurLine := StringToInt(PARAMS[2], -1)
       Else
         CurLine := NXTLINE;

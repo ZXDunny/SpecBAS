@@ -521,13 +521,11 @@ begin
       dmFields := DM_PELSWIDTH or DM_PELSHEIGHT;
     end;
     Result := ChangeDisplaySettings(DeviceMode, 0) = DISP_CHANGE_SUCCESSFUL;
-    SetWindowLongPtr(Main.handle, GWL_STYLE, WS_SYSMENU or WS_POPUP or WS_CLIPCHILDREN or WS_CLIPSIBLINGS or WS_VISIBLE);
     Main.BorderStyle := bsNone;
     SPFULLSCREEN := True;
   End Else Begin
     If SPFULLSCREEN Then Begin
       R := Rect(0, 0, Width, Height);
-      SetWindowLongPtr(Main.handle, GWL_STYLE, WS_CAPTION or WS_POPUPWINDOW or WS_VISIBLE);
       AdjustWindowRect(R, WS_CAPTION or WS_POPUPWINDOW, FALSE);
       with DeviceMode do begin
         dmSize := SizeOf(TDeviceMode);
@@ -861,11 +859,13 @@ Var
   Path: Array [0..MAX_PATH] of Char;
   idx: Integer;
   p: TPoint;
+  s, dir: String;
 begin
 
   DragAcceptFiles(Handle, True);
 
   INSTARTUP := True;
+
   DisplaySection.Enter;
 
   OrgWidth := Screen.Width;
@@ -873,10 +873,26 @@ begin
 
   MOUSEVISIBLE := FALSE;
 
-  PCOUNT := ParamCount;
+  PCOUNT := -1;
   PARAMS := TStringList.Create;
-  For Idx := 0 To PCOUNT Do
-    PARAMS.Add(aString(ParamStr(Idx)));
+  For Idx := 0 To ParamCount Do Begin
+    s := ParamStr(Idx);
+    if Copy(s, 1, 1) <> '-' then Begin
+      if FileExists(s) then Begin
+        PARAMS.Add(aString(s));
+        Inc(PCOUNT);
+      End;
+    End Else Begin
+      PARAMS.Add(aString(s));
+      Inc(PCOUNT);
+    End;
+  End;
+
+  dir := GetCurrentDir;
+  If (PCOUNT = 0) And FileExists(dir + '\autorun') Then Begin
+    PCOUNT := 1;
+    PARAMS.Add(aString(dir)+'\autorun');
+  End;
 
   Cursor := CrNone;
 
@@ -902,7 +918,7 @@ begin
   // Set the HOME folder - if we're loading a parameter file, extract the
   // directory and set that as HOMEFOLDER
 
-  If ParamCount = 0 Then Begin
+  If PCOUNT <= 0 Then Begin
 
     Main.Caption := 'SpecBAS for Windows v'+String(BuildStr);
     SHGetFolderPath(0,$0028,0,SHGFP_TYPE_CURRENT,@path[0]);
@@ -1008,7 +1024,7 @@ begin
 
   Quitting := True;
   BASS_Free;
-  If ParamCount <> 0 Then Begin
+  If PCOUNT <> 0 Then Begin
     SP_RmDirUnSafe('/temp', Error);
     SP_RmDir('/s', Error);
     SP_RmDir('/fonts', Error);

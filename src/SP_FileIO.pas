@@ -1180,9 +1180,10 @@ Begin
   isAutoSaved := (Lower(Filename) = 's:autosave') or (Lower(Filename) = 's:oldprog');
 
   Dir := SP_ExtractFileDir(Filename);
-  If DirtyFile Then
-    SetCurrentDirectory(pWideChar(Dir))
-  else
+  If DirtyFile Then Begin
+    SetCurrentDir(String(Dir));
+    Filename := SP_ExtractFileName(Filename);
+  End Else
     SP_SetCurrentDir(Dir, Error);
   If Error.Code <> SP_ERR_OK Then Goto Finish;
 
@@ -1196,17 +1197,17 @@ Begin
 
   End;
 
-  If DirtyFile Then Begin
+{  If DirtyFile Then Begin
     Filename := SP_ConvertHostFilename(Filename, Error);
     If Filename <> '' Then
       If Filename[Length(Filename)] in ['/','\'] Then
         FileName := Copy(FileName, 1, Length(Filename) -1);
-  End;
+  End; }
 
   If Not SP_FileExists(Filename) Then Begin
     // Might be a "dirty" filename - specified on the command line. We allow those for loading ONLY.
     If DirtyFile Then Begin
-      If FileExists(String(Filename)) Then
+      If FileExists(String(Dir + Filename)) Then
         FileID := SP_FileOpenDirty(Filename, Error);
       If Error.Code <> SP_ERR_OK Then Goto Finish;
     End Else Begin
@@ -1367,13 +1368,15 @@ Begin
                         ProgLine := '';
                       End Else Begin
                         If Lower(Copy(PlainCode, 1, 4)) = 'prog' Then Begin
-                          PlainCode := Copy(PlainCode, 5, Length(PlainCode));
-                          While Copy(PlainCode, 1, 1) <= ' ' Do
-                            PlainCode := Copy(PlainCode, 2, Length(PlainCode));
-                          If isAutoSaved Then
-                            pName := PlainCode;
-                          If SP_ExtractFileDir(pName) = '' Then
-                            pName := SP_ConvertHostFilename(SP_GetCurrentDir + '/', Error) + SP_ExtractFilename(pName);
+                          if not DirtyFile then Begin
+                            PlainCode := Copy(PlainCode, 5, Length(PlainCode));
+                            While Copy(PlainCode, 1, 1) <= ' ' Do
+                              PlainCode := Copy(PlainCode, 2, Length(PlainCode));
+                            If isAutoSaved Then
+                              pName := PlainCode;
+                            If SP_ExtractFileDir(pName) = '' Then
+                              pName := SP_ConvertHostFilename(SP_GetCurrentDir + '/', Error) + SP_ExtractFilename(pName);
+                          End;
                           ProgLine := '';
                         End Else Begin
                           If Lower(Copy(PlainCode, 1, 7)) = 'changed' Then Begin

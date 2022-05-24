@@ -11998,33 +11998,39 @@ Var
 Begin
 
   // PLAY str1[,str2...] ASYNC
+  // PLAY STOP
 
-  Cnt := 0;
   Result := '';
-  Done := False;
-  While Not Done Do Begin
-    Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result;
-    If Error.Code = SP_ERR_OK Then Begin
-      If Error.ReturnType <> SP_STRING Then Begin
-        Error.Code := SP_ERR_MISSING_STREXPR;
-        Exit;
-      End Else
-        Inc(Cnt);
-      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then
-        Inc(Position, 2)
-      Else
-        Done := True;
-    End Else
-      Exit;
-  End;
-
-  Result := Result + CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(Cnt);
-
-  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_ASYNC) Then Begin
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_STOP) Then Begin
     Inc(Position, 1 + SizeOf(LongWord));
-    Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(1);
-  End Else
-    Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
+    KeyWordID := SP_KW_PLAY_STOP;
+  End Else Begin
+    Cnt := 0;
+    Done := False;
+    While Not Done Do Begin
+      Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result;
+      If Error.Code = SP_ERR_OK Then Begin
+        If Error.ReturnType <> SP_STRING Then Begin
+          Error.Code := SP_ERR_MISSING_STREXPR;
+          Exit;
+        End Else
+          Inc(Cnt);
+        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then
+          Inc(Position, 2)
+        Else
+          Done := True;
+      End Else
+        Exit;
+    End;
+
+    Result := Result + CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(Cnt);
+
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_ASYNC) Then Begin
+      Inc(Position, 1 + SizeOf(LongWord));
+      Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(1);
+    End Else
+      Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
+  End;
 
 End;
 

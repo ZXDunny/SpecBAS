@@ -5346,7 +5346,7 @@ Begin
                   Break;
                 End;
                 If SP_LineHasNumber(fp) > 0 Then
-                  While Listing[fp][n] in ['0'..'9'] Do
+                  While (n <= Length(Listing[fp])) And (Listing[fp][n] in ['0'..'9']) Do
                     Inc(n);
                 c := Listing.Flags[fp].Indent;
                 If n < Length(listing[fp]) Then

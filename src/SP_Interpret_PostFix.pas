@@ -598,6 +598,7 @@ Procedure SP_Interpret_CHANNEL_RATE_STR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CHANNEL_PAN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CHANNEL_VOLUME(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PLAY(Var Info: pSP_iInfo);
+Procedure SP_Interpret_PLAY_STOP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MUSIC_PLAY(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MUSIC_STOP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MUSIC_PAUSE(Var Info: pSP_iInfo);
@@ -15619,6 +15620,13 @@ Begin
 
 End;
 
+Procedure SP_Interpret_PLAY_STOP(Var Info: pSP_iInfo);
+Begin
+
+  PLAYSignalHalt(-1);
+
+End;
+
 Procedure SP_Interpret_MUSIC_PLAY(Var Info: pSP_iInfo);
 Var
   Filename: aString;
@@ -25616,6 +25624,7 @@ Initialization
   InterpretProcs[SP_KW_CHANNEL_RATE_VAL] := @SP_Interpret_CHANNEL_RATE_VAL;
   InterpretProcs[SP_KW_CHANNEL_RATE_STR] := @SP_Interpret_CHANNEL_RATE_STR;
   InterpretProcs[SP_KW_PLAY] := @SP_Interpret_PLAY;
+  InterpretProcs[SP_KW_PLAY_STOP] := @SP_Interpret_PLAY_STOP;
   InterpretProcs[SP_KW_MUSIC_PLAY] := @SP_Interpret_MUSIC_PLAY;
   InterpretProcs[SP_KW_MUSIC_PAUSE] := @SP_Interpret_MUSIC_PAUSE;
   InterpretProcs[SP_KW_MUSIC_STOP] := @SP_Interpret_MUSIC_STOP;

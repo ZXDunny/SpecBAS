@@ -246,6 +246,10 @@ Begin
   ERRORCHAN := 0;
   OKCHAN := 0;
 
+  // Stop all PLAY channels
+
+  PLAYSignalHalt(-1);
+
 End;
 
 Procedure SP_SetGlobalVolume(sVolume: aFloat; Var Error: TSP_ErrorCode);
@@ -1596,6 +1600,8 @@ Const
 
 Begin
 
+  Ticks := CB_GETTICKS;
+
   If Assigned(Error) Then
     Error^.Code := SP_ERR_OK;
 
@@ -1622,7 +1628,8 @@ Begin
   i := 1;
   l := Length(Str);
   While i <= l Do Begin
-    If (Assigned(Error) And (Error^.Code <> SP_ERR_OK)) or Halted Then Exit;
+    If KEYSTATE[K_Escape] = 1 Then BREAKSIGNAL := True;
+    If (Assigned(Error) And (Error^.Code <> SP_ERR_OK)) or Halted or BREAKSIGNAL Then Exit;
     Ch := Str[i];
     Case Ch of
       'N': // Skip this, it's just a separator
@@ -1633,8 +1640,8 @@ Begin
         Begin
           Inc(i);
           Duration := (1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000;
-          Ticks := CB_GETTICKS;
           While CB_GETTICKS - Ticks < Duration Do CB_YIELD;
+          Ticks := Ticks + Duration;
         End;
       '#': // Sharpen next note - can be packed ("C####C')
         Begin
@@ -1738,8 +1745,9 @@ Begin
             BASS_SampleSetData(Sample, @bBuffer[0]);
             Channel := BASS_SampleGetChannel(Sample, true);
             BASS_ChannelPlay(Channel, True);
-            While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) Do CB_YIELD;
+            While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (CB_GETTICKS - Ticks < Duration * 1000) Do CB_YIELD;
             BASS_SampleFree(Sample);
+            Ticks := Ticks + (Duration * 1000);
           End Else
             Exit;
           If TripletCount > 0 Then Begin
@@ -2059,7 +2067,7 @@ Begin
   PLAYPoolLock.Enter;
 
   For i := 0 To Length(PLAYPool) -1 Do
-    If PLAYPool[i].SessionID = SessionID Then
+    If (SessionID = -1) or (PLAYPool[i].SessionID = SessionID) Then
       PLAYPool[i].Halted := True;
 
   PLAYPoolLock.Leave;

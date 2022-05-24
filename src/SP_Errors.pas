@@ -206,8 +206,9 @@ Const
   SP_ERR_BREAKPOINT = 159;
   SP_ERR_INVALID_PROPERTY_NAME = 160;
   SP_ERR_INVALID_PROPERTY_VALUE = 161;
+  SP_ERR_TOO_MANY_BRACKETS = 162;
 
-  MAXERROR = 161;
+  MAXERROR = 162;
 
   // Runtime error codes.
 
@@ -380,7 +381,8 @@ Const
      'Invalid window',
      'Breakpoint reached',
      'Invalid property',
-     'Invalid property value');
+     'Invalid property value',
+     'Too many brackets');
 
   Function ProcessErrorMessage(s: aString): aString;
 

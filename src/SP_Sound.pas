@@ -25,7 +25,32 @@ unit SP_Sound;
 
 interface
 
-Uses SP_BankManager, SP_BankFiling, SP_FileIO, SP_Errors, SP_Util, SP_SysVars, SP_Package, SP_Input, SP_Samples, Bass, SysUtils, Math;
+Uses Classes, SyncObjs, SP_BankManager, SP_BankFiling, SP_FileIO, SP_Errors, SP_Util, SP_SysVars, SP_Package, SP_Input, SP_Samples, Bass, SysUtils, Math;
+
+Type
+
+  TMonitorItem = Record
+    ChannelID: HCHANNEL;
+    SampleID: HSAMPLE;
+  End;
+
+  TChannelMonitor = Class(TThread)
+    ChanLock: TCriticalSection;
+    ChanList: Array of TMonitorItem;
+    Procedure Execute; Override;
+    Procedure AddChannel(Channel: HCHANNEL; Sample: HSAMPLE);
+  End;
+
+  TPLAYThread = Class(TThread)
+    CurTempo: Integer;
+    PLAYStr: aString;
+    SessionID: Integer;
+    ErrorCode: pInteger;
+    PoolIndex: Integer;
+    Halted: Boolean;
+    Procedure Execute; Override;
+    Procedure SP_PLAY(Str: aString; SessionID: Integer; Var Error: pSP_ErrorCode);
+  End;
 
 Procedure SP_Init_Sound;
 Procedure SP_Stop_Sound;
@@ -69,11 +94,89 @@ Procedure SP_PlaySignature;
 
 Function  SP_StringToSemiTones(Str: aString; Var Error: TSP_ErrorCode): aFloat;
 Function  SP_SemiTonesToHz(SemiTone: aFloat): aFloat;
-Procedure SP_MakeBEEP(Duration, Pitch: aFloat; WaveType: Integer; Attack, Decay, Sustain, Release, Noise, Roughness: aFloat; Error: TSP_ErrorCode);
+Procedure SP_MakeBEEP(Duration, Pitch: aFloat; WaveType: Integer; Attack, Decay, Sustain, Release, Noise, Roughness: aFloat; Async: Boolean; Error: TSP_ErrorCode);
+
+Procedure SP_PLAY(PLAYStrs: Array of aString; Var ErrorCode: Integer);
+Procedure SP_PLAY_ASync(PLAYStrs: Array of aString);
+Procedure AddPLAYThread(Const Str: aString; ID: Integer; Error: pInteger);
+Procedure DeletePLAYThread(Index: Integer);
+Procedure PLAYTempoChange(SessionID: Integer; NewTempo: Integer);
+Procedure PLAYSignalHalt(SessionID: Integer);
+Function  PLAYSessionIsActive(ID: Integer): Boolean;
+
+Var
+
+  BEEPMonitor: TChannelMonitor;
+  CurSessionID: Integer = 0;
+
+  PLAYPool: Array of TPLAYThread;
+  PLAYPoolLock: TCriticalSection;
 
 implementation
 
 Uses SP_Main, SP_Graphics;
+
+Procedure TChannelMonitor.Execute;
+Var
+  i, j, l: Integer;
+Begin
+
+  Priority := TPIdle;
+  FreeOnTerminate := True;
+  NameThreadForDebugging('BEEP Monitor');
+
+  ChanLock := TCriticalSection.Create;
+
+  While Not Terminated Do Begin
+
+    If ChanLock.TryEnter Then Begin
+
+      i := 0;
+      l := Length(ChanList);
+      if l > 0 Then Begin
+        Priority := tpNormal;
+        While i < l Do Begin
+          if Not (BASS_ChannelIsActive(ChanList[i].ChannelID) = BASS_ACTIVE_PLAYING) Then Begin
+            BASS_SampleFree(ChanList[i].SampleID);
+            For j := i To l -2 Do
+              ChanList[j] := ChanList[j + 1];
+            SetLength(ChanList, l -1);
+            Dec(l);
+          End Else
+            Inc(i);
+        End;
+      End Else
+        Priority := tpIdle;
+
+      ChanLock.Leave;
+
+    End;
+
+    Sleep(1);
+
+  End;
+
+  ChanLock.Free;
+
+End;
+
+Procedure TChannelMonitor.AddChannel(Channel: HCHANNEL; Sample: HSAMPLE);
+Var
+  l: Integer;
+Begin
+
+  ChanLock.Enter;
+
+  l := Length(ChanList);
+  SetLength(ChanList, l +1);
+  With ChanList[l] Do Begin
+    ChannelID := Channel;
+    SampleID := Sample;
+  End;
+
+  ChanLock.Leave;
+
+End;
 
 Procedure SP_Init_Sound;
 Var
@@ -1193,9 +1296,16 @@ End;
 Function  SP_StringToSemiTones(Str: aString; Var Error: TSP_ErrorCode): aFloat;
 Var
   Len, SemiTone, Octave: Integer;
+  Relaxed: Boolean;
 Const
   Tones: Array[0..6] of Integer = (0, 2, 4, 5, 7, 9, 11);
 Begin
+
+  if Copy(Str, 1, 1) = '!' Then Begin
+    Relaxed := True;
+    Str := Copy(Str, 2);
+  End Else
+    Relaxed := False;
 
   Result := 0;
   ERRStr := Str;
@@ -1230,14 +1340,14 @@ Begin
 
     Case Str[2] of
       '$':
-        If Str[1] in ['d', 'e', 'g', 'a', 'b', 'D', 'E', 'G', 'A', 'B'] Then
+        If (Str[1] in ['d', 'e', 'g', 'a', 'b', 'D', 'E', 'G', 'A', 'B']) or Relaxed Then
           Dec(SemiTone)
         Else Begin
           Error.Code := SP_ERR_INVALID_NOTE;
           Exit;
         End;
       '#':
-        If Str[1] in ['c', 'd', 'f', 'g', 'a', 'C', 'D', 'F', 'G', 'A'] Then
+        If (Str[1] in ['c', 'd', 'f', 'g', 'a', 'C', 'D', 'F', 'G', 'A']) or Relaxed Then
           Inc(SemiTone)
         Else Begin
           Error.Code := SP_ERR_INVALID_NOTE;
@@ -1296,7 +1406,7 @@ Begin
 
 End;
 
-Procedure SP_MakeBEEP(Duration, Pitch: aFloat; WaveType: Integer; Attack, Decay, Sustain, Release, Noise, Roughness: aFloat; Error: TSP_ErrorCode);
+Procedure SP_MakeBEEP(Duration, Pitch: aFloat; WaveType: Integer; Attack, Decay, Sustain, Release, Noise, Roughness: aFloat; Async: Boolean; Error: TSP_ErrorCode);
 Var
   Hz, Phase, Amplitude, AttackVol, AttackInc, DecayVol, DecayDec, ReleaseVol, ReleaseDec, mRoughness, Scalar, ScaleInc: aFloat;
   Idx, WaveSize, sampAttack, sampDecay, sampRelease, i, DeClickSize, BASS_Err: Integer;
@@ -1305,6 +1415,7 @@ Var
   wSample: Integer;
   GotADSR, GotNoise, GotRoughness: Boolean;
   oSample: SmallInt;
+  bBuffer: Array of Byte;
 Begin
 
   wSample := 0;
@@ -1315,10 +1426,7 @@ Begin
   // Calculate the size (Using default Hz and 16bit sound, mono).
 
   WaveSize := Round(Duration * 44100) * 2;
-  If gBuffLen <> WaveSize Then Begin
-    SetLength(gBuffer, WaveSize);
-    gBuffLen := WaveSize;
-  End;
+  SetLength(bBuffer, WaveSize);
 
   // Calculate the number of samples for each of the AD and R periods
 
@@ -1386,7 +1494,7 @@ Begin
 
     // And write the sample
 
-    pWord(@gBuffer[Idx])^ := Word(wSample);
+    pWord(@bBuffer[Idx])^ := Word(wSample);
 
     // Set up for next sample, and apply roughness if necessary
 
@@ -1410,11 +1518,11 @@ Begin
   ScaleInc := 1/DeClickSize;
   For i := 0 to DeClickSize -1 Do Begin
     // Start of sample
-    oSample := Round(pSmallInt(@gBuffer[i * 2])^ * Scalar);
-    pSmallInt(@gBuffer[i * 2])^ := oSample;
+    oSample := Round(pSmallInt(@bBuffer[i * 2])^ * Scalar);
+    pSmallInt(@bBuffer[i * 2])^ := oSample;
     // End of sample
-    oSample := Round(pSmallInt(@gBuffer[WaveSize - ((i + 1) * 2)])^ * Scalar);
-    pSmallInt(@gBuffer[WaveSize - ((i + 1) * 2)])^ := oSample;
+    oSample := Round(pSmallInt(@bBuffer[WaveSize - ((i + 1) * 2)])^ * Scalar);
+    pSmallInt(@bBuffer[WaveSize - ((i + 1) * 2)])^ := oSample;
     Scalar := Scalar + ScaleInc;
   End;
 
@@ -1425,20 +1533,547 @@ Begin
 
   if BASS_Err = 0 Then Begin
 
-    BASS_SampleSetData(Sample, @gBuffer[0]);
+    BASS_SampleSetData(Sample, @bBuffer[0]);
 
     Channel := BASS_SampleGetChannel(Sample, true);
     BASS_ChannelPlay(Channel, True);
 
-    // Wait for the sample to finish. Pressing ESC will BREAK, other keys are ignored.
+    If ASync Then Begin
 
-    While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (KEYSTATE[K_Escape] = 0) Do CB_YIELD;
-    If KEYSTATE[K_Escape] = 1 Then BREAKSIGNAL := True;
+      // ASYNC beeps can be monitored by the BEEPMonitor thread.
 
-    BASS_SampleFree(Sample);
+      BEEPMonitor.AddChannel(Channel, Sample);
+
+    End Else Begin
+
+      // Wait for the sample to finish. Pressing ESC will BREAK, other keys are ignored.
+
+      While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (KEYSTATE[K_Escape] = 0) Do CB_YIELD;
+      If KEYSTATE[K_Escape] = 1 Then BREAKSIGNAL := True;
+
+      BASS_SampleFree(Sample);
+
+    End;
 
   End;
 
 End;
+
+Procedure TPLAYThread.SP_PLAY(Str: aString; SessionID: Integer; Var Error: pSP_ErrorCode);
+Type
+  TPLAYBracket = Record
+    Position: Integer;
+    Repeated: Boolean;
+  End;
+
+Var
+  i, j, k, l, v, bc, Idx, WaveSize, wSample, DeClickSize, BASS_Err, TripletCount, TripletNoteLen, FXStep, Offset,
+  CurOctave, CurEffectLen, CurEFfect, CurVolume, CurNoteLen, LastNoteLen, CurSharpMode, CurMixMode: Integer;
+  Pitch, Hz, Phase, Amplitude, Duration, Scalar, ScaleInc, NoiseScale, VolScale, Ticks, FXInc, FXValue: aFloat;
+  EnableEffects, EnableVolume, TiedNote: Boolean;
+  BracketList: Array[0..10] of TPLAYBracket;
+  TempError: TSP_ErrorCode;
+  bBuffer: Array of Byte;
+  Channel: HCHANNEL;
+  oSample: SmallInt;
+  NoteStr: aString;
+  Sample: HSAMPLE;
+  Ch: aChar;
+
+  Function GetPLAYNumber: Integer;
+  Begin
+    Result := 0;
+    While (i <= l) And (Str[i] in ['0'..'9']) Do Begin
+      Result := (Result * 10) + Ord(Str[i]) - 48;
+      Inc(i);
+    End;
+  End;
+
+Const
+
+  NoteLengths: Array[1..12] of Integer = (6, 9, 12, 18, 24, 36, 48, 72, 96, 4, 8, 16);
+  Effects: Array[0..7] of aString = ('D00', 'A00', 'D11', 'A11', 'DDD', 'AAA', 'ADA', 'DAD');
+
+Begin
+
+  If Assigned(Error) Then
+    Error^.Code := SP_ERR_OK;
+
+  // ONLY TO BE CALLED BY A SEPARATE PLAY THREAD.
+  // PLAY a$,b$,c$ will create three threads which play a$, b$ and c$ respectively, asynchronously, and then
+  // kill themselves.
+
+  CurSharpMode := 0;
+  CurOctave := 5;
+  EnableEffects := False;
+  EnableVolume := False;
+  CurVolume := 15;
+  CurEffect := 7;
+  CurEffectLen := 65535;
+  CurNoteLen := 24; // One crotchet == 1 beat
+  LastNoteLen := CurNoteLen;
+  TripletCount := 0;
+  TripletNoteLen := CurNoteLen;
+  CurTempo := 120; // 2 beats per min
+  TiedNote := False;
+  CurMixMode := 1;
+  bc := -1;
+
+  i := 1;
+  l := Length(Str);
+  While i <= l Do Begin
+    If (Assigned(Error) And (Error^.Code <> SP_ERR_OK)) or Halted Then Exit;
+    Ch := Str[i];
+    Case Ch of
+      'N': // Skip this, it's just a separator
+        Begin
+          Inc(i);
+        End;
+      '&': // Rest
+        Begin
+          Inc(i);
+          Duration := (1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000;
+          Ticks := CB_GETTICKS;
+          While CB_GETTICKS - Ticks < Duration Do CB_YIELD;
+        End;
+      '#': // Sharpen next note - can be packed ("C####C')
+        Begin
+          Inc(CurSharpMode);
+          Inc(i);
+        End;
+      '$': // Flatten next note - can also be packed
+        Begin
+          Dec(CurSharpMode);
+          Inc(i);
+        End;
+      'a'..'g', 'A'..'G': // Play a note (or rest) using information we've gathered
+        Begin
+          NoteStr := Ch;
+          NoteStr := NoteStr + aChar(Ord(CurOctave) + 48);
+          Pitch := SP_StringToSemiTones('!' + NoteStr, TempError) + CurSharpMode;
+          Hz := SP_SemiTonesToHz(Pitch);
+          Case CurMixMode of
+            0: Begin VolScale := 0; NoiseScale := 0;   End;
+            1: Begin VolScale := 1; NoiseScale := 0;   End;
+            2: Begin VolScale := 1; NoiseScale := 0.5; End;
+            3: Begin VolScale := 1; NoiseScale := 1;   End;
+          Else
+            Begin
+              VolScale := 1; NoiseScale := 0;
+            End;
+          End;
+          If EnableVolume Then
+            VolScale := VolScale * (CurVolume/15);
+          Amplitude := 32767 * VolScale;
+          Duration := (1/(96/CurNoteLen)) * (60 / CurTempo) * 4;
+          WaveSize := Round(Duration * 44100) * 2;
+          SetLength(bBuffer, WaveSize);
+          Phase := 0;
+          Idx := 0;
+          While Idx < WaveSize Do Begin
+            wSample := Round(Amplitude * Sign(Sin(Phase)));
+            If NoiseScale > 0 Then
+              wSample := Round((wSample * (1 - NoiseScale)) + ((Random - 0.5) * NoiseScale * Amplitude * 2));
+            pWord(@bBuffer[Idx])^ := Word(wSample);
+            Phase := Phase + ((2 * Pi * Hz) / 44100);
+            Inc(Idx, 2);
+          End;
+          If EnableEffects Then Begin
+            j := 0;
+            FXStep := 1;
+            While J < WaveSize Do Begin
+              Case Effects[CurEffect][FXStep] of
+                'A': // Attack
+                  Begin
+                    FXValue := 0;
+                    FXInc := 1/CurEffectLen;
+                  End;
+                'D': // Decay
+                  Begin
+                    FXValue := 1;
+                    FXInc := -1/CurEffectLen;
+                  End;
+                '0': // Silence
+                  Begin
+                    FXValue := 0;
+                    FXInc := 0;
+                  End;
+                '1': // Tone
+                  Begin
+                    FXValue := 1;
+                    FXInc := 0;
+                  End;
+              Else
+                Begin
+                  FXInc := 0;
+                  FXValue := 1;
+                End;
+              End;
+              Offset := j;
+              For k := 0 to CurEffectLen -1 Do Begin
+                oSample := Round(pSmallInt(@bBuffer[Offset])^ * FXValue);
+                pSmallInt(@bBuffer[Offset])^ := oSample;
+                FXValue := FXValue + FXInc;
+                Inc(Offset, 2);
+                If Offset >= WaveSize Then Break;
+              End;
+              Inc(j, CurEffectLen * 2);
+              Inc(FXStep);
+              If FXStep = 4 Then FXStep := 2;
+            End;
+          End;
+          DeClickSize := Min(44, WaveSize Div 4);
+          Scalar := 0;
+          ScaleInc := 1/DeClickSize;
+          For j := 0 to DeClickSize -1 Do Begin
+            oSample := Round(pSmallInt(@bBuffer[j * 2])^ * Scalar);
+            pSmallInt(@bBuffer[j * 2])^ := oSample;
+            oSample := Round(pSmallInt(@bBuffer[WaveSize - ((j + 1) * 2)])^ * Scalar);
+            pSmallInt(@bBuffer[WaveSize - ((j + 1) * 2)])^ := oSample;
+            Scalar := Scalar + ScaleInc;
+          End;
+          Sample := BASS_SampleCreate(WaveSize, 44100, 1, 1, BASS_SAMPLE_OVER_POS);
+          BASS_Err := BASS_ErrorGetCode;
+          if BASS_Err = 0 Then Begin
+            BASS_SampleSetData(Sample, @bBuffer[0]);
+            Channel := BASS_SampleGetChannel(Sample, true);
+            BASS_ChannelPlay(Channel, True);
+            While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) Do CB_YIELD;
+            BASS_SampleFree(Sample);
+          End Else
+            Exit;
+          If TripletCount > 0 Then Begin
+            Dec(TripletCount);
+            CurNoteLen := TripletNoteLen
+          End Else
+            CurNoteLen := LastNoteLen;
+          CurSharpMode := 0;
+          Inc(i);
+        End;
+      '0'..'9': // Set note duration. 10, 11 and 12 are Triplets.
+        Begin
+          CurSharpMode := 0;
+          v := GetPLAYNumber;
+          If (v >= 1) and (v <= 12) Then Begin
+            If v < 10 Then Begin
+              LastNoteLen := NoteLengths[v];
+              If TiedNote Then
+                CurNoteLen := CurNoteLen + LastNoteLen
+              Else
+                CurNoteLen := LastNoteLen;
+            End Else Begin
+              TripletCount := 2;
+              TripletNoteLen := NoteLengths[v];
+              If TiedNote Then
+                CurNoteLen := CurNoteLen + TripletNoteLen
+              Else
+                CurNoteLen := TripletNoteLen;
+            End;
+          End Else Begin
+            If Assigned(Error) Then
+              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+            Exit;
+          End;
+          TiedNote := False;
+        End;
+      '_': // Tied note length follows
+        Begin
+          TiedNote := True;
+          Inc(i);
+        End;
+      'O': // Set Octave 0 to 8
+        Begin
+          Inc(i);
+          v := GetPLAYNumber;
+          If (v >= 0) and (v <= 8) Then
+            CurOctave := v
+          Else Begin
+            If Assigned(Error) Then
+              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+            Exit;
+          End;
+        End;
+      '(': // Stack a repeat point.
+        Begin
+          Inc(i);
+          Inc(bc);
+          If bc < 5 Then Begin
+            BracketList[bc].Position := i;
+            BracketList[bc].Repeated := False;
+          End Else Begin
+            If Assigned(Error) Then
+              Error^.Code := SP_ERR_TOO_MANY_BRACKETS;
+            Exit;
+          End;
+        End;
+      ')': // UnStack a repeat point and jump to it.
+        Begin
+          Inc(i);
+          If bc >= 0 Then Begin
+            If Not BracketList[bc].Repeated Then Begin
+              BracketList[bc].Repeated := True;
+              i := BracketList[bc].Position;
+            End Else Begin
+              Dec(bc);
+            End;
+          End Else Begin
+            i := 1;
+          End;
+        End;
+      'T': // Set tempo. Broadcast the tempo change to all PLAY threads with the same sessionID.
+        Begin
+          Inc(i);
+          v := GetPLAYNumber;
+          If (v >= 60) And (v <= 240) Then Begin
+            PLAYTempoChange(SessionID, v);
+          End Else Begin
+            If Assigned(Error) Then
+              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+            Exit;
+          End;
+        End;
+      'M': // Mixer. Set 0 = Tone, 1 = Noise, 2 = Tone + Noise for this channel
+        Begin
+          Inc(i);
+          v := GetPLAYNumber;
+          If (v >= 0) And (v <= 3) Then
+            CurMixMode := v
+          Else Begin
+            If Assigned(Error) Then
+              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+            Exit;
+          End;
+        End;
+      'V': // Set Volume mode, 0 to 15
+        Begin
+          Inc(i);
+          v := GetPLAYNumber;
+          If (v >= 0) and (v <= 15) Then Begin
+            EnableVolume := True;
+            EnableEffects := False;
+            CurVolume := v;
+          End Else Begin
+            If Assigned(Error) Then
+              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+            Exit;
+          End;
+        End;
+      'U': // Enable waveform effects - set volume to 15.
+        Begin
+          EnableVolume := False;
+          EnableEffects := True;
+          CurVolume := 15;
+          Inc(i);
+        End;
+      'X': // Effect duration - 0 to 65535. 1Hz = 6928. Converts to samples per envelope cycle
+        Begin
+          Inc(i);
+          v := GetPLAYNumber;
+          If (v >= 0) And (v <= 65535) Then
+            CurEffectLen := Round((v/(1773500/256)) * 44100)
+          Else Begin
+            If Assigned(Error) Then
+              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+            Exit;
+          End;
+        End;
+      'W': // Select the waveform effect to apply to subsequent notes
+        Begin
+          Inc(i);
+          v := GetPLAYNumber;
+          If (v >= 0) and (v <= 7) Then
+            CurEFfect := v
+          Else Begin
+            If Assigned(Error) Then
+              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+            Exit;
+          End;
+        End;
+      'H': // Stop all playback. Send a signal to all PLAY threads with this sessionID to quit.
+        Begin
+          i := l;
+          Exit;
+        End;
+      '!': // Comment block - skip to next '!' or the end of the string.
+        Begin
+          Inc(i);
+          While (i <= l) and (Str[i] <> '!') Do Inc(i);
+          If i >= l Then Exit Else Inc(i);
+        End;
+    Else
+      Begin
+        // Error - Invalid Note Name
+        If Assigned(Error) Then Begin
+          Error^.Code := SP_ERR_INVALID_NOTE;
+          ERRStr := Ch;
+        End;
+        Exit;
+      End;
+    End;
+  End;
+
+End;
+
+Procedure SP_PLAY(PLAYStrs: Array of aString; Var ErrorCode: Integer);
+Var
+  i, SessionID: Integer;
+Begin
+
+  PLAYPoolLock.Enter;
+  Inc(CurSessionID);
+  SessionID := CurSessionID;
+  PLAYPoolLock.Leave;
+
+  ErrorCode := -1;
+  For i := 0 To High(PLAYStrs) Do
+    AddPLAYThread(PLAYStrs[i], SessionID, @ErrorCode);
+
+  ErrorCode := SP_ERR_OK;
+
+  While PLAYSessionIsActive(SessionID) Do
+    CB_YIELD;
+
+End;
+
+Procedure SP_PLAY_ASync(PLAYStrs: Array of aString);
+Var
+  i, SessionID, ErrorCode: Integer;
+Begin
+
+  PLAYPoolLock.Enter;
+  Inc(CurSessionID);
+  SessionID := CurSessionID;
+  PLAYPoolLock.Leave;
+
+  For i := 0 To High(PLAYStrs) Do
+    AddPLAYThread(PLAYStrs[i], SessionID, @ErrorCode);
+
+  ErrorCode := SP_ERR_OK;
+
+End;
+
+Procedure TPLAYThread.Execute;
+Var
+  Error: TSP_ErrorCode;
+  pError: pSP_ErrorCode;
+Begin
+
+  // Always create suspended
+
+  Halted := False;
+  Priority := tpNormal;
+  FreeOnTerminate := True;
+  NameThreadForDebugging('PLAY #' + IntToString(PoolIndex));
+  pError := @Error;
+
+  While Not Terminated Do Begin
+
+    While ErrorCode^ <> SP_ERR_OK Do ;
+    SP_PLAY(PLAYStr, SessionID, pError);
+    ErrorCode^ := pError^.Code;
+    DeletePLAYThread(PoolIndex);
+    Terminate;
+
+  End;
+
+End;
+
+// PLAY thread pool management
+
+Procedure AddPLAYThread(Const Str: aString; ID: Integer; Error: pInteger);
+Var
+  l: Integer;
+Begin
+
+  PLAYPoolLock.Enter;
+
+  l := Length(PLAYPool);
+  SetLength(PLAYPool, l +1);
+  PLAYPool[l] := TPLAYThread.Create(True);
+  With PLAYPool[l] Do Begin
+    CurTempo := 120;
+    PLAYStr := Str;
+    SessionID := ID;
+    ErrorCode := Error;
+    PoolIndex := l;
+    Start;
+  End;
+
+  PLAYPoolLock.Leave;
+
+End;
+
+Procedure DeletePLAYThread(Index: Integer);
+Var
+  i: Integer;
+Begin
+
+  PLAYPoolLock.Enter;
+
+  PLAYPool[Index].Terminate;
+  For i := Index to Length(PLAYPool) -2 do Begin
+    PLAYPool[i] := PLAYPool[i +1];
+    PLAYPool[i].PoolIndex := i;
+  End;
+  SetLength(PLAYPool, Length(PLAYPool) -1);
+
+  PLAYPoolLock.Leave;
+
+End;
+
+Function PLAYSessionIsActive(ID: Integer): Boolean;
+Var
+  i: Integer;
+Begin
+
+  Result := False;
+
+  PLAYPoolLock.Enter;
+  For i := 0 to Length(PLAYPool) -1 Do
+    Result := Result or (PLAYPool[i].SessionID = ID);
+
+  PLAYPoolLock.Leave;
+
+End;
+
+Procedure PLAYTempoChange(SessionID: Integer; NewTempo: Integer);
+Var
+  i: Integer;
+Begin
+
+  PLAYPoolLock.Enter;
+
+  For i := 0 To Length(PLAYPool) -1 Do
+    If PLAYPool[i].SessionID = SessionID Then
+      PLAYPool[i].CurTempo := NewTempo;
+
+  PLAYPoolLock.Leave;
+
+End;
+
+Procedure PLAYSignalHalt(SessionID: Integer);
+Var
+  i: Integer;
+Begin
+
+  PLAYPoolLock.Enter;
+
+  For i := 0 To Length(PLAYPool) -1 Do
+    If PLAYPool[i].SessionID = SessionID Then
+      PLAYPool[i].Halted := True;
+
+  PLAYPoolLock.Leave;
+
+End;
+
+Initialization
+
+  BEEPMonitor := TChannelMonitor.Create(False);
+  PLAYPoolLock := TCriticalSection.Create;
+
+Finalization
+
+  BEEPMonitor.Terminate;
+  PLAYPoolLock.Free;
 
 end.

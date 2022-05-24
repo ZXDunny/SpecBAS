@@ -597,6 +597,7 @@ Procedure SP_Interpret_CHANNEL_RATE_VAL(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CHANNEL_RATE_STR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CHANNEL_PAN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CHANNEL_VOLUME(Var Info: pSP_iInfo);
+Procedure SP_Interpret_PLAY(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MUSIC_PLAY(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MUSIC_STOP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MUSIC_PAUSE(Var Info: pSP_iInfo);
@@ -7665,10 +7666,11 @@ Begin
             SP_TestConsts(Str, 1, Info^.Error^, False);
             SP_AddHandlers(Str);
             Str := #$F + Str;
-          End Else Begin
+          End Else If nError.Code = SP_ERR_OK Then Begin
             SP_TestConsts(Str, 1, Info^.Error^, False);
             SP_AddHandlers(Str);
-          End;
+          End Else
+            SP_AddHandlers(Str);
         End Else Begin
           Str := SP_Convert_Expr(Str, nError.Position, nError, -1) + #255;
           SP_RemoveBlocks(Str);
@@ -14945,21 +14947,19 @@ Procedure SP_Interpret_STREAM_READ(Var Info: pSP_iInfo);
 Var
   StreamID: Integer;
   Count, BytesRead: Integer;
+  Buffer: Array of Byte;
 Begin
 
   StreamID := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
   Count := Round(SP_StackPtr^.Val);
 
-  If gBuffLen <> Count Then Begin
-    SetLength(gBuffer, Count);
-    gBuffLen := Count;
-  End;
-  BytesRead := SP_StreamRead(StreamID, @gBuffer[0], Count, Info^.Error^);
+  SetLength(Buffer, Count);
+  BytesRead := SP_StreamRead(StreamID, @Buffer[0], Count, Info^.Error^);
 
   With SP_StackPtr^ Do Begin
     SetLength(Str, BytesRead);
-    CopyMem(@Str[1], @gBuffer[0], BytesRead);
+    CopyMem(@Str[1], @Buffer[0], BytesRead);
     OpType := SP_STRING;
   End;
 
@@ -15590,6 +15590,32 @@ Begin
   Dec(SP_StackPtr);
 
   SP_Channel_Volume(ID, Volume, Info^.Error^);
+
+End;
+
+Procedure SP_Interpret_PLAY(Var Info: pSP_iInfo);
+Var
+  aSync: Boolean;
+  NumStrs, i: Integer;
+  PLAYStrs: Array of aString;
+Begin
+
+  aSync := Round(SP_StackPtr^.Val) <> 0;
+  Dec(SP_StackPtr);
+
+  NumStrs := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  SetLength(PLAYStrs, NumStrs);
+  For i := 1 To NumStrs Do Begin
+    PLAYStrs[i -1] := SP_StackPtr^.Str;
+    Dec(SP_StackPtr);
+  End;
+
+  If ASync Then
+    SP_PLAY_ASync(PLAYStrs)
+  Else
+    SP_PLAY(PLAYStrs, Info^.Error^.Code);
 
 End;
 
@@ -22160,9 +22186,12 @@ End;
 
 Procedure SP_Interpret_BEEP(Var Info: pSP_iInfo);
 Var
-  WaveType: Integer;
+  WaveType, Async: Integer;
   Duration, Pitch, Attack, Decay, Sustain, Release, Noise, Roughness: aFloat;
 Begin
+
+  Async := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
 
   Duration := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
@@ -22226,7 +22255,7 @@ Begin
 
   // Now create and play the sound!
 
-  SP_MakeBEEP(Duration, Pitch, WaveType, Attack, Decay, Sustain, Release, Noise, Roughness, Info^.Error^);
+  SP_MakeBEEP(Duration, Pitch, WaveType, Attack, Decay, Sustain, Release, Noise, Roughness, ASync = 1, Info^.Error^);
 
 End;
 
@@ -25586,6 +25615,7 @@ Initialization
   InterpretProcs[SP_KW_CHANNEL_SEEK] := @SP_Interpret_CHANNEL_SEEK;
   InterpretProcs[SP_KW_CHANNEL_RATE_VAL] := @SP_Interpret_CHANNEL_RATE_VAL;
   InterpretProcs[SP_KW_CHANNEL_RATE_STR] := @SP_Interpret_CHANNEL_RATE_STR;
+  InterpretProcs[SP_KW_PLAY] := @SP_Interpret_PLAY;
   InterpretProcs[SP_KW_MUSIC_PLAY] := @SP_Interpret_MUSIC_PLAY;
   InterpretProcs[SP_KW_MUSIC_PAUSE] := @SP_Interpret_MUSIC_PAUSE;
   InterpretProcs[SP_KW_MUSIC_STOP] := @SP_Interpret_MUSIC_STOP;

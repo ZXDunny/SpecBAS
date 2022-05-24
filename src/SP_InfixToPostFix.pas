@@ -142,6 +142,7 @@ Function  SP_Convert_MOVE(Var KeyWordID: LongWord; Var Tokens: aString; Var Posi
 Function  SP_Convert_SAMPLE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_CHANNEL(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_MUSIC(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_PLAY(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_ELSE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode; Var StList: aString): aString;
 Function  SP_Convert_ENDIF: aString;
 Function  SP_Convert_DEF_STRUCT(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -629,6 +630,7 @@ Begin
     SP_KW_SAMPLE: Result := Result + SP_Convert_SAMPLE(KeyWordID, Tokens, Position, Error);
     SP_KW_CHANNEL: Result := Result + SP_Convert_CHANNEL(KeyWordID, Tokens, Position, Error);
     SP_KW_MUSIC: Result := Result + SP_Convert_MUSIC(KeyWordID, Tokens, Position, Error);
+    SP_KW_PLAY: Result := Result + SP_Convert_PLAY(KeyWordID, Tokens, Position, Error);
     SP_KW_ELSE: Result := Result + SP_Convert_ELSE(KeyWordID, Tokens, Position, Error, StList);
     SP_KW_ENDIF: Result := Result + SP_Convert_ENDIF;
     SP_KW_DEF_STRUCT: Result := Result + SP_Convert_DEF_STRUCT(KeyWordID, Tokens, Position, Error);
@@ -5800,8 +5802,11 @@ Begin
                         tStart := pLongWord(@TypePositions[Idx2 -1][1])^;
                         TestTokens := Copy(Tokens, tStart + SizeOf(TToken), tLen - SizeOf(TToken));
                         SP_OptimiseStack(TestTokens, tStart, Error);
-                        Tokens := Copy(Tokens, 1, tStart -1) + TestTokens + Copy(Tokens, tStart + tLen, Length(Tokens));
-                        Replaced := Error.Code = SP_ERR_OK;
+                        If Error.Code = SP_ERR_OK Then Begin
+                          Tokens := Copy(Tokens, 1, tStart -1) + TestTokens + Copy(Tokens, tStart + tLen, Length(Tokens));
+                          Replaced := True;
+                        End;
+                        Error.Code := SP_ERR_OK;
                       End;
                     End;
                   End;
@@ -11986,6 +11991,43 @@ Begin
 
 End;
 
+Function  SP_Convert_PLAY(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Var
+  Done: Boolean;
+  Cnt: Integer;
+Begin
+
+  // PLAY str1[,str2...] ASYNC
+
+  Cnt := 0;
+  Result := '';
+  Done := False;
+  While Not Done Do Begin
+    Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result;
+    If Error.Code = SP_ERR_OK Then Begin
+      If Error.ReturnType <> SP_STRING Then Begin
+        Error.Code := SP_ERR_MISSING_STREXPR;
+        Exit;
+      End Else
+        Inc(Cnt);
+      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then
+        Inc(Position, 2)
+      Else
+        Done := True;
+    End Else
+      Exit;
+  End;
+
+  Result := Result + CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(Cnt);
+
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_ASYNC) Then Begin
+    Inc(Position, 1 + SizeOf(LongWord));
+    Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(1);
+  End Else
+    Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
+
+End;
+
 Function SP_Convert_MUSIC(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
   KeyWord: LongWord;
@@ -16530,7 +16572,7 @@ Var
   Expr: aString;
 Begin
 
-  // BEEP duration,{pitch|pitch$} [FORMAT WaveType,Attack,Decay,Sustain,Release,Noise,Roughness]
+  // BEEP duration,{pitch|pitch$} [FORMAT WaveType,Attack,Decay,Sustain,Release,Noise,Roughness] [ASYNC]
 
   Result := '';
   Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Duration
@@ -16622,6 +16664,12 @@ Begin
         End;
 
     End;
+
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_ASYNC) Then Begin
+      Inc(Position, 1 + SizeOf(LongWord));
+      Expr := Expr + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(1);
+    End Else
+      Expr := Expr + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
 
     Result := Expr;
 

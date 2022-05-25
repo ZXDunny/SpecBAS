@@ -55,6 +55,7 @@ Type
     ErrorCode: pInteger;
     PoolIndex: Integer;
     Halted, IsASync, Playing: Boolean;
+    Ticks: aFloat;
     Procedure Execute; Override;
     Procedure SP_PLAY(Str: aString; SessionID: Integer; ASync: Boolean; Var Error: pSP_ErrorCode);
     Procedure CheckMessages;
@@ -106,7 +107,7 @@ Procedure SP_MakeBEEP(Duration, Pitch: aFloat; WaveType: Integer; Attack, Decay,
 
 Procedure SP_PLAY(PLAYStrs: Array of aString; Var ErrorCode: Integer);
 Procedure SP_PLAY_ASync(PLAYStrs: Array of aString);
-Procedure AddPLAYThread(Const Str: aString; ID, Tempo: Integer; ASync: Boolean; Error: pInteger);
+Procedure AddPLAYThread(Const Str: aString; ID, Tempo: Integer; aTime: aFloat; ASync: Boolean; Error: pInteger);
 Procedure DeletePLAYThread(Index: Integer);
 Procedure PLAYTempoChange(ID: Integer; NewTempo: Integer);
 Procedure PLAYSignalHalt(ID: Integer);
@@ -1595,7 +1596,7 @@ Type
 Var
   i, j, k, l, v, bc, Idx, WaveSize, wSample, DeClickSize, BASS_Err, TripletCount, TripletNoteLen, FXStep, Offset,
   CurOctave, CurEffectLen, CurEFfect, CurVolume, CurNoteLen, LastNoteLen, CurSharpMode, CurMixMode: Integer;
-  Pitch, Hz, Phase, Amplitude, Duration, Scalar, ScaleInc, NoiseScale, VolScale, Ticks, FXInc, FXValue: aFloat;
+  Pitch, Hz, Phase, Amplitude, Duration, Scalar, ScaleInc, NoiseScale, VolScale, FXInc, FXValue: aFloat;
   EnableEffects, EnableVolume, TiedNote: Boolean;
   BracketList: Array[0..10] of TPLAYBracket;
   TempError: TSP_ErrorCode;
@@ -1621,8 +1622,6 @@ Const
   Effects: Array[0..7] of aString = ('D00', 'A00', 'D11', 'A11', 'DDD', 'AAA', 'ADA', 'DAD');
 
 Begin
-
-  Ticks := CB_GETTICKS;
 
   If Assigned(Error) Then
     Error^.Code := SP_ERR_OK;
@@ -1696,7 +1695,7 @@ Begin
             VolScale := VolScale * (CurVolume/15);
           Amplitude := 32767 * VolScale;
           Duration := (1/(96/CurNoteLen)) * 4;
-          WaveSize := Round(Duration * 44100) * 2;
+          WaveSize := Ceil(Duration * 44100 * 2);
           SetLength(bBuffer, WaveSize);
           Phase := 0;
           Idx := 0;
@@ -1952,6 +1951,7 @@ End;
 Procedure SP_PLAY(PLAYStrs: Array of aString; Var ErrorCode: Integer);
 Var
   i, SessionID, t: Integer;
+  ticks: aFloat;
 Begin
 
   PLAYLock.Enter;
@@ -1963,9 +1963,10 @@ Begin
   For i := 0 To High(PLAYStrs) Do
     t := GetTempoInformation(PLAYStrs[i], t);
 
+  ticks := CB_GETTICKS;
   ErrorCode := -1;
   For i := 0 To High(PLAYStrs) Do
-    AddPLAYThread(PLAYStrs[i], SessionID, t, False, @ErrorCode);
+    AddPLAYThread(PLAYStrs[i], SessionID, t, ticks, False, @ErrorCode);
 
   ErrorCode := SP_ERR_OK;
 
@@ -1978,6 +1979,7 @@ Procedure SP_PLAY_ASync(PLAYStrs: Array of aString);
 Var
   i, SessionID, t, ErrorCode: Integer;
   AllPlaying: Boolean;
+  ticks: aFloat;
 Begin
 
   PLAYLock.Enter;
@@ -1989,9 +1991,10 @@ Begin
   For i := 0 To High(PLAYStrs) Do
     t := GetTempoInformation(PLAYStrs[i], t);
 
+  ticks := CB_GETTICKS;
   ErrorCode := -1;
   For i := 0 To High(PLAYStrs) Do
-    AddPLAYThread(PLAYStrs[i], SessionID, t, True, @ErrorCode);
+    AddPLAYThread(PLAYStrs[i], SessionID, t, ticks, True, @ErrorCode);
 
   ErrorCode := SP_ERR_OK;
 
@@ -2180,7 +2183,7 @@ Begin
 
 End;
 
-Procedure AddPLAYThread(Const Str: aString; ID, Tempo: Integer; ASync: Boolean; Error: pInteger);
+Procedure AddPLAYThread(Const Str: aString; ID, Tempo: Integer; aTime: aFloat; ASync: Boolean; Error: pInteger);
 Var
   l: Integer;
 Begin
@@ -2199,6 +2202,7 @@ Begin
     ErrorCode := Error;
     PoolIndex := l;
     IsASync := ASync;
+    Ticks := aTime;
     Start;
   End;
 

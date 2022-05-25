@@ -1016,6 +1016,7 @@ end;
 procedure TMain.FormDeactivate(Sender: TObject);
 begin
   FormActivated := False;
+  SP_ClearAllKeys;
 end;
 
 Procedure TMain.FormDestroy(Sender: TObject);

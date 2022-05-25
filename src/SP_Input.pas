@@ -457,6 +457,8 @@ Begin
   For i := 0 To High(KEYSTATE) Do
     KEYSTATE[i] := 0;
   KeyBufferPos := 0;
+  K_DOWNFLAG := False;
+  K_UPFLAG := False;
   KeyLock.Leave;
 End;
 

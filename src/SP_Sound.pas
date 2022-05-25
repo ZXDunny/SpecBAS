@@ -41,15 +41,23 @@ Type
     Procedure AddChannel(Channel: HCHANNEL; Sample: HSAMPLE);
   End;
 
+  TPLAYMessage = Record
+    ID: Integer;        // Intended channel's ID
+    Msg: Integer;       // Message - currently 0:Tempo change 1:Halt
+    Data: Integer;      // payload
+    TimeStamp: aFloat;  // Timestamp from CB_GETTICKS
+  End;
+
   TPLAYThread = Class(TThread)
     CurTempo: Integer;
     PLAYStr: aString;
-    SessionID: Integer;
+    SessionID, ChanID: Integer;
     ErrorCode: pInteger;
     PoolIndex: Integer;
-    Halted, IsASync: Boolean;
+    Halted, IsASync, Playing: Boolean;
     Procedure Execute; Override;
     Procedure SP_PLAY(Str: aString; SessionID: Integer; ASync: Boolean; Var Error: pSP_ErrorCode);
+    Procedure CheckMessages;
   End;
 
 Procedure SP_Init_Sound;
@@ -98,19 +106,30 @@ Procedure SP_MakeBEEP(Duration, Pitch: aFloat; WaveType: Integer; Attack, Decay,
 
 Procedure SP_PLAY(PLAYStrs: Array of aString; Var ErrorCode: Integer);
 Procedure SP_PLAY_ASync(PLAYStrs: Array of aString);
-Procedure AddPLAYThread(Const Str: aString; ID: Integer; ASync: Boolean; Error: pInteger);
+Procedure AddPLAYThread(Const Str: aString; ID, Tempo: Integer; ASync: Boolean; Error: pInteger);
 Procedure DeletePLAYThread(Index: Integer);
-Procedure PLAYTempoChange(SessionID: Integer; NewTempo: Integer);
-Procedure PLAYSignalHalt(SessionID: Integer);
+Procedure PLAYTempoChange(ID: Integer; NewTempo: Integer);
+Procedure PLAYSignalHalt(ID: Integer);
 Function  PLAYSessionIsActive(ID: Integer): Boolean;
+Function  GetTempoInformation(Str: aString; Default: Integer): Integer;
+Procedure SendPLAYMessage(ChanID, Action, Payload: Integer);
+Procedure DeletePLAYMessage(index: Integer);
+Procedure DeletePLAYMessages(ChanID: integer);
 
 Var
 
   BEEPMonitor: TChannelMonitor;
   CurSessionID: Integer = 0;
+  CurChanID: Integer = 0;
 
+  PLAYMsgs: Array of TPLAYMessage;
   PLAYPool: Array of TPLAYThread;
-  PLAYPoolLock: TCriticalSection;
+  PLAYLock: TCriticalSection;
+
+Const
+
+  PLAYMSG_TEMPO = 0;
+  PLAYMSG_HALT = 1;
 
 implementation
 
@@ -254,14 +273,12 @@ End;
 
 Procedure SP_SetGlobalVolume(sVolume: aFloat; Var Error: TSP_ErrorCode);
 Var
-  logVol, db: aFloat;
+  logVol: aFloat;
 Begin
 
   If (sVolume < 0) or (sVolume > 1) Then
     Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE
   Else Begin
-//    db := (-90) + (30 - (-90)) * sVolume;
-//    logVol := exp(db/20 * log10(10));
     logVol := sVolume * sVolume * sVolume;
     BASS_SetConfig(BASS_CONFIG_GVOL_MUSIC, Round(logVol * 10000));
     BASS_SetConfig(BASS_CONFIG_GVOL_SAMPLE, Round(logVol * 10000));
@@ -1625,7 +1642,7 @@ Begin
   LastNoteLen := CurNoteLen;
   TripletCount := 0;
   TripletNoteLen := CurNoteLen;
-  CurTempo := 120; // 2 beats per second
+  CurTempo := 60; // 2 beats per second
   TiedNote := False;
   CurMixMode := 1;
   bc := -1;
@@ -1633,8 +1650,7 @@ Begin
   i := 1;
   l := Length(Str);
   While i <= l Do Begin
-    If Not ASync And (KEYSTATE[K_Escape] = 1) Then BREAKSIGNAL := True;
-    If (Assigned(Error) And (Error^.Code <> SP_ERR_OK)) or Halted or BREAKSIGNAL Then Exit;
+    If (Assigned(Error) And (Error^.Code <> SP_ERR_OK)) or Halted Then Exit;
     Ch := Str[i];
     Case Ch of
       'N': // Skip this, it's just a separator
@@ -1644,12 +1660,11 @@ Begin
       '&': // Rest
         Begin
           Inc(i);
-          Duration := (1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000;
-          While (CB_GETTICKS - Ticks < Duration) And Not (BREAKSIGNAL or Halted) Do Begin
-            If Not ASync And (KEYSTATE[K_Escape] = 1) Then BREAKSIGNAL := True;
+          While (CB_GETTICKS - Ticks < ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000)) And Not Halted Do Begin
+            CheckMessages;
             CB_YIELD;
           End;
-          Ticks := Ticks + Duration;
+          Ticks := Ticks + ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000);
         End;
       '#': // Sharpen next note - can be packed ("C####C')
         Begin
@@ -1680,7 +1695,7 @@ Begin
           If EnableVolume Then
             VolScale := VolScale * (CurVolume/15);
           Amplitude := 32767 * VolScale;
-          Duration := (1/(96/CurNoteLen)) * (60 / CurTempo) * 4;
+          Duration := (1/(96/CurNoteLen)) * 4;
           WaveSize := Round(Duration * 44100) * 2;
           SetLength(bBuffer, WaveSize);
           Phase := 0;
@@ -1753,12 +1768,12 @@ Begin
             BASS_SampleSetData(Sample, @bBuffer[0]);
             Channel := BASS_SampleGetChannel(Sample, true);
             BASS_ChannelPlay(Channel, True);
-            While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (CB_GETTICKS - Ticks < Duration * 1000) And Not (BREAKSIGNAL or Halted) Do Begin
-              If Not ASync And (KEYSTATE[K_Escape] = 1) Then BREAKSIGNAL := True;
+            While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (CB_GETTICKS - Ticks < ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4) * 1000) And Not Halted Do Begin
+              CheckMessages;
               CB_YIELD;
             End;
             BASS_SampleFree(Sample);
-            Ticks := Ticks + (Duration * 1000);
+            Ticks := Ticks + (((1/(96/CurNoteLen)) * (60 / CurTempo) * 4) * 1000);
           End Else
             Exit;
           If TripletCount > 0 Then Begin
@@ -1911,6 +1926,7 @@ Begin
       'H': // Stop all playback. Send a signal to all PLAY threads with this sessionID to quit.
         Begin
           i := l;
+          PLAYSignalHalt(SessionID);
           Exit;
         End;
       '!': // Comment block - skip to next '!' or the end of the string.
@@ -1935,17 +1951,21 @@ End;
 
 Procedure SP_PLAY(PLAYStrs: Array of aString; Var ErrorCode: Integer);
 Var
-  i, SessionID: Integer;
+  i, SessionID, t: Integer;
 Begin
 
-  PLAYPoolLock.Enter;
+  PLAYLock.Enter;
   Inc(CurSessionID);
   SessionID := CurSessionID;
-  PLAYPoolLock.Leave;
+  PLAYLock.Leave;
+
+  t := 120;
+  For i := 0 To High(PLAYStrs) Do
+    t := GetTempoInformation(PLAYStrs[i], t);
 
   ErrorCode := -1;
   For i := 0 To High(PLAYStrs) Do
-    AddPLAYThread(PLAYStrs[i], SessionID, False, @ErrorCode);
+    AddPLAYThread(PLAYStrs[i], SessionID, t, False, @ErrorCode);
 
   ErrorCode := SP_ERR_OK;
 
@@ -1956,18 +1976,31 @@ End;
 
 Procedure SP_PLAY_ASync(PLAYStrs: Array of aString);
 Var
-  i, SessionID, ErrorCode: Integer;
+  i, SessionID, t, ErrorCode: Integer;
+  AllPlaying: Boolean;
 Begin
 
-  PLAYPoolLock.Enter;
+  PLAYLock.Enter;
   Inc(CurSessionID);
   SessionID := CurSessionID;
-  PLAYPoolLock.Leave;
+  PLAYLock.Leave;
 
+  t := 120;
   For i := 0 To High(PLAYStrs) Do
-    AddPLAYThread(PLAYStrs[i], SessionID, True, @ErrorCode);
+    t := GetTempoInformation(PLAYStrs[i], t);
+
+  ErrorCode := -1;
+  For i := 0 To High(PLAYStrs) Do
+    AddPLAYThread(PLAYStrs[i], SessionID, t, True, @ErrorCode);
 
   ErrorCode := SP_ERR_OK;
+
+  Repeat
+    CB_YIELD;
+    AllPlaying := True;
+    For i := 0 To High(PLAYPool) Do
+      AllPlaying := AllPlaying And PLAYPool[i].Playing;
+  Until AllPlaying;
 
 End;
 
@@ -1980,6 +2013,7 @@ Begin
   // Always create suspended
 
   Halted := False;
+  Playing := False;
   Priority := tpNormal;
   FreeOnTerminate := True;
   NameThreadForDebugging('PLAY #' + IntToString(PoolIndex));
@@ -1988,29 +2022,178 @@ Begin
   While Not Terminated Do Begin
 
     While ErrorCode^ <> SP_ERR_OK Do ;
+    Playing := True;
     SP_PLAY(PLAYStr, SessionID, IsASync, pError);
     ErrorCode^ := pError^.Code;
+    PLAYLock.Enter;
     DeletePLAYThread(PoolIndex);
+    DeletePLAYMessages(ChanID);
+    PLAYLock.Leave;
     Terminate;
 
   End;
 
 End;
 
-// PLAY thread pool management
-
-Procedure AddPLAYThread(Const Str: aString; ID: Integer; ASync: Boolean; Error: pInteger);
+Procedure SendPLAYMessage(ChanID, Action, Payload: Integer);
 Var
   l: Integer;
 Begin
 
-  PLAYPoolLock.Enter;
+  PLAYLock.Enter;
+
+  l := Length(PLAYMsgs);
+  SetLength(PLAYMsgs, l +1);
+  With PLAYMsgs[l] Do Begin
+    TimeStamp := CB_GETTICKS;
+    Msg := Action;
+    Data := Payload;
+    ID := ChanID;
+  End;
+
+  PLAYLock.Leave;
+
+End;
+
+Procedure DeletePLAYMessage(Index: Integer);
+Var
+  i: Integer;
+Begin
+
+  PLAYLock.Enter;
+
+  For i := Index To High(PLAYMsgs) -1 Do
+    PLAYMsgs[i] := PLAYMsgs[i +1];
+  SetLength(PLAYMsgs, Length(PLAYMsgs) -1);
+
+  PLAYLock.Leave;
+
+End;
+
+Procedure DeletePLAYMessages(ChanID: integer);
+Var
+  i, j: Integer;
+Begin
+
+  PLAYLock.Enter;
+
+  j := 0;
+  While j <= High(PLAYMsgs) Do Begin
+    If PLAYMsgs[j].ID = ChanID Then Begin
+      For i := j To High(PLAYMsgs) -1 Do
+        PLAYMsgs[i] := PLAYMsgs[i +1];
+      SetLength(PLAYMsgs, Length(PLAYMsgs) -1);
+    End Else
+      Inc(j);
+  End;
+
+  PLAYLock.Leave;
+
+End;
+
+Procedure TPLAYThread.CheckMessages;
+Var
+  i: Integer;
+Begin
+
+  PLAYLock.Enter;
+
+  i := 0;
+  While i <= High(PLAYMsgs) Do Begin
+    With PLAYMsgs[i] Do
+      If CB_GETTICKS - TimeStamp > 1000 Then
+        DeletePLAYMessage(i)
+      Else Begin
+        If ID = ChanID Then Begin
+          Case Msg of
+            0: // Tempo Change
+              Begin
+                CurTempo := Data;
+              End;
+            1: // Halt
+              Begin
+                Halted := True;
+              End;
+          End;
+          DeletePLAYMessage(i);
+        End Else
+          Inc(i);
+      End;
+  End;
+
+  If KEYSTATE[K_Escape] = 1 Then BREAKSIGNAL := True;
+  If BREAKSIGNAL Then Halted := True;
+
+  PLAYLock.Leave;
+
+End;
+
+// PLAY thread pool management
+
+Function GetTempoInformation(Str: aString; Default: Integer): Integer;
+Var
+  i, l: Integer;
+  Done: Boolean;
+
+  Function GetPLAYNumber: Integer;
+  Begin
+    Result := 0;
+    While (i <= l) And (Str[i] in ['0'..'9']) Do Begin
+      Result := (Result * 10) + Ord(Str[i]) - 48;
+      Inc(i);
+    End;
+  End;
+
+Begin
+
+  i := 1;
+  Done := False;
+  l := Length(Str);
+  Result := Default;
+  While Not Done Do Begin
+    If i > l Then Exit;
+    Case Str[i] of
+      '0'..'9', 'a'..'g', 'A'..'G', 'H', '$', '#', '_', '&':
+        Exit;
+      '(', ')', 'U', 'N':
+        Inc(i);
+      'O', 'M', 'X', 'V', 'W':
+        Begin
+          Inc(i);
+          GetPLAYNumber;
+        End;
+      '!':
+        Begin
+          Inc(i);
+          While (i <= l) and (Str[i] <> '!') Do Inc(i);
+          If i >= l Then Exit Else Inc(i);
+        End;
+      'T':
+        Begin
+          Inc(i);
+          Result := GetPLAYNumber;
+        End;
+    Else
+      Inc(i);
+    End;
+  End;
+
+End;
+
+Procedure AddPLAYThread(Const Str: aString; ID, Tempo: Integer; ASync: Boolean; Error: pInteger);
+Var
+  l: Integer;
+Begin
+
+  PLAYLock.Enter;
 
   l := Length(PLAYPool);
   SetLength(PLAYPool, l +1);
   PLAYPool[l] := TPLAYThread.Create(True);
   With PLAYPool[l] Do Begin
-    CurTempo := 120;
+    Inc(CurChanID);
+    ChanID := CurChanID;
+    CurTempo := Tempo;
     PLAYStr := Str;
     SessionID := ID;
     ErrorCode := Error;
@@ -2019,7 +2202,7 @@ Begin
     Start;
   End;
 
-  PLAYPoolLock.Leave;
+  PLAYLock.Leave;
 
 End;
 
@@ -2028,7 +2211,7 @@ Var
   i: Integer;
 Begin
 
-  PLAYPoolLock.Enter;
+  PLAYLock.Enter;
 
   If Index < Length(PLAYPool) Then Begin
     PLAYPool[Index].Terminate;
@@ -2039,7 +2222,7 @@ Begin
     SetLength(PLAYPool, Length(PLAYPool) -1);
   End;
 
-  PLAYPoolLock.Leave;
+  PLAYLock.Leave;
 
 End;
 
@@ -2050,41 +2233,41 @@ Begin
 
   Result := False;
 
-  PLAYPoolLock.Enter;
+  PLAYLock.Enter;
   For i := 0 to Length(PLAYPool) -1 Do
     Result := Result or ((PLAYPool[i].SessionID = ID) And Not(PLAYPool[i].Halted));
 
-  PLAYPoolLock.Leave;
+  PLAYLock.Leave;
 
 End;
 
-Procedure PLAYTempoChange(SessionID: Integer; NewTempo: Integer);
+Procedure PLAYTempoChange(ID: Integer; NewTempo: Integer);
 Var
   i: Integer;
 Begin
 
-  PLAYPoolLock.Enter;
+  PLAYLock.Enter;
 
-  For i := 0 To Length(PLAYPool) -1 Do
-    If PLAYPool[i].SessionID = SessionID Then
-      PLAYPool[i].CurTempo := NewTempo;
+  For i := 0 To High(PLAYPool) Do
+    If PLAYPool[i].SessionID = ID Then
+      SendPLAYMessage(PLAYPool[i].ChanID, PLAYMSG_TEMPO, NewTempo);
 
-  PLAYPoolLock.Leave;
+  PLAYLock.Leave;
 
 End;
 
-Procedure PLAYSignalHalt(SessionID: Integer);
+Procedure PLAYSignalHalt(ID: Integer);
 Var
   i: Integer;
 Begin
 
-  PLAYPoolLock.Enter;
+  PLAYLock.Enter;
 
-  For i := 0 To Length(PLAYPool) -1 Do
-    If (SessionID = -1) or (PLAYPool[i].SessionID = SessionID) Then
-      PLAYPool[i].Halted := True;
+  For i := 0 To High(PLAYPool) Do
+    If (ID = -1) or (PLAYPool[i].SessionID = ID) Then
+      SendPLAYMessage(PLAYPool[i].ChanID, 1, PLAYMSG_HALT);
 
-  PLAYPoolLock.Leave;
+  PLAYLock.Leave;
 
   If i = -1 Then
     While Length(PLAYPool) > 0 Do CB_YIELD;
@@ -2094,12 +2277,12 @@ End;
 Initialization
 
   BEEPMonitor := TChannelMonitor.Create(False);
-  PLAYPoolLock := TCriticalSection.Create;
+  PLAYLock := TCriticalSection.Create;
 
 Finalization
 
   PLAYSignalHalt(-1);
   BEEPMonitor.Terminate;
-  PLAYPoolLock.Free;
+  PLAYLock.Free;
 
 end.

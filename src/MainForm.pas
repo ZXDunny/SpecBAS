@@ -844,6 +844,7 @@ end;
 Procedure TMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
 
+  PLAYSignalHalt(-1);
   If Not QUITMSG Then
     Quitting := True;
 

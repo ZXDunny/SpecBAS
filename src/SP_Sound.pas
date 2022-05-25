@@ -47,9 +47,9 @@ Type
     SessionID: Integer;
     ErrorCode: pInteger;
     PoolIndex: Integer;
-    Halted: Boolean;
+    Halted, IsASync: Boolean;
     Procedure Execute; Override;
-    Procedure SP_PLAY(Str: aString; SessionID: Integer; Var Error: pSP_ErrorCode);
+    Procedure SP_PLAY(Str: aString; SessionID: Integer; ASync: Boolean; Var Error: pSP_ErrorCode);
   End;
 
 Procedure SP_Init_Sound;
@@ -98,7 +98,7 @@ Procedure SP_MakeBEEP(Duration, Pitch: aFloat; WaveType: Integer; Attack, Decay,
 
 Procedure SP_PLAY(PLAYStrs: Array of aString; Var ErrorCode: Integer);
 Procedure SP_PLAY_ASync(PLAYStrs: Array of aString);
-Procedure AddPLAYThread(Const Str: aString; ID: Integer; Error: pInteger);
+Procedure AddPLAYThread(Const Str: aString; ID: Integer; ASync: Boolean; Error: pInteger);
 Procedure DeletePLAYThread(Index: Integer);
 Procedure PLAYTempoChange(SessionID: Integer; NewTempo: Integer);
 Procedure PLAYSignalHalt(SessionID: Integer);
@@ -253,14 +253,19 @@ Begin
 End;
 
 Procedure SP_SetGlobalVolume(sVolume: aFloat; Var Error: TSP_ErrorCode);
+Var
+  logVol, db: aFloat;
 Begin
 
   If (sVolume < 0) or (sVolume > 1) Then
     Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE
   Else Begin
-    BASS_SetConfig(BASS_CONFIG_GVOL_MUSIC, Round(sVolume * 10000));
-    BASS_SetConfig(BASS_CONFIG_GVOL_SAMPLE, Round(sVolume * 10000));
-    BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, Round(sVolume * 10000));
+//    db := (-90) + (30 - (-90)) * sVolume;
+//    logVol := exp(db/20 * log10(10));
+    logVol := sVolume * sVolume * sVolume;
+    BASS_SetConfig(BASS_CONFIG_GVOL_MUSIC, Round(logVol * 10000));
+    BASS_SetConfig(BASS_CONFIG_GVOL_SAMPLE, Round(logVol * 10000));
+    BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, Round(logVol * 10000));
     VOLUME := sVolume;
     BASS_ChannelStop(CLICKCHAN);
     BASS_ChannelStop(ERRORCHAN);
@@ -1563,7 +1568,7 @@ Begin
 
 End;
 
-Procedure TPLAYThread.SP_PLAY(Str: aString; SessionID: Integer; Var Error: pSP_ErrorCode);
+Procedure TPLAYThread.SP_PLAY(Str: aString; SessionID: Integer; ASync: Boolean; Var Error: pSP_ErrorCode);
 Type
   TPLAYBracket = Record
     Position: Integer;
@@ -1620,7 +1625,7 @@ Begin
   LastNoteLen := CurNoteLen;
   TripletCount := 0;
   TripletNoteLen := CurNoteLen;
-  CurTempo := 120; // 2 beats per min
+  CurTempo := 120; // 2 beats per second
   TiedNote := False;
   CurMixMode := 1;
   bc := -1;
@@ -1628,7 +1633,7 @@ Begin
   i := 1;
   l := Length(Str);
   While i <= l Do Begin
-    If KEYSTATE[K_Escape] = 1 Then BREAKSIGNAL := True;
+    If Not ASync And (KEYSTATE[K_Escape] = 1) Then BREAKSIGNAL := True;
     If (Assigned(Error) And (Error^.Code <> SP_ERR_OK)) or Halted or BREAKSIGNAL Then Exit;
     Ch := Str[i];
     Case Ch of
@@ -1640,7 +1645,10 @@ Begin
         Begin
           Inc(i);
           Duration := (1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000;
-          While CB_GETTICKS - Ticks < Duration Do CB_YIELD;
+          While (CB_GETTICKS - Ticks < Duration) And Not (BREAKSIGNAL or Halted) Do Begin
+            If Not ASync And (KEYSTATE[K_Escape] = 1) Then BREAKSIGNAL := True;
+            CB_YIELD;
+          End;
           Ticks := Ticks + Duration;
         End;
       '#': // Sharpen next note - can be packed ("C####C')
@@ -1745,7 +1753,10 @@ Begin
             BASS_SampleSetData(Sample, @bBuffer[0]);
             Channel := BASS_SampleGetChannel(Sample, true);
             BASS_ChannelPlay(Channel, True);
-            While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (CB_GETTICKS - Ticks < Duration * 1000) Do CB_YIELD;
+            While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (CB_GETTICKS - Ticks < Duration * 1000) And Not (BREAKSIGNAL or Halted) Do Begin
+              If Not ASync And (KEYSTATE[K_Escape] = 1) Then BREAKSIGNAL := True;
+              CB_YIELD;
+            End;
             BASS_SampleFree(Sample);
             Ticks := Ticks + (Duration * 1000);
           End Else
@@ -1934,7 +1945,7 @@ Begin
 
   ErrorCode := -1;
   For i := 0 To High(PLAYStrs) Do
-    AddPLAYThread(PLAYStrs[i], SessionID, @ErrorCode);
+    AddPLAYThread(PLAYStrs[i], SessionID, False, @ErrorCode);
 
   ErrorCode := SP_ERR_OK;
 
@@ -1954,7 +1965,7 @@ Begin
   PLAYPoolLock.Leave;
 
   For i := 0 To High(PLAYStrs) Do
-    AddPLAYThread(PLAYStrs[i], SessionID, @ErrorCode);
+    AddPLAYThread(PLAYStrs[i], SessionID, True, @ErrorCode);
 
   ErrorCode := SP_ERR_OK;
 
@@ -1977,7 +1988,7 @@ Begin
   While Not Terminated Do Begin
 
     While ErrorCode^ <> SP_ERR_OK Do ;
-    SP_PLAY(PLAYStr, SessionID, pError);
+    SP_PLAY(PLAYStr, SessionID, IsASync, pError);
     ErrorCode^ := pError^.Code;
     DeletePLAYThread(PoolIndex);
     Terminate;
@@ -1988,7 +1999,7 @@ End;
 
 // PLAY thread pool management
 
-Procedure AddPLAYThread(Const Str: aString; ID: Integer; Error: pInteger);
+Procedure AddPLAYThread(Const Str: aString; ID: Integer; ASync: Boolean; Error: pInteger);
 Var
   l: Integer;
 Begin
@@ -2004,6 +2015,7 @@ Begin
     SessionID := ID;
     ErrorCode := Error;
     PoolIndex := l;
+    IsASync := ASync;
     Start;
   End;
 
@@ -2018,12 +2030,14 @@ Begin
 
   PLAYPoolLock.Enter;
 
-  PLAYPool[Index].Terminate;
-  For i := Index to Length(PLAYPool) -2 do Begin
-    PLAYPool[i] := PLAYPool[i +1];
-    PLAYPool[i].PoolIndex := i;
+  If Index < Length(PLAYPool) Then Begin
+    PLAYPool[Index].Terminate;
+    For i := Index to Length(PLAYPool) -2 do Begin
+      PLAYPool[i] := PLAYPool[i +1];
+      PLAYPool[i].PoolIndex := i;
+    End;
+    SetLength(PLAYPool, Length(PLAYPool) -1);
   End;
-  SetLength(PLAYPool, Length(PLAYPool) -1);
 
   PLAYPoolLock.Leave;
 
@@ -2038,7 +2052,7 @@ Begin
 
   PLAYPoolLock.Enter;
   For i := 0 to Length(PLAYPool) -1 Do
-    Result := Result or (PLAYPool[i].SessionID = ID);
+    Result := Result or ((PLAYPool[i].SessionID = ID) And Not(PLAYPool[i].Halted));
 
   PLAYPoolLock.Leave;
 
@@ -2072,6 +2086,9 @@ Begin
 
   PLAYPoolLock.Leave;
 
+  If i = -1 Then
+    While Length(PLAYPool) > 0 Do CB_YIELD;
+
 End;
 
 Initialization
@@ -2081,6 +2098,7 @@ Initialization
 
 Finalization
 
+  PLAYSignalHalt(-1);
   BEEPMonitor.Terminate;
   PLAYPoolLock.Free;
 

@@ -1641,7 +1641,6 @@ Begin
   LastNoteLen := CurNoteLen;
   TripletCount := 0;
   TripletNoteLen := CurNoteLen;
-  CurTempo := 60; // 2 beats per second
   TiedNote := False;
   CurMixMode := 1;
   bc := -1;

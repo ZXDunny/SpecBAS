@@ -8479,8 +8479,10 @@ Begin
 
       Idx := 0;
       While Idx < NewList.Count Do Begin
-        nl := SP_GetLineNumberFromText(Copy(NewList[Idx], 9));
-        If nl >= LineNum Then Break;
+        If pLongWord(@NewList[Idx][1])^ = spSoftReturn Then Begin
+          nl := SP_GetLineNumberFromText(Copy(NewList[Idx], 9));
+          If nl >= LineNum Then Break;
+        End;
         Inc(Idx);
       End;
 

@@ -272,6 +272,13 @@ Begin
 
 End;
 
+Function AYLogVolume(v: aFloat): aFloat;
+Begin
+  // This, believe it or not, almost perfectly matches voltages from a real AY
+  // See: https://groups.google.com/g/comp.sys.sinclair/c/-zCR2kxMryY/m/Ym2WVcS2PGwJ
+  Result := Power((v * v * v), 0.95-(v/110));
+End;
+
 Procedure SP_SetGlobalVolume(sVolume: aFloat; Var Error: TSP_ErrorCode);
 Var
   logVol: aFloat;
@@ -280,7 +287,7 @@ Begin
   If (sVolume < 0) or (sVolume > 1) Then
     Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE
   Else Begin
-    logVol := sVolume * sVolume * sVolume;
+    logVol := AYLogVolume(sVolume);
     BASS_SetConfig(BASS_CONFIG_GVOL_MUSIC, Round(logVol * 10000));
     BASS_SetConfig(BASS_CONFIG_GVOL_SAMPLE, Round(logVol * 10000));
     BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, Round(logVol * 10000));
@@ -1690,8 +1697,10 @@ Begin
               VolScale := 1; NoiseScale := 0;
             End;
           End;
-          If EnableVolume Then
-            VolScale := VolScale * (CurVolume/15);
+          If EnableVolume Then Begin
+            Scalar := AYLogVolume(CurVolume);
+            VolScale := VolScale * Scalar;
+          End;
           Amplitude := 32767 * VolScale;
           Duration := (1/(96/CurNoteLen)) * 4;
           WaveSize := Ceil(Duration * 44100 * 2);
@@ -1739,7 +1748,8 @@ Begin
               End;
               Offset := j;
               For k := 0 to CurEffectLen -1 Do Begin
-                oSample := Round(pSmallInt(@bBuffer[Offset])^ * FXValue);
+                Scalar := AYLogVolume(FXValue);
+                oSample := Round(pSmallInt(@bBuffer[Offset])^ * Scalar);
                 pSmallInt(@bBuffer[Offset])^ := oSample;
                 FXValue := FXValue + FXInc;
                 Inc(Offset, 2);

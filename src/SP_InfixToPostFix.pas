@@ -6388,7 +6388,7 @@ Next_Assign:
         If Error.Code <> SP_ERR_OK Then
           Exit
         Else
-          If Error.ReturnType <> SP_VALUE Then Begin
+          If (Error.ReturnType <> SP_VALUE) And (Error.ReturnType <> SP_NUMVAR) Then Begin
             Error.Code := SP_ERR_MISSING_NUMEXPR;
             Exit;
           End;

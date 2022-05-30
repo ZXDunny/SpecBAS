@@ -606,8 +606,10 @@ Begin
 End;
 
 Procedure CopyMem2(var Dst: Pointer; Src: Pointer; Len: LongInt); inline;
+{$IFDEF CPU64}
 var
   t: NativeUInt;
+{$ENDIF}
 Begin
 
   // Copies bytes from Src to Dst pointers - slightly faster than copymem().
@@ -1353,8 +1355,6 @@ Function CopyFile(sSource, sDest: string): boolean;
 Var
   fsSrc, fsDst: TFileStream;
 Begin
-  Result := false;
-
   fsSrc := TFileStream.Create(sSource, fmOpenRead);
   try
     fsDst := TFileStream.Create(sDest, fmCreate);
@@ -1636,7 +1636,7 @@ Function Pos(Const SubStr: aChar; s: aString; StartAt: Integer = 1): Integer;
 Var
   ps: pByte;
   pss: NativeUInt;
-  l: Integer;
+  l: NativeUInt;
 Begin
 
   Result := 0;

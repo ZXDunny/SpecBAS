@@ -407,7 +407,7 @@ Begin
 
   SCALEWIDTH := sWidth;
   SCALEHEIGHT := sHeight;
-  If INTSCALING Then Begin
+  If INTSCALING And Not ((SCALEWIDTH/DISPLAYWIDTH = Floor(SCALEWIDTH/DISPLAYWIDTH)) And (SCALEHEIGHT/DISPLAYHEIGHT = Floor(SCALEHEIGHT/DISPLAYHEIGHT))) Then Begin
     DoScale := (sWidth/Width >= 1.5) or (sHeight/Height >= 1.5);
     ScaleFactor := Max(Round(sWidth/Width), Round(sHeight/Height));
   End Else Begin
@@ -1377,8 +1377,17 @@ begin
 
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, ScaledWidth, ScaledHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, Nil);
 
-        glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        If INTSCALING And ((SCALEWIDTH/DISPLAYWIDTH = Floor(SCALEWIDTH/DISPLAYWIDTH)) And (SCALEHEIGHT/DISPLAYHEIGHT = Floor(SCALEHEIGHT/DISPLAYHEIGHT))) Then Begin
+
+          glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+          glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+        End Else Begin
+
+          glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+          glTexParameterI(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+        End;
 
         glEnable(GL_TEXTURE_2D);
 

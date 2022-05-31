@@ -2095,7 +2095,7 @@ Begin
     Else Begin
       Offset := -(Offset +1);
       Index := pLongWord(@Indices[1 + Length(Indices) - SizeOf(LongWord)])^;
-      If Index > Length(StrArrays[Idx].Strings[Offset]^.Value) Then Begin
+      If (Index > Length(StrArrays[Idx].Strings[Offset]^.Value)) or (Index <= 0) Then Begin
         ERRStr := StrArrays[Idx].Name + '$';
         Error.Code := SP_ERR_SUBSCRIPT_WRONG
       End Else

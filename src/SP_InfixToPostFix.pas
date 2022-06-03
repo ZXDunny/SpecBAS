@@ -11058,7 +11058,7 @@ Begin
               End Else
                 Expr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(32) + Expr;
             End Else
-              Expr := CreateToken(SP_STRING, Position, 0) + Expr;
+              Expr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(32) + CreateToken(SP_STRING, Position, 0) + Expr;
             Result := Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_FONT_NEW) + VarResult;
             If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
             Exit;

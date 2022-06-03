@@ -149,14 +149,17 @@ End;
 Procedure OpenTipWindow(Hint: SP_Hint);
 Var
   Str: aString;
-  hw, hh: Integer;
   Error: TSP_ErrorCode;
+  hw, hh, Font: Integer;
   Window: pSP_Window_Info;
   cX1, cY1, cX2, cY2, DR_Window, DefaultWindow: Integer;
 Begin
 
   If TipWindowID <> -1 Then CloseTipWindow;
 
+
+  Font := FONTBANKID;
+  SP_SetSystemFont(EDITORFONT, Error);
   DR_Window := SCREENBANK;
   T_SCALEX := EdFontScaleX;
   T_SCALEY := EdFontScaleY;
@@ -188,6 +191,7 @@ Begin
     TipTimerID := -1;
   End;
 
+  SP_SetSystemFont(Font, Error);
   SP_SetDrawingWindow(DR_Window);
 
 End;

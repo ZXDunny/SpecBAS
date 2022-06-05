@@ -1766,7 +1766,7 @@ End;
 Function SP_GetNumber(Line: aString; Var Idx: Integer; Var Number: aFloat; AllowSpaces: Boolean): Boolean;
 Var
   NegExp: Boolean;
-  OldIdx, NewIdx, NumDigits: Integer;
+  OldIdx, NewIdx, NumDigits, c: Integer;
   Dec_Value, Dec_Count, Exponent: aFloat;
 Begin
 
@@ -1784,6 +1784,7 @@ Begin
     Inc(Idx);
     OldIdx := Idx;
     NumDigits := 1;
+    c := 0;
     While (Idx <= Length(Line)) And (Line[Idx] in [' ', '1', '0']) Do Inc(Idx);
     If Idx > OldIdx Then Begin
       NewIdx := Idx;
@@ -1793,6 +1794,11 @@ Begin
           Result := True;
           If Line[Idx] = '1' Then
             Number := Number + NumDigits;
+          Inc(c);
+          if c>= 31 Then Begin
+            Result := False;
+            Exit;
+          End;
           Inc(NumDigits, NumDigits);
         End;
         Dec(Idx);

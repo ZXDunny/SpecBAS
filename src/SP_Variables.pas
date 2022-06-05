@@ -3297,9 +3297,10 @@ Begin
 
       Tkn := @Tokens[Idx];
       TknType := Tkn^.Token;
+      If TknType = SP_TERMINAL Then Break;
+
       TokenPos := Idx;
       TokenLen := Tkn^.TokenLen;
-      If TknType = SP_TERMINAL Then Break;
 
       Inc(Idx, SizeOf(TToken));
 

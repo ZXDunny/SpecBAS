@@ -857,7 +857,7 @@ Begin
 
     Idx := 0;
     While Idx < ProgLen Do Begin
-      ProgLine := SP_StringOfChar(#9, Listing.Flags[Idx].Indent) + SP_FPGetUnwrappedLine(Idx) + #13+#10;
+      ProgLine := SP_StringOfChar(' ', Listing.Flags[Idx].Indent) + SP_FPGetUnwrappedLine(Idx) + #13+#10;
       SaveBuffer := SaveBuffer + ProgLine;
     End;
     SP_FileWrite(FileID, @SaveBuffer[1], Length(SaveBuffer), Error);

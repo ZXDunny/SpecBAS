@@ -5367,7 +5367,7 @@ End;
 Procedure SP_Interpret_FN_LPADS(Var Info: pSP_iInfo);
 Var
   src, pad: aString;
-  len, idx: Integer;
+  len: Integer;
 Begin
 
   len := Round(SP_StackPtr^.Val);
@@ -5376,7 +5376,8 @@ Begin
   Dec(SP_StackPtr);
   src := SP_StackPtr^.Str;
 
-  For idx := 1 to len Do src := pad + src;
+  while Length(src) < len do
+    src := pad + src;
 
   SP_StackPtr^.Str := src;
 
@@ -5385,7 +5386,7 @@ End;
 Procedure SP_Interpret_FN_RPADS(Var Info: pSP_iInfo);
 Var
   src, pad: aString;
-  len, idx: Integer;
+  len: Integer;
 Begin
 
   len := Round(SP_StackPtr^.Val);
@@ -5394,7 +5395,8 @@ Begin
   Dec(SP_StackPtr);
   src := SP_StackPtr^.Str;
 
-  For idx := 1 To Len Do src := src + pad;
+  while Length(src) < len do
+    src := src + pad;
 
   SP_StackPtr^.Str := src;
 

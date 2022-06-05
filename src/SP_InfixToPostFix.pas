@@ -5792,7 +5792,7 @@ Begin
                         End;
                         Dec(Idx2);
                       End;
-                      If CanOptimise Then Begin
+                      If CanOptimise and (Idx2 > 0) Then Begin
                         // By all accounts, this function does not rely on state information, and contains no parameters that cannot be optimised...
                         // So let's see if we can optimise it!
                         tStart := Idx2;

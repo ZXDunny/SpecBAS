@@ -5345,16 +5345,18 @@ Begin
                   c := 0;
                   Break;
                 End;
+                s := Listing[fp];
                 If SP_LineHasNumber(fp) > 0 Then
-                  While (n <= Length(Listing[fp])) And (Listing[fp][n] in ['0'..'9']) Do
+                  While (n <= Length(s)) And (s[n] in ['0'..'9']) Do
                     Inc(n);
                 c := Listing.Flags[fp].Indent;
-                If n < Length(listing[fp]) Then
-                  If Listing[fp] <> '' Then
-                    While Listing[fp][n] <= ' ' Do Begin
+                If n < Length(s) Then
+                  If s <> '' Then Begin
+                    While (n < Length(s)) and (s[n] <= ' ') Do Begin
                       Inc(n);
                       Inc(c);
                     End;
+                  End;
               End;
               n := c;
               // Is the cursor at this position?

@@ -2759,14 +2759,6 @@ Begin
               End;
            13:
               Begin // Carriage return
-                While Y >= SCREENHEIGHT Do Begin
-                  If Not SP_TestScroll(Ch, Error) Then Begin
-                    Result := SP_ERR_PRINT_ABANDONED;
-                    Exit;
-                  End;
-                  Dec(Y, Ch);
-                  Inc(Scrolls);
-                End;
                 X := 0;
                 Inc(Y, Ch);
               End;
@@ -3428,14 +3420,6 @@ Begin
               End;
            13:
               Begin // Carriage return
-                While Y >= SCREENHEIGHT Do Begin
-                  If Not SP_TestScroll(Ch, Error) Then Begin
-                    Result := SP_ERR_PRINT_ABANDONED;
-                    Exit;
-                  End;
-                  Dec(Y, Ch);
-                  Inc(Scrolls);
-                End;
                 X := 0;
                 Inc(Y, Ch);
               End;

@@ -393,6 +393,7 @@ Var
   sPtr, dPtr: pByte;
   Idx: Integer;
   Val, oVal: Byte;
+  Channel: HChannel;
 Begin
 
   If SIGSAMPLEBANK = -1 Then Begin
@@ -415,7 +416,10 @@ Begin
       oVal := Val;
       Inc(dPtr);
     End;
-    SP_Sample_Play(SIGSAMPLEBANK, -1, '', 0, CLICKVOL, -9, Error);
+    Channel := SP_Sample_Play(SIGSAMPLEBANK, -1, '', 0, CLICKVOL, 0, Error);
+    Repeat
+      CB_YIELD;
+    Until BASS_ChannelGetPosition(Channel, BASS_POS_BYTE) >= 0;
   End;
 
 End;

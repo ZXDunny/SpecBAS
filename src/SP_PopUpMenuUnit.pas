@@ -59,6 +59,7 @@ SP_PopupMenu = Class(SP_BaseComponent)
     fClicked: SP_MenuItem;
     PrevFocusedControl: SP_BaseComponent;
     fAltDown: Boolean;
+    fShortcutLen: Integer;
     Procedure CalculateSizes;
     Procedure Draw; Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
@@ -259,6 +260,7 @@ Begin
   y := 2;
   mw := 0;
   mx := 3;
+  fShortcutLen := 0;
   SubsPresent := False;
   For i := 0 To Length(fItems) -1 Do Begin
     x := 3;
@@ -276,13 +278,18 @@ Begin
             Inc(x, iFW);
           End;
         Inc(w, StripLen(Caption) * iFW);
-        If Shortcut <> 0 Then Inc(w, Length(ShortcutToString(ShortCut) + '  ') * iFW);
+        If Shortcut <> 0 Then Begin
+          l := Length(ShortcutToString(ShortCut));
+          fShortcutLen := Max(fShortcutLen, l);
+        End;
         if SP_Util.Pos('&', Caption) > 0 Then Dec(w, iFW);
         If x > mx Then mx := x;
         If w > mw Then mw := w;
       End;
     End;
   End;
+  if fShortcutLen > 0 then
+    mw := mw + ((fShortcutLen +2) * iFW);
   For i := 0 To Length(fItems) -1 Do Begin
     With r do Begin
       Left := mx;

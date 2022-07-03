@@ -161,6 +161,7 @@ Var
   SetDR: Boolean = False;
   DPtrBackup: Pointer;
   MOUSEPALETTE: Array[0..255] of TP_Colour;
+  RenderCount: NativeInt;
 
   {$IFDEF FPC}
   DispRects: Array[0..65535] of TRct;
@@ -560,21 +561,13 @@ End;
 
 
 Procedure SP_WaitForSync;
-Var
-  CFRAMES: NativeInt;
 Begin
 
-  If SP_NeedDisplayUpdate Then Begin
-    // A screen update is pending - wait for it, then return.
-    CauseUpdate := True;
-    While CauseUpdate Do
-      CB_YIELD;
-  End Else Begin
-    // No screen update pending, so wait for a frame time to elapse.
-    CFRAMES := FRAMES;
-    While CFRAMES = FRAMES Do
-      CB_YIELD;
-  End;
+  SP_NeedDisplayUpdate := True;
+  CauseUpdate := True;
+  Repeat
+    CB_YIELD;
+  Until Not CauseUpdate;
 
 End;
 
@@ -1270,7 +1263,6 @@ Begin
       OldMouse := MOUSEVISIBLE;
       MOUSEVISIBLE := False;
       SIZINGMAIN := True;
-      DisplaySection.Leave;
       CB_SetScreenRes(Window^.Width, Window^.Height, SCALEWIDTH, SCALEHEIGHT, FullScreen);
       Repeat
         CB_YIELD;
@@ -3241,6 +3233,8 @@ Begin
     SP_DrawRectangle32(X1, Y1, X2, Y2);
 
   SP_BankList[0]^.Changed := True;
+  DRPOSX := X2;
+  DRPOSY := Y2;
 
 End;
 
@@ -3313,6 +3307,8 @@ Begin
   End;
 
   SP_BankList[0]^.Changed := True;
+  DRPOSX := X2;
+  DRPOSY := Y2;
 
 End;
 
@@ -3369,6 +3365,8 @@ Begin
     SP_DrawSolidRectangle32(X1, Y1, X2, Y2);
 
   SP_BankList[0]^.Changed := True;
+  DRPOSX := X2;
+  DRPOSY := Y2;
 
 End;
 

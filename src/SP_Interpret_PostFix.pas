@@ -6529,8 +6529,7 @@ Begin
   Inc(SP_StackPtr);
   // Important - yield CPU if necessary to ensure that
   // keyboard messages are processed
-  If FRAMES <> LASTINKEYFRAME Then
-    CB_YIELD;
+  If FRAMES <> LASTINKEYFRAME Then CB_YIELD;
   // Now get the keyboard state
   With SP_StackPtr^ Do Begin
     Str := GetLastKeyChar;

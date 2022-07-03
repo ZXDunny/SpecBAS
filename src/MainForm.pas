@@ -175,11 +175,12 @@ Var
   p: TPoint;
 Begin
 
+  RenderCount := 0;
   NameThreadForDebugging('Refresh Thread');
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
-  Priority := tpNormal;
+  Priority := tpHighest;
   StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
 
@@ -192,17 +193,16 @@ Begin
       Inc(AutoFrameCount);
       LastFrames := FRAMES;
 
+      DisplaySection.Enter;
       If SP_FrameUpdate Then Begin
-        If DisplaySection.TryEnter Then Begin
-          If UpdateDisplay Then Begin
-            CB_Refresh_Display;
-            SP_NeedDisplayUpdate := False;
-          End;
-          DisplaySection.Leave;
+        If UpdateDisplay Then Begin
+          CB_Refresh_Display;
+          SP_NeedDisplayUpdate := False;
         End;
         UPDATENOW := False;
         CauseUpdate := False;
       End;
+      DisplaySection.Leave;
 
     End Else
 
@@ -384,6 +384,8 @@ Begin
     InvalidateRect(Main.Handle, iRect, False);
     Main.Repaint;
   {$ENDIF}
+
+  Inc(RenderCount);
 
 End;
 

@@ -25,7 +25,7 @@ Unit SP_Interpret_PostFix;
 
 interface
 
-Uses Forms, SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
+Uses Forms, IOUtils, SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
      SP_Input, SP_BankManager, SP_BankFiling, SP_Streams, SP_Sound, SP_Package, Math, Classes, SysUtils, SP_Math,
      {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_Strings, SP_Menu, SP_UITools, SP_AnsiStringlist, SP_Variables;
 
@@ -111,6 +111,9 @@ Type
   TSP_InterpretProc = Procedure(Var Info: pSP_iInfo);
   pSP_InterpretProc = ^TSP_InterpretProc;
 
+Procedure SP_Execute(Line: aString; Var Error: TSP_ErrorCode);
+Procedure SP_Interpreter(Var Tokens: paString; Var Position: Integer; Var Error: TSP_ErrorCode; PreParseErrorCode: Integer; Continue: Boolean = False);
+
 Procedure DoPeriodicalEvents(var Error: TSP_ErrorCode);
 Procedure SP_AddEvery(const Condition: aString; Every, LineNum, Statement, St: Integer; UsesError: Boolean);
 Procedure ClearFlags;
@@ -131,6 +134,7 @@ Function  SP_ConvertToTokens(Const s: aString; Var Error: TSP_ErrorCode): aStrin
 Procedure SP_InterpretCONTSafe(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_Interpret(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
 
+Procedure SP_Interpret_COMPILE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_UNHANDLED(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_SCREENS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_JOINS(Var Info: pSP_iInfo);
@@ -712,6 +716,7 @@ Procedure SP_Interpret_MOUSE_HIDE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MOUSE_GRAPHIC(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MOUSE_GFXS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MOUSE_DEFAULT(Var Info: pSP_iInfo);
+Procedure SP_Interpret_MOUSE_TO(Var Info: pSP_iInfo);
 Procedure SP_Interpret_DEBUG(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FPS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PUSH(Var Info: pSP_iInfo);
@@ -1001,7 +1006,198 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel;
+Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, RunTimeCompiler;
+
+Procedure SP_Execute(Line: aString; Var Error: TSP_ErrorCode);
+Var
+  Tokens: paString;
+  aSave: Boolean;
+Begin
+
+  aSave := AUTOSAVE;
+  AUTOSAVE := False;
+
+  Error.Line := -1;
+  Error.Statement := 1;
+  Error.Position := 1;
+  Line := SP_TokeniseLine(Line, False, False) + #255#255#255#255;
+  SP_Convert_ToPostFix(Line, Error.Position, Error);
+  Tokens := @Line;
+  Error.Position := SP_FindStatement(@Line, 1);
+  Error.Code := SP_ERR_OK;
+  COMMAND_TOKENS := Line;
+  NXTSTATEMENT := -1;
+  NXTLINE := -1;
+  SP_StackPtr := SP_StackStart;
+  SP_PreParse(False, False, Error, Tokens^);
+  PROGSTATE := SP_PR_RUN;
+  SP_Interpreter(Tokens, Error.Position, Error, Error.Code);
+
+  AUTOSAVE := aSave;
+
+End;
+
+Procedure SP_Interpreter(Var Tokens: paString; Var Position: Integer; Var Error: TSP_ErrorCode; PreParseErrorCode: Integer; Continue: Boolean);
+Var
+  CurLine, Idx, OldEC: Integer;
+  HasErrors, BreakNow: Boolean;
+  res: aString;
+Begin
+
+  // If there are errors in the listing, or lines that have yet to be compiled, then
+  // flag them up now. Errors will not stop the _command line_ from running, but will
+  // prevent entry to the program.
+
+  HasErrors := False;
+
+  If Not Continue Then Begin
+
+    If PAYLOADPRESENT Then
+      HasErrors := False
+    Else
+      HasErrors := Not SP_CheckProgram;
+    If Assigned(CompilerThread) Then SP_StopCompiler;
+    SP_Interpret(Tokens, Error.Position, Error);
+
+  End;
+
+  If Error.ReturnType >= SP_JUMP Then
+    If PreParseErrorCode <> SP_ERR_OK Then Begin
+      Error.Code := PreParseErrorCode;
+      Error.ReturnType := 0;
+      Exit;
+    End;
+
+  If INCLUDEFROM > -1 Then Begin
+    If NXTLINE >= INCLUDEFROM Then NXTLINE := -1;
+  End Else
+    If NXTLINE >= SP_Program_Count Then NXTLINE := -1;
+
+  While NXTLINE <> -1 Do Begin
+
+    If NXTLINE = -2 Then Begin
+      CurLine := -1;
+      SYSTEMSTATE := SS_DIRECT;
+      Tokens := @COMMAND_TOKENS;
+      If NXTSTATEMENT = -1 Then Begin Dec(Error.Statement); Exit; End;
+      If Byte(Tokens^[NXTSTATEMENT]) = SP_TERMINAL Then
+        Dec(Error.Statement);
+    End Else Begin
+      If HasErrors Then Begin
+        Error.Code := SP_ERR_EDITOR;
+        Error.Line := NXTLINE;
+        Error.Statement := 1;
+        EDITERROR := True;
+        Exit;
+      End Else Begin
+        CurLine := NXTLINE;
+        SYSTEMSTATE := SS_INTERPRET;
+        Tokens := @SP_Program[CurLine];
+      End;
+    End;
+
+    If NXTSTATEMENT <> -1 Then
+      Error.Position := NXTSTATEMENT
+    Else Begin
+      Error.Statement := 1;
+      Error.Position := SP_FindStatement(Tokens, 1);
+    End;
+
+    NXTSTATEMENT := -1;
+    Inc(NXTLINE);
+    If NXTLINE <> 0 Then Begin
+      Error.Line := CurLine;
+      SP_StackPtr := SP_StackStart;
+      SP_Interpret(Tokens, Error.Position, Error);
+
+      If DEBUGGING Then Begin
+        If STEPMODE = SM_Single Then
+          Exit;
+
+        If Error.Code = SP_ERR_OK Then
+          For Idx := 0 To Length(SP_ConditionalBreakPointList) -1 Do
+            With SP_ConditionalBreakPointList[Idx] Do Begin
+              OldEC := Error.Code;
+              BreakNow := PassCount = 0;
+              If bpType = BP_Conditional Then
+                BreakNow := (SP_FPExecuteNumericExpression(Compiled_Condition, Error) <> 0) And BreakNow
+              Else Begin
+                res := SP_FPExecuteAnyExpression(Compiled_Condition, Error);
+                BreakNow := ((HasResult And (res <> CurResult)) or (Not HasResult)) and BreakNow and (Error.Code = SP_ERR_OK);
+                If Error.Code = SP_ERR_OK Then Begin
+                  CurResult := res;
+                  HasResult := True;
+                End;
+              End;
+              Error.Code := OldEC;
+              If BreakNow Then Begin
+                CONTLINE := NXTLINE;
+                If NXTSTATEMENT = -1 Then
+                  CONTSTATEMENT := 1
+                Else
+                  CONTSTATEMENT := SP_GetStatementFromOffset(NXTLINE, NXTSTATEMENT);
+                Error.Code := SP_ERR_BREAKPOINT;
+                Error.Line := CONTLINE;
+                Error.Statement := CONTSTATEMENT;
+                Exit;
+              End Else
+                If PassCount > 0 Then
+                  Dec(PassCount);
+            End;
+      End;
+    End;
+
+    If NXTLINE = SP_Program_Count Then NXTLINE := -1;
+
+    If Error.Code <> SP_ERR_OK Then Begin
+      NXTLINE := -1;
+    End Else Begin
+      If NXTLINE <> -1 Then Begin
+        If NXTLINE >= SP_Program_Count Then
+          NXTLINE := -1;
+      End;
+
+    End;
+
+  End;
+
+End;
+
+Procedure SP_Interpret_COMPILE(Var Info: pSP_iInfo);
+var
+  sFilename, dFilename, Dir: String;
+  payLoadData: aString;
+  payLoad: TPayLoad;
+  {$IFDEF DEBUG}
+  s: TFileStream;
+  {$ENDIF}
+Begin
+
+  // Create an executable with the current program as a payload.
+
+  Dir := ExtractFilePath(EXENAME);
+  sFilename := EXENAME;
+  dFilename := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+  If FileExists(sFilename) Then Begin
+    If FileExists(dFilename) Then
+      TFile.Delete(dFilename);
+    TFile.Copy(sFilename, dFilename);
+    payLoadData := MakeDataPayload;
+    payLoad := TPayLoad.Create(dFilename);
+    payload.SetPayload(payLoadData[1], Length(PayLoadData));
+    payLoad.Free;
+    {$IFDEF DEBUG}
+    sFilename := Dir + 'payload.bin';
+    if FileExists(sFilename) then
+      TFile.Delete(sFilename);
+    s := TFileStream.Create(sFilename, fmCreate);
+    s.Write(payLoadData[1], Length(payLoadData));
+    s.Free;
+    {$ENDIF}
+  End;
+
+End;
 
 Procedure SP_AddWatch(Index: Integer; Expr: aString);
 Var
@@ -8375,6 +8571,9 @@ Begin
 
   End;
 
+  If (PrItem = '') and AddReturn Then
+    PrItem := #13;
+
   If PrItem <> '' Then Begin
     If AddReturn and (PRItem[Length(PRItem)] <> #13) Then
       prItem := PrItem + #13;
@@ -15614,10 +15813,11 @@ Begin
     Dec(SP_StackPtr);
   End;
 
-  If ASync Then
-    SP_PLAY_ASync(PLAYStrs)
-  Else
-    SP_PLAY(PLAYStrs, Info^.Error^.Code);
+  If SoundEnabled Then
+    If ASync Then
+      SP_PLAY_ASync(PLAYStrs)
+    Else
+      SP_PLAY(PLAYStrs, Info^.Error^.Code);
 
 End;
 
@@ -18423,6 +18623,7 @@ Begin
   Dec(SP_StackPtr);
 
   DoAutoSave;
+
   SP_FPDeleteLines(Start, Finish, Info^.Error^);
 
 End;
@@ -19417,6 +19618,7 @@ Begin
   Dec(SP_StackPtr);
 
   DoAutoSave;
+
   SP_FPMergeLines(Start, Finish, Info^.Error^);
 
 End;
@@ -20168,6 +20370,20 @@ Begin
   SP_RestoreMouseRegion;
   SP_MousePointerFromDefault;
   //SP_StackPtr := SP_StackStart;
+
+End;
+
+Procedure SP_Interpret_MOUSE_TO(Var Info: pSP_iInfo);
+var
+  x, y: Integer;
+Begin
+
+  x := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  y := Round(SP_StackPtr^.val);
+  Dec(SP_StackPtr);
+
+  CB_MouseMove(x, y);
 
 End;
 
@@ -25740,6 +25956,7 @@ Initialization
   InterpretProcs[SP_KW_MOUSE_GRAPHIC] := @SP_Interpret_MOUSE_GRAPHIC;
   InterpretProcs[SP_KW_MOUSE_GFXS] := @SP_Interpret_MOUSE_GFXS;
   InterpretProcs[SP_KW_MOUSE_DEFAULT] := @SP_Interpret_MOUSE_DEFAULT;
+  InterpretProcs[SP_KW_MOUSE_TO] := @SP_Interpret_MOUSE_TO;
   InterpretProcs[SP_KW_DEBUG] := @SP_Interpret_DEBUG;
   InterpretProcs[SP_KW_FPS] := @SP_Interpret_FPS;
   InterpretProcs[SP_KW_PUSH] := @SP_Interpret_PUSH;
@@ -25893,6 +26110,7 @@ Initialization
   InterpretProcs[SP_KW_INSTALL] := @SP_Interpret_INSTALL;
   InterpretProcs[SP_KW_SCREEN_SAVE] := @SP_Interpret_SCREEN_SAVE;
   InterpretProcs[SP_KW_GRAPHIC_SAVE] := @SP_Interpret_GRAPHIC_SAVE;
+  InterpretProcs[SP_KW_COMPILE] := @SP_Interpret_COMPILE;
 
   // Functions
 

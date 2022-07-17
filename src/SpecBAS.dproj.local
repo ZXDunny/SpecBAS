@@ -7,9 +7,12 @@
     <Transaction>2021/05/23 13:23:38.000.563,D:\Projects\SpecBAS\src\SP_ProgressBarUnit.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2022/03/18 13:55:53.000.131,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2022/03/18 13:56:12.000.812,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_ToolTipWindow.pas</Transaction>
+    <Transaction>2022/07/17 14:29:03.630,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2022/07/17 14:29:48.901,D:\Projects\SpecBAS\src\RunTimeCompiler.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
   </Transactions>
 	<ProjectSortOrder AutoSort="0" SortType="0">
     <File Path="MainForm.pas"/>
     <File Path="MainForm.dfm"/>
+    <File Path="RunTimeCompiler.pas"/>
   </ProjectSortOrder>
 </BorlandProject>

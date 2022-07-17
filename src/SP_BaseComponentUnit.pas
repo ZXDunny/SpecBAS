@@ -2165,7 +2165,6 @@ Begin
     p := ClientToScreen(Point(X, Y));
     CheckForTip(p.x, p.y);
   End;
-
   MouseMove(X, Y, Btn);
 
 End;

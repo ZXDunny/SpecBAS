@@ -2319,7 +2319,8 @@ Begin
   LastStrLen := 0;
   SetLength(LineLUT, 0);
 
-  SP_CompileProgram;
+  If Not PAYLOADPRESENT Then
+    SP_CompileProgram;
 
   sIdx := -1;
   if CmdTokens <> '' then

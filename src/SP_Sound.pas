@@ -127,6 +127,8 @@ Var
   PLAYPool: Array of TPLAYThread;
   PLAYLock: TCriticalSection;
 
+  SoundEnabled: Boolean;
+
 Const
 
   PLAYMSG_TEMPO = 0;
@@ -203,34 +205,39 @@ Var
   Info: BASS_INFO;
   BASS_Err: Integer;
   Error: TSP_ErrorCode;
+  Handle: HMODULE;
 Begin
 
   // Initialise BASS.
 
-  BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
+  If SoundEnabled Then Begin
 
-  {$IFDEF LINUX}
-  BASS_Init(-1, 44100, 0, 0, 0);
-  {$ELSE}
-  BASS_Init(-1, 44100, 0, 0, nil);
-  {$ENDIF}
+    BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
 
-  BASS_Err := BASS_ErrorGetCode;
-  If BASS_Err = 0 Then Begin
+    {$IFDEF LINUX}
+    BASS_Init(-1, 44100, 0, 0, 0);
+    {$ELSE}
+    BASS_Init(-1, 44100, 0, 0, nil);
+    {$ENDIF}
 
-    BASS_GetInfo(Info);
-    MAXRATE := Info.maxrate;
-    MINRATE := Info.minrate;
+    BASS_Err := BASS_ErrorGetCode;
+    If BASS_Err = 0 Then Begin
 
-    If MAXRATE = 0 Then MAXRATE := 256000;
-    If MINRATE = 0 Then MINRATE := 1024;
-    If MAXRATE = MINRATE Then MINRATE := 1024;
+      BASS_GetInfo(Info);
+      MAXRATE := Info.maxrate;
+      MINRATE := Info.minrate;
+
+      If MAXRATE = 0 Then MAXRATE := 256000;
+      If MINRATE = 0 Then MINRATE := 1024;
+      If MAXRATE = MINRATE Then MINRATE := 1024;
+
+    End;
+
+    SP_SetGlobalVolume(1.0, Error);
+    VOLUME := 1.0;
+    CLICKVOL := 0.5;
 
   End;
-
-  SP_SetGlobalVolume(1.0, Error);
-  VOLUME := 1.0;
-  CLICKVOL := 0.5;
 
 End;
 
@@ -243,32 +250,36 @@ Begin
 
   // Stops all playing samples
 
-  For Idx := 0 To Length(SP_BankList) -1 Do Begin
+  If SoundEnabled Then Begin
 
-    Bank := SP_Banklist[Idx];
-    If Bank^.DataType = SP_SAMPLE_BANK Then Begin
+    For Idx := 0 To Length(SP_BankList) -1 Do Begin
 
-      Sample_Info := @Bank^.Info[0];
-      BASS_SampleStop(Sample_Info^.Sample);
+      Bank := SP_Banklist[Idx];
+      If Bank^.DataType = SP_SAMPLE_BANK Then Begin
+
+        Sample_Info := @Bank^.Info[0];
+        BASS_SampleStop(Sample_Info^.Sample);
+
+      End;
 
     End;
 
+    // Stop the music
+
+    If MUSICHANDLE <> 0 Then
+      BASS_ChannelPause(MUSICHANDLE);
+
+    // Release the channels for the keyclicks
+
+    CLICKCHAN := 0;
+    ERRORCHAN := 0;
+    OKCHAN := 0;
+
+    // Stop all PLAY channels
+
+    PLAYSignalHalt(-1);
+
   End;
-
-  // Stop the music
-
-  If MUSICHANDLE <> 0 Then
-    BASS_ChannelPause(MUSICHANDLE);
-
-  // Release the channels for the keyclicks
-
-  CLICKCHAN := 0;
-  ERRORCHAN := 0;
-  OKCHAN := 0;
-
-  // Stop all PLAY channels
-
-  PLAYSignalHalt(-1);
 
 End;
 
@@ -284,21 +295,22 @@ Var
   logVol: aFloat;
 Begin
 
-  If (sVolume < 0) or (sVolume > 1) Then
-    Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE
-  Else Begin
-    logVol := AYLogVolume(sVolume);
-    BASS_SetConfig(BASS_CONFIG_GVOL_MUSIC, Round(logVol * 10000));
-    BASS_SetConfig(BASS_CONFIG_GVOL_SAMPLE, Round(logVol * 10000));
-    BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, Round(logVol * 10000));
-    VOLUME := sVolume;
-    BASS_ChannelStop(CLICKCHAN);
-    BASS_ChannelStop(ERRORCHAN);
-    BASS_ChannelStop(OKCHAN);
-    CLICKCHAN := 0;
-    ERRORCHAN := 0;
-    OKCHAN := 0;
-  End;
+  If SoundEnabled Then
+    If (sVolume < 0) or (sVolume > 1) Then
+      Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE
+    Else Begin
+      logVol := AYLogVolume(sVolume);
+      BASS_SetConfig(BASS_CONFIG_GVOL_MUSIC, Round(logVol * 10000));
+      BASS_SetConfig(BASS_CONFIG_GVOL_SAMPLE, Round(logVol * 10000));
+      BASS_SetConfig(BASS_CONFIG_GVOL_STREAM, Round(logVol * 10000));
+      VOLUME := sVolume;
+      BASS_ChannelStop(CLICKCHAN);
+      BASS_ChannelStop(ERRORCHAN);
+      BASS_ChannelStop(OKCHAN);
+      CLICKCHAN := 0;
+      ERRORCHAN := 0;
+      OKCHAN := 0;
+    End;
 
 End;
 
@@ -316,74 +328,78 @@ Var
   Idx, Rpt, sPos: Integer;
 Begin
 
-  If CLICKBANK > 0 Then Begin
-    Idx := SP_FindBankID(CLICKBANK);
-    SP_BankList[Idx]^.Protection := False;
-    SP_DeleteBank(Idx, Error);
-  End;
-  If OKSNDBANK > 0 Then Begin
-    Idx := SP_FindBankID(OKSNDBANK);
-    If Idx > -1 Then Begin
+  If SoundEnabled Then Begin
+
+    If CLICKBANK > 0 Then Begin
+      Idx := SP_FindBankID(CLICKBANK);
       SP_BankList[Idx]^.Protection := False;
       SP_DeleteBank(Idx, Error);
     End;
+    If OKSNDBANK > 0 Then Begin
+      Idx := SP_FindBankID(OKSNDBANK);
+      If Idx > -1 Then Begin
+        SP_BankList[Idx]^.Protection := False;
+        SP_DeleteBank(Idx, Error);
+      End;
+    End;
+    If ERRSNDBANK > 0 Then Begin
+      Idx := SP_FindBankID(ERRSNDBANK);
+      If Idx > -1 Then Begin
+        SP_BankList[Idx]^.Protection := False;
+        SP_DeleteBank(Idx, Error);
+      End;
+    End;
+
+    // Create three sample banks - keyclick, error and OK sounds.
+
+    CLICKBANK := SP_Sample_Create(44100, 16, 2, 1200, Error);
+
+    Bank := SP_BankList[SP_FindBankID(CLICKBANK)];
+    Bank^.Protection := True;
+    Bank^.System := True;
+    For Idx := 0 To (Length(Bank^.Memory) Div 2) -1 Do
+      If Idx < 25 Then Begin
+        pWord(@Bank^.Memory[Idx * 2])^ := 32767;
+      End Else
+        pWord(@Bank^.Memory[Idx * 2])^ := 0;
+
+    OKSNDBANK := SP_Sample_Create(44100, 16, 2, 60 * 80 * 2 * 2 * 2, Error);
+    Bank := SP_BankList[SP_FindBankID(OKSNDBANK)];
+    Bank^.Protection := True;
+    Bank^.System := True;
+    sPos := 0;
+    For Rpt := 0 To 59 Do Begin
+      For Idx := 0 To 79 Do Begin
+        pWord(@Bank^.Memory[sPos])^ := 16383;
+        Inc(sPos, 2);
+      End;
+      For Idx := 0 To 79 Do Begin
+        pWord(@Bank^.Memory[sPos])^ := 0;
+        Inc(sPos, 2);
+      End;
+    End;
+
+    ERRSNDBANK := SP_Sample_Create(44100, 16, 2, 31 * 326 * 2 * 2 * 2, Error);
+    Bank := SP_BankList[SP_FindBankID(ERRSNDBANK)];
+    Bank^.Protection := True;
+    Bank^.System := True;
+    sPos := 0;
+    For Rpt := 0 To 30 Do Begin
+      For Idx := 0 To 325 Do Begin
+        pWord(@Bank^.Memory[sPos])^ := 16383;
+        Inc(sPos, 2);
+      End;
+      For Idx := 0 To 325 Do Begin
+        pWord(@Bank^.Memory[sPos])^ := 0;
+        Inc(sPos, 2);
+      End;
+    End;
+
+    CLICKCHAN := 0;
+    ERRORCHAN := 0;
+    OKCHAN    := 0;
+
   End;
-  If ERRSNDBANK > 0 Then Begin
-    Idx := SP_FindBankID(ERRSNDBANK);
-    If Idx > -1 Then Begin
-      SP_BankList[Idx]^.Protection := False;
-      SP_DeleteBank(Idx, Error);
-    End;
-  End;
-
-  // Create three sample banks - keyclick, error and OK sounds.
-
-  CLICKBANK := SP_Sample_Create(44100, 16, 2, 1200, Error);
-
-  Bank := SP_BankList[SP_FindBankID(CLICKBANK)];
-  Bank^.Protection := True;
-  Bank^.System := True;
-  For Idx := 0 To (Length(Bank^.Memory) Div 2) -1 Do
-    If Idx < 25 Then Begin
-      pWord(@Bank^.Memory[Idx * 2])^ := 32767;
-    End Else
-      pWord(@Bank^.Memory[Idx * 2])^ := 0;
-
-  OKSNDBANK := SP_Sample_Create(44100, 16, 2, 60 * 80 * 2 * 2 * 2, Error);
-  Bank := SP_BankList[SP_FindBankID(OKSNDBANK)];
-  Bank^.Protection := True;
-  Bank^.System := True;
-  sPos := 0;
-  For Rpt := 0 To 59 Do Begin
-    For Idx := 0 To 79 Do Begin
-      pWord(@Bank^.Memory[sPos])^ := 16383;
-      Inc(sPos, 2);
-    End;
-    For Idx := 0 To 79 Do Begin
-      pWord(@Bank^.Memory[sPos])^ := 0;
-      Inc(sPos, 2);
-    End;
-  End;
-
-  ERRSNDBANK := SP_Sample_Create(44100, 16, 2, 31 * 326 * 2 * 2 * 2, Error);
-  Bank := SP_BankList[SP_FindBankID(ERRSNDBANK)];
-  Bank^.Protection := True;
-  Bank^.System := True;
-  sPos := 0;
-  For Rpt := 0 To 30 Do Begin
-    For Idx := 0 To 325 Do Begin
-      pWord(@Bank^.Memory[sPos])^ := 16383;
-      Inc(sPos, 2);
-    End;
-    For Idx := 0 To 325 Do Begin
-      pWord(@Bank^.Memory[sPos])^ := 0;
-      Inc(sPos, 2);
-    End;
-  End;
-
-  CLICKCHAN := 0;
-  ERRORCHAN := 0;
-  OKCHAN    := 0;
 
 End;
 
@@ -396,31 +412,32 @@ Var
   Channel: HChannel;
 Begin
 
-  If SIGSAMPLEBANK = -1 Then Begin
-    SIGSAMPLEBANK := SP_Sample_Create(44100, 8, 0, Length(LoadingTones) Div 2, Error);
-    dPtr := @SP_BankList[SP_FindBankID(SIGSAMPLEBANK)]^.Memory[0];
-    sPtr := @LoadingTones[1];
-    oVal := 0;
-    For Idx := 1 To Length(LoadingTones) Div 2 Do Begin
-      If sPtr^ in [48..57] Then
-        Val := sPtr^ - 48
-      Else
-        Val := 10 + sPtr^ - 65;
-      Inc(sPtr);
-      If sPtr^ in [48..57] Then
-        Val := (Val Shl 4) + sPtr^ - 48
-      Else
-        Val := (Val Shl 4) + 10 + sPtr^ - 65;
-      Inc(sPtr);
-      dPtr^ := Round((Val + oVal)/2);
-      oVal := Val;
-      Inc(dPtr);
+  If SoundEnabled Then
+    If SIGSAMPLEBANK = -1 Then Begin
+      SIGSAMPLEBANK := SP_Sample_Create(44100, 8, 0, Length(LoadingTones) Div 2, Error);
+      dPtr := @SP_BankList[SP_FindBankID(SIGSAMPLEBANK)]^.Memory[0];
+      sPtr := @LoadingTones[1];
+      oVal := 0;
+      For Idx := 1 To Length(LoadingTones) Div 2 Do Begin
+        If sPtr^ in [48..57] Then
+          Val := sPtr^ - 48
+        Else
+          Val := 10 + sPtr^ - 65;
+        Inc(sPtr);
+        If sPtr^ in [48..57] Then
+          Val := (Val Shl 4) + sPtr^ - 48
+        Else
+          Val := (Val Shl 4) + 10 + sPtr^ - 65;
+        Inc(sPtr);
+        dPtr^ := Round((Val + oVal)/2);
+        oVal := Val;
+        Inc(dPtr);
+      End;
+      Channel := SP_Sample_Play(SIGSAMPLEBANK, -1, '', 0, CLICKVOL, 0, Error);
+      Repeat
+        CB_YIELD;
+      Until BASS_ChannelGetPosition(Channel, BASS_POS_BYTE) >= 0;
     End;
-    Channel := SP_Sample_Play(SIGSAMPLEBANK, -1, '', 0, CLICKVOL, 0, Error);
-    Repeat
-      CB_YIELD;
-    Until BASS_ChannelGetPosition(Channel, BASS_POS_BYTE) >= 0;
-  End;
 
 End;
 
@@ -444,26 +461,28 @@ Var
   Sample: BASS_SAMPLE;
 Begin
 
-  Idx := SP_FindBankID(BankID);
-  If Idx > -1 Then Begin
+  If SoundEnabled Then Begin
+    Idx := SP_FindBankID(BankID);
+    If Idx > -1 Then Begin
 
-    Bank := SP_BankList[Idx];
-    Sample_Info := @Bank^.Info[0];
+      Bank := SP_BankList[Idx];
+      Sample_Info := @Bank^.Info[0];
 
-    If Sample_Info.Bits = 8 Then
-      Flags := BASS_SAMPLE_8BITS or BASS_SAMPLE_OVER_VOL
-    Else
-      Flags := BASS_SAMPLE_OVER_VOL;
+      If Sample_Info.Bits = 8 Then
+        Flags := BASS_SAMPLE_8BITS or BASS_SAMPLE_OVER_VOL
+      Else
+        Flags := BASS_SAMPLE_OVER_VOL;
 
-    Sample_Info^.Sample := BASS_SampleCreate(Sample_Info.Size, Sample_Info.Rate, Sample_Info^.Channels, 128, Flags);
-    BASS_SampleGetInfo(Sample_info^.Sample, Sample);
-    Sample.origres := Sample_Info.Bits;
-    Sample.volume := Sample_Info.Volume;
-    Sample.pan := Sample_Info.Panning;
-    BASS_SampleSetInfo(Sample_Info^.Sample, Sample);
-    BASS_SampleSetData(Sample_Info^.Sample, @Bank^.Memory[0]);
-    Bank^.Changed := False;
+      Sample_Info^.Sample := BASS_SampleCreate(Sample_Info.Size, Sample_Info.Rate, Sample_Info^.Channels, 128, Flags);
+      BASS_SampleGetInfo(Sample_info^.Sample, Sample);
+      Sample.origres := Sample_Info.Bits;
+      Sample.volume := Sample_Info.Volume;
+      Sample.pan := Sample_Info.Panning;
+      BASS_SampleSetInfo(Sample_Info^.Sample, Sample);
+      BASS_SampleSetData(Sample_Info^.Sample, @Bank^.Memory[0]);
+      Bank^.Changed := False;
 
+    End;
   End;
 
 End;
@@ -480,38 +499,39 @@ Begin
 
   // Create a sample of the specified rate, bits and channels (stereo = 2, mono = 1).
 
-  If {(Rate >= integer(MINRATE)) and (Rate <= integer(MAXRATE)) And} ((Bits = 8) or (Bits = 16)) Then Begin
+  If SoundEnabled Then
+    If {(Rate >= integer(MINRATE)) and (Rate <= integer(MAXRATE)) And} ((Bits = 8) or (Bits = 16)) Then Begin
 
-    Result := SP_NewBank(Size);
-    Bank := SP_BankList[SP_FindBankID(Result)];
-    SetLength(Bank^.Info, SizeOf(SP_Sample_Info));
-    Bank^.InfoLength := SizeOf(SP_Sample_Info);
-    Sample_Info := @Bank^.Info[0];
-    Bank^.DataType := SP_SAMPLE_BANK;
+      Result := SP_NewBank(Size);
+      Bank := SP_BankList[SP_FindBankID(Result)];
+      SetLength(Bank^.Info, SizeOf(SP_Sample_Info));
+      Bank^.InfoLength := SizeOf(SP_Sample_Info);
+      Sample_Info := @Bank^.Info[0];
+      Bank^.DataType := SP_SAMPLE_BANK;
 
-    Sample_Info^.Size := Size;
-    Sample_Info^.Rate := Rate;
-    Sample_Info^.Bits := Bits;
-    If Stereo > 1 Then
-      Sample_Info^.Channels := 2
-    Else
-      Sample_Info^.Channels := 1;
-    Sample_Info^.Volume := 1;
-    Sample_Info^.Panning := 0;
+      Sample_Info^.Size := Size;
+      Sample_Info^.Rate := Rate;
+      Sample_Info^.Bits := Bits;
+      If Stereo > 1 Then
+        Sample_Info^.Channels := 2
+      Else
+        Sample_Info^.Channels := 1;
+      Sample_Info^.Volume := 1;
+      Sample_Info^.Panning := 0;
 
-    If Bits = 8 Then
-      Flags := BASS_SAMPLE_8BITS or BASS_SAMPLE_OVER_VOL
-    Else
-      Flags := BASS_SAMPLE_OVER_VOL;
+      If Bits = 8 Then
+        Flags := BASS_SAMPLE_8BITS or BASS_SAMPLE_OVER_VOL
+      Else
+        Flags := BASS_SAMPLE_OVER_VOL;
 
-    Sample_Info^.Sample := BASS_SampleCreate(Size, Rate, Sample_Info^.Channels, 128, Flags);
-    BASS_SampleGetInfo(Sample_info^.Sample, Sample);
-    Sample.origres := Bits;
-    BASS_SampleSetInfo(Sample_Info^.Sample, Sample);
+      Sample_Info^.Sample := BASS_SampleCreate(Size, Rate, Sample_Info^.Channels, 128, Flags);
+      BASS_SampleGetInfo(Sample_info^.Sample, Sample);
+      Sample.origres := Bits;
+      BASS_SampleSetInfo(Sample_Info^.Sample, Sample);
 
-  End Else
+    End Else
 
-    Error.Code := SP_ERR_RATE_OUT_OF_RANGE;
+      Error.Code := SP_ERR_RATE_OUT_OF_RANGE;
 
 End;
 
@@ -530,74 +550,78 @@ Begin
   // Loads a sample into the bank specified. Must be supported by SDL_Mixer.
   // First, get the filename - mangled to fit the SpecBAS folder system.
 
-  ERRStr := Filename;
-  SP_TestPackageFile(Filename, Error);
-  pFile := PAnsiChar(Filename);
+  If SoundEnabled Then Begin
 
-  Idx := SP_FindBankID(BankID);
-  If Idx > -1 Then Begin
+    ERRStr := Filename;
+    SP_TestPackageFile(Filename, Error);
+    pFile := PAnsiChar(Filename);
 
-    Bank := SP_BankList[Idx];
-    If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
+    Idx := SP_FindBankID(BankID);
+    If Idx > -1 Then Begin
 
-      SP_ClearBank(Idx, Error);
-      Bank^.DataType := SP_SAMPLE_BANK;
-      SetLength(Bank^.Info, SizeOf(SP_Sample_Info));
-      Bank^.InfoLength := Length(Bank^.Info);
-      Sample_Info := @Bank^.Info[0];
+      Bank := SP_BankList[Idx];
+      If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
 
-    End Else Begin
+        SP_ClearBank(Idx, Error);
+        Bank^.DataType := SP_SAMPLE_BANK;
+        SetLength(Bank^.Info, SizeOf(SP_Sample_Info));
+        Bank^.InfoLength := Length(Bank^.Info);
+        Sample_Info := @Bank^.Info[0];
 
-      BASS_SampleFree(pSP_Sample_Info(@Bank^.Info[0])^.Sample);
-      Sample_Info := @Bank^.Info[0];
+      End Else Begin
 
-    End;
+        BASS_SampleFree(pSP_Sample_Info(@Bank^.Info[0])^.Sample);
+        Sample_Info := @Bank^.Info[0];
 
-    // Now create a new sample with bass, and load the file into that sample.
-
-    bSample := BASS_SampleLoad(False, pFile, 0, 0, 128, BASS_SAMPLE_OVER_VOL);
-
-    If bSample = 0 Then Begin
-
-      BASS_Err := BASS_ErrorGetCode;
-      Case BASS_Err of
-        BASS_ERROR_FILEOPEN: Error.Code := SP_ERR_FILE_MISSING;
-        BASS_ERROR_FORMAT, BASS_ERROR_CODEC, BASS_ERROR_FILEFORM: Error.Code := SP_ERR_UNSUPPORTED_FORMAT;
-      Else
-        Error.Code := SP_ERR_SOUND_ERROR;
       End;
-      Exit;
 
-    End Else Begin
+      // Now create a new sample with bass, and load the file into that sample.
 
-      // Sample loaded, copy the info to a bank!
+      bSample := BASS_SampleLoad(False, pFile, 0, 0, 128, BASS_SAMPLE_OVER_VOL);
 
-      BASS_SampleGetInfo(bSample, Sample);
+      If bSample = 0 Then Begin
 
-      Sample_Info^.Sample := bSample;
-      Sample_Info^.Size := Sample.length;
-      Sample_Info^.Rate := Sample.freq;
-      Sample_Info^.Bits := Sample.origres;
-      Sample_Info^.Volume := Sample.volume;
-      Sample_Info^.Channels := Sample.chans;
-      Sample_Info^.Panning := 0;
+        BASS_Err := BASS_ErrorGetCode;
+        Case BASS_Err of
+          BASS_ERROR_FILEOPEN: Error.Code := SP_ERR_FILE_MISSING;
+          BASS_ERROR_FORMAT, BASS_ERROR_CODEC, BASS_ERROR_FILEFORM: Error.Code := SP_ERR_UNSUPPORTED_FORMAT;
+        Else
+          Error.Code := SP_ERR_SOUND_ERROR;
+        End;
+        Exit;
 
-      // Finally, copy the sample data to the memory bank. This means a doubling up of the
-      // sample data, but saves us having to copy out from the sample to edit and then send it
-      // back again.
+      End Else Begin
 
-      SetLength(Bank^.Memory, Sample.length);
-      BASS_SampleGetData(bSample, @Bank^.Memory[0]);
+        // Sample loaded, copy the info to a bank!
 
-      Bank^.Changed := False;
+        BASS_SampleGetInfo(bSample, Sample);
 
-      Error.Code := SP_ERR_OK;
+        Sample_Info^.Sample := bSample;
+        Sample_Info^.Size := Sample.length;
+        Sample_Info^.Rate := Sample.freq;
+        Sample_Info^.Bits := Sample.origres;
+        Sample_Info^.Volume := Sample.volume;
+        Sample_Info^.Channels := Sample.chans;
+        Sample_Info^.Panning := 0;
 
-    End;
+        // Finally, copy the sample data to the memory bank. This means a doubling up of the
+        // sample data, but saves us having to copy out from the sample to edit and then send it
+        // back again.
 
-  End Else
+        SetLength(Bank^.Memory, Sample.length);
+        BASS_SampleGetData(bSample, @Bank^.Memory[0]);
 
-    Error.Code := SP_ERR_BANK_NOT_FOUND;
+        Bank^.Changed := False;
+
+        Error.Code := SP_ERR_OK;
+
+      End;
+
+    End Else
+
+      Error.Code := SP_ERR_BANK_NOT_FOUND;
+
+  End;
 
 End;
 
@@ -609,37 +633,41 @@ Var
   SampleData: BASS_SAMPLE;
 Begin
 
-  Idx := SP_FindBankID(BankID);
+  If SoundEnabled Then Begin
 
-  If Idx > -1 Then Begin
+    Idx := SP_FindBankID(BankID);
 
-//    If (sRate >= MINRATE) and (sRate <= MAXRATE) Then Begin
+    If Idx > -1 Then Begin
 
-      Bank := SP_BankList[Idx];
+  //    If (sRate >= MINRATE) and (sRate <= MAXRATE) Then Begin
 
-      If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
+        Bank := SP_BankList[Idx];
 
-        Error.Code := SP_ERR_INVALID_BANK;
-        Exit;
+        If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
 
-      End Else Begin
+          Error.Code := SP_ERR_INVALID_BANK;
+          Exit;
 
-        Sample_Info := @Bank^.Info[0];
-        Sample_Info.Rate := sRate;
+        End Else Begin
 
-        BASS_SampleGetInfo(Sample_Info.Sample, SampleData);
-        SampleData.freq := sRate;
-        BASS_SampleSetInfo(Sample_Info.Sample, SampleData);
+          Sample_Info := @Bank^.Info[0];
+          Sample_Info.Rate := sRate;
 
-      End;
-{
+          BASS_SampleGetInfo(Sample_Info.Sample, SampleData);
+          SampleData.freq := sRate;
+          BASS_SampleSetInfo(Sample_Info.Sample, SampleData);
+
+        End;
+  {
+      End Else
+
+        Error.Code := SP_ERR_RATE_OUT_OF_RANGE;
+  }
     End Else
 
-      Error.Code := SP_ERR_RATE_OUT_OF_RANGE;
-}
-  End Else
+      Error.Code := SP_ERR_BANK_NOT_FOUND;
 
-    Error.Code := SP_ERR_BANK_NOT_FOUND;
+  End;
 
 End;
 
@@ -653,49 +681,53 @@ Var
   Buffer: Array of Byte;
 Begin
 
-  Idx := SP_FindBankID(BankID);
+  If SoundEnabled Then Begin
 
-  If Idx > -1 Then Begin
+    Idx := SP_FindBankID(BankID);
 
-    If (sBits = 8) or (sBits = 16) Then Begin
+    If Idx > -1 Then Begin
 
-      Bank := SP_BankList[Idx];
+      If (sBits = 8) or (sBits = 16) Then Begin
 
-      If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
+        Bank := SP_BankList[Idx];
 
-        Error.Code := SP_ERR_INVALID_BANK;
-        Exit;
+        If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
 
-      End Else Begin
+          Error.Code := SP_ERR_INVALID_BANK;
+          Exit;
 
-        Sample_Info := @Bank^.Info[0];
-        Sample_Info.Bits := sBits;
+        End Else Begin
 
-        BASS_SampleGetInfo(Sample_Info.Sample, SampleData);
-        If sBits = 8 Then
-          SampleData.flags := SampleData.flags Or BASS_SAMPLE_8BITS
-        Else
-          If SampleData.flags And BASS_SAMPLE_8BITS <> 0 Then
-            SampleData.flags := SampleData.flags - BASS_SAMPLE_8BITS;
+          Sample_Info := @Bank^.Info[0];
+          Sample_Info.Bits := sBits;
 
-        SampleData.origres := sBits;
+          BASS_SampleGetInfo(Sample_Info.Sample, SampleData);
+          If sBits = 8 Then
+            SampleData.flags := SampleData.flags Or BASS_SAMPLE_8BITS
+          Else
+            If SampleData.flags And BASS_SAMPLE_8BITS <> 0 Then
+              SampleData.flags := SampleData.flags - BASS_SAMPLE_8BITS;
 
-        NewSample := BASS_SampleCreate(SampleData.length, SampleData.freq, SampleData.chans, 128, SampleData.flags);
-        SetLength(Buffer, SampleData.length);
-        BASS_SampleSetData(NewSample, @Bank^.Memory[0]);
-        BASS_SampleFree(Sample_Info.Sample);
-        Sample_Info.Sample := NewSample;
-        Bank^.Changed := False;
+          SampleData.origres := sBits;
 
-      End;
+          NewSample := BASS_SampleCreate(SampleData.length, SampleData.freq, SampleData.chans, 128, SampleData.flags);
+          SetLength(Buffer, SampleData.length);
+          BASS_SampleSetData(NewSample, @Bank^.Memory[0]);
+          BASS_SampleFree(Sample_Info.Sample);
+          Sample_Info.Sample := NewSample;
+          Bank^.Changed := False;
+
+        End;
+
+      End Else
+
+        Error.Code := SP_ERR_UNSUPPORTED_BITS;
 
     End Else
 
-      Error.Code := SP_ERR_UNSUPPORTED_BITS;
+      Error.Code := SP_ERR_BANK_NOT_FOUND;
 
-  End Else
-
-    Error.Code := SP_ERR_BANK_NOT_FOUND;
+  End;
 
 End;
 
@@ -707,37 +739,41 @@ Var
   SampleData: BASS_SAMPLE;
 Begin
 
-  Idx := SP_FindBankID(BankID);
+  If SoundEnabled Then Begin
 
-  If Idx > -1 Then Begin
+    Idx := SP_FindBankID(BankID);
 
-    If (sVolume >= 0) and (sVolume <= 1) Then Begin
+    If Idx > -1 Then Begin
 
-      Bank := SP_BankList[Idx];
+      If (sVolume >= 0) and (sVolume <= 1) Then Begin
 
-      If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
+        Bank := SP_BankList[Idx];
 
-        Error.Code := SP_ERR_INVALID_BANK;
-        Exit;
+        If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
 
-      End Else Begin
+          Error.Code := SP_ERR_INVALID_BANK;
+          Exit;
 
-        Sample_Info := @Bank^.Info[0];
-        Sample_Info.Volume := sVolume;
+        End Else Begin
 
-        BASS_SampleGetInfo(Sample_Info.Sample, SampleData);
-        SampleData.volume := sVolume;
-        BASS_SampleSetInfo(Sample_Info.Sample, SampleData);
+          Sample_Info := @Bank^.Info[0];
+          Sample_Info.Volume := sVolume;
 
-      End;
+          BASS_SampleGetInfo(Sample_Info.Sample, SampleData);
+          SampleData.volume := sVolume;
+          BASS_SampleSetInfo(Sample_Info.Sample, SampleData);
+
+        End;
+
+      End Else
+
+        Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
 
     End Else
 
-      Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
+      Error.Code := SP_ERR_BANK_NOT_FOUND;
 
-  End Else
-
-    Error.Code := SP_ERR_BANK_NOT_FOUND;
+  End;
 
 End;
 
@@ -749,37 +785,41 @@ Var
   SampleData: BASS_SAMPLE;
 Begin
 
-  Idx := SP_FindBankID(BankID);
+  If SoundEnabled Then Begin
 
-  If Idx > -1 Then Begin
+    Idx := SP_FindBankID(BankID);
 
-    If (sPan >= -1) And (sPan <= 1) Then Begin
+    If Idx > -1 Then Begin
 
-      Bank := SP_BankList[Idx];
+      If (sPan >= -1) And (sPan <= 1) Then Begin
 
-      If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
+        Bank := SP_BankList[Idx];
 
-        Error.Code := SP_ERR_INVALID_BANK;
-        Exit;
+        If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
 
-      End Else Begin
+          Error.Code := SP_ERR_INVALID_BANK;
+          Exit;
 
-        Sample_Info := @Bank^.Info[0];
-        Sample_Info.Panning := sPan;
+        End Else Begin
 
-        BASS_SampleGetInfo(Sample_Info.Sample, SampleData);
-        SampleData.pan := sPan;
-        BASS_SampleSetInfo(Sample_Info.Sample, SampleData);
+          Sample_Info := @Bank^.Info[0];
+          Sample_Info.Panning := sPan;
 
-      End;
+          BASS_SampleGetInfo(Sample_Info.Sample, SampleData);
+          SampleData.pan := sPan;
+          BASS_SampleSetInfo(Sample_Info.Sample, SampleData);
+
+        End;
+
+      End Else
+
+        Error.Code := SP_ERR_PAN_OUT_OF_RANGE;
 
     End Else
 
-      Error.Code := SP_ERR_PAN_OUT_OF_RANGE;
+      Error.Code := SP_ERR_BANK_NOT_FOUND;
 
-  End Else
-
-    Error.Code := SP_ERR_BANK_NOT_FOUND;
+  End;
 
 End;
 
@@ -793,40 +833,44 @@ Var
   Buffer: Array of Byte;
 Begin
 
-  Idx := SP_FindBankID(BankID);
+  If SoundEnabled Then Begin
 
-  If Idx > -1 Then Begin
+    Idx := SP_FindBankID(BankID);
 
-    Bank := SP_BankList[Idx];
+    If Idx > -1 Then Begin
 
-    If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
+      Bank := SP_BankList[Idx];
 
-      Error.Code := SP_ERR_INVALID_BANK;
-      Exit;
+      If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
 
-    End Else Begin
+        Error.Code := SP_ERR_INVALID_BANK;
+        Exit;
 
-      Sample_Info := @Bank^.Info[0];
-      if sStereo > 0 Then
-        Sample_Info.Channels := 2
-      Else
-        Sample_Info.Channels := 1;
+      End Else Begin
 
-      BASS_SampleGetInfo(Sample_Info.Sample, SampleData);
-      SampleData.chans := Sample_Info.Channels;
+        Sample_Info := @Bank^.Info[0];
+        if sStereo > 0 Then
+          Sample_Info.Channels := 2
+        Else
+          Sample_Info.Channels := 1;
 
-      NewSample := BASS_SampleCreate(SampleData.length, SampleData.freq, SampleData.chans, 128, SampleData.flags);
-      SetLength(Buffer, SampleData.length);
-      BASS_SampleSetData(NewSample, @Bank^.Memory[0]);
-      BASS_SampleFree(Sample_Info.Sample);
-      Sample_Info.Sample := NewSample;
-      Bank^.Changed := False;
+        BASS_SampleGetInfo(Sample_Info.Sample, SampleData);
+        SampleData.chans := Sample_Info.Channels;
 
-    End;
+        NewSample := BASS_SampleCreate(SampleData.length, SampleData.freq, SampleData.chans, 128, SampleData.flags);
+        SetLength(Buffer, SampleData.length);
+        BASS_SampleSetData(NewSample, @Bank^.Memory[0]);
+        BASS_SampleFree(Sample_Info.Sample);
+        Sample_Info.Sample := NewSample;
+        Bank^.Changed := False;
 
-  End Else
+      End;
 
-    Error.Code := SP_ERR_BANK_NOT_FOUND;
+    End Else
+
+      Error.Code := SP_ERR_BANK_NOT_FOUND;
+
+  End;
 
 End;
 
@@ -840,74 +884,79 @@ Var
 Begin
 
   Result := 0;
-  Idx := SP_FindBankID(BankID);
 
-  If Idx > -1 Then Begin
+  If SoundEnabled Then Begin
 
-    Bank := SP_BankList[Idx];
+    Idx := SP_FindBankID(BankID);
 
-    If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
+    If Idx > -1 Then Begin
 
-      Error.Code := SP_ERR_INVALID_BANK;
-      Exit;
+      Bank := SP_BankList[Idx];
 
-    End Else Begin
+      If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
 
-      Sample_Info := @Bank^.Info[0];
-      If Bank^.Changed Then Begin
-        BASS_SampleGetInfo(Sample_Info^.Sample, SampleData);
-        SampleData.Length := Sample_Info^.Size;
-        BASS_SampleSetInfo(Sample_Info^.Sample, SampleData);
-        BASS_SampleSetData(Sample_Info^.Sample, @Bank^.Memory[0]);
-        Bank^.Changed := False;
-      End;
-      Channel := BASS_SampleGetChannel(Sample_Info^.Sample, False);
-      If RateStr = '' Then Begin
-        If Rate < 0 Then Rate := Sample_Info^.Rate;
-{        If (Rate < MINRATE) or (Rate > MAXRATE) Then Begin
-          Error.Code := SP_ERR_RATE_OUT_OF_RANGE;
-          Exit;
-        End;}
+        Error.Code := SP_ERR_INVALID_BANK;
+        Exit;
+
       End Else Begin
-        Rate := SP_StringToSemitones(RateStr, Error);
-        If Error.Code = SP_ERR_OK Then Begin
-          Rate := Sample_Info^.Rate * (Power(2, Rate/12));
-        End Else
+
+        Sample_Info := @Bank^.Info[0];
+        If Bank^.Changed Then Begin
+          BASS_SampleGetInfo(Sample_Info^.Sample, SampleData);
+          SampleData.Length := Sample_Info^.Size;
+          BASS_SampleSetInfo(Sample_Info^.Sample, SampleData);
+          BASS_SampleSetData(Sample_Info^.Sample, @Bank^.Memory[0]);
+          Bank^.Changed := False;
+        End;
+        Channel := BASS_SampleGetChannel(Sample_Info^.Sample, False);
+        If RateStr = '' Then Begin
+          If Rate < 0 Then Rate := Sample_Info^.Rate;
+  {        If (Rate < MINRATE) or (Rate > MAXRATE) Then Begin
+            Error.Code := SP_ERR_RATE_OUT_OF_RANGE;
+            Exit;
+          End;}
+        End Else Begin
+          Rate := SP_StringToSemitones(RateStr, Error);
+          If Error.Code = SP_ERR_OK Then Begin
+            Rate := Sample_Info^.Rate * (Power(2, Rate/12));
+          End Else
+            Exit;
+        End;
+        If Panning = -9 Then
+          Panning := Sample_Info.Panning;
+        If (Panning < -1) or (Panning > 1) Then Begin
+          Error.Code := SP_ERR_PAN_OUT_OF_RANGE;
           Exit;
+        End;
+        If Volume = -1 Then
+          Volume := Sample_Info.Volume;
+        If (Volume < 0) or (Volume > 1) Then Begin
+          Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
+          Exit;
+        End;
+
+        BASS_ChannelSetAttribute(Channel, BASS_ATTRIB_FREQ, Rate);
+        {$IFNDEF RASPI}
+        // The arm hardfp build of bass currently raises a SIGFPE on this line :(
+        BASS_ChannelSetAttribute(Channel, BASS_ATTRIB_PAN, Panning);
+        {$ENDIF}
+        BASS_ChannelSetAttribute(Channel, BASS_ATTRIB_VOL, Volume);
+
+        If Loops > 0 Then
+          BASS_ChannelFlags(Channel, BASS_SAMPLE_LOOP, BASS_SAMPLE_LOOP)
+        Else
+          BASS_ChannelFlags(Channel, 0, BASS_SAMPLE_LOOP);
+
+        BASS_ChannelPlay(Channel, True);
+        Result := LongWord(Channel);
+
       End;
-      If Panning = -9 Then
-        Panning := Sample_Info.Panning;
-      If (Panning < -1) or (Panning > 1) Then Begin
-        Error.Code := SP_ERR_PAN_OUT_OF_RANGE;
-        Exit;
-      End;
-      If Volume = -1 Then
-        Volume := Sample_Info.Volume;
-      If (Volume < 0) or (Volume > 1) Then Begin
-        Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
-        Exit;
-      End;
 
-      BASS_ChannelSetAttribute(Channel, BASS_ATTRIB_FREQ, Rate);
-      {$IFNDEF RASPI}
-      // The arm hardfp build of bass currently raises a SIGFPE on this line :(
-      BASS_ChannelSetAttribute(Channel, BASS_ATTRIB_PAN, Panning);
-      {$ENDIF}
-      BASS_ChannelSetAttribute(Channel, BASS_ATTRIB_VOL, Volume);
+    End Else
 
-      If Loops > 0 Then
-        BASS_ChannelFlags(Channel, BASS_SAMPLE_LOOP, BASS_SAMPLE_LOOP)
-      Else
-        BASS_ChannelFlags(Channel, 0, BASS_SAMPLE_LOOP);
+      Error.Code := SP_ERR_BANK_NOT_FOUND;
 
-      BASS_ChannelPlay(Channel, True);
-      Result := LongWord(Channel);
-
-    End;
-
-  End Else
-
-    Error.Code := SP_ERR_BANK_NOT_FOUND;
+  End;
 
 End;
 
@@ -918,53 +967,60 @@ Var
   Sample_Info: pSP_Sample_Info;
 Begin
 
-  Idx := SP_FindBankID(BankID);
+  If SoundEnabled Then Begin
 
-  If Idx > -1 Then Begin
+    Idx := SP_FindBankID(BankID);
 
-    Bank := SP_BankList[Idx];
+    If Idx > -1 Then Begin
 
-    If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
+      Bank := SP_BankList[Idx];
 
-      Error.Code := SP_ERR_INVALID_BANK;
-      Exit;
+      If Bank^.DataType <> SP_SAMPLE_BANK Then Begin
 
-    End Else Begin
+        Error.Code := SP_ERR_INVALID_BANK;
+        Exit;
 
-      Sample_Info := @Bank^.Info[0];
-      BASS_SampleFree(Sample_Info^.Sample);
-      SP_DeleteBank(Idx, Error);
+      End Else Begin
 
-    End;
+        Sample_Info := @Bank^.Info[0];
+        BASS_SampleFree(Sample_Info^.Sample);
+        SP_DeleteBank(Idx, Error);
 
-  End Else
+      End;
 
-    Error.Code := SP_ERR_BANK_NOT_FOUND;
+    End Else
+
+      Error.Code := SP_ERR_BANK_NOT_FOUND;
+
+  End;
 
 End;
 
 Procedure SP_Channel_Stop(ChannelID: LongWord; Var Error: TSP_ErrorCode);
 Begin
 
-  If Not BASS_ChannelStop(ChannelID) Then
-    Error.Code := SP_ERR_CHANNEL_LOST;
+  If SoundEnabled Then
+    If Not BASS_ChannelStop(ChannelID) Then
+      Error.Code := SP_ERR_CHANNEL_LOST;
 
 End;
 
 Procedure SP_Channel_Pause(ChannelID: LongWord; Var Error: TSP_ErrorCode);
 Begin
 
-  If Not BASS_ChannelPause(ChannelID) Then
-    If BASS_ErrorGetCode <> BASS_ERROR_ALREADY Then
-      Error.Code := SP_ERR_CHANNEL_LOST;
+  If SoundEnabled Then
+    If Not BASS_ChannelPause(ChannelID) Then
+      If BASS_ErrorGetCode <> BASS_ERROR_ALREADY Then
+        Error.Code := SP_ERR_CHANNEL_LOST;
 
 End;
 
 Procedure SP_Channel_Resume(ChannelID: LongWord; Var Error: TSP_ErrorCode);
 Begin
 
-  If Not BASS_ChannelPlay(ChannelID, False) Then
-    Error.Code := SP_ERR_CHANNEL_LOST;
+  If SoundEnabled Then
+    If Not BASS_ChannelPlay(ChannelID, False) Then
+      Error.Code := SP_ERR_CHANNEL_LOST;
 
 End;
 
@@ -978,64 +1034,75 @@ Begin
     Exit;
   End; }
 
-  If RateStr <> '' Then Begin
-    Rate := Round(SP_StringToSemitones(RateStr, Error));
-    If Error.Code = SP_ERR_OK Then Begin
-      BASS_ChannelGetInfo(ChannelID, ChInfo);
-      Rate := Round(ChInfo.Freq * (Power(2, Rate/12)));
-    End Else
-      Error.Code := SP_ERR_RATE_OUT_OF_RANGE;
-  End;
-  If Not BASS_ChannelSetAttribute(ChannelID, BASS_ATTRIB_FREQ, Rate) Then
-    Error.Code := SP_ERR_CHANNEL_LOST;
+  If SoundEnabled Then
+    If RateStr <> '' Then Begin
+      Rate := Round(SP_StringToSemitones(RateStr, Error));
+      If Error.Code = SP_ERR_OK Then Begin
+        BASS_ChannelGetInfo(ChannelID, ChInfo);
+        Rate := Round(ChInfo.Freq * (Power(2, Rate/12)));
+      End Else
+        Error.Code := SP_ERR_RATE_OUT_OF_RANGE;
+    End;
+    If Not BASS_ChannelSetAttribute(ChannelID, BASS_ATTRIB_FREQ, Rate) Then
+      Error.Code := SP_ERR_CHANNEL_LOST;
 
 End;
 
 Procedure SP_Channel_Volume(ChannelID: LongWord; Volume: aFloat; Var Error: TSP_ErrorCode);
 Begin
 
-  If (Volume < 0) or (Volume > 1) Then Begin
-    Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
-    Exit;
+  If SoundEnabled Then Begin
+    If (Volume < 0) or (Volume > 1) Then Begin
+      Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
+      Exit;
+    End;
+    If Not BASS_ChannelSetAttribute(ChannelID, BASS_ATTRIB_VOL, Volume) Then
+      Error.Code := SP_ERR_CHANNEL_LOST;
   End;
-  If Not BASS_ChannelSetAttribute(ChannelID, BASS_ATTRIB_VOL, Volume) Then
-    Error.Code := SP_ERR_CHANNEL_LOST;
 
 End;
 
 Procedure SP_Channel_Pan(ChannelID: LongWord; Pan: aFloat; Var Error: TSP_ErrorCode);
 Begin
 
-  If (Pan < -1) or (Pan > 1) Then Begin
-    Error.Code := SP_ERR_PAN_OUT_OF_RANGE;
-    Exit;
-  End;
+  If SoundEnabled Then Begin
 
-  {$IFNDEF RASPI}
-  // The arm hardfp build of bass currently raises a SIGFPE on this line :(
-  If Not BASS_ChannelSetAttribute(ChannelID, BASS_ATTRIB_PAN, Pan) Then
-    Error.Code := SP_ERR_CHANNEL_LOST;
-  {$ENDIF}
+    If (Pan < -1) or (Pan > 1) Then Begin
+      Error.Code := SP_ERR_PAN_OUT_OF_RANGE;
+      Exit;
+    End;
+
+    {$IFNDEF RASPI}
+    // The arm hardfp build of bass currently raises a SIGFPE on this line :(
+    If Not BASS_ChannelSetAttribute(ChannelID, BASS_ATTRIB_PAN, Pan) Then
+      Error.Code := SP_ERR_CHANNEL_LOST;
+    {$ENDIF}
+
+  End;
 
 End;
 
 Procedure SP_Channel_Seek(ChannelID, Seek: LongWord; Var Error: TSP_ErrorCode);
 Begin
 
-  If Not BASS_ChannelSetPosition(ChannelID, Seek, BASS_POS_BYTE) Then
-    If BASS_ErrorGetCode = BASS_ERROR_POSITION Then
-      Error.Code := SP_ERR_INTEGER_OUT_OF_RANGE
-    Else
-      Error.Code := SP_ERR_CHANNEL_LOST;
+  If SoundEnabled Then
+    If Not BASS_ChannelSetPosition(ChannelID, Seek, BASS_POS_BYTE) Then
+      If BASS_ErrorGetCode = BASS_ERROR_POSITION Then
+        Error.Code := SP_ERR_INTEGER_OUT_OF_RANGE
+      Else
+        Error.Code := SP_ERR_CHANNEL_LOST;
 
 End;
 
 Function SP_GetChannelPos(ChannelID: LongWord; Var Error: TSP_ErrorCode): LongWord;
 Begin
 
-  Result := BASS_ChannelGetPosition(ChannelID, BASS_POS_BYTE);
-  If Integer(Result) = -1 Then
-    Error.Code := SP_ERR_CHANNEL_LOST;
+  If SoundEnabled Then Begin
+    Result := BASS_ChannelGetPosition(ChannelID, BASS_POS_BYTE);
+    If Integer(Result) = -1 Then
+      Error.Code := SP_ERR_CHANNEL_LOST;
+  End Else
+    Result := 0;
 
 End;
 
@@ -1051,73 +1118,77 @@ Begin
   If MUSICHANDLE <> 0 Then SP_Music_Stop(Error);
   Error.Code := SP_ERR_OK;
 
-  SP_TestPackageFile(Filename, Error);
-  pFile := PAnsiChar(Filename);
+  If SoundEnabled Then Begin
 
-  FileExt := Upper(aString(ExtractFileExt(String(Filename))));
-  If (Pos(String(FileExt), '.MO3.IT.XM.S3M.MTM.MOD.UMX') <> 0) or (Copy(SP_ExtractFilename(Filename), 1, 4) = 'mod.') Then Begin
+    SP_TestPackageFile(Filename, Error);
+    pFile := PAnsiChar(Filename);
 
-    // MOD - style music file. Load as bass music.
+    FileExt := Upper(aString(ExtractFileExt(String(Filename))));
+    If (Pos(String(FileExt), '.MO3.IT.XM.S3M.MTM.MOD.UMX') <> 0) or (Copy(SP_ExtractFilename(Filename), 1, 4) = 'mod.') Then Begin
 
-    If Loop > 0 Then
-      Flags := BASS_SAMPLE_LOOP
-    Else
-      Flags := BASS_MUSIC_STOPBACK;
+      // MOD - style music file. Load as bass music.
 
-    MUSICHANDLE := BASS_MusicLoad(False, pFile, 0, 0, Flags or BASS_MUSIC_RAMPS or BASS_MUSIC_POSRESET or BASS_MUSIC_AUTOFREE or BASS_MUSIC_PRESCAN or BASS_MUSIC_PT1MOD, 0);
-
-    If MUSICHANDLE = 0 Then Begin
-
-      Case BASS_ErrorGetCode of
-
-        BASS_ERROR_FILEOPEN:
-          Error.Code := SP_ERR_FILE_MISSING;
-        BASS_ERROR_FILEFORM:
-          Error.Code := SP_ERR_INVALID_MUSIC_FILE;
-
-      End;
-
-    End Else
-
-      MUSICISSTREAM := False;
-
-  End Else Begin
-
-    // Other music file (WAV, MP3 etc). Load as a bass stream.
-
-    If Loop > 0 Then
-      Flags := BASS_SAMPLE_LOOP
-    Else
-      Flags := 0;
-
-    MUSICHANDLE := BASS_StreamCreateFile(False, pFile, 0, 0, Flags or BASS_STREAM_AUTOFREE or BASS_MUSIC_PRESCAN);
-
-    If MUSICHANDLE = 0 Then Begin
-
-      Case BASS_ErrorGetCode  of
-
-        BASS_ERROR_FILEOPEN:
-          Error.Code := SP_ERR_FILE_MISSING;
-        BASS_ERROR_FILEFORM, BASS_ERROR_CODEC, BASS_ERROR_FORMAT:
-          Error.Code := SP_ERR_INVALID_MUSIC_FILE;
-
-      End;
-
-    End Else
-
-      MUSICISSTREAM := True;
-
-  End;
-
-  If Error.Code = SP_ERR_OK Then Begin
-    If Volume > -1 Then
-      If (Volume >= 0) and (Volume <= 1) Then
-        BASS_ChannelSetAttribute(MUSICHANDLE, BASS_ATTRIB_VOL, Volume)
+      If Loop > 0 Then
+        Flags := BASS_SAMPLE_LOOP
       Else
-        Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
-    If Error.Code = SP_ERR_OK Then
-      If Pause = 0 Then
-        BASS_ChannelPlay(MUSICHANDLE, False);
+        Flags := BASS_MUSIC_STOPBACK;
+
+      MUSICHANDLE := BASS_MusicLoad(False, pFile, 0, 0, Flags or BASS_MUSIC_RAMPS or BASS_MUSIC_POSRESET or BASS_MUSIC_AUTOFREE or BASS_MUSIC_PRESCAN or BASS_MUSIC_PT1MOD, 0);
+
+      If MUSICHANDLE = 0 Then Begin
+
+        Case BASS_ErrorGetCode of
+
+          BASS_ERROR_FILEOPEN:
+            Error.Code := SP_ERR_FILE_MISSING;
+          BASS_ERROR_FILEFORM:
+            Error.Code := SP_ERR_INVALID_MUSIC_FILE;
+
+        End;
+
+      End Else
+
+        MUSICISSTREAM := False;
+
+    End Else Begin
+
+      // Other music file (WAV, MP3 etc). Load as a bass stream.
+
+      If Loop > 0 Then
+        Flags := BASS_SAMPLE_LOOP
+      Else
+        Flags := 0;
+
+      MUSICHANDLE := BASS_StreamCreateFile(False, pFile, 0, 0, Flags or BASS_STREAM_AUTOFREE or BASS_MUSIC_PRESCAN);
+
+      If MUSICHANDLE = 0 Then Begin
+
+        Case BASS_ErrorGetCode  of
+
+          BASS_ERROR_FILEOPEN:
+            Error.Code := SP_ERR_FILE_MISSING;
+          BASS_ERROR_FILEFORM, BASS_ERROR_CODEC, BASS_ERROR_FORMAT:
+            Error.Code := SP_ERR_INVALID_MUSIC_FILE;
+
+        End;
+
+      End Else
+
+        MUSICISSTREAM := True;
+
+    End;
+
+    If Error.Code = SP_ERR_OK Then Begin
+      If Volume > -1 Then
+        If (Volume >= 0) and (Volume <= 1) Then
+          BASS_ChannelSetAttribute(MUSICHANDLE, BASS_ATTRIB_VOL, Volume)
+        Else
+          Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
+      If Error.Code = SP_ERR_OK Then
+        If Pause = 0 Then
+          BASS_ChannelPlay(MUSICHANDLE, False);
+    End;
+
   End;
 
 End;
@@ -1133,66 +1204,70 @@ Begin
   ERRStr := '';
   Error.Code := SP_ERR_OK;
 
-  // Determine if the bank exists, and what sort of music it contains
+  If SoundEnabled Then Begin
 
-  Idx := SP_FindBankID(BankID);
+    // Determine if the bank exists, and what sort of music it contains
 
-  If Idx >= 0 Then Begin
+    Idx := SP_FindBankID(BankID);
 
-    // Try to play it as a .mod/.xm/.it etc - if it fails, then fall back to sample mode
+    If Idx >= 0 Then Begin
 
-    If Loop > 0 Then
-      Flags := BASS_SAMPLE_LOOP
-    Else
-      Flags := BASS_MUSIC_STOPBACK;
-
-    MUSICHANDLE := BASS_MusicLoad(True, @SP_BankList[Idx]^.Memory[0], 0, Length(SP_BankList[Idx]^.Memory), Flags or BASS_MUSIC_RAMPS or BASS_MUSIC_POSRESET or BASS_MUSIC_AUTOFREE or BASS_MUSIC_PRESCAN or BASS_MUSIC_PT1MOD, 0);
-
-    If MUSICHANDLE = 0 Then Begin
-
-      // Failed with an error - try as a sample.
+      // Try to play it as a .mod/.xm/.it etc - if it fails, then fall back to sample mode
 
       If Loop > 0 Then
         Flags := BASS_SAMPLE_LOOP
       Else
-        Flags := 0;
+        Flags := BASS_MUSIC_STOPBACK;
 
-      MUSICHANDLE := BASS_StreamCreateFile(True, @SP_BankList[Idx]^.Memory[0], 0, Length(SP_BankList[Idx]^.Memory), Flags or BASS_STREAM_AUTOFREE or BASS_MUSIC_PRESCAN);
+      MUSICHANDLE := BASS_MusicLoad(True, @SP_BankList[Idx]^.Memory[0], 0, Length(SP_BankList[Idx]^.Memory), Flags or BASS_MUSIC_RAMPS or BASS_MUSIC_POSRESET or BASS_MUSIC_AUTOFREE or BASS_MUSIC_PRESCAN or BASS_MUSIC_PT1MOD, 0);
 
       If MUSICHANDLE = 0 Then Begin
 
-        Case BASS_ErrorGetCode  of
+        // Failed with an error - try as a sample.
 
-          BASS_ERROR_FILEOPEN:
-            Error.Code := SP_ERR_FILE_MISSING;
-          BASS_ERROR_FILEFORM, BASS_ERROR_CODEC, BASS_ERROR_FORMAT:
-            Error.Code := SP_ERR_INVALID_MUSIC_FILE;
+        If Loop > 0 Then
+          Flags := BASS_SAMPLE_LOOP
+        Else
+          Flags := 0;
 
-        End;
+        MUSICHANDLE := BASS_StreamCreateFile(True, @SP_BankList[Idx]^.Memory[0], 0, Length(SP_BankList[Idx]^.Memory), Flags or BASS_STREAM_AUTOFREE or BASS_MUSIC_PRESCAN);
 
-        Exit;
+        If MUSICHANDLE = 0 Then Begin
+
+          Case BASS_ErrorGetCode  of
+
+            BASS_ERROR_FILEOPEN:
+              Error.Code := SP_ERR_FILE_MISSING;
+            BASS_ERROR_FILEFORM, BASS_ERROR_CODEC, BASS_ERROR_FORMAT:
+              Error.Code := SP_ERR_INVALID_MUSIC_FILE;
+
+          End;
+
+          Exit;
+
+        End Else
+
+          MUSICISSTREAM := True;
 
       End Else
 
-        MUSICISSTREAM := True;
+        MUSICISSTREAM := False;
 
     End Else
 
-      MUSICISSTREAM := False;
+      Error.Code := SP_ERR_BANK_NOT_FOUND;
 
-  End Else
+    If Error.Code = SP_ERR_OK Then Begin
+      If Volume > -1 Then
+        If (Volume >= 0) and (Volume <= 1) Then
+          BASS_ChannelSetAttribute(MUSICHANDLE, BASS_ATTRIB_VOL, Volume)
+        Else
+          Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
+      If Error.Code = SP_ERR_OK Then
+        If Pause = 0 Then
+          BASS_ChannelPlay(MUSICHANDLE, False);
+    End;
 
-    Error.Code := SP_ERR_BANK_NOT_FOUND;
-
-  If Error.Code = SP_ERR_OK Then Begin
-    If Volume > -1 Then
-      If (Volume >= 0) and (Volume <= 1) Then
-        BASS_ChannelSetAttribute(MUSICHANDLE, BASS_ATTRIB_VOL, Volume)
-      Else
-        Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
-    If Error.Code = SP_ERR_OK Then
-      If Pause = 0 Then
-        BASS_ChannelPlay(MUSICHANDLE, False);
   End;
 
 End;
@@ -1200,44 +1275,50 @@ End;
 Procedure SP_Music_Stop(Var Error: TSP_ErrorCode);
 Begin
 
-  If MUSICHANDLE <> 0 Then Begin
+  If SoundEnabled Then
 
-    BASS_ChannelStop(MUSICHANDLE);
-    If MUSICISSTREAM Then
-      BASS_StreamFree(MUSICHANDLE)
-    Else
-      BASS_MusicFree(MUSICHANDLE);
-    MUSICHANDLE := 0;
+    If MUSICHANDLE <> 0 Then Begin
 
-  End Else
+      BASS_ChannelStop(MUSICHANDLE);
+      If MUSICISSTREAM Then
+        BASS_StreamFree(MUSICHANDLE)
+      Else
+        BASS_MusicFree(MUSICHANDLE);
+      MUSICHANDLE := 0;
 
-    Error.Code := SP_ERR_MUSIC_LOST;
+    End Else
+
+      Error.Code := SP_ERR_MUSIC_LOST;
 
 End;
 
 Procedure SP_Music_Pause(Var Error: TSP_ErrorCode);
 Begin
 
-  If MUSICHANDLE <> 0 Then Begin
+  If SoundEnabled Then
 
-    BASS_ChannelPause(MUSICHANDLE);
+    If MUSICHANDLE <> 0 Then Begin
 
-  End Else
+      BASS_ChannelPause(MUSICHANDLE);
 
-    Error.Code := SP_ERR_MUSIC_LOST;
+    End Else
+
+      Error.Code := SP_ERR_MUSIC_LOST;
 
 End;
 
 Procedure SP_Music_Resume(Var Error: TSP_ErrorCode);
 Begin
 
-  If MUSICHANDLE <> 0 Then Begin
+  If SoundEnabled Then
 
-    BASS_ChannelPlay(MUSICHANDLE, False);
+    If MUSICHANDLE <> 0 Then Begin
 
-  End Else
+      BASS_ChannelPlay(MUSICHANDLE, False);
 
-    Error.Code := SP_ERR_MUSIC_LOST;
+    End Else
+
+      Error.Code := SP_ERR_MUSIC_LOST;
 
 End;
 
@@ -1246,39 +1327,43 @@ Var
   Offset: LongWord;
 Begin
 
-  If MUSICHANDLE <> 0 Then Begin
+  If SoundEnabled Then
 
-    Offset := BASS_ChannelSeconds2Bytes(MUSICHANDLE, SeekTo);
-    If Not BASS_ChannelSetPosition(MUSICHANDLE, Offset, BASS_POS_BYTE or BASS_MUSIC_POSRESET) Then Begin
+    If MUSICHANDLE <> 0 Then Begin
 
-      Case BASS_ErrorGetCode of
-        BASS_ERROR_POSITION:
-          Error.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+      Offset := BASS_ChannelSeconds2Bytes(MUSICHANDLE, SeekTo);
+      If Not BASS_ChannelSetPosition(MUSICHANDLE, Offset, BASS_POS_BYTE or BASS_MUSIC_POSRESET) Then Begin
+
+        Case BASS_ErrorGetCode of
+          BASS_ERROR_POSITION:
+            Error.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+        End;
+
       End;
 
-    End;
+    End Else
 
-  End Else
-
-    Error.Code := SP_ERR_MUSIC_LOST;
+      Error.Code := SP_ERR_MUSIC_LOST;
 
 End;
 
 Procedure SP_Music_Volume(Volume: aFloat; Var Error: TSP_ErrorCode);
 Begin
 
-  If MUSICHANDLE <> 0 Then Begin
+  If SoundEnabled Then
 
-    If (Volume < 0) or (Volume > 1) Then Begin
-      Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
-      Exit;
-    End;
-    If Not BASS_ChannelSetAttribute(MUSICHANDLE, BASS_ATTRIB_VOL, Volume) Then
+    If MUSICHANDLE <> 0 Then Begin
+
+      If (Volume < 0) or (Volume > 1) Then Begin
+        Error.Code := SP_ERR_VOLUME_OUT_OF_RANGE;
+        Exit;
+      End;
+      If Not BASS_ChannelSetAttribute(MUSICHANDLE, BASS_ATTRIB_VOL, Volume) Then
+        Error.Code := SP_ERR_MUSIC_LOST;
+
+    End Else
+
       Error.Code := SP_ERR_MUSIC_LOST;
-
-  End Else
-
-    Error.Code := SP_ERR_MUSIC_LOST;
 
 End;
 
@@ -1288,14 +1373,17 @@ Var
 Begin
 
   Result := 0;
-  If MUSICHANDLE <> 0 Then Begin
 
-    Position := BASS_ChannelGetPosition(MUSICHANDLE, BASS_POS_BYTE);
-    Result := BASS_ChannelBytes2Seconds(MUSICHANDLE, Position);
+  If SoundEnabled Then
 
-  End Else
+    If MUSICHANDLE <> 0 Then Begin
 
-    Error.Code := SP_ERR_MUSIC_LOST;
+      Position := BASS_ChannelGetPosition(MUSICHANDLE, BASS_POS_BYTE);
+      Result := BASS_ChannelBytes2Seconds(MUSICHANDLE, Position);
+
+    End Else
+
+      Error.Code := SP_ERR_MUSIC_LOST;
 
 
 End;
@@ -1306,15 +1394,17 @@ Var
 Begin
 
   Result := 0;
-  If MUSICHANDLE <> 0 Then Begin
 
-    Position := BASS_ChannelGetLength(MUSICHANDLE, BASS_POS_BYTE);
-    Result := BASS_ChannelBytes2Seconds(MUSICHANDLE, Position);
+  If SoundEnabled Then
 
-  End Else
+    If MUSICHANDLE <> 0 Then Begin
 
-    Error.Code := SP_ERR_MUSIC_LOST;
+      Position := BASS_ChannelGetLength(MUSICHANDLE, BASS_POS_BYTE);
+      Result := BASS_ChannelBytes2Seconds(MUSICHANDLE, Position);
 
+    End Else
+
+      Error.Code := SP_ERR_MUSIC_LOST;
 
 End;
 
@@ -1323,11 +1413,12 @@ Var
   Error: TSP_ErrorCode;
 Begin
 
-  If Channel = 0 Then Begin
-    Channel := SP_Sample_Play(BankID, -1, '', 0, CLICKVOL, 0, Error)
-  End Else Begin
-    BASS_ChannelPlay(Channel, True);
-  End;
+  If SoundEnabled Then
+    If Channel = 0 Then Begin
+      Channel := SP_Sample_Play(BankID, -1, '', 0, CLICKVOL, 0, Error)
+    End Else Begin
+      BASS_ChannelPlay(Channel, True);
+    End;
 
 End;
 
@@ -1455,6 +1546,8 @@ Var
   oSample: SmallInt;
   bBuffer: Array of Byte;
 Begin
+
+  If not SoundEnabled Then Exit;
 
   wSample := 0;
 

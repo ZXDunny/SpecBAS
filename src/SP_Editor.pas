@@ -27,7 +27,7 @@ interface
 
 Uses Math, SP_SysVars, SysUtils, SP_Util, SP_Graphics, SP_BankManager, SP_Tokenise, SP_Errors, SP_Input,
      Classes, SP_InfixToPostFix, SP_Interpret_PostFix, SP_Variables, SP_Sound, SP_Package, SP_FileIO,
-     SP_Graphics32, SP_BankFiling, SP_AnsiStringlist;
+     SP_Graphics32, SP_BankFiling, SP_AnsiStringlist, RunTimeCompiler;
 
 Procedure SP_DrawStripe(Dst: pByte; Width, StripeWidth, StripeHeight: Integer);
 Procedure SP_EditLoop(Var Error: TSP_ErrorCode);
@@ -72,109 +72,150 @@ Var
   pInfo: pSP_iInfo;
   Info: TSP_iInfo;
   tStr: aString;
+  s: aString;
+  ps, i: Integer;
+  {$IFDEF DEBUG}
+  fs: TFileStream;
+  {$ENDIF}
 Label
   RunTimeExit;
 Begin
 
-  SP_InitFPEditor;
-
   Info.Error := @Error;
   pInfo := @Info;
 
-  {$IFDEF PANDORA}
-  BATTLEVEL := StrToInt(ReadLinuxFile('/sys/class/power_supply/bq27500-0/capacity'));
-  {$ELSE}
-  BATTLEVEL := 100;
-  {$ENDIF}
+//  {$IFDEF DEBUG}
+//  PAYLOADPRESENT := True;
+//  {$ENDIF}
+  If Not PAYLOADPRESENT Then begin
 
-  SPLITSTATEMENTS := TRUE;
-  EDITORWRAP := FALSE;
-  SPLITREMS := FALSE;
+    SP_InitFPEditor;
 
-  SP_FPSetDisplayColours;
+    {$IFDEF PANDORA}
+    BATTLEVEL := StrToInt(ReadLinuxFile('/sys/class/power_supply/bq27500-0/capacity'));
+    {$ELSE}
+    BATTLEVEL := 100;
+    {$ENDIF}
 
-  // Execute the startup code
+    SPLITSTATEMENTS := TRUE;
+    EDITORWRAP := FALSE;
+    SPLITREMS := FALSE;
 
-  aSave := AUTOSAVE;
-  AUTOSAVE := False;
-  MaxCompileLines := -1;
-  MaxDirtyLines := -1;
-  If SP_FileExists('s:startup-sequence') Then Begin
-    SP_Execute('LOAD "s:startup-sequence": RUN', Error);
-    // Clear any errors, as we just ignore them.
-    Error.Code := SP_ERR_OK;
-  End Else
-    If SP_FileExists('startup-sequence') Then Begin
-      SP_Execute('LOAD "startup-sequence": RUN', Error);
+    SP_FPSetDisplayColours;
+
+    // Execute the startup code
+
+    aSave := AUTOSAVE;
+    AUTOSAVE := False;
+    MaxCompileLines := -1;
+    MaxDirtyLines := -1;
+    If SP_FileExists('s:startup-sequence') Then Begin
+      SP_Execute('LOAD "s:startup-sequence": RUN', Error);
       // Clear any errors, as we just ignore them.
       Error.Code := SP_ERR_OK;
-    End;
+    End Else
+      If SP_FileExists('startup-sequence') Then Begin
+        SP_Execute('LOAD "startup-sequence": RUN', Error);
+        // Clear any errors, as we just ignore them.
+        Error.Code := SP_ERR_OK;
+      End;
 
-  SP_FPNewProgram;
+    SP_FPNewProgram;
 
-  // Startup.
-  // Check if the user supplied any parameters. If so, use the first as the mandatory filename,
-  // and the second as the optional line number to start from.
+    // Startup.
+    // Check if the user supplied any parameters. If so, use the first as the mandatory filename,
+    // and the second as the optional line number to start from.
 
-  tStr := '';
-  If PCOUNT > 0 Then Begin
-    NXTLINE := -1;
-    SP_LoadProgram(aString(PARAMS[1]), False, True, nil, Error);
-    If Error.Code = SP_ERR_OK Then Begin
-      If PCOUNT > 1 Then
-        CurLine := StringToInt(PARAMS[2], -1)
-      Else
-        CurLine := NXTLINE;
-      If CurLine = -1 Then CurLine := 0;
-      SetAllToCompile;
-      CompilerThread := TCompilerThread.Create(False);
-      SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
-      SP_Interpreter_Ready := True;
-      SP_Execute('RUN '+IntToString(CurLine), Error);
-    End;
-    SP_Interpret_QUIT(pInfo);
-    Exit;
-  End Else Begin
-
-    // Now load the auto-save if it exists, and set up for a NEW error message.
-
-    SP_LoadRecentFiles;
-
-    If aSave And (SP_FileExists('s:autosave')) Then Begin
-      SP_LoadProgram('s:autosave', False, False, nil, Error);
-      FILENAMED := SP_FileExists(PROGNAME);
+    tStr := '';
+    If PCOUNT > 0 Then Begin
+      NXTLINE := -1;
+      SP_LoadProgram(aString(PARAMS[1]), False, True, nil, Error);
+      If Error.Code = SP_ERR_OK Then Begin
+        If PCOUNT > 1 Then
+          CurLine := StringToInt(PARAMS[2], -1)
+        Else
+          CurLine := NXTLINE;
+        If CurLine = -1 Then CurLine := 0;
+        SetAllToCompile;
+        CompilerThread := TCompilerThread.Create(False);
+        SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
+        SP_Interpreter_Ready := True;
+        SP_Execute('RUN '+IntToString(CurLine), Error);
+      End;
+      SP_Interpret_QUIT(pInfo);
+      Exit;
     End Else Begin
-      SP_Program_Count := 0;
+
+      // Now load the auto-save if it exists, and set up for a NEW error message.
+
+      SP_LoadRecentFiles;
+
+      If aSave And (SP_FileExists('s:autosave')) Then Begin
+        SP_LoadProgram('s:autosave', False, False, nil, Error);
+        FILENAMED := SP_FileExists(PROGNAME);
+      End Else Begin
+        SP_Program_Count := 0;
+        Error.Line := -2;
+        Error.Statement := 0;
+        Error.Code := -1;
+        NXTLINE := -1;
+        NXTSTATEMENT := -1;
+        Error.Position := 1;
+        PROGNAME := NEWPROGNAME;
+        FILENAMED := False;
+        SP_PreParse(True, True, Error, tStr);
+      End;
+
+      If Not FILENAMED Then
+        SP_SetCurrentDir('/', Error);
+
       Error.Line := -2;
       Error.Statement := 0;
       Error.Code := -1;
       NXTLINE := -1;
-      NXTSTATEMENT := -1;
       Error.Position := 1;
-      PROGNAME := NEWPROGNAME;
-      FILENAMED := False;
-      SP_PreParse(True, True, Error, tStr);
+
     End;
 
-    If Not FILENAMED Then
-      SP_SetCurrentDir('/', Error);
+    AUTOSAVE := aSave;
+    MOUSEVISIBLE := True;
+    INSTARTUP := False;
+    LASTERRORLINE := -1;
+    LASTERRORSTATEMENT := -1;
 
-    Error.Line := -2;
-    Error.Statement := 0;
-    Error.Code := -1;
+    SP_FPEditorLoop;
+    SP_SaveRecentFiles;
+
+  End Else Begin
+
+    // run the payload
+
+//    {$IFDEF DEBUG}
+//    s := ExtractFilePath(EXENAME) + 'payload.bin';
+//    If FileExists(s) Then Begin
+//      fs := TFileStream.Create(s, fmOpenRead);
+//      SetLength(s, fs.size);
+//      fs.read(s[1], fs.Size);
+//      fs.Free;
+//    End;
+//    {$ELSE}
+    ps := PayLoad.PayloadSize;
+    SetLength(s, ps);
+    PayLoad.GetPayLoad(s[1]);
+//    {$ENDIF}
+    UnPackPayload(s);
+    For i := 0 To SP_Program_Count -1 do
+      SP_AddHandlers(SP_Program[i]);
     NXTLINE := -1;
-    Error.Position := 1;
+    CurLine := NXTLINE;
+    If CurLine = -1 Then CurLine := 0;
+    SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
+    SP_Interpreter_Ready := True;
+    SP_Execute('RUN '+IntToString(CurLine), Error);
+
+    SP_Interpret_QUIT(pInfo);
 
   End;
-
-  AUTOSAVE := aSave;
-  MOUSEVISIBLE := True;
-  INSTARTUP := False;
-  LASTERRORLINE := -1;
-  LASTERRORSTATEMENT := -1;
-
-  SP_FPEditorLoop;
-  SP_SaveRecentFiles;
 
 End;
 

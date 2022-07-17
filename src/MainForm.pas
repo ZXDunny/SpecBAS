@@ -26,7 +26,7 @@ interface
 uses
   System.Types, ShellAPI, SHFolder, Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math,
   Dialogs, System.SyncObjs, SP_SysVars, SP_Graphics, SP_Graphics32, SP_BankManager, SP_Util, SP_Main, SP_FileIO,
-  ExtCtrls, SP_Input, MMSystem, SP_Errors, SP_Sound, Bass, SP_Tokenise, SP_Menu, PNGImage,
+  ExtCtrls, SP_Input, MMSystem, SP_Errors, SP_Sound, Bass, SP_Tokenise, SP_Menu, PNGImage, RunTimeCompiler,
   GIFImg{$IFDEF OPENGL}, dglOpenGL{$ENDIF}, SP_Components, SP_BaseComponentUnit, Clipbrd;
 
 Const
@@ -87,6 +87,7 @@ type
   Procedure MsgProc; inline;
   Procedure GetKeyState;
   Function  GetTicks: aFloat;
+  Procedure MouseMoveTo(ToX, ToY: Integer);
   Function  GetTimerFrequency: aFloat;
   Procedure Quit;
   function  Sto_GetFmtFileVersion(const FileName: String = ''; const Fmt: String = '%d.%d'): String;
@@ -857,6 +858,20 @@ begin
 
 end;
 
+Procedure MouseMoveTo(ToX, ToY: Integer);
+var
+  p: TPoint;
+Begin
+
+  // Convert to native coords from virtual
+
+  p := Main.ClientToScreen(Point(0, 0));
+  ToX := Round(p.x + (ToX * ScaleMouseX));
+  ToY := Round(p.y + (Toy * ScaleMouseY));
+  SetCursorPos(ToX, ToY);
+
+End;
+
 procedure TMain.FormCreate(Sender: TObject);
 Var
   Path: Array [0..MAX_PATH] of Char;
@@ -876,25 +891,32 @@ begin
 
   MOUSEVISIBLE := FALSE;
 
-  PCOUNT := -1;
-  PARAMS := TStringList.Create;
-  For Idx := 0 To ParamCount Do Begin
-    s := ParamStr(Idx);
-    if Copy(s, 1, 1) <> '-' then Begin
-      if FileExists(s) then Begin
+  EXENAME := ParamStr(0);
+  PayLoad := TPayLoad.Create(EXENAME);
+  PAYLOADPRESENT := PayLoad.HasPayLoad;
+
+  If Not PAYLOADPRESENT Then Begin
+    PCOUNT := -1;
+    PARAMS := TStringList.Create;
+    For Idx := 0 To ParamCount Do Begin
+      s := ParamStr(Idx);
+      if Copy(s, 1, 1) <> '-' then Begin
+        if FileExists(s) then Begin
+          PARAMS.Add(aString(s));
+          Inc(PCOUNT);
+        End;
+      End Else Begin
         PARAMS.Add(aString(s));
         Inc(PCOUNT);
       End;
-    End Else Begin
-      PARAMS.Add(aString(s));
-      Inc(PCOUNT);
     End;
-  End;
 
-  dir := GetCurrentDir;
-  If (PCOUNT = 0) And FileExists(dir + '\autorun') Then Begin
-    PCOUNT := 1;
-    PARAMS.Add(aString(dir)+'\autorun');
+    dir := GetCurrentDir;
+    If (PCOUNT = 0) And FileExists(dir + '\autorun') Then Begin
+      PCOUNT := 1;
+      PARAMS.Add(aString(dir)+'\autorun');
+    End;
+
   End;
 
   Cursor := CrNone;
@@ -906,33 +928,42 @@ begin
 
   InitTime := Round(GetTicks);
 
-  BUILDSTR := aString(Sto_GetFmtFileVersion('', '%d.%d.%d.%d'));
-  If IsDebuggerPresent Then UpdateLinuxBuildStr;
-  {$IFDEF OPENGL}
-    BUILDSTR := BUILDSTR + '-GL';
-  {$ENDIF}
-  {$IFDEF WIN64}
-    BUILDSTR := BUILDSTR + ' x64';
-  {$ENDIF}
-  {$IFDEF DEBUG}
-    BUILDSTR := BUILDSTR + ' [Debug]';
-  {$ENDIF}
+  If Not PAYLOADPRESENT Then Begin
 
-  // Set the HOME folder - if we're loading a parameter file, extract the
-  // directory and set that as HOMEFOLDER
+    BUILDSTR := aString(Sto_GetFmtFileVersion('', '%d.%d.%d.%d'));
+    If IsDebuggerPresent Then UpdateLinuxBuildStr;
+    {$IFDEF OPENGL}
+      BUILDSTR := BUILDSTR + '-GL';
+    {$ENDIF}
+    {$IFDEF WIN64}
+      BUILDSTR := BUILDSTR + ' x64';
+    {$ENDIF}
+    {$IFDEF DEBUG}
+      BUILDSTR := BUILDSTR + ' [Debug]';
+    {$ENDIF}
 
-  If PCOUNT <= 0 Then Begin
+    // Set the HOME folder - if we're loading a parameter file, extract the
+    // directory and set that as HOMEFOLDER
 
-    Main.Caption := 'SpecBAS for Windows v'+String(BuildStr);
-    SHGetFolderPath(0,$0028,0,SHGFP_TYPE_CURRENT,@path[0]);
-    HOMEFOLDER := Path + aString('\specbas');
+    If PCOUNT <= 0 Then Begin
+
+      Main.Caption := 'SpecBAS for Windows v'+String(BuildStr);
+      SHGetFolderPath(0,$0028,0,SHGFP_TYPE_CURRENT,@path[0]);
+      HOMEFOLDER := Path + aString('\specbas');
+
+    End Else Begin
+
+      Main.Caption := ExtractFileName(String(PARAMS[1]));
+      HOMEFOLDER := aString(ExtractFileDir(String(PARAMS[1])));
+      If HOMEFOLDER = '' Then
+        HOMEFOLDER := aString(GetCurrentDir);
+
+    End;
 
   End Else Begin
 
-    Main.Caption := ExtractFileName(String(PARAMS[1]));
-    HOMEFOLDER := aString(ExtractFileDir(String(PARAMS[1])));
-    If HOMEFOLDER = '' Then
-      HOMEFOLDER := aString(GetCurrentDir);
+    SetCurrentDir(ExtractFilePath(EXENAME));
+    HOMEFOLDER := aString(GetCurrentDir);
 
   End;
 
@@ -947,7 +978,7 @@ begin
   If HOMEFOLDER[Length(HOMEFOLDER)] <> '\' Then
     HOMEFOLDER := HOMEFOLDER + '\';
 
-  AUTOSAVE := True;
+  AUTOSAVE := Not PAYLOADPRESENT;
 
   ScrWidth := 800;
   ScrHeight := 480;
@@ -974,6 +1005,7 @@ begin
   CB_Save_Image := SaveImage;
   CB_Free_Image := FreeImageResource;
   CB_Messages := MsgProc;
+  CB_MouseMove := MouseMoveTo;
 
   SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
   SetBounds((Screen.Width - Width) Div 2, (Screen.Height - Height) Div 2, Width, Height);
@@ -990,6 +1022,7 @@ begin
   CURSORCHAR := 32;
   SYSTEMSTATE := SS_IDLE;
 
+  SoundEnabled := LoadLibrary(bassdll) <> 0;
   SP_Init_Sound;
 
   Setpriorityclass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
@@ -1011,8 +1044,6 @@ begin
 
   Activate;
 
-  Logging := True;
-
 end;
 
 procedure TMain.FormDeactivate(Sender: TObject);
@@ -1027,8 +1058,11 @@ Var
 begin
 
   Quitting := True;
-  BASS_Free;
-  If PCOUNT <> 0 Then Begin
+
+  If SoundEnabled Then
+    BASS_Free;
+
+  If PAYLOADPRESENT or (PCOUNT <> 0) Then Begin
     SP_RmDirUnSafe('/temp', Error);
     SP_RmDir('/s', Error);
     SP_RmDir('/fonts', Error);
@@ -1039,12 +1073,6 @@ begin
   DisplaySection.Enter;
 
   Bitmap.Free;
-  {$IFDEF OPENGL}
-  DeactivateRenderingContext;
-  wglDeleteContext(RC);
-  ReleaseDC(Handle, DC);
-  {$ENDIF}
-
   SetScreenResolution(OrgWidth, OrgHeight, False);
 
   DisplaySection.Leave;
@@ -1721,7 +1749,6 @@ begin
   end;
   DragFinish(msg.WParam);
 end;
-
 
 Initialization
 

@@ -49,6 +49,7 @@ Type
   TCB_GetAxis = Function(NubID, Axis: Integer): Integer;
   TCB_InitSticks = Procedure;
   TCB_ReleaseSticks = Procedure;
+  TCB_MouseMove = Procedure(ToX, ToY: integer);
 
 Function  SP_FrameUpdate: Boolean;
 Procedure DoAutoSave(SaveOLD: Boolean = False);
@@ -77,6 +78,7 @@ Var
   CB_GetAxis: TCB_GetAxis;
   CB_InitSticks: TCB_InitSticks;
   CB_ReleaseSticks: TCB_ReleaseSticks;
+  CB_MouseMove: TCB_MouseMove;
   SP_GOSUB_Stack: Array of TSP_GOSUB_Item;
   SP_GOSUB_StackPtr,
   SP_GOSUB_StackLen,
@@ -127,7 +129,7 @@ Procedure DoAutoSave(SaveOLD: Boolean = False);
 Var
   Error: TSP_ERRORCODE;
 Begin
-  If AUTOSAVE Then Begin
+  If AUTOSAVE And Not PAYLOADPRESENT Then Begin
     FileSection.Enter;
     Error.Code := SP_ERR_OK;
     SP_SaveProgram('s:autosave', -1, Error);

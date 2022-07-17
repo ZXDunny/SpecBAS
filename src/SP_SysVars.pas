@@ -41,6 +41,8 @@ Var
 
   // System-wide sysvars
 
+  EXENAME:                  String;       // Yes a string, not ansistring. Don't worry about it.
+  PAYLOADPRESENT:           Boolean;
   PCOUNT:                   Integer;      // Number of parameters on command line
   {$IFDEF FPC}
   PARAMS:                   TAnsiStringList;

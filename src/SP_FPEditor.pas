@@ -197,8 +197,6 @@ Function  SP_FPExecuteStringExpression(Const Expr: aString; var Error: TSP_Error
 Function  SP_FPExecuteAnyExpression(Const Expr: aString; var Error: TSP_ErrorCode): aString;
 Procedure SP_FPExecuteExpression(Const Expr: aString; var Error: TSP_ErrorCode);
 Function  SP_FPCheckExpression(Const Expr: aString; var Error: TSP_ErrorCode): Boolean;
-Procedure SP_Interpreter(Var Tokens: paString; Var Position: Integer; Var Error: TSP_ErrorCode; PreParseErrorCode: Integer; Continue: Boolean = False);
-Procedure SP_Execute(Line: aString; Var Error: TSP_ErrorCode);
 Procedure SP_FPMakeListWindowVisible;
 Procedure SP_CloseEditorWindows;
 Procedure SP_CreateEditorWindows;
@@ -687,7 +685,9 @@ Begin
 
   SP_GetFPUserInput;
 
+  {$IFNDEF RTComp}
   DoAutoSave;
+  {$ENDIF}
 
   UndoLock.Free;
   CompilerLock.Free;
@@ -3329,8 +3329,10 @@ Begin
       LocalFlashState := FLASHSTATE;
     End;
 
+    {$IFNDEF RTComp}
     If (AutoFrameCount mod AUTOSAVETIME = 0) and (PROGSTATE <> SP_PR_RUN) Then
        DoAutoSave;
+    {$ENDIF}
 
     If QUITMSG Then Exit;
 
@@ -7864,7 +7866,9 @@ Begin
         // A line to be stored in the listing.
         SP_DeleteIncludes;
         SP_FPMakeListWindowVisible;
+        {$IFNDEF RTComp}
         DoAutoSave;
+        {$ENDIF}
         PROGLINE := dLongWord(@TokensStr[2]);
         ProcListAvailable := False;
         SP_DWStoreLine(TokensStr);
@@ -8259,157 +8263,6 @@ Begin
   SP_DisplayFPListing(-1);
   SP_ScrollInView;
   SP_EditorDisplayEditLine;
-
-End;
-
-Procedure SP_Interpreter(Var Tokens: paString; Var Position: Integer; Var Error: TSP_ErrorCode; PreParseErrorCode: Integer; Continue: Boolean);
-Var
-  CurLine, Idx, OldEC: Integer;
-  HasErrors, BreakNow: Boolean;
-  res: aString;
-Begin
-
-  // If there are errors in the listing, or lines that have yet to be compiled, then
-  // flag them up now. Errors will not stop the _command line_ from running, but will
-  // prevent entry to the program.
-
-  HasErrors := False;
-
-  If Not Continue Then Begin
-
-    HasErrors := Not SP_CheckProgram;
-    If Assigned(CompilerThread) Then SP_StopCompiler;
-    SP_Interpret(Tokens, Error.Position, Error);
-
-  End;
-
-  If Error.ReturnType >= SP_JUMP Then
-    If PreParseErrorCode <> SP_ERR_OK Then Begin
-      Error.Code := PreParseErrorCode;
-      Error.ReturnType := 0;
-      Exit;
-    End;
-
-  If INCLUDEFROM > -1 Then Begin
-    If NXTLINE >= INCLUDEFROM Then NXTLINE := -1;
-  End Else
-    If NXTLINE >= SP_Program_Count Then NXTLINE := -1;
-
-  While NXTLINE <> -1 Do Begin
-
-    If NXTLINE = -2 Then Begin
-      CurLine := -1;
-      SYSTEMSTATE := SS_DIRECT;
-      Tokens := @COMMAND_TOKENS;
-      If NXTSTATEMENT = -1 Then Begin Dec(Error.Statement); Exit; End;
-      If Byte(Tokens^[NXTSTATEMENT]) = SP_TERMINAL Then
-        Dec(Error.Statement);
-    End Else Begin
-      If HasErrors Then Begin
-        Error.Code := SP_ERR_EDITOR;
-        Error.Line := NXTLINE;
-        Error.Statement := 1;
-        EDITERROR := True;
-        Exit;
-      End Else Begin
-        CurLine := NXTLINE;
-        SYSTEMSTATE := SS_INTERPRET;
-        Tokens := @SP_Program[CurLine];
-      End;
-    End;
-
-    If NXTSTATEMENT <> -1 Then
-      Error.Position := NXTSTATEMENT
-    Else Begin
-      Error.Statement := 1;
-      Error.Position := SP_FindStatement(Tokens, 1);
-    End;
-
-    NXTSTATEMENT := -1;
-    Inc(NXTLINE);
-    If NXTLINE <> 0 Then Begin
-      Error.Line := CurLine;
-      SP_StackPtr := SP_StackStart;
-      SP_Interpret(Tokens, Error.Position, Error);
-      If DEBUGGING Then Begin
-        If STEPMODE = SM_Single Then
-          Exit;
-
-        If Error.Code = SP_ERR_OK Then
-          For Idx := 0 To Length(SP_ConditionalBreakPointList) -1 Do
-            With SP_ConditionalBreakPointList[Idx] Do Begin
-              OldEC := Error.Code;
-              BreakNow := PassCount = 0;
-              If bpType = BP_Conditional Then
-                BreakNow := (SP_FPExecuteNumericExpression(Compiled_Condition, Error) <> 0) And BreakNow
-              Else Begin
-                res := SP_FPExecuteAnyExpression(Compiled_Condition, Error);
-                BreakNow := ((HasResult And (res <> CurResult)) or (Not HasResult)) and BreakNow and (Error.Code = SP_ERR_OK);
-                If Error.Code = SP_ERR_OK Then Begin
-                  CurResult := res;
-                  HasResult := True;
-                End;
-              End;
-              Error.Code := OldEC;
-              If BreakNow Then Begin
-                CONTLINE := NXTLINE;
-                If NXTSTATEMENT = -1 Then
-                  CONTSTATEMENT := 1
-                Else
-                  CONTSTATEMENT := SP_GetStatementFromOffset(NXTLINE, NXTSTATEMENT);
-                Error.Code := SP_ERR_BREAKPOINT;
-                Error.Line := CONTLINE;
-                Error.Statement := CONTSTATEMENT;
-                Exit;
-              End Else
-                If PassCount > 0 Then
-                  Dec(PassCount);
-            End;
-      End;
-    End;
-
-    If NXTLINE = SP_Program_Count Then NXTLINE := -1;
-
-    If Error.Code <> SP_ERR_OK Then Begin
-      NXTLINE := -1;
-    End Else Begin
-      If NXTLINE <> -1 Then Begin
-        If NXTLINE >= SP_Program_Count Then
-          NXTLINE := -1;
-      End;
-
-    End;
-
-  End;
-
-End;
-
-Procedure SP_Execute(Line: aString; Var Error: TSP_ErrorCode);
-Var
-  Tokens: paString;
-  aSave: Boolean;
-Begin
-
-  aSave := AUTOSAVE;
-  AUTOSAVE := False;
-
-  Error.Line := -1;
-  Error.Statement := 1;
-  Error.Position := 1;
-  Line := SP_TokeniseLine(Line, False, False) + #255#255#255#255;
-  SP_Convert_ToPostFix(Line, Error.Position, Error);
-  Tokens := @Line;
-  Error.Position := SP_FindStatement(@Line, 1);
-  Error.Code := SP_ERR_OK;
-  COMMAND_TOKENS := Line;
-  NXTSTATEMENT := -1;
-  NXTLINE := -1;
-  SP_StackPtr := SP_StackStart;
-  SP_PreParse(False, False, Error, Tokens^);
-  PROGSTATE := SP_PR_RUN;
-  SP_Interpreter(Tokens, Error.Position, Error, Error.Code);
-
-  AUTOSAVE := aSave;
 
 End;
 

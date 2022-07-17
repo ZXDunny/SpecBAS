@@ -28,7 +28,7 @@ unit SP_Util;
 
 interface
 
-Uses Math, Classes, SysUtils, Types, SyncObjs, SP_AnsiStringlist;
+Uses Math, Classes, SysUtils, Types, SyncObjs, SP_AnsiStringlist, RunTimeCompiler;
 
 Type
 
@@ -130,6 +130,7 @@ Var
   SP_NeedDisplayUpdate: Boolean = False;
   LogFile: TFileStream;
   LogFileAssigned: Boolean = False;
+  PayLoad: TPayLoad;
 
 Const
 

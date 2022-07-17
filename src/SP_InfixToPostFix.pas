@@ -134,6 +134,7 @@ Function  SP_Convert_BANK(Var KeyWordID: LongWord; Var Tokens: aString; Var Posi
 Function  SP_Convert_WAIT(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_STREAM(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_SETDIR(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_COMPILE(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_LABEL(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_EXECUTE(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_ROTATE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -622,6 +623,7 @@ Begin
     SP_KW_WAIT: Result := Result + SP_Convert_WAIT(KeyWordID, Tokens, Position, Error);
     SP_KW_STREAM: Result := Result + SP_Convert_STREAM(KeyWordID, Tokens, Position, Error);
     SP_KW_SETDIR, SP_KW_CD: Result := Result + SP_Convert_SETDIR(Tokens, Position, Error);
+    SP_KW_COMPILE: Result := Result + SP_Convert_COMPILE(Tokens, Position, Error);
     SP_KW_LABEL: Result := Result + SP_Convert_LABEL(Tokens, Position, Error);
     SP_KW_EXECUTE: Result := Result + SP_Convert_EXECUTE(Tokens, Position, Error);
     SP_KW_ROTATE: Result := Result + SP_Convert_ROTATE(KeyWordID, Tokens, Position, Error);
@@ -11482,6 +11484,19 @@ Begin
 
 End;
 
+Function  SP_Convert_COMPILE(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Begin
+
+  // COMPILE strexpr
+
+  Result := SP_Convert_Expr(Tokens, Position, Error, -1);
+
+  If Error.Code = SP_ERR_OK Then
+    If Error.ReturnType <> SP_STRING Then
+      Error.Code := SP_ERR_MISSING_STREXPR;
+
+End;
+
 Function  SP_Convert_LABEL(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
   LabelLen: Integer;
@@ -15821,6 +15836,7 @@ Begin
   // MOUSE SHOW
   // MOUSE HIDE
   // MOUSE GRAPHIC gfx$|bank-id|DEFAULT {POINT x,y}
+  // MOUSE TO x,y
 
   Result := '';
 
@@ -15836,6 +15852,31 @@ Begin
         Begin
           Inc(Position, SizeOf(LongWord));
           KeyWordID := SP_KW_MOUSE_HIDE;
+        End;
+      SP_KW_TO:
+        Begin
+          Inc(Position, SizeOf(LongWord));
+          KeyWordID := SP_KW_MOUSE_TO;
+          Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+          If Error.Code <> SP_ERR_OK Then Exit;
+          If Error.ReturnType <> SP_VALUE Then Begin
+            Error.Code := SP_ERR_MISSING_NUMEXPR;
+            Exit;
+          End;
+          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+            Inc(Position, 2);
+            Result := Expr + Result;
+            Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+            If Error.Code <> SP_ERR_OK Then Exit;
+            If Error.ReturnType <> SP_VALUE Then Begin
+              Error.Code := SP_ERR_MISSING_NUMEXPR;
+              Exit;
+            End;
+            Result := Expr + Result;
+          End Else Begin
+            Error.Code := SP_ERR_ILLEGAL_CHAR;
+            Exit;
+          End;
         End;
       SP_KW_GRAPHIC:
         Begin

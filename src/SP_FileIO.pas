@@ -801,7 +801,6 @@ Const
   ASCIITAG: aString = 'ZXASCII'#13#10;
   TrueFalse: Array[0..1] of aString = ('FALSE', 'TRUE');
 Begin
-
   BackBool := FILENAMED;
   Backup := PROGNAME;
 

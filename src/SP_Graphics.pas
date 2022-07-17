@@ -562,13 +562,11 @@ End;
 
 Procedure SP_WaitForSync;
 Begin
-
   SP_NeedDisplayUpdate := True;
   CauseUpdate := True;
   Repeat
     CB_YIELD;
   Until Not CauseUpdate;
-
 End;
 
 Procedure SP_SetDirtyRect(x1, y1, x2, y2: Integer);

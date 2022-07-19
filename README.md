@@ -3,8 +3,9 @@ An enhanced Sinclair  BASIC interpreter for modern PCs
 
 
 
-N.B - SpecBAS.exe in root of this branch is a development/unstable build. For slightly more stability, download the latest release instead.
-
+N.B - The release is intended to install base files, and then be replaced by the files on this page above this notice. Always overwrite your installation with new files after an update! See the section "Installing SpecBAS" below for instructions.
+      
+      ALSO! Executables created by the COMPILE command are not bound by the GPL and can be distributed freely without source.
 
 Based on the 1982 Sinclair Spectrum's implementation of Dartmouth BASIC, SpecBAS will run programs for that computer with a reasonably high degree of compatibility. However, where the Spectrum was limited to 256x192 resolution with 8 colours (and two levels of brightness), SpecBAS offers flexible screen resolutions and 256 colours (32bit is a feature in development). 
 

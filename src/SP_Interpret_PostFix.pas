@@ -1168,6 +1168,8 @@ var
   sFilename, dFilename, Dir: String;
   payLoadData: aString;
   payLoad: TPayLoad;
+  Line, NumBanks: Integer;
+  Banks: Array of Integer;
   {$IFDEF DEBUG}
   s: TFileStream;
   {$ENDIF}
@@ -1177,8 +1179,21 @@ Begin
 
   Dir := ExtractFilePath(EXENAME);
   sFilename := EXENAME;
-  dFilename := SP_StackPtr^.Str;
+  dFilename := String(SP_StackPtr^.Str);
   Dec(SP_StackPtr);
+
+  Line := Trunc(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  NumBanks := Trunc(SP_StackPtr^.Val);
+  SetLength(Banks, NumBanks);
+
+  While NumBanks > 0 Do Begin
+    Banks[NumBanks -1] := Trunc(SP_StackPtr^.Val);
+    Dec(SP_StackPtr);
+    Dec(NumBanks);
+  End;
+
   If FileExists(sFilename) Then Begin
     If FileExists(dFilename) Then
       TFile.Delete(dFilename);
@@ -1187,14 +1202,14 @@ Begin
     payLoad := TPayLoad.Create(dFilename);
     payload.SetPayload(payLoadData[1], Length(PayLoadData));
     payLoad.Free;
-    {$IFDEF DEBUG}
-    sFilename := Dir + 'payload.bin';
-    if FileExists(sFilename) then
-      TFile.Delete(sFilename);
-    s := TFileStream.Create(sFilename, fmCreate);
-    s.Write(payLoadData[1], Length(payLoadData));
-    s.Free;
-    {$ENDIF}
+//    {$IFDEF DEBUG}
+//    sFilename := Dir + 'payload.bin';
+//    if FileExists(sFilename) then
+//      TFile.Delete(sFilename);
+//    s := TFileStream.Create(sFilename, fmCreate);
+//    s.Write(payLoadData[1], Length(payLoadData));
+//    s.Free;
+//    {$ENDIF}
   End;
 
 End;

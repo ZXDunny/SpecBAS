@@ -74,9 +74,9 @@ Var
   tStr: aString;
   s: aString;
   ps, i: Integer;
-  {$IFDEF DEBUG}
-  fs: TFileStream;
-  {$ENDIF}
+//  {$IFDEF DEBUG}
+//  fs: TFileStream;
+//  {$ENDIF}
 Label
   RunTimeExit;
 Begin

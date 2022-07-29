@@ -1996,8 +1996,9 @@ Begin
     SP_PackageDeleteDir(DirString, Error)
   Else Begin
     DirString := SP_ConvertFilenameToHost(DirString, Error);
-    If Lower(DirString) <> lower(HOMEFOLDER) Then
-      RmDir(String(Sp_ConvertFilenameToHost(DirString, Error)));
+    If DirectoryExists(DirString) Then
+      If Lower(DirString) <> lower(HOMEFOLDER) Then
+        RmDir(String(Sp_ConvertFilenameToHost(DirString, Error)));
   End;
 
 End;
@@ -2009,20 +2010,21 @@ var
 begin
   Error.Code := SP_ERR_OK;
   Path := (IncludeTrailingPathDelimiter(String(SP_ConvertFilenameToHost(DirString, Error))));
-  If Error.Code = SP_ERR_OK Then Begin
-    If FindFirst(Path + '*.*', faAnyFile, Search) = 0 then
-    try
-      repeat
-        if (Search.Attr and faDirectory) <> 0 then
-          SP_RmDirUnSafe(aString(Path + Search.Name), Error)
-        else
-          DeleteFile(Path + Search.Name);
-      until SysUtils.FindNext(Search) <> 0;
-    finally
-      FindClose(Search);
-    end;
-    RmDir(Path);
-  End;
+  If DirectoryExists(Path) Then
+    If Error.Code = SP_ERR_OK Then Begin
+      If FindFirst(Path + '*.*', faAnyFile, Search) = 0 then
+      try
+        repeat
+          if (Search.Attr and faDirectory) <> 0 then
+            SP_RmDirUnSafe(aString(Path + Search.Name), Error)
+          else
+            DeleteFile(Path + Search.Name);
+        until SysUtils.FindNext(Search) <> 0;
+      finally
+        FindClose(Search);
+      end;
+      RmDir(Path);
+    End;
 end;
 
 Procedure SP_DeleteDirContents(DirString: aString; var Error: TSP_ErrorCode);

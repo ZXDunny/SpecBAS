@@ -1404,7 +1404,7 @@ begin
   end;
 
   {$R-}
-  p := Trunc(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
+  p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
   {$R-}
   while y > 0 do begin
      Dec(y);

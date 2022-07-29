@@ -11485,15 +11485,48 @@ Begin
 End;
 
 Function  SP_Convert_COMPILE(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+var
+  done: Boolean;
+  BankCount: Integer;
+  BankExpr: aString;
 Begin
 
-  // COMPILE strexpr
+  // COMPILE strexpr [LINE numexpr] [BANK id[,id..]]
 
   Result := SP_Convert_Expr(Tokens, Position, Error, -1);
-
   If Error.Code = SP_ERR_OK Then
     If Error.ReturnType <> SP_STRING Then
       Error.Code := SP_ERR_MISSING_STREXPR;
+
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_LINE) Then Begin
+    Inc(Position, 1 + SizeOf(Longword));
+    Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result;
+    If (Error.Code <> SP_ERR_OK) or (Error.ReturnType <> SP_VALUE) Then Begin
+      Error.Code := SP_ERR_MISSING_NUMEXPR;
+      Exit;
+    End;
+  End Else
+    Result := CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0) + Result;
+
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_BANK) Then Begin
+    Inc(Position, 1 + SizeOf(Longword));
+    Done := False;
+    BankExpr := '';
+    While Not Done Do Begin
+      BankExpr := SP_Convert_Expr(Tokens, Position, Error, -1) + BankExpr;
+      If (Error.Code <> SP_ERR_OK) or (Error.ReturnType <> SP_VALUE) Then Begin
+        Error.Code := SP_ERR_MISSING_NUMEXPR;
+        Exit;
+      End Else
+        Inc(BankCount);
+      If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ',') Then
+        Inc(Position, 2)
+      Else
+        Done := True;
+    End;
+    Result := BankExpr + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(BankCount) + Result;
+  End Else
+    Result := CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0) + Result; // Otherwise, zero banks
 
 End;
 

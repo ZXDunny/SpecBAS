@@ -205,7 +205,6 @@ Var
   Info: BASS_INFO;
   BASS_Err: Integer;
   Error: TSP_ErrorCode;
-  Handle: HMODULE;
 Begin
 
   // Initialise BASS.

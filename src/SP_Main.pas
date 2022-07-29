@@ -215,17 +215,23 @@ Begin
 
   SP_CLS(CPAPER);
 
+  If Not PAYLOADPRESENT Then Begin
+    SP_MakeDir('SYS:s', Error);
+    SP_MakeDir('SYS:fonts', Error);
+    SP_MakeDir('SYS:keyboards', Error);
+    SP_MakeDir('SYS:include', Error);
+  End;
+
   SetLength(SP_Ass_List, 6);
   SP_Ass_List[0] := 'SYS'#255'/';
   SP_Ass_List[1] := 'TEMP'#255'/temp/';
-  SP_ASS_LIST[2] := 'S'#255'/s/';
-  SP_ASS_LIST[3] := 'FONTS'#255'/fonts/';
-  SP_ASS_LIST[4] := 'KEYBOARDS'#255'/keyboards/';
-  SP_ASS_LIST[5] := 'INCLUDE'#255'/include/';
-  SP_MakeDir('SYS:s', Error);
-  SP_MakeDir('SYS:fonts', Error);
-  SP_MakeDir('SYS:keyboards', Error);
-  SP_MakeDir('SYS:include', Error);
+
+  If Not PAYLOADPRESENT Then Begin
+    SP_ASS_LIST[2] := 'S'#255'/s/';
+    SP_ASS_LIST[3] := 'FONTS'#255'/fonts/';
+    SP_ASS_LIST[4] := 'KEYBOARDS'#255'/keyboards/';
+    SP_ASS_LIST[5] := 'INCLUDE'#255'/include/';
+  End;
 
   SP_MakeSystemSounds;
   SIGSAMPLEBANK := -1;

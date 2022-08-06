@@ -16679,7 +16679,8 @@ Begin
     If (Error^.Code <> SP_ERR_OK) or (NXTLINE >= SP_Program_Count) Then Begin
 
       Dec(SP_GOSUB_STACKPTR);
-      Error^.ReturnType := SP_JUMP;
+      If Error^.Code = SP_ERR_OK Then
+        Error^.ReturnType := SP_JUMP;
       Exit;
 
     End Else Begin

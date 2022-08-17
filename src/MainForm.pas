@@ -227,7 +227,7 @@ Begin
       End;
     End Else Begin
       If Not MouseInForm Then Begin
-        MOUSEVISIBLE := USERMOUSEVISIBLE;
+        MOUSEVISIBLE := USERMOUSEVISIBLE or (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_ERROR]);
         MouseInForm := True;
         SP_InvalidateWholeDisplay;
         SP_NeedDisplayUpdate := True;

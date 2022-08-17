@@ -1719,6 +1719,11 @@ Var
     End;
   End;
 
+  Function CurNoteLen_Ticks: aFloat;
+  Begin
+    Result := ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000);
+  End;
+
 Const
 
   NoteLengths: Array[1..12] of Integer = (6, 9, 12, 18, 24, 36, 48, 72, 96, 4, 8, 16);
@@ -1761,7 +1766,7 @@ Begin
       '&': // Rest
         Begin
           Inc(i);
-          While (CB_GETTICKS - Ticks < ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000)) And Not Halted Do Begin
+          While (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
             CheckMessages;
             CB_YIELD;
           End;
@@ -1872,12 +1877,12 @@ Begin
             BASS_SampleSetData(Sample, @bBuffer[0]);
             Channel := BASS_SampleGetChannel(Sample, true);
             BASS_ChannelPlay(Channel, True);
-            While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (CB_GETTICKS - Ticks < ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4) * 1000) And Not Halted Do Begin
+            While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
               CheckMessages;
               CB_YIELD;
             End;
             BASS_SampleFree(Sample);
-            Ticks := Ticks + (((1/(96/CurNoteLen)) * (60 / CurTempo) * 4) * 1000);
+            Ticks := Ticks + CurNoteLen_Ticks;
           End Else
             Exit;
           If TripletCount > 0 Then Begin
@@ -2129,7 +2134,7 @@ Begin
 
   While Not Terminated Do Begin
 
-    While ErrorCode^ <> SP_ERR_OK Do ;
+    While ErrorCode^ = -1 Do ;
     Playing := True;
     SP_PLAY(PLAYStr, SessionID, IsASync, pError);
     ErrorCode^ := pError^.Code;

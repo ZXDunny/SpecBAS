@@ -21,13 +21,13 @@ type
     procedure RemovePayload;
   end;
 
-  Function MakeDataPayload: ansiString;
-  Procedure UnpackPayLoad(Const Payload: ansiString);
+  Function MakeDataPayload(Line: Integer; Banks: Array of Integer): ansiString;
+  Function UnpackPayLoad(Const Payload: ansiString): Integer;
 
 implementation
 
 uses
-  ActiveX, SP_Tokenise, SP_Util;
+  ActiveX, SP_Tokenise, SP_Util, SP_BankFiling;
 
 type
   TPayloadFooter = packed record
@@ -177,21 +177,30 @@ end;
 
 // SpecBAS specific payload management
 
-Function MakeDataPayload: ansiString;
+Function MakeDataPayload(Line: Integer; Banks: Array of Integer): ansiString;
 var
   i: Integer;
+  b: aString;
 Begin
-  Result := LongWordToString(SP_Program_Count);
+  Result := LongWordToString(Line) + LongWordToString(SP_Program_Count);
   For i := 0 To SP_Program_Count -1 do
     Result := Result + LongWordToString(Length(SP_Program[i])) + SP_Program[i];
+  Result := Result + LongWordToString(Length(Banks));
+  For i := 0 To Length(Banks) -1 Do Begin
+    b := SP_BankToString(Banks[i]);
+    Result := Result + LongWordToString(Length(b)) + b;
+  End;
 End;
 
-Procedure UnpackPayLoad(Const Payload: ansiString);
+Function UnpackPayLoad(Const Payload: ansiString): Integer;
 var
   p: pByte;
-  i, l: Integer;
+  i, l, nb: Integer;
+  b: aString;
 Begin
   p := pByte(pNativeUInt(@PayLoad)^);
+  Result := pLongWord(p)^;
+  Inc(p, SizeOf(LongWord));
   SP_Program_Count := pLongword(p)^;
   Inc(p, SizeOf(LongWord));
   SetLength(SP_Program, SP_Program_Count);
@@ -203,6 +212,16 @@ Begin
     CopyMem(@SP_Program[i][1], p, l);
     inc(p, l);
     Inc(i);
+  End;
+  nb := pLongWord(p)^;
+  inc(p, SizeOf(LongWord));
+  for i := 1 to nb Do Begin
+    l := plongWord(p)^;
+    Inc(p, SizeOf(LongWord));
+    SetLength(b, l);
+    CopyMem(@b[1], p, l);
+    SP_BankFromString(b);
+    Inc(p, l);
   End;
 End;
 

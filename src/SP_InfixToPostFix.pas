@@ -2676,7 +2676,7 @@ Var
   Token: Byte;
   ExpectOperand, CanOptimise, Done: Boolean;
   OpPriority, Idx, fType, FunctionId, NumIndices, LabelLen, ParamCount: Integer;
-  SP_OperatorMin, SP_OperandMin, BraceLevel, NameLen, NamePos, MaxOperand,
+  SP_OperatorMin, SP_OperandMin, NameLen, NamePos, MaxOperand,
   VarType, VarPos, VarSize, VarIdx, l, m: Integer;
   oPosition, numTerms, ReturnType: Integer;
   Tkn: pToken;
@@ -2697,7 +2697,6 @@ Begin
   ExpectOperand := True;
   SP_OperatorMin := SP_OperatorPtr;
   Sp_OperandMin := SP_OperandPtr;
-  BraceLevel := 0;
 
   While True Do Begin
 
@@ -4772,11 +4771,10 @@ Begin
 
                 If Not ExpectOperand Then Begin
 
-                  If -1 < StartPri Then
-                    If BraceLevel = 0 Then Begin
-                      Dec(Position);
-                      Goto Finish;
-                    End;
+                  If -1 < StartPri Then Begin
+                    Dec(Position);
+                    Goto Finish;
+                  End;
 
                   Inc(Position, SizeOf(LongWord));
 
@@ -4829,20 +4827,20 @@ Begin
               Begin
 
                 // An opening brace is either a slicer or a maths operator.
-                // As a maths operator, it is just stacked for later.
+                // As a maths operator, we recurse and ask ourselves for the contents of the brackets.
 
                 If ExpectOperand Then Begin
 
                   // Math op
 
-                  Inc(SP_OperatorPtr);
-                  With SP_OperatorStack[SP_OperatorPtr] Do Begin
-                    Content := '(';
-                    Priority := -1;
-                    StrPos := Position;
-                  End;
-                  ExpectOperand := True;
-                  Inc(BraceLevel);
+                  Inc(Position, 2);
+                  tExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+                  If Error.Code = SP_ERR_OK Then Begin
+                    ExpectOperand := False;
+                    SP_StackExpression(tExpr);
+                  End Else
+                    Exit;
+
 
                 End Else Begin
 
@@ -4866,25 +4864,10 @@ Begin
             ')':
               Begin
 
-                // A close brace is the end of a math sequence, so pop operators off the
-                // stack until the matching opening brace is found.
+                // On a closing bracket, just bounce out and let the calling proc handle
+                // the rest.
 
-                If BraceLevel > 0 Then Begin
-                  While SP_OperatorPtr >= SP_OperatorMin Do Begin
-                    If SP_OperatorStack[SP_OperatorPtr].Content = '(' Then Begin
-                      Dec(SP_OperatorPtr);
-                      Dec(BraceLevel);
-                      Break;
-                    End Else
-                      SP_UnStackOperator;
-                  End;
-                  If SP_OperatorPtr < SP_OperatorMin Then Begin
-                    Error.Code := SP_ERR_MISSING_BRACKET;
-                    Exit;
-                  End;
-                End Else
-                  Goto Finish;
-                ExpectOperand := False;
+                Goto Finish;
 
               End;
 
@@ -4923,8 +4906,7 @@ Begin
 
                   OpPriority := SP_GetPriority(Symbol);
                   If OpPriority < StartPri Then
-                    If BraceLevel = 0 Then
-                      Goto Finish;
+                    Goto Finish;
 
                   If ((Not ExpectOperand) And (Symbol = '!')) or (Symbol in ['+', '-', '/', '*', '^', SP_CHAR_NUM_PLUS, SP_CHAR_STR_PLUS, SP_CHAR_MUL, SP_CHAR_DIV, SP_CHAR_ADD, SP_CHAR_SUB]) Then Begin
 
@@ -4933,7 +4915,7 @@ Begin
                     While (SP_OperatorPtr > SP_OperatorMin) And (OpPriority <= SP_OperatorStack[SP_OperatorPtr].Priority) Do
                       SP_UnstackOperator;
 
-                  End Else
+                  End Else Begin
 
                     // Right-associativity
                     // If this is AND or OR then insert the relevant JUMP opcode onto the operand stack
@@ -4942,11 +4924,11 @@ Begin
                       SP_UnstackOperator;
 
                     If Symbol = SP_CHAR_AND Then Begin
-                      Inc(SP_OperandPtr);
+                      {Inc(SP_OperandPtr);
                       With SP_OperandStack[SP_OperandPtr] Do Begin
                         OpType := SP_JZ; // If the preceding expression is false (0) then jump past the next expression
                         Content := LongWordToString(0);
-                      End;
+                      End;}
                     End Else
                       If Symbol = SP_CHAR_OR Then Begin
                         Inc(SP_OperandPtr);
@@ -4957,6 +4939,8 @@ Begin
                       End Else
                         If ExpectOperand And (Symbol = '!') Then
                           Symbol := SP_CHAR_BITWISE_NOT;
+
+                  End;
 
                 End;
 
@@ -8955,6 +8939,8 @@ Var
   Tkn: pToken;
 Begin
 
+  // READ [LINE] var1[,var2...]
+
   lPos := 0;
   KeyWordPos := Position -1;
   Result := '';
@@ -11512,6 +11498,7 @@ Begin
     Inc(Position, 1 + SizeOf(Longword));
     Done := False;
     BankExpr := '';
+    BankCount := 0;
     While Not Done Do Begin
       BankExpr := SP_Convert_Expr(Tokens, Position, Error, -1) + BankExpr;
       If (Error.Code <> SP_ERR_OK) or (Error.ReturnType <> SP_VALUE) Then Begin
@@ -16282,7 +16269,7 @@ Var
   VarName, Expr, SrcExpr, DstExpr, ParamExpr: aString;
 Begin
 
-  // TRANSFORM3D src() [TO dst()] {[MOVE dx,dy|ROTATE dx,dy|SCALE sx,sy]...}
+  // TRANSFORM2D src() [TO dst()] {[MOVE dx,dy|ROTATE dx,dy|SCALE sx,sy]...}
   // Destination optional - changes applied to src if not present.
   // transformations executed in order of syntax.
 

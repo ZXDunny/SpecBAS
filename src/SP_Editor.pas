@@ -203,15 +203,14 @@ Begin
     SetLength(s, ps);
     PayLoad.GetPayLoad(s[1]);
 //    {$ENDIF}
-    UnPackPayload(s);
+    CurLine := UnPackPayload(s);
     For i := 0 To SP_Program_Count -1 do
       SP_AddHandlers(SP_Program[i]);
-    NXTLINE := -1;
-    CurLine := NXTLINE;
+    NXTLINE := CurLine;
     If CurLine = -1 Then CurLine := 0;
     SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
     SP_Interpreter_Ready := True;
-    SP_Execute('RUN '+IntToString(CurLine), Error);
+    SP_Execute('GO TO '+IntToString(CurLine), Error);
 
     SP_Interpret_QUIT(pInfo);
 

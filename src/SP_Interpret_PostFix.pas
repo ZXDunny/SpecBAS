@@ -1170,9 +1170,9 @@ var
   payLoad: TPayLoad;
   Line, NumBanks: Integer;
   Banks: Array of Integer;
-  {$IFDEF DEBUG}
-  s: TFileStream;
-  {$ENDIF}
+//  {$IFDEF DEBUG}
+//  s: TFileStream;
+//  {$ENDIF}
 Begin
 
   // Create an executable with the current program as a payload.
@@ -1187,6 +1187,7 @@ Begin
 
   NumBanks := Trunc(SP_StackPtr^.Val);
   SetLength(Banks, NumBanks);
+  Dec(SP_StackPtr);
 
   While NumBanks > 0 Do Begin
     Banks[NumBanks -1] := Trunc(SP_StackPtr^.Val);
@@ -1198,7 +1199,7 @@ Begin
     If FileExists(dFilename) Then
       TFile.Delete(dFilename);
     TFile.Copy(sFilename, dFilename);
-    payLoadData := MakeDataPayload;
+    payLoadData := MakeDataPayload(Line, Banks);
     payLoad := TPayLoad.Create(dFilename);
     payload.SetPayload(payLoadData[1], Length(PayLoadData));
     payLoad.Free;
@@ -4504,13 +4505,15 @@ Begin
   tStr := SP_StackPtr^.Str;
   Ln := Length(tStr);
 
-  Idx := 1;
-  While Idx <= Length(tStr) Do Begin
+  if (StrC = '') and (StrB = '') Then Exit;
 
-    If Copy(tStr, Idx, Length(StrB)) = StrB Then Begin
+  Idx := 1;
+  While Idx <= Ln Do Begin
+
+    If Copy(tStr, Idx, bln) = StrB Then Begin
       tStr := Copy(tStr, 1, Idx -1) + StrC + Copy(tStr, Idx + bLn, Ln);
       Inc(Ln, cLn - bLn);
-      Inc(Idx, bLn);
+      Inc(Idx, cLn);
     End Else
       Inc(Idx);
 
@@ -10037,9 +10040,18 @@ Begin
             SP_FORVAR:
               Begin
 
+                // Try to limit fp-rounding errors by comparing what we should be to what we have.
+                // If there's a difference then the user probably modified the variable manually
+
+                Inc(Count);
+                If InitVal + (Step * (Count -1)) <> Value Then
+                  Value := Value + Step
+                Else
+                  Value := InitVal + (Step * Count);
+
                 If Step > 0 Then Begin
 
-                  If Value + Step <= EndAt Then Begin
+                  If Value + Step <= EndAt + Step Then Begin
                     NXTLINE := LoopLine;
                     NXTSTATEMENT := LoopStatement;
                     Error.Statement := St;
@@ -10052,7 +10064,7 @@ Begin
 
                 End Else Begin
 
-                  If Value + Step >= EndAt Then Begin
+                  If Value + Step >= EndAt + Step Then Begin
                     NXTLINE := LoopLine;
                     NXTSTATEMENT := LoopStatement;
                     Error.Statement := St;
@@ -10064,15 +10076,6 @@ Begin
                   End;
 
                 End;
-
-                // Try to limit fp-rounding errors by comparing what we should be to what we have.
-                // If there's a difference then the user probably modified the variable manually
-
-                Inc(Count);
-                If InitVal + (Step * (Count -1)) <> Value Then
-                  Value := Value + Step
-                Else
-                  Value := InitVal + (Step * Count);
 
               End;
 

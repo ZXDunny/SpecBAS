@@ -211,6 +211,9 @@ Type
   Procedure SP_SaveBankAsText(Filename: aString; BankNum: LongWord; Var Error: TSP_ErrorCode);
   Function  SP_LoadBankFromText(Filename: aString; BankNum: Integer; Var Error: TSP_ErrorCode): Integer;
 
+  Function  SP_BankToString(BankID: Integer): aString;
+  Procedure SP_BankFromString(InBank: aString);
+
 implementation
 
 Uses SP_FileIO, SP_Tokenise, SP_BankManager, SP_SysVars, SP_Graphics, SP_Sound;
@@ -1146,5 +1149,83 @@ Begin
 
 End;
 
+Function  SP_BankToString(BankID: Integer): aString;
+Var
+  Idx: Integer;
+  Bank: pSP_Bank;
+Begin
+
+  Idx := SP_FindBankID(BankID);
+  Bank := SP_BankList[Idx];
+
+  Idx := SizeOf(LongWord) +1;
+  SetLength(Result, SizeOf(LongWord) + SizeOf(SP_Bank) + Length(Bank^.Info) + Length(Bank^.Memory));
+  pLongWord(@Result[1])^ := Length(Bank^.Memory);
+  CopyMem(@Result[Idx], @Bank^.ID, SizeOf(SP_Bank));
+  Inc(Idx, SizeOf(SP_Bank));
+  CopyMem(@Result[Idx], @Bank^.Info[0], Length(Bank^.Info));
+  Inc(Idx, Length(Bank^.Info));
+  CopyMem(@Result[Idx], @Bank^.Memory[0], Length(Bank^.Memory));
+
+End;
+
+Procedure SP_BankFromString(InBank: aString);
+Var
+  ID, Idx, Size, Idx2: Integer;
+  Error: TSP_ErrorCode;
+  sBank, Bank: pSP_Bank;
+  gfx: pSP_Graphic_Info;
+  TileMap: pSP_Tilemap_Info;
+  Sprite: pSP_Sprite_Info;
+Begin
+
+  Size := pLongWord(@InBank[1])^;
+  ID := pInteger(@InBank[SizeOf(LongWord) +1])^;
+  Idx := SP_FindBankID(ID);
+
+  if Idx > -1 Then
+    SP_DeleteBank(Idx, Error);
+
+  ID := SP_NewBank(Size);
+  Idx := SP_FindBankID(ID);
+  Bank := SP_BankList[Idx];
+  Idx2 := SizeOf(LongWord) +1;
+
+  sBank := @InBank[Idx2];
+  Bank^.ID := sBank^.ID;
+  Bank^.DataType := sBank^.DataType;
+  Bank^.InfoLength := sBank^.InfoLength;
+  Bank^.Protection := sBank^.Protection;
+  Bank^.System := sBank^.System;
+  Bank^.Changed := sBank^.Changed;
+  Inc(Idx2, SizeOf(SP_Bank));
+  SetLength(Bank^.Info, Bank^.InfoLength);
+  CopyMem(@Bank^.Info[0], @InBank[Idx2], Bank^.InfoLength);
+  Inc(Idx2, Bank^.InfoLength);
+  CopyMem(@Bank^.Memory[0], @InBank[Idx2], Size);
+  Case SP_BankList[Idx].DataType Of
+    SP_SAMPLE_BANK:
+      SP_Sample_Reallocate(SP_BankList[Idx].ID);
+    SP_TILEMAP_BANK:
+      Begin
+        TileMap := pSP_TileMap_Info(@SP_BankList[Idx].Info[0]);
+        SP_Tilemap_BuildLUT(TileMap);
+      End;
+    SP_SPRITE_BANK:
+      Begin
+        Sprite := pSP_Sprite_Info(@SP_BankList[Idx].Info[0]);
+        Sprite^.ID := SP_BankList[Idx]^.ID;
+        Sprite^.Window := pSP_Window_Info(WINDOWPOINTER);
+        SP_SpriteToWindow(Sprite, pSP_Window_Info(WINDOWPOINTER)^.ID);
+        Sprite^.Data := @SP_BankList[Idx].Memory[0];
+      End;
+    SP_GRAPHIC_BANK:
+      Begin
+        Gfx := pSP_Graphic_Info(@SP_BankList[Idx].Info[0]);
+        Gfx^.Data := @Bank^.Memory[0];
+      End;
+  End;
+
+End;
 
 end.

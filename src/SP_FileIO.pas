@@ -1996,7 +1996,7 @@ Begin
     SP_PackageDeleteDir(DirString, Error)
   Else Begin
     DirString := SP_ConvertFilenameToHost(DirString, Error);
-    If DirectoryExists(DirString) Then
+    If DirectoryExists(String(DirString)) Then
       If Lower(DirString) <> lower(HOMEFOLDER) Then
         RmDir(String(Sp_ConvertFilenameToHost(DirString, Error)));
   End;

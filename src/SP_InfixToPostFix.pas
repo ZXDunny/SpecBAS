@@ -1283,7 +1283,7 @@ Begin
             // Functions that take one numeric parameter and return a String:
 
             SP_FN_STRS, SP_FN_CHRS, SP_FN_HEXS, SP_FN_BINS, SP_FN_DCHRS, SP_FN_QCHRS, SP_FN_DAYS, SP_FN_MONTHS, SP_FN_GFXS,
-            SP_FN_FCHRS:
+            SP_FN_FCHRS, SP_FN_PARAMS:
               Begin
                 If (StackPtr < 0) Or (Stack[StackPtr] <> SP_VALUE) Then Begin
                   Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -2900,7 +2900,7 @@ Begin
             SP_FN_GETOPT, SP_FN_GETOPTS, SP_FN_NUBMODE, SP_FN_NUBX, SP_FN_NUBY, SP_FN_FEXISTS, SP_FN_FPATH, SP_FN_FNAME, SP_FN_LTOPX,
             SP_FN_LTOPY, SP_FN_PTOLX, SP_FN_PTOLY, SP_FN_INV, SP_FN_SPFRAME, SP_FN_SPCOLL, SP_FN_TEXTURES, SP_FN_IVAL, SP_FN_MEMRD,
             SP_FN_DMEMRD, SP_FN_QMEMRD, SP_FN_FMEMRD, SP_FN_DATADDR, SP_FN_WINADDR, SP_FN_MILLISECONDS, SP_FN_PAR, SP_FN_SINH,
-            SP_FN_COSH, SP_FN_TANH, SP_FN_ASNH, SP_FN_ACSH, SP_FN_ATNH:
+            SP_FN_COSH, SP_FN_TANH, SP_FN_ASNH, SP_FN_ACSH, SP_FN_ATNH, SP_FN_PARAMS:
               Begin
                 Inc(Position, SizeOf(LongWord));
                 FnResult := SP_Convert_Expr(Tokens, Position, Error, 14);

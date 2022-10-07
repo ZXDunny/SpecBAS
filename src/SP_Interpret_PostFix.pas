@@ -248,6 +248,7 @@ Procedure SP_Interpret_FN_CHRS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_DCHRS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_QCHRS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_FCHRS(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_PARAMS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_POWER(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_PEEK(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_PEEKS(Var Info: pSP_iInfo);
@@ -3695,6 +3696,8 @@ Begin
     cLine := CONTLINE;
     cStatement := CONTSTATEMENT;
     SP_Interpret(Tokens, nPosition, Error);
+    if (CONTLINE = cLine) and (CONTSTATEMENT = cStatement) Then
+      Inc(cStatement);
     CONTSTATEMENT := cStatement;
     CONTLINE := cLine;
   End;
@@ -3895,7 +3898,7 @@ Begin
 
     End;
 
-    If Error.Code = SP_EXIT Then Begin
+    If Error.Code < 0 Then Begin // SP_EXIT or SP_NEW
       If NXTLINE = -1 Then Begin
         CONTLINE := Error.Line +1;
         CONTSTATEMENT := 1;
@@ -3904,7 +3907,8 @@ Begin
         CONTSTATEMENT := NXTST;
       End;
       nPosition := Info.Position;
-      Error.Code := SP_ERR_OK;
+      If Error.Code = SP_EXIT then
+        Error.Code := SP_ERR_OK;
       Exit;
     End;
 
@@ -4928,7 +4932,7 @@ Begin
   Dec(SP_StackPtr);
   a := Round(SP_StackPtr^.Val);
 
-  SP_StackPtr^.Val := (a * b) Div GCD(a, b);
+  SP_StackPtr^.Val := Abs(a * b) Div GCD(a, b);
 
 End;
 
@@ -7188,6 +7192,20 @@ Begin
   End;
 End;
 
+Procedure SP_Interpret_FN_PARAMS(Var Info: pSP_iInfo);
+var
+  Idx: Integer;
+Begin
+  With SP_StackPtr^ Do Begin
+    Idx := Round(Val);
+    OpType := SP_STRING;
+    If (Idx < PARAMS.Count) and (Idx >= 0) then
+      Str := PARAMS[Idx]
+    else
+      Str := '';
+  End;
+End;
+
 Procedure SP_Interpret_FN_POWER(Var Info: pSP_iInfo);
 Var
   R, G: aFloat;
@@ -8936,7 +8954,7 @@ Var
 Begin
 
   If pSP_Window_Info(WINDOWPOINTER)^.bpp <> 32 Then Begin
-    Val := Round(SP_StackPtr^.Val);
+    Val := Round(SP_StackPtr^.Val) And 255;
     If (Val >= 0) And (Val <= 255) Then Begin
       CINK := Val;
       T_INK := Val;
@@ -8964,7 +8982,7 @@ Var
 Begin
 
   If pSP_Window_Info(WINDOWPOINTER)^.bpp <> 32 Then Begin
-    Val := Round(SP_StackPtr^.Val);
+    Val := Round(SP_StackPtr^.Val) and 255;
     If (Val >= 0) And (Val <= 255) Then Begin
       CPAPER := Val;
       T_PAPER := Val;
@@ -13762,6 +13780,7 @@ Begin
     MATHMODE := 0;
     FILECHANGED := False;
     SP_MakeSystemSounds;
+    Error.Code := SP_NEW;
 
   End;
 
@@ -26236,6 +26255,7 @@ Initialization
   InterpretProcs[SP_FN_DCHRS] := @SP_Interpret_FN_DCHRS;
   InterpretProcs[SP_FN_QCHRS] := @SP_Interpret_FN_QCHRS;
   InterpretProcs[SP_FN_FCHRS] := @SP_Interpret_FN_FCHRS;
+  InterpretProcs[SP_FN_PARAMS] := @SP_Interpret_FN_PARAMS;
   InterpretProcs[SP_FN_POWER] := @SP_Interpret_FN_POWER;
   InterpretProcs[SP_FN_PEEK] := @SP_Interpret_FN_PEEK;
   InterpretProcs[SP_FN_PEEKS] := @SP_Interpret_FN_PEEKS;

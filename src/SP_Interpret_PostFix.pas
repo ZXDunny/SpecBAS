@@ -8768,21 +8768,17 @@ Begin
 
   With SP_StackPtr^ Do Begin
 
-    If (Val >= 0) and (Val <= $FFFFFFFF) Then Begin
+    Ink := LongWord(Round(SP_StackPtr^.Val));
+    Dec(SP_StackPtr);
 
-      Ink := Round(SP_StackPtr^.Val);
-      Dec(SP_StackPtr);
-
-      If OUTSET Then
-        OUTBUFFER := OUTBUFFER + aChar(16) + LongWordToString(Ink)
-      Else
-        IF T_CENTRE Then
-          T_CENTRETEXT := T_CENTRETEXT + aChar(16) + LongWordToString(Ink)
-        Else Begin
-          T_INK := Ink;
-        End;
-    End Else
-      Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+    If OUTSET Then
+      OUTBUFFER := OUTBUFFER + aChar(16) + LongWordToString(Ink)
+    Else
+      IF T_CENTRE Then
+        T_CENTRETEXT := T_CENTRETEXT + aChar(16) + LongWordToString(Ink)
+      Else Begin
+        T_INK := Ink;
+      End;
 
   End;
 
@@ -8795,22 +8791,17 @@ Begin
 
   With SP_StackPtr^ Do Begin
 
-    If (Val >= 0) and (Val <= $FFFFFFFF) Then Begin
+    Paper := LongWord(Round(SP_StackPtr^.Val));
+    Dec(SP_StackPtr);
 
-      Paper := Round(SP_StackPtr^.Val);
-      Dec(SP_StackPtr);
-
-      If OUTSET Then
-        OUTBUFFER := OUTBUFFER + aChar(17) + LongWordToString(Paper)
-      Else
-        IF T_CENTRE Then
-          T_CENTRETEXT := T_CENTRETEXT + aChar(17) + LongWordToString(Paper)
-        Else Begin
-          T_PAPER := Paper;
-        End;
-
-    End Else
-      Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+    If OUTSET Then
+      OUTBUFFER := OUTBUFFER + aChar(17) + LongWordToString(Paper)
+    Else
+      IF T_CENTRE Then
+        T_CENTRETEXT := T_CENTRETEXT + aChar(17) + LongWordToString(Paper)
+      Else Begin
+        T_PAPER := Paper;
+      End;
 
   End;
 
@@ -9718,6 +9709,10 @@ Label
 Begin
 
   OnActive := 0;
+  If Not SP_CheckProgram(True) Then Begin
+    Info^.Error^.Code := SP_ERR_SYNTAX_ERROR;
+    Exit;
+  End;
 
   If SP_StackPtr <> SP_StackStart Then Begin
     If SP_StackPtr^.OpType = SP_LABEL Then Begin
@@ -14788,11 +14783,14 @@ End;
 Procedure SP_Interpret_OLD(Var Info: pSP_iInfo);
 Begin
 
+  SP_SaveProgram('s:old_temp', -1, Info^.Error^);
   If SP_FileExists('s:oldprog') Then Begin
     SP_LoadProgram('s:oldprog', False, False, nil, Info^.Error^);
     NXTLINE := -1;
     NXTSTATEMENT := -1;
   End;
+  SP_DeleteFile('s:oldprog', Info^.Error^);
+  SP_FileRename('s:old_temp', 's:oldprog', Info^.Error^);
 
 End;
 
@@ -16967,7 +16965,7 @@ End;
 Procedure SP_Interpret_ERASE(Var Info: pSP_iInfo);
 Var
   Idx, DelCount: Integer;
-  DirString: aString;
+  DirString, ErrorString: aString;
   Files, FileSizes: TAnsiStringList;
   RemoveDir, Recurse: Boolean;
 Begin
@@ -16985,7 +16983,7 @@ Begin
     Recurse := SP_StackPtr^.Val <> 0;
     Dec(SP_StackPtr);
 
-    ERRStr := DirString;
+    ErrorString := DirString;
     If DirString = '' Then Begin
       Error^.Code := SP_ERR_FILE_NOT_FOUND;
       Exit;
@@ -16998,7 +16996,6 @@ Begin
 
       SP_GetFileList(DirString, Files, FileSizes, Error^, False);
 
-      ERRStr := DirString;
       If Error^.Code = SP_ERR_OK Then Begin
 
         If Files.Count > 0 Then Begin
@@ -17011,6 +17008,7 @@ Begin
               Inc(DelCount);
               SP_DeleteFile(DirString + aString(Files[Idx]), Error^);
               If Error^.Code <> SP_ERR_OK Then Begin
+                ErrStr := Files[Idx];
                 Files.Free;
                 FileSizes.Free;
                 Exit;
@@ -17073,6 +17071,9 @@ Begin
     FileSizes.Free;
 
   End;
+
+  If Info^.Error^.Code <> SP_ERR_OK Then
+    ErrStr := ErrorString;
 
 End;
 

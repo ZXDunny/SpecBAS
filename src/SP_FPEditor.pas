@@ -246,7 +246,7 @@ Procedure DWCommenceRedo;
 Procedure DWCompleteRedo;
 Procedure DWPerformRedo;
 
-Function  SP_CheckProgram: Boolean;
+Function  SP_CheckProgram(OnlyErrors: Boolean = False): Boolean;
 Procedure SP_ShowError(Code, Line, Pos: Integer);
 Procedure SP_FPSetDisplayColours;
 Procedure SP_ToggleBreakPoint(Hidden: Boolean);
@@ -1132,6 +1132,7 @@ Begin
 
   // Remove the focus from the current window
 
+  EDITERROR := False;
   OldFocus := FocusedWindow;
   SwitchFocusedWindow(FocusMode);
   If OldFocus = fwDirect Then Begin
@@ -4904,6 +4905,7 @@ Begin
                   SP_FPClearSelection(Sel);
                   SP_DisplayFPListing(-1);
                   SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
+                  EDITERROR := True;
                   CURSORFG := 10;
                   CURSORBG := 15;
                 End;
@@ -6785,8 +6787,13 @@ Begin
                       EDITLINE := s;
                     SP_EditorDisplayEditLine;
                     SP_SwitchFocus(fwDirect);
-                  End Else
-                    SP_ShowError(SP_ERR_SYNTAX_ERROR, Listing.FPCLine, Listing.FPCPos);
+                  End Else Begin
+                    SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
+                    EDITERROR := True;
+                    CURSORFG := 10;
+                    CURSORBG := 15;
+                    Exit;
+                  End;
                 End;
               K_F10:
                 Begin
@@ -8334,7 +8341,7 @@ Begin
 
       Idx := 0;
       While Idx < NewList.Count Do Begin
-        If pLongWord(@NewList[Idx][1])^ = spSoftReturn Then Begin
+        If (pLongWord(@NewList[Idx][1])^ = spSoftReturn) or (Idx = 0) Then Begin
           nl := SP_GetLineNumberFromText(Copy(NewList[Idx], 9));
           If nl >= LineNum Then Break;
         End;
@@ -9390,7 +9397,7 @@ Begin
 End;
 
 
-Function SP_CheckProgram: Boolean;
+Function SP_CheckProgram(OnlyErrors: Boolean = False): Boolean;
 Var
   Idx, i: Integer;
   HasDirty, HasErrors: Boolean;
@@ -9422,10 +9429,11 @@ Begin
     End;
   End;
 
-  If HasDirty Then Begin
-    CB_YIELD;
-    Goto ErrorCheck;
-  End;
+  if Not OnlyErrors Then
+    If HasDirty Then Begin
+      CB_YIELD;
+      Goto ErrorCheck;
+    End;
 
   Result := Not HasErrors;
 
@@ -9827,7 +9835,7 @@ Var
   sVar: pSP_StrVarContent;
   NewWord, tStr: aString;
 Const
-  Seps = [' ', '(', ')', ',', ';', '"', #39, '=', '+', '-', '/', '*', '^', '|', '&', ':', '>', '<'];
+  Seps = [' ', '(', ')', ',', ';', '"', #39, '=', '+', '-', '/', '*', '^', '|', '&', ':', '>', '<', '[', ']'];
 Begin
   InString := False;
   Found := False;

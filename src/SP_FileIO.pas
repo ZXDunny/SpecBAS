@@ -1601,7 +1601,11 @@ Var
 Begin
 
   Result := '';
-  Error.Code := SP_ERR_OK;
+  If Ass = '' Then Begin
+    Error.Code := SP_ERR_ASSIGNMENT_NOT_FOUND;
+    Exit;
+  End Else
+    Error.Code := SP_ERR_OK;
 
   If Ass[Length(Ass)] = ':' Then
     Ass := Copy(Ass, 1, Length(Ass) -1);

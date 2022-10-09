@@ -140,7 +140,11 @@ Begin
     With TimerList[i] Do Begin
       If NextFrameTime <= Integer(FRAMES) Then Begin
         Inc(NextFrameTime, Interval);
-        If Assigned(ObjectProc) Then ObjectProc(@TimerList[i]);
+        If Assigned(ObjectProc) Then Begin
+          TimerSection.Leave;
+          ObjectProc(@TimerList[i]);
+          TimerSection.Enter;
+        End;
       End;
     End;
     Inc(i);

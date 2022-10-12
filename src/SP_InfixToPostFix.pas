@@ -4835,12 +4835,14 @@ Begin
 
                   Inc(Position, 2);
                   tExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
-                  If Error.Code = SP_ERR_OK Then Begin
+                  If (Error.Code = SP_ERR_OK) and (Copy(Tokens, Position +1, 1) = ')') Then Begin
                     ExpectOperand := False;
                     SP_StackExpression(tExpr);
-                  End Else
+                  End Else Begin
+                    If Error.Code = SP_ERR_OK Then
+                      Error.Code := SP_ERR_SYNTAX_ERROR;
                     Exit;
-
+                  End;
 
                 End Else Begin
 

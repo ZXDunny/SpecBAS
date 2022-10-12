@@ -4538,18 +4538,15 @@ end;
 Procedure SP_Interpret_FN_REPLACES(Var Info: pSP_iInfo);
 Var
   StrB, StrC, tStr: aString;
-  Idx, bLn, cLn, Ln: Integer;
 Begin
 
   // In order - string to replace with, string to replace, host string
   // Replaces all occurrences.
 
   StrC := SP_StackPtr^.Str;
-  cLn := Length(StrC);
   Dec(SP_StackPtr);
 
   StrB := SP_StackPtr^.Str;
-  bLn := Length(StrB);
   Dec(SP_StackPtr);
   if (StrC = '') and (StrB = '') Then Exit;
 

@@ -7,6 +7,8 @@ N.B - The release is intended to install base files, and then be replaced by the
       
       ALSO! Executables created by the COMPILE command are not bound by the GPL and can be 
       distributed freely without source.
+      
+      AND! Equinox has reported 99999 bugs.
 
 Based on the 1982 Sinclair Spectrum's implementation of Dartmouth BASIC, SpecBAS will run programs for that computer with a reasonably high degree of compatibility. However, where the Spectrum was limited to 256x192 resolution with 8 colours (and two levels of brightness), SpecBAS offers flexible screen resolutions and 256 colours (32bit is a feature in development). 
 

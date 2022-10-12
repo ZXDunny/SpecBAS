@@ -4489,6 +4489,52 @@ Begin
 
 End;
 
+Procedure SP_ReplaceAll(Const Host, Find, Rep: aString; var OutStr: aString);
+var
+  hLen, rLen, fLen, cnt: Integer;
+  src, dst, dStart, rPtr, fPtr1, fPtr2, hostEnd: pByte;
+begin
+
+  hLen := Length(Host);
+  rLen := Length(Rep);
+  fLen := Length(Find);
+  SetLength(OutStr, Max(hLen * rLen, hLen));
+  dst := pByte(pNativeUInt(@OutStr)^);
+  src := pByte(pNativeUInt(@Host)^);
+  dStart := dst;
+  rPtr := pByte(pNativeUint(@Rep)^);
+  fPtr1 := pByte(pNativeUInt(@Find)^);
+  fPtr2 := fPtr1;
+  hostEnd := pByte(NativeUInt(src) + hLen);
+  cnt := 0;
+
+  While src < hostEnd do Begin
+    dst^ := src^;
+    If src^ = fPtr2^ Then Begin
+      Inc(src);
+      Inc(dst);
+      Inc(cnt);
+      Inc(fPtr2);
+      if cnt = fLen then Begin
+        MoveMemory(pByte(NativeUInt(dst) - cnt), rPtr, rLen);
+        Inc(dst, rLen - fLen);
+        cnt := 0;
+        fPtr2 := fPtr1;
+      End Else
+        If src^ <> fPtr2^ then Begin
+          cnt := 0;
+          fPtr2 := fPtr1;
+        End;
+    End Else Begin
+      Inc(src);
+      Inc(dst);
+    End;
+  End;
+
+  SetLength(OutStr, NativeUInt(dst) - NativeUint(dStart));
+
+end;
+
 Procedure SP_Interpret_FN_REPLACES(Var Info: pSP_iInfo);
 Var
   StrB, StrC, tStr: aString;
@@ -4505,25 +4551,10 @@ Begin
   StrB := SP_StackPtr^.Str;
   bLn := Length(StrB);
   Dec(SP_StackPtr);
-
-  tStr := SP_StackPtr^.Str;
-  Ln := Length(tStr);
-
   if (StrC = '') and (StrB = '') Then Exit;
 
-  Idx := 1;
-  While Idx <= Ln Do Begin
-
-    If Copy(tStr, Idx, bln) = StrB Then Begin
-      tStr := Copy(tStr, 1, Idx -1) + StrC + Copy(tStr, Idx + bLn, Ln);
-      Inc(Ln, cLn - bLn);
-      Inc(Idx, cLn);
-    End Else
-      Inc(Idx);
-
-  End;
-
-  SP_StackPtr^.Str := tStr;
+  tStr := SP_StackPtr^.Str;
+  SP_ReplaceAll(tStr, StrB, StrC, SP_StackPtr^.Str);
 
 End;
 

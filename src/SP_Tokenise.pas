@@ -44,11 +44,10 @@ Type
   End;
 
 Function  SP_TokeniseLine(Line: aString; IsExpression, AddLineNum: Boolean): aString;
-Function  SP_IsReserved(Line: aString): Boolean;
-Function  SP_IsConstant(Line: aString): Integer;
-Function  SP_IsKeyWord(Line: aString): Integer;
-Function  SP_IsFunction(Line: aString): Integer;
-Function  SP_IsFunctionEx(Line: aString): Integer;
+Function  SP_IsReserved(Const Line: aString): Boolean;
+Function  SP_IsConstant(Const Line: aString): Integer;
+Function  SP_IsKeyWord(Const Line: aString): Integer;
+Function  SP_IsFunction(Const Line: aString): Integer;
 Function  SP_GetNumber(Line: aString; Var Idx: Integer; Var Number: aFloat; AllowSpaces: Boolean = False): Boolean;
 Function  SP_Detokenise(Tokens: aString; Var cPos: Integer; Highlight, UseDoubles: Boolean): aString;
 Function  SP_SyntaxHighlight(CodeLine, PrevSyntax: aString; HasNumber: Boolean; Var AddedChars: Integer): aString;
@@ -67,11 +66,13 @@ Var
   TempStr: aString;
   SP_KEYWORDS: Array of aString;
   SP_FUNCTIONS: Array of aString;
-  SP_FUNCTIONS_EX: Array of aString;
   SP_OPTIMISE_FLAGS, SP_OPTIMISE_META_FLAGS: Array of Boolean;
   SP_Program: Array of aString;
   SP_Program_Count: Integer;
   SP_User_Program_Count: Integer;
+
+  SortedTokens: Array of TCompoundWord;
+  Hashes: Array[0..25] of Integer;
 
 Const
 
@@ -1260,15 +1261,16 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Editor, SP_FileIO, SP_SysVars;
+Uses SP_Main, SP_Editor, SP_FileIO, SP_SysVars, {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF};
 
 Function SP_TokeniseLine(Line: aString; IsExpression, AddLineNum: Boolean): aString;
 Var
   TempExtend: aFloat;
   Keyword, SpaceMod: Integer;
-  StoreVal, StoreLen, TempVal, LineLen, Idx, tIdx, lIdx, cnt: Integer;
+  StoreVal, StoreLen, TempVal, LineLen, Idx, tIdx, lIdx, cnt, l: Integer;
   StoreText, tStore, tempStr, tStr: aString;
   FoundBase: Boolean;
+  rPtr, rStart, rEnd: pByte;
 Label
   Finish;
 Const
@@ -1289,6 +1291,14 @@ Const
      (Name: 'EXITPROC'; KeyWordID: SP_KW_EXIT_PROC),
      (Name: 'END CASE'; KeyWordID: SP_KW_END_CASE),
      (Name: 'ENDCASE'; KeyWordID: SP_KW_END_CASE));
+
+  procedure AddToResult(const str: aString);
+  begin
+    l := Length(Str);
+    MoveMemory(rPtr, pByte(pNativeUInt(@str)^), l);
+    inc(rPtr, l);
+  end;
+
 Begin
 
   // Iterate through the line, picking up keywords and translating them into
@@ -1296,7 +1306,10 @@ Begin
   // and stored. Strings go in as-is, with a STRINGID byte followed by a LONGWORD
   // Length byte.
 
-  Result := '';
+  SetLength(Result, 10 * Length(Line));
+  rptr := pByte(pNativeUInt(@Result)^);
+  rStart := rPtr;
+
   Idx := 1;
 
   While Copy(Line, 1, 1) = ' ' Do
@@ -1321,8 +1334,8 @@ Begin
         If SP_GetNumber(Line, Idx, TempExtend) Then Begin
           TempExtend := Min($FFFFFFFF, TempExtend);
           If TempExtend = Round(TempExtend) Then Begin
-            If (Idx > Length(Line)) Or (Line[Idx] <> '\') Then // A number followed by a backslash is a base, not a line number.
-              Result := Result + aChar(SP_LINE_NUM) + LongWordToString(Round(TempExtend))
+            If (Idx > LineLen) Or (Line[Idx] <> '\') Then // A number followed by a backslash is a base, not a line number.
+              AddToResult(aChar(SP_LINE_NUM) + LongWordToString(Round(TempExtend)))
             Else
               Idx := StoreVal;
           End Else
@@ -1361,7 +1374,7 @@ Begin
           FoundBase := DecodeBase(StoreText, StoreVal);
           If FoundBase Then Begin
             Idx := tIdx;
-            Result := Result + aChar(SP_VALUE) + aFloatToString(StoreVal) + aChar(SP_TEXT) + LongWordToString(StoreLen) + StoreText + tStr;
+            AddToResult(aChar(SP_VALUE) + aFloatToString(StoreVal) + aChar(SP_TEXT) + LongWordToString(StoreLen) + StoreText + tStr);
           End;
         End;
       End;
@@ -1373,7 +1386,7 @@ Begin
             StoreLen := Idx - StoreVal;
             StoreText := Copy(Line, StoreVal, StoreLen);
 
-            Result := Result + aChar(SP_VALUE) + aFloatToString(TempExtend) + aChar(SP_TEXT) + LongWordToString(StoreLen) + StoreText;
+            AddToResult(aChar(SP_VALUE) + aFloatToString(TempExtend) + aChar(SP_TEXT) + LongWordToString(StoreLen) + StoreText);
 
           End Else Begin
             // Not a number, even though we thought it might be - so is it a structure member?
@@ -1388,14 +1401,14 @@ Begin
                     If StoreText[Length(StoreText)] = '$' Then Break;
                   End;
                   If Line[Idx -1] = '$' Then
-                    Result := Result + aChar(SP_STRUCT_MEMBER_S) + LongWordToString(Length(StoreText)) + StoreText
+                    AddToResult(aChar(SP_STRUCT_MEMBER_S) + LongWordToString(Length(StoreText)) + StoreText)
                   Else
-                    Result := Result + aChar(SP_STRUCT_MEMBER_N) + LongWordToString(Length(StoreText)) + StoreText;
+                    AddToResult(aChar(SP_STRUCT_MEMBER_N) + LongWordToString(Length(StoreText)) + StoreText);
                 End;
               End;
             End Else
               // Nope, wasn't a structure member, so just leave it here and let the parser deal with it.
-              Result := Result + aChar(SP_SYMBOL) + Line[StoreVal];
+              AddToResult(aChar(SP_SYMBOL) + Line[StoreVal]);
           End;
         End Else
 
@@ -1427,7 +1440,7 @@ Begin
               End;
 
               StoreLen := Length(StoreText);
-              Result := Result + aChar(SP_STRING) + LongWordToString(StoreLen) + StoreText;
+              AddToResult(aChar(SP_STRING) + LongWordToString(StoreLen) + StoreText);
 
             End Else Begin
               Inc(Idx);
@@ -1436,10 +1449,10 @@ Begin
                 If SP_GetNumber(Line, Idx, TempExtend) Then Begin
                   StoreLen := Idx - StoreVal;
                   StoreText := Copy(Line, StoreVal, StoreLen);
-                  Result := Result + aChar(SP_STRINGCHAR) + aFloatToString(TempExtend) + aChar(SP_TEXT) + LongWordToString(StoreLen) + StoreText;
+                  AddToResult(aChar(SP_STRINGCHAR) + aFloatToString(TempExtend) + aChar(SP_TEXT) + LongWordToString(StoreLen) + StoreText);
                 End Else Begin
                   // Not a number, even though we thought it might be - so store it as a random char.
-                  Result := Result + aChar(SP_SYMBOL) + Line[StoreVal];
+                  AddToResult(aChar(SP_SYMBOL) + Line[StoreVal]);
                   Inc(Idx);
                 End;
               End;
@@ -1534,25 +1547,25 @@ Begin
                 StoreText := SP_Constants[lIdx].Name;
                 TempExtend := SP_Constants[lIdx].Value;
                 StoreLen := Length(StoreText);
-                Result := Result + aChar(SP_VALUE) + aFloatToString(TempExtend) + aChar(SP_TEXT) + LongWordToString(StoreLen) + StoreText;
+                AddToResult(aChar(SP_VALUE) + aFloatToString(TempExtend) + aChar(SP_TEXT) + LongWordToString(StoreLen) + StoreText);
               End Else Begin
                 If KeyWord = -1 Then
                   KeyWord := SP_IsKeyWord(Upper(StoreText))
                 Else
                   Dec(KeyWord , SP_KEYWORD_BASE);
                 If KeyWord > -1 Then Begin
-                  Result := Result + aChar(SP_KEYWORD) + LongWordToString(KeyWord + SP_KEYWORD_BASE);
+                  AddToResult(aChar(SP_KEYWORD) + LongWordToString(KeyWord + SP_KEYWORD_BASE));
                   Idx := TempVal + Length(SP_KEYWORDS[KeyWord]) + SpaceMod;
                   If KeyWord + SP_KEYWORD_BASE = SP_KW_REM Then Begin
                     StoreText := Copy(Line, Idx, Length(Line));
-                    Result := Result + aChar(SP_TEXT) + LongWordToString(Length(StoreText)) + StoreText;
+                    AddToResult(aChar(SP_TEXT) + LongWordToString(Length(StoreText)) + StoreText);
                     Goto Finish;
                   End;
                 End Else Begin
                   KeyWord := SP_IsFunction(Upper(StoreText));
                   If KeyWord > -1 Then Begin
                     If KeyWord + SP_FUNCTION_BASE = SP_FN_HEX Then Begin
-                      Result := Result + aChar(SP_FUNCTION) + LongWordToString(KeyWord + SP_FUNCTION_BASE);
+                      AddToResult(aChar(SP_FUNCTION) + LongWordToString(KeyWord + SP_FUNCTION_BASE));
                       Inc(Idx);
                       SP_SkipSpaces(Line, Idx);
                       StoreText := '';
@@ -1563,67 +1576,67 @@ Begin
                         Inc(Idx);
                       End;
                       If StoreLen <> 0 Then
-                        Result := Result + aChar(SP_NUMVAR) + LongWordToString(0) + LongWordToString(StoreLen) + StoreText;
+                        AddToResult(aChar(SP_NUMVAR) + LongWordToString(0) + LongWordToString(StoreLen) + StoreText);
                       TempVal := Idx;
                       Dec(Idx, 3);
                     End Else
                       If KeyWord + SP_FUNCTION_BASE = SP_FN_AND Then
-                        Result := Result + aChar(SP_SYMBOL) + SP_CHAR_AND
+                        AddToResult(aChar(SP_SYMBOL) + SP_CHAR_AND)
                       Else
                         If KeyWord + SP_FUNCTION_BASE = SP_FN_OR Then
-                          Result := Result + aChar(SP_SYMBOL) + SP_CHAR_OR
+                          AddToResult(aChar(SP_SYMBOL) + SP_CHAR_OR)
                         Else
                           If KeyWord + SP_FUNCTION_BASE = SP_FN_MOD Then
-                            Result := Result + aChar(SP_SYMBOL) + SP_CHAR_MOD
+                            AddToResult(aChar(SP_SYMBOL) + SP_CHAR_MOD)
                           Else
                             If KeyWord + SP_FUNCTION_BASE = SP_FN_XOR Then
-                              Result := Result + aChar(SP_SYMBOL) + SP_CHAR_XOR
+                              AddToResult(aChar(SP_SYMBOL) + SP_CHAR_XOR)
                             Else
                               If KeyWord + SP_FUNCTION_BASE = SP_FN_SHL Then
-                                Result := Result + aChar(SP_SYMBOL) + SP_CHAR_SHL
+                                AddToResult(aChar(SP_SYMBOL) + SP_CHAR_SHL)
                               Else
                                 If KeyWord + SP_FUNCTION_BASE = SP_FN_SHR Then
-                                  Result := Result + aChar(SP_SYMBOL) + SP_CHAR_SHR
+                                  AddToResult(aChar(SP_SYMBOL) + SP_CHAR_SHR)
                                 Else
                                   If KeyWord + SP_FUNCTION_BASE = SP_FN_MUL Then
-                                    Result := Result + aChar(SP_SYMBOL) + SP_CHAR_MUL
+                                    AddToResult(aChar(SP_SYMBOL) + SP_CHAR_MUL)
                                   Else
                                     If KeyWord + SP_FUNCTION_BASE = SP_FN_DIV Then
-                                      Result := Result + aChar(SP_SYMBOL) + SP_CHAR_DIV
+                                      AddToResult(aChar(SP_SYMBOL) + SP_CHAR_DIV)
                                     Else
                                       If KeyWord + SP_FUNCTION_BASE = SP_FN_ADD Then
-                                        Result := Result + aChar(SP_SYMBOL) + SP_CHAR_ADD
+                                        AddToResult(aChar(SP_SYMBOL) + SP_CHAR_ADD)
                                       Else
                                         If KeyWord + SP_FUNCTION_BASE = SP_FN_SUB Then
-                                          Result := Result + aChar(SP_SYMBOL) + SP_CHAR_SUB
+                                          AddToResult(aChar(SP_SYMBOL) + SP_CHAR_SUB)
                                         Else
                                           If KeyWord + SP_FUNCTION_BASE = SP_FN_NOT Then
-                                            Result := Result + aChar(SP_SYMBOL) + SP_CHAR_NOT
+                                            AddToResult(aChar(SP_SYMBOL) + SP_CHAR_NOT)
                                           Else
                                             If KeyWord + SP_FUNCTION_BASE = SP_FN_EQV Then
-                                              Result := Result + aChar(SP_SYMBOL) + SP_CHAR_EQV
+                                              AddToResult(aChar(SP_SYMBOL) + SP_CHAR_EQV)
                                             Else
                                               If KeyWord + SP_FUNCTION_BASE = SP_FN_IMP Then
-                                                Result := Result + aChar(SP_SYMBOL) + SP_CHAR_IMP
+                                                AddToResult(aChar(SP_SYMBOL) + SP_CHAR_IMP)
                                               Else
-                                                Result := Result + aChar(SP_FUNCTION) + LongWordToString(KeyWord + SP_FUNCTION_BASE);
+                                                AddToResult(aChar(SP_FUNCTION) + LongWordToString(KeyWord + SP_FUNCTION_BASE));
                     Idx := TempVal + Length(SP_FUNCTIONS[KeyWord]);
                   End Else Begin
                     If StoreText[Length(StoreText)] = '$' Then
                       StoreText := Copy(StoreText, 1, Length(StoreText) -1);
                     StoreLen := Length(StoreText);
                     If (Idx <= LineLen +1) And (Line[Idx-1] = '$') Then
-                      Result := Result + aChar(SP_STRVAR) + LongWordToString(0) + LongWordToString(StoreLen) + StoreText
+                      AddToResult(aChar(SP_STRVAR) + LongWordToString(0) + LongWordToString(StoreLen) + StoreText)
                     Else
-                      Result := Result + aChar(SP_NUMVAR) + LongWordToString(0) + LongWordToString(StoreLen) + StoreText;
+                      AddToResult(aChar(SP_NUMVAR) + LongWordToString(0) + LongWordToString(StoreLen) + StoreText);
                   End;
                 End;
               End;
             End Else Begin
               // must be a random character - a comma or period, perhaps.
-              If Result <> '' Then
+              If rPtr <> rStart Then
                 If Line[Idx] = ':' Then Begin
-                  Result := Result + aChar(SP_SYMBOL) + ':';
+                  AddToResult(aChar(SP_SYMBOL) + ':');
                 End Else
                   If Line[Idx] = '@' Then Begin
                     Inc(Idx);
@@ -1632,32 +1645,32 @@ Begin
                       StoreText := StoreText + Line[Idx];
                       Inc(Idx);
                     End;
-                    Result := Result + aChar(SP_LABEL) + LongWordToString(Length(StoreText)) + StoreText;
+                    AddToResult(aChar(SP_LABEL) + LongWordToString(Length(StoreText)) + StoreText);
                     Dec(Idx);
                   End Else
-                    If (Result[Length(Result) -1] = aChar(SP_SYMBOL)) And (Line[Idx] = '=') Then Begin
-                      Case Result[Length(Result)] of
-                        '>': Result[Length(Result)] := SP_CHAR_GTE;
-                        '<': Result[Length(Result)] := SP_CHAR_LTE;
-                        '+': Result[Length(Result)] := SP_CHAR_INCVAR;
-                        '-': Result[Length(Result)] := SP_CHAR_DECVAR;
-                        '*': Result[Length(Result)] := SP_CHAR_MULVAR;
-                        '/': Result[Length(Result)] := SP_CHAR_DIVVAR;
-                        '^': Result[Length(Result)] := SP_CHAR_POWVAR;
-                        '%': Result[Length(Result)] := SP_CHAR_MODVAR;
-                        '&': Result[Length(Result)] := SP_CHAR_ANDVAR;
-                        '|': Result[Length(Result)] := SP_CHAR_ORVAR;
-                        '~': Result[Length(Result)] := SP_CHAR_XORVAR;
-                        '!': Result[Length(Result)] := SP_CHAR_NOTVAR;
+                    If (pByte(NativeUInt(rPtr) -2)^ = SP_SYMBOL) And (Line[Idx] = '=') Then Begin
+                      rEnd := pByte(NativeUInt(rPtr) -1);
+                      Case aChar(rEnd^) of
+                        '>': rEnd^ := Ord(SP_CHAR_GTE);
+                        '<': rEnd^ := Ord(SP_CHAR_LTE);
+                        '+': rEnd^ := Ord(SP_CHAR_INCVAR);
+                        '-': rEnd^ := Ord(SP_CHAR_DECVAR);
+                        '*': rEnd^ := Ord(SP_CHAR_MULVAR);
+                        '/': rEnd^ := Ord(SP_CHAR_DIVVAR);
+                        '^': rEnd^ := Ord(SP_CHAR_POWVAR);
+                        '%': rEnd^ := Ord(SP_CHAR_MODVAR);
+                        '&': rEnd^ := Ord(SP_CHAR_ANDVAR);
+                        '|': rEnd^ := Ord(SP_CHAR_ORVAR);
+                        '~': rEnd^ := Ord(SP_CHAR_XORVAR);
+                        '!': rEnd^ := Ord(SP_CHAR_NOTVAR);
                       Else
                         If Line[Idx] > #127 Then
-                          Result := Result + aChar(SP_LITERAL_SYMBOL) + Line[Idx]
+                          AddToResult(aChar(SP_LITERAL_SYMBOL) + Line[Idx])
                         Else
-                          Result := Result + aChar(SP_SYMBOL) + Line[Idx];
+                          AddToResult(aChar(SP_SYMBOL) + Line[Idx]);
                       End;
                     End Else Begin
                       If Line[Idx] = '{' Then Begin
-                        //Result := Result + aChar(SP_COMMENT);
                         tStr := ''; cnt := 0; Inc(Idx);
                         While Idx < Length(Line) Do Begin
                           If Line[Idx] = '{' Then Inc(Cnt);
@@ -1668,27 +1681,27 @@ Begin
                           tStr := tStr + Line[Idx];
                           Inc(Idx);
                         End;
-                        //Result := Result + LongWordToString(Length(tStr)) + tStr;
                       End Else
-                        If (Result[Length(Result) -1] = aChar(SP_SYMBOL)) Then Begin
-                          If (Line[Idx] = '>') And (Result[Length(Result)] = '<') Then
-                            Result[Length(Result)] := SP_CHAR_DNE
+                        If pByte(NativeUInt(rPtr) -2)^ = SP_SYMBOL Then Begin
+                          rEnd := pByte(NativeUInt(rPtr) -1);
+                          If (Line[Idx] = '>') And (rEnd^ = Ord('<')) Then
+                            rEnd^ := Ord(SP_CHAR_DNE)
                           Else Begin
                             If Line[Idx] > #127 Then
-                              Result := Result + aChar(SP_LITERAL_SYMBOL) + Line[Idx]
+                              AddToResult(aChar(SP_LITERAL_SYMBOL) + Line[Idx])
                             Else
-                              Result := Result + aChar(SP_SYMBOL) + Line[Idx];
+                              AddToResult(aChar(SP_SYMBOL) + Line[Idx]);
                           End;
                         End Else
                           If Line[Idx] > #127 Then
-                            Result := Result + aChar(SP_LITERAL_SYMBOL) + Line[Idx]
+                            AddToResult(aChar(SP_LITERAL_SYMBOL) + Line[Idx])
                           Else
-                            Result := Result + aChar(SP_SYMBOL) + Line[Idx];
+                            AddToResult(aChar(SP_SYMBOL) + Line[Idx]);
                     End Else
                       If Line[Idx] > #127 Then
-                        Result := Result + aChar(SP_LITERAL_SYMBOL) + Line[Idx]
+                        AddToResult(aChar(SP_LITERAL_SYMBOL) + Line[Idx])
                       Else
-                        Result := Result + aChar(SP_SYMBOL) + Line[Idx];
+                        AddToResult(aChar(SP_SYMBOL) + Line[Idx]);
                   Inc(Idx);
               End;
 
@@ -1698,79 +1711,89 @@ Finish:
 
   End;
 
+  Result := Copy(Result, 1, NativeUInt(rPtr) - NativeUint(rStart));
+
 End;
 
-Function SP_IsConstant(Line: aString): Integer;
+Function SP_IsConstant(Const Line: aString): Integer;
 Var
-  Idx: Integer;
+  Idx, l: Integer;
+  ss: aString;
 Begin
-
   Result := -1;
-
-  For Idx := 0 To High(SP_CONSTANTS) Do
-    If Upper(SP_CONSTANTS[Idx].Name) = Line Then Begin
-      Result := Idx;
+  l := Length(Line);
+  if l > 2 Then Begin
+    if Line = 'TRUE' Then Begin
+      Result := 0;
       Exit;
-    End;
-
+    End Else
+      if Line = 'FALSE' Then Begin
+        Result := 1;
+        Exit;
+      End Else Begin
+        ss := Line[1] + Line[2];
+        if (ss = 'KE') or (ss = 'FO') or (ss = 'DT') or (ss = 'tp') or (ss = 'nu') Then
+          For Idx := 0 To High(SP_CONSTANTS) Do
+            If Upper(SP_CONSTANTS[Idx].Name) = Line Then Begin
+              Result := Idx;
+              Exit;
+            End;
+      End;
+  End;
 End;
 
-Function  SP_IsReserved(Line: aString): Boolean;
-Begin
-
-  Result := (SP_IsKeyWord(Line) >= 0) or (SP_IsFunction(Line) >= 0) or (SP_IsFunctionEx(Line) >= 0);
-
+Function SP_SearchTokens(Const Line: aString): Integer;
+var
+  First, Last, Pivot: Integer;
+  Found: Boolean;
+begin
+  First  := Hashes[Ord(Line[1]) - 65];
+  Last   := Hashes[Ord(Line[1]) - 64] -1;
+  Result := -1;
+  if First = Last then Begin
+    If SortedTokens[First].Name = Line then
+      Result := SortedTokens[First].KeyWordID
+  End Else Begin
+    Found  := False;
+    while (First <= Last) and (not Found) do begin
+      Pivot := (First + Last) div 2;
+      if SortedTokens[Pivot].Name = Line then begin
+        Found  := True;
+        Result := Pivot;
+      end else
+        if SortedTokens[Pivot].Name > Line then
+          Last := Pivot - 1
+        else
+          First := Pivot + 1;
+    end;
+    If Result >= 0 Then
+      Result := SortedTokens[Result].KeyWordID;
+  End;
 End;
 
-Function SP_IsKeyWord(Line: aString): Integer;
-Var
-  Idx: Integer;
+Function  SP_IsReserved(Const Line: aString): Boolean;
 Begin
-
-  Result := -1;
-
-  For Idx := 0 To High(SP_KEYWORDS) Do
-    If Upper(SP_KEYWORDS[Idx]) = Line Then Begin
-      Result := Idx;
-      Exit;
-    End;
-
+  Result := SP_SearchTokens(Line) >= 0;
 End;
 
-Function SP_IsFunction(Line: aString): Integer;
-Var
-  Idx: Integer;
+Function SP_IsKeyWord(Const Line: aString): Integer;
 Begin
-
-  Result := -1;
-
-  For Idx := 0 To High(SP_FUNCTIONS) Do
-    If Upper(SP_FUNCTIONS[Idx]) = Line Then Begin
-      Result := Idx;
-      Exit;
-    End;
-
+  Result := SP_SearchTokens(Line);
+  if (Result > -1) and (Result < SP_FUNCTION_BASE) Then
+    Result := Result - SP_KEYWORD_BASE
+  Else
+    Result := -1;
 End;
 
-Function SP_IsFunctionEx(Line: aString): Integer;
-Var
-  Idx: Integer;
+Function SP_IsFunction(Const Line: aString): Integer;
 Begin
-
-  Result := -1;
-
-  For Idx := 0 To High(SP_FUNCTIONS_EX) Do
-    If Upper(SP_FUNCTIONS_EX[Idx]) = Line Then Begin
-      Result := Idx;
-      Exit;
-    End;
-
+  Result := Max(SP_SearchTokens(Line) - SP_FUNCTION_BASE, -1);
 End;
 
 Function SP_GetNumber(Line: aString; Var Idx: Integer; Var Number: aFloat; AllowSpaces: Boolean): Boolean;
 Var
   NegExp: Boolean;
-  OldIdx, NewIdx, NumDigits, c: Integer;
+  OldIdx, NewIdx, NumDigits, c, l: Integer;
   Dec_Value, Dec_Count, Exponent: aFloat;
 Begin
 
@@ -1780,6 +1803,7 @@ Begin
 
   Result := False;
   Number := 0;
+  l := Length(Line);
 
   If Line[Idx] = '%' Then Begin
 
@@ -1789,7 +1813,7 @@ Begin
     OldIdx := Idx;
     NumDigits := 1;
     c := 0;
-    While (Idx <= Length(Line)) And (Line[Idx] in [' ', '1', '0']) Do Inc(Idx);
+    While (Idx <= l) And (Line[Idx] in [' ', '1', '0']) Do Inc(Idx);
     If Idx > OldIdx Then Begin
       NewIdx := Idx;
       Dec(Idx);
@@ -1817,11 +1841,11 @@ Begin
       // Hex.
 
       Inc(Idx);
-      If Idx <= Length(Line) Then
+      If Idx <= l Then
         If Line[Idx] in ['x', 'X'] Then
           Inc(Idx);
 
-      While (Idx <= Length(Line)) and (Line[Idx] in ['0'..'9', 'A'..'F', 'a'..'f']) Do Begin
+      While (Idx <= l) and (Line[Idx] in ['0'..'9', 'A'..'F', 'a'..'f']) Do Begin
         If Line[Idx] <> ' ' Then
           Result := True;
         If Line[Idx] in ['A'..'F'] Then
@@ -1839,18 +1863,18 @@ Begin
 
       // Decimal.
 
-      While (Idx <= Length(Line)) And (Line[Idx] in ['0'..'9']) Do Begin
+      While (Idx <= l) And (Line[Idx] in ['0'..'9']) Do Begin
         Result := True;
         Number := (Number * 10) + Ord(Line[Idx]) - 48;
         Inc(Idx);
       End;
 
-      If Idx <= Length(Line) Then Begin
+      If Idx <= l Then Begin
         If Line[Idx] = '.' Then Begin
           Inc(Idx);
           Dec_Value := 0;
           Dec_Count := 10;
-          While (Idx <= Length(Line)) And (Line[Idx] in ['0'..'9']) Do Begin
+          While (Idx <= l) And (Line[Idx] in ['0'..'9']) Do Begin
             Result := True;
             Dec_Value := ((Ord(Line[Idx]) - 48) / Dec_Count) + Dec_Value;
             Dec_Count := Dec_Count * 10;
@@ -1860,18 +1884,18 @@ Begin
             Number := Number + Dec_Value;
         End;
 
-        If Result And (Idx <= Length(Line)) Then Begin
+        If Result And (Idx <= l) Then Begin
           If Line[Idx] in ['E','e'] Then Begin
             Inc(Idx);
             Exponent := 0;
             NegExp := False;
-            If Idx <= Length(Line) Then
+            If Idx <= l Then
               If Line[Idx] in ['+', '-'] Then Begin
                 If Line[Idx] = '-' Then NegExp := True;
                 Inc(Idx);
               End;
-            If (Idx <= Length(Line)) And (Line[Idx] in ['0'..'9']) Then Begin
-              While (Idx <= Length(Line)) And (Line[Idx] in ['0'..'9']) Do Begin
+            If (Idx <= l) And (Line[Idx] in ['0'..'9']) Then Begin
+              While (Idx <= l) And (Line[Idx] in ['0'..'9']) Do Begin
                 Exponent := (Exponent * 10) + Ord(Line[Idx]) - 48;
                 Inc(Idx);
               End;
@@ -2501,19 +2525,15 @@ Begin
           If SP_IsConstant(Tw) > -1 Then Begin
             NewSyntax := constClr;
           End Else
-            If SP_IsFunctionEx(Tw) > -1 Then Begin
-              NewSyntax := fnClr;
+            If Tw = 'END' Then Begin
+              NewSyntax := kwdClr; // END is not a keyword, but is part of END PROC etc
               Wd := Tw;
             End Else
-              If Tw = 'END' Then Begin
-                NewSyntax := kwdClr; // END is not a keyword, but is part of END PROC etc
-                Wd := Tw;
-              End Else
-                // It's not a keyword, a function or a constant. Could be... A Variable! W00t!
-                If Wd[Length(Wd)] = '$' Then
-                  NewSyntax := svClr
-                Else
-                  NewSyntax := nvClr;
+              // It's not a keyword, a function or a constant. Could be... A Variable! W00t!
+              If Wd[Length(Wd)] = '$' Then
+                NewSyntax := svClr
+              Else
+                NewSyntax := nvClr;
     End Else
       If CodeLine[Idx] in ['%', '$', '.', '0'..'9'] Then Begin
         // Number - Hex, Binary, Decimal, Any base. May be of the form:
@@ -2862,6 +2882,66 @@ Begin
   PROGCHANGED := True;
 End;
 
+Procedure SP_MakeKeywordLUT;
+Var
+  i, j, numTokens: Integer;
+
+  procedure Sort(Start, Stop: Integer);
+  var
+    Left, Right, Mid: Integer;
+    Pivot, Temp: TCompoundWord;
+  begin
+    Left  := Start;
+    Right := Stop;
+    Mid   := (Start + Stop) div 2;
+    Pivot := SortedTokens[mid];
+    repeat
+      while SortedTokens[Left].Name < Pivot.Name do Inc(Left);
+      while Pivot.Name < SortedTokens[Right].Name do Dec(Right);
+      if Left <= Right then begin
+        Temp                := SortedTokens[Left];
+        SortedTokens[Left]  := SortedTokens[Right];
+        SortedTokens[Right] := Temp;
+        Inc(Left);
+        Dec(Right);
+      end;
+    until Left > Right;
+    if Start < Right then Sort(Start, Right);
+    if Left < Stop then Sort(Left, Stop);
+  end;
+
+Begin
+
+  j := 0;
+  numTokens := Length(SP_KEYWORDS_EXTRA) + Length(SP_FUNCTIONS_EXTRA);
+  SetLength(SortedTokens, numTokens);
+  For i := 0 To Length(SP_KEYWORDS_EXTRA) -1 Do
+    With SortedTokens[j] Do Begin
+      Name := Upper(StripSpaces(SP_KEYWORDS[i]));
+      KeyWordID := i + SP_KEYWORD_BASE;
+      Inc(j);
+    End;
+  For i := 0 To Length(SP_FUNCTIONS_EXTRA) -1 Do
+    With SortedTokens[j] Do Begin
+      Name := Upper(Copy(StripSpaces(SP_FUNCTIONS_EXTRA[i]), 2));
+      KeyWordID := i + SP_FUNCTION_BASE;
+      Inc(j);
+    End;
+
+  Sort(0, High(SortedTokens));
+
+  For i := 0 to 24 Do
+    Hashes[i] := -1;
+
+  For j := 0 To 25 Do
+    For i := 0 to numTokens -1 Do
+      if SortedTokens[i].Name[1] = aChar(65 + j) Then Begin
+        Hashes[j] := i;
+        Break;
+      End;
+
+End;
+
 Initialization
 
   SetLength(SP_KEYWORDS, High(SP_KEYWORDS_EXTRA) +1);
@@ -2900,5 +2980,7 @@ Initialization
     If TempStr[Length(TempStr)] = ' ' Then TempStr := Copy(TempStr, 1, Length(TempStr) -1);
 
   End;
+
+  SP_MakeKeywordLUT;
 
 end.

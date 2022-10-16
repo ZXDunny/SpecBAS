@@ -364,9 +364,9 @@ Begin
 
   NumStatements := pLongWord(Idx)^;
 
-  If Statement > NumStatements Then
+  If Statement > NumStatements Then Begin
     Result := -1
-  Else Begin
+  End Else Begin
     Inc(Idx, (Statement * SizeOf(LongWord)));
     Result := pLongWord(Idx)^;
   End;

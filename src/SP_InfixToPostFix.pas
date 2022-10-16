@@ -219,7 +219,7 @@ Var
 
 implementation
 
-Uses SP_Interpret_PostFix;
+Uses SP_Interpret_PostFix, {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF};
 
 Function CreateToken(tType: Byte; tVarious, tLength: LongWord): aString;
 Begin
@@ -2682,6 +2682,36 @@ Var
   Tkn: pToken;
 Label
   Finish;
+
+  Function SP_CreateFromStack(min, Max: Integer; Var c: Integer): aString;
+  var
+    i, l: Integer;
+    Ptr: pByte;
+  begin
+
+    l := 0;
+    c := (max - min) + 1;
+    for i := min to max do
+      l := l + SizeOf(TToken) + Length(SP_OperandStack[i].Content);
+
+    SetLength(Result, l);
+    ptr := pByte(pNativeUInt(@Result)^);
+
+    for i := min to max do
+      With pToken(ptr)^, SP_OperandStack[i] Do Begin
+        Token := OpType;
+        Handler := @SP_Interpret_UNHANDLED;
+        TokenPos := StrPos;
+        TokenLen := Length(Content);
+        Cache := 0;
+        BPIndex := -1;
+        Inc(ptr, SizeOf(TToken));
+        MoveMemory(ptr, pByte(pNativeUInt(@Content)^), TokenLen);
+        Inc(Ptr, TokenLen);
+      End;
+
+  End;
+
 Begin
 
   // Use the classic infix->postfix conversion - stack values on an operand stack, stack operators on
@@ -5001,11 +5031,7 @@ Finish:
   // End of post-processing. Unstack any operands left over. Unlikely, but there are a couple of cases
   // where this could happen.
 
-  numTerms := 0;
-  For Idx := SP_OperandMin +1 To SP_OperandPtr Do Begin
-    Inc(numTerms);
-    Result := Result + CreateToken(SP_OperandStack[Idx].OpType, SP_OperandStack[Idx].StrPos, Length(SP_OperandStack[Idx].Content)) + SP_OperandStack[Idx].Content;
-  End;
+  Result := SP_CreateFromStack(SP_OperandMin +1, SP_OperandPtr, numTerms);
 
   // Now, if there are no errors, test the expression string by feeding it to a stripped-down interpreter.
   // This will tell us what the expression evaluates to. Once that is done with no errors, we can call

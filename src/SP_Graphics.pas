@@ -544,6 +544,35 @@ Const
     (B: $55; G: $FF; R: $FF; A: $FF),
     (B: $FF; G: $FF; R: $FF; A: $FF));
 
+  AppleLGRPalette: Array[0..15] of TP_Colour =
+   ((B: $00; G: $00; R: $00; A: $FF),
+    (B: $5F; G: $03; R: $99; A: $FF),
+    (B: $E1; G: $04; R: $42; A: $FF),
+    (B: $FE; G: $13; R: $CA; A: $FF),
+    (B: $10; G: $73; R: $00; A: $FF),
+    (B: $7F; G: $7F; R: $7F; A: $FF),
+    (B: $FF; G: $97; R: $24; A: $FF),
+    (B: $FF; G: $A2; R: $AA; A: $FF),
+
+    (B: $01; G: $51; R: $4F; A: $FF),
+    (B: $00; G: $5C; R: $F0; A: $FF),
+    (B: $BE; G: $BE; R: $BE; A: $FF),
+    (B: $E1; G: $85; R: $FF; A: $FF),
+    (B: $07; G: $CA; R: $12; A: $FF),
+    (B: $13; G: $D4; R: $CE; A: $FF),
+    (B: $95; G: $F5; R: $51; A: $FF),
+    (B: $FE; G: $FF; R: $FF; A: $FF));
+
+  AppleHGRPalette: Array[0..7] of TP_Colour =
+   ((B: $00; G: $00; R: $00; A: $FF),
+    (B: $00; G: $C3; R: $43; A: $FF),
+    (B: $FF; G: $3D; R: $B6; A: $FF),
+    (B: $FF; G: $FF; R: $FF; A: $FF),
+    (B: $00; G: $00; R: $00; A: $FF),
+    (B: $15; G: $5D; R: $EA; A: $FF),
+    (B: $E3; G: $A4; R: $10; A: $FF),
+    (B: $FF; G: $FF; R: $FF; A: $FF));
+
 implementation
 
 Uses SP_Main, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components, SP_ToolTipWindow;

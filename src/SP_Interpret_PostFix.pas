@@ -101,7 +101,7 @@ Type
     StrPtr: pByte;
     StrStart: pByte;
     Tokens: paString;
-    SavePos: LongWord;
+    SavePos: NativeUInt;
     Token: pToken;
     Position: Integer;
     Error: pSP_ErrorCode;
@@ -576,6 +576,8 @@ Procedure SP_Interpret_PAL_SAVE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PAL_DEFAULT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PAL_EGA(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PAL_CGA(Var Info: pSP_iInfo);
+Procedure SP_Interpret_PAL_APPLELGR(Var Info: pSP_iInfo);
+Procedure SP_Interpret_PAL_APPLEHGR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_EXECUTE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ROTATE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ROTATETO(Var Info: pSP_iInfo);
@@ -15322,6 +15324,31 @@ Begin
 
 End;
 
+Procedure SP_Interpret_PAL_APPLELGR(Var Info: pSP_iInfo);
+Var
+  Idx: Integer;
+  Palette: Array[0..255] of TP_Colour;
+Begin
+
+  For Idx := 0 To 15 Do
+    Palette[Idx] := AppleLGRPalette[Idx];
+  SP_SetPalette(0, Palette);
+
+End;
+
+Procedure SP_Interpret_PAL_APPLEHGR(Var Info: pSP_iInfo);
+Var
+  Idx: Integer;
+  Palette: Array[0..255] of TP_Colour;
+Begin
+
+  For Idx := 0 To 7 Do
+    Palette[Idx] := AppleHGRPalette[Idx];
+  SP_SetPalette(0, Palette);
+
+End;
+
+
 Procedure SP_Interpret_PAL_LOAD(Var Info: pSP_iInfo);
 Var
   Filename: aString;
@@ -25882,6 +25909,8 @@ Initialization
   InterpretProcs[SP_KW_PAL_DEFAULT] := @SP_Interpret_PAL_DEFAULT;
   InterpretProcs[SP_KW_PAL_EGA] := @SP_Interpret_PAL_EGA;
   InterpretProcs[SP_KW_PAL_CGA] := @SP_Interpret_PAL_CGA;
+  InterpretProcs[SP_KW_PAL_APPLEHGR] := @SP_Interpret_PAL_APPLEHGR;
+  InterpretProcs[SP_KW_PAL_APPLELGR] := @SP_Interpret_PAL_APPLELGR;
   InterpretProcs[SP_KW_EXECUTE] := @SP_Interpret_EXECUTE;
   InterpretProcs[SP_KW_ROTATE] := @SP_Interpret_ROTATE;
   InterpretProcs[SP_KW_ROTATETO] := @SP_Interpret_ROTATETO;

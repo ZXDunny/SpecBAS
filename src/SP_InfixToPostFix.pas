@@ -8663,7 +8663,7 @@ Var
   GotDest: Boolean;
 Begin
 
-  // PALETTE <SHL|SHR n, n TO n>|<<HSV>index,<r,g,b|RGB>|DEFAULT>
+  // PALETTE <SHL|SHR n, n TO n>|<<HSV>index,<r,g,b|RGB>|<DEFAULT|EGA|CGA>>
   // PALETTE COPY <[GRAPHIC|WINDOW]> id,start,count TO [WINDOW|GRAPHIC] id, index
 
   Result := '';
@@ -8750,70 +8750,60 @@ Begin
         If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_CGA) Then Begin
           Inc(Position, 1 + SizeOf(LongWord));
           KeyWordID := SP_KW_PAL_CGA;
-        End Else Begin
-          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in [SP_CHAR_SHL, SP_CHAR_SHR]) Then Begin
-            KeyWordID := SP_KW_PALSHIFT;
-            Token := Tokens[Position +1];
-            Inc(Position, 2);
-            Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Amount to move
-            If Error.Code <> SP_ERR_OK Then Exit;
-            If Error.ReturnType <> SP_VALUE Then Begin
-              Error.Code := SP_ERR_MISSING_NUMEXPR;
-              Exit;
-            End;
-            If Token = SP_CHAR_SHL Then
-              Result := Result + Expr + CreateToken(SP_SPECIAL_SYMBOL, Position, 1) + SP_CHAR_UNARYM // Shifts left are negative
-            Else
-              Result := Result + Expr;
-            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
-              Inc(Position, 2);
-              Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Shift FROM
-              If Error.Code <> SP_ERR_OK Then Exit;
-              If Error.ReturnType <> SP_VALUE Then Begin
-                Error.Code := SP_ERR_MISSING_NUMEXPR;
-                Exit;
-              End;
-              Result := Result + Expr;
-              If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
-                Inc(Position, 1 + SizeOf(LongWord));
-                Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Shift TO
+        End Else
+          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_APPLELGR) Then Begin
+            Inc(Position, 1 + SizeOf(LongWord));
+            KeyWordID := SP_KW_PAL_APPLELGR;
+          End Else
+            If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_APPLEHGR) Then Begin
+              Inc(Position, 1 + SizeOf(LongWord));
+              KeyWordID := SP_KW_PAL_APPLEHGR;
+            End Else Begin
+              If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in [SP_CHAR_SHL, SP_CHAR_SHR]) Then Begin
+                KeyWordID := SP_KW_PALSHIFT;
+                Token := Tokens[Position +1];
+                Inc(Position, 2);
+                Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Amount to move
                 If Error.Code <> SP_ERR_OK Then Exit;
                 If Error.ReturnType <> SP_VALUE Then Begin
                   Error.Code := SP_ERR_MISSING_NUMEXPR;
                   Exit;
                 End;
-                Result := Result + Expr;
-                Exit;
-              End Else Begin
-                Error.Code := SP_ERR_MISSING_TO;
-                Exit;
-              End;
-            End Else
-              Exit;
-          End Else
-            If (Byte(Tokens[Position]) = SP_FUNCTION) And (pLongWord(@Tokens[Position +1])^ = SP_FN_HSV) Then Begin
-              KeyWordID := SP_KW_PAL_HSV;
-              Inc(Position, 1 + SizeOf(LongWord));
-            End;
-            Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Index
-            If Error.Code <> SP_ERR_OK Then Exit;
-            If Error.ReturnType <> SP_VALUE Then Begin
-              Error.Code := SP_ERR_MISSING_NUMEXPR;
-              Exit;
-            End;
-            Result := Result + Expr;
-            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
-              Inc(Position, 2);
-              Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Red, H, RGB or HSV
-              If Error.Code <> SP_ERR_OK Then Exit;
-              If Error.ReturnType <> SP_VALUE Then Begin
-                Error.Code := SP_ERR_MISSING_NUMEXPR;
-                Exit;
-              End;
-              Result := Result + Expr;
-              If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
-                Inc(Position, 2);
-                Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Green
+                If Token = SP_CHAR_SHL Then
+                  Result := Result + Expr + CreateToken(SP_SPECIAL_SYMBOL, Position, 1) + SP_CHAR_UNARYM // Shifts left are negative
+                Else
+                  Result := Result + Expr;
+                If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+                  Inc(Position, 2);
+                  Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Shift FROM
+                  If Error.Code <> SP_ERR_OK Then Exit;
+                  If Error.ReturnType <> SP_VALUE Then Begin
+                    Error.Code := SP_ERR_MISSING_NUMEXPR;
+                    Exit;
+                  End;
+                  Result := Result + Expr;
+                  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+                    Inc(Position, 1 + SizeOf(LongWord));
+                    Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Shift TO
+                    If Error.Code <> SP_ERR_OK Then Exit;
+                    If Error.ReturnType <> SP_VALUE Then Begin
+                      Error.Code := SP_ERR_MISSING_NUMEXPR;
+                      Exit;
+                    End;
+                    Result := Result + Expr;
+                    Exit;
+                  End Else Begin
+                    Error.Code := SP_ERR_MISSING_TO;
+                    Exit;
+                  End;
+                End Else
+                  Exit;
+              End Else
+                If (Byte(Tokens[Position]) = SP_FUNCTION) And (pLongWord(@Tokens[Position +1])^ = SP_FN_HSV) Then Begin
+                  KeyWordID := SP_KW_PAL_HSV;
+                  Inc(Position, 1 + SizeOf(LongWord));
+                End;
+                Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Index
                 If Error.Code <> SP_ERR_OK Then Exit;
                 If Error.ReturnType <> SP_VALUE Then Begin
                   Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8822,24 +8812,42 @@ Begin
                 Result := Result + Expr;
                 If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
                   Inc(Position, 2);
-                  Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Blue
+                  Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Red, H, RGB or HSV
                   If Error.Code <> SP_ERR_OK Then Exit;
                   If Error.ReturnType <> SP_VALUE Then Begin
                     Error.Code := SP_ERR_MISSING_NUMEXPR;
                     Exit;
                   End;
                   Result := Result + Expr;
+                  If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+                    Inc(Position, 2);
+                    Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Green
+                    If Error.Code <> SP_ERR_OK Then Exit;
+                    If Error.ReturnType <> SP_VALUE Then Begin
+                      Error.Code := SP_ERR_MISSING_NUMEXPR;
+                      Exit;
+                    End;
+                    Result := Result + Expr;
+                    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+                      Inc(Position, 2);
+                      Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Blue
+                      If Error.Code <> SP_ERR_OK Then Exit;
+                      If Error.ReturnType <> SP_VALUE Then Begin
+                        Error.Code := SP_ERR_MISSING_NUMEXPR;
+                        Exit;
+                      End;
+                      Result := Result + Expr;
+                    End Else Begin
+                      Error.Code := SP_ERR_MISSING_COMMA;
+                      Exit;
+                    End;
+                  End Else
+                    Exit;
                 End Else Begin
                   Error.Code := SP_ERR_MISSING_COMMA;
                   Exit;
                 End;
-              End Else
-                Exit;
-            End Else Begin
-              Error.Code := SP_ERR_MISSING_COMMA;
-              Exit;
             End;
-        End;
   End;
 End;
 

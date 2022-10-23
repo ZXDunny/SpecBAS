@@ -578,6 +578,7 @@ Procedure SP_Interpret_PAL_EGA(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PAL_CGA(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PAL_APPLELGR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PAL_APPLEHGR(Var Info: pSP_iInfo);
+Procedure SP_Interpret_PAL_CPC(Var Info: pSP_iInfo);
 Procedure SP_Interpret_EXECUTE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ROTATE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ROTATETO(Var Info: pSP_iInfo);
@@ -1009,7 +1010,7 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, RunTimeCompiler;
+Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, RunTimeCompiler, SP_Util2;
 
 Procedure SP_Execute(Line: aString; Var Error: TSP_ErrorCode);
 Var
@@ -15348,6 +15349,17 @@ Begin
 
 End;
 
+Procedure SP_Interpret_PAL_CPC(Var Info: pSP_iInfo);
+Var
+  Idx: Integer;
+  Palette: Array[0..255] of TP_Colour;
+Begin
+
+  For Idx := 0 To 26 Do
+    Palette[Idx] := CPCPalette[Idx];
+  SP_SetPalette(0, Palette);
+
+End;
 
 Procedure SP_Interpret_PAL_LOAD(Var Info: pSP_iInfo);
 Var
@@ -25911,6 +25923,7 @@ Initialization
   InterpretProcs[SP_KW_PAL_CGA] := @SP_Interpret_PAL_CGA;
   InterpretProcs[SP_KW_PAL_APPLEHGR] := @SP_Interpret_PAL_APPLEHGR;
   InterpretProcs[SP_KW_PAL_APPLELGR] := @SP_Interpret_PAL_APPLELGR;
+  InterpretProcs[SP_KW_PAL_CPC] := @SP_Interpret_PAL_CPC;
   InterpretProcs[SP_KW_EXECUTE] := @SP_Interpret_EXECUTE;
   InterpretProcs[SP_KW_ROTATE] := @SP_Interpret_ROTATE;
   InterpretProcs[SP_KW_ROTATETO] := @SP_Interpret_ROTATETO;

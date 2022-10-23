@@ -119,7 +119,6 @@ Function  SP_ModCalc(v1, v2: aFloat): aFloat;
 Function  SP_PartialMatch(const s1, s2: aString): Boolean; inline;
 Function  SP_PartialMatchPtrs(ps, pd: pByte; l: Integer): Boolean;
 Function  aFloatToStr(Value: aFloat): aString; inline;
-Function  SP_Power(Base, Exponent: aFloat): aFloat; inline;
 Function  SP_Max(A, B: Integer): Integer;
 Function  InsertLiterals(Const s: aString): aString;
 Procedure Swap(Var a, b: Integer);
@@ -1141,16 +1140,6 @@ Begin
     Else
       Value := Value + m;
   Result := aString(FormatFloat('0.##############', Value));
-End;
-
-Function SP_Power(Base, Exponent: aFloat): aFloat; inline;
-Begin
-
-  If Base >= 0 Then
-    Result := Power(Base, Exponent)
-  Else
-    Result := -Power(Abs(Base), Exponent);
-
 End;
 
 Function aFloatToString(Value: aFloat): aString; Inline;

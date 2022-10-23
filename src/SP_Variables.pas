@@ -27,7 +27,7 @@ unit SP_Variables;
 
 interface
 
-Uses Math, Classes, SysUtils, System.SyncObjs, SP_Math, SP_Tokenise, SP_Errors, SP_SysVars, SP_Util, SP_AnsiStringlist;
+Uses Math, Classes, SysUtils, System.SyncObjs, SP_Math, SP_Tokenise, SP_Errors, SP_SysVars, SP_Util, SP_AnsiStringlist, SP_Util2;
 
 Type
 

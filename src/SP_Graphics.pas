@@ -573,6 +573,38 @@ Const
     (B: $E3; G: $A4; R: $10; A: $FF),
     (B: $FF; G: $FF; R: $FF; A: $FF));
 
+  CPCPalette: Array[0..26] of TP_Colour =
+   ((B: $80; G: $00; R: $00; A: $FF),
+    (B: $80; G: $00; R: $00; A: $FF),
+    (B: $FF; G: $00; R: $00; A: $FF),
+    (B: $00; G: $00; R: $80; A: $FF),
+    (B: $80; G: $00; R: $80; A: $FF),
+    (B: $FF; G: $00; R: $80; A: $FF),
+    (B: $00; G: $00; R: $FF; A: $FF),
+    (B: $80; G: $00; R: $FF; A: $FF),
+
+    (B: $FF; G: $00; R: $FF; A: $FF),
+    (B: $00; G: $80; R: $00; A: $FF),
+    (B: $80; G: $80; R: $00; A: $FF),
+    (B: $FF; G: $80; R: $00; A: $FF),
+    (B: $00; G: $80; R: $80; A: $FF),
+    (B: $80; G: $80; R: $80; A: $FF),
+    (B: $FF; G: $80; R: $80; A: $FF),
+    (B: $00; G: $80; R: $FF; A: $FF),
+
+    (B: $80; G: $80; R: $FF; A: $FF),
+    (B: $FF; G: $80; R: $FF; A: $FF),
+    (B: $00; G: $FF; R: $00; A: $FF),
+    (B: $80; G: $FF; R: $00; A: $FF),
+    (B: $FF; G: $FF; R: $00; A: $FF),
+    (B: $00; G: $FF; R: $80; A: $FF),
+    (B: $80; G: $FF; R: $80; A: $FF),
+    (B: $FF; G: $FF; R: $80; A: $FF),
+
+    (B: $00; G: $FF; R: $FF; A: $FF),
+    (B: $80; G: $FF; R: $FF; A: $FF),
+    (B: $FF; G: $FF; R: $FF; A: $FF));
+
 implementation
 
 Uses SP_Main, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components, SP_ToolTipWindow;
@@ -637,6 +669,13 @@ Begin
   If SCMAXX < x2 Then SCMAXX := x2;
   If SCMINY > y1 Then SCMINY := y1;
   If SCMAXY < y2 Then SCMAXY := y2;
+
+End;
+
+Procedure CopyMem(Dst, Src: Pointer; Len: LongInt); inline;
+Begin
+
+  Move(Src^, Dst^, Len);
 
 End;
 
@@ -3020,7 +3059,8 @@ var
   DstA, TexBase: pByte;
   tClr, Clr: Byte;
   Graphic: pSP_Graphic_Info;
-  x, y, r, rx2, xmn, xmx, ymn, ymx, w: Integer;
+  x, y, r, rx2: Int64;
+  xmn, xmx, ymn, ymx, w: Integer;
 begin
 
   If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
@@ -3058,28 +3098,36 @@ begin
 
       If Trans <> $FFFF Then Begin
 
-        For y := ymn To ymx Do Begin
+        y := ymn;
+        While y <= ymx Do Begin
           rx2 := y*Rx*y*Rx;
-          For x := xmn To xmx Do Begin
+          x := xmn;
+          While x <= xmx Do Begin
             If x*rY*x*rY+rx2 <= r Then Begin
               Clr := pByte(TexBase + ((x - xmn) mod Integer(tW)) + ((y - ymn) mod Integer(tH)) * Integer(tw))^;
               If Clr <> tClr Then DstA^ := Clr;
             End;
             Inc(DstA);
+            Inc(x);
           End;
           Inc(DstA, w);
+          Inc(y);
         End;
 
       End Else Begin
 
-        For y := ymn To ymx Do Begin
+        y := ymn;
+        While y <= ymx Do Begin
           rx2 := y*Rx*y*Rx;
-          For x := xmn To xmx Do Begin
+          x := xmn;
+          While x <= xmx Do Begin
             If x*rY*x*rY+rx2 <= r Then
               DstA^ := pByte(TexBase + ((x - xmn) mod Integer(tW)) + ((y - ymn) mod Integer(tH)) * Integer(tw))^;
             Inc(DstA);
+            Inc(x);
           End;
           Inc(DstA, w);
+          Inc(y);
         End;
 
       End;
@@ -3088,28 +3136,36 @@ begin
 
       If Trans <> $FFFF Then Begin
 
-        For y := ymn To ymx Do Begin
+        y := ymn;
+        While y <= ymx Do Begin
           rx2 := y*Rx*y*Rx;
-          For x := xmn To xmx Do Begin
+          x := xmn;
+          While x <= xmx Do Begin
             If x*rY*x*rY+rx2 <= r Then Begin
               Clr := pByte(TexBase + ((x - xmn) mod Integer(tW)) + ((y - ymn) mod Integer(tH)) * Integer(tw))^;
               If Clr <> tClr Then SP_OverPixelPtrVal(DstA, Clr, T_OVER);
             End;
             Inc(DstA);
+            Inc(x);
           End;
           Inc(DstA, w);
+          Inc(Y);
         End;
 
       End Else Begin
 
-        For y := ymn To ymx Do Begin
+        y := ymn;
+        While y <= ymx Do Begin
           rx2 := y*Rx*y*Rx;
-          For x := xmn To xmx Do Begin
+          x := xmn;
+          While x <= xmx Do Begin
             If x*rY*x*rY+rx2 <= r Then
               SP_OverPixelPtrVal(DstA, pByte(TexBase + ((x - xmn) mod Integer(tW)) + ((y - ymn) mod Integer(tH)) * Integer(tw))^, T_OVER);
             Inc(DstA);
+            Inc(x);
           End;
           Inc(DstA, w);
+          Inc(y);
         End;
 
       End;

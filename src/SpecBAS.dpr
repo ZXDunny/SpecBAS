@@ -19,7 +19,8 @@
 program SpecBAS;
 uses
   Forms,
-  MainForm in 'MainForm.pas' {Main};
+  MainForm in 'MainForm.pas' {Main},
+  SP_Util2 in 'SP_Util2.pas';
 
 {$R *.res}
 begin

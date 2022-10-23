@@ -79,7 +79,7 @@ Const
   // List of keywords that are used in statements.
   // MUST Be in this order - add new commands to the end of the list.
 
-  SP_KEYWORDS_EXTRA: Array[0..250] of aString =
+  SP_KEYWORDS_EXTRA: Array[0..251] of aString =
     ('SPECTRUM ', 'PLAY ', 'AT ', 'TAB ', 'LINE ', ' THEN ', ' TO ', ' STEP ',
      'DEF ', 'CAT ', ' FORMAT ', 'MOVE ', 'ERASE ', 'OPEN ', 'CLOSE ', 'MERGE ', 'BEEP ',
      'CIRCLE ', 'INK ', 'PAPER ', 'INVERSE ', 'OUT ', 'STOP ', 'READ ', ' DATA ',
@@ -109,7 +109,7 @@ Const
      'BOLD ', 'ITALIC ', 'FILTER ', 'INSERT ', 'MENUITEM ', 'MEMWRT ', 'MEMWRTD ', 'MEMWRTQ ',
      'MEMWRT$ ', 'REPEAT', 'PARTICLE ', 'FRICTION ', 'GRAVITY ', 'FORCE ', 'INSTALL', 'MEMWRTF ',
      'PRESS', 'TURNS', 'GRADIANS', 'EGA', 'CGA', 'ADDCTRL', 'CTRL', 'PROP$ ', 'OLD', ' ASYNC',
-     'COMPILE ', 'APPLEHGR', 'APPLELGR');
+     'COMPILE ', 'APPLEHGR', 'APPLELGR', 'CPC');
 
   // Constants used to quickly identify keywords when in token form. Each keyword listed
   // above has a corresponding constant, which must be SP_KEYWORD_BASE + (Index of Keyword above).
@@ -367,6 +367,7 @@ Const
   SP_KW_COMPILE             = 1248;
   SP_KW_APPLEHGR            = 1249;
   SP_KW_APPLELGR            = 1250;
+  SP_KW_CPC                 = 1251;
 
   // These are meta-commands; they do not appear in listings, and are used during
   // execution only, having been inserted by the pre-processor.
@@ -722,10 +723,11 @@ Const
   SP_KW_MOUSE_TO            = 4399;
   SP_KW_PAL_APPLELGR        = 4400;
   SP_KW_PAL_APPLEHGR        = 4401;
+  SP_KW_PAL_CPC             = 4402;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..350] of aString =
+  SP_Keyword_Names: Array[0..351] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -774,7 +776,8 @@ Const
      'MAT INTERP', 'FLIP GFXSTR', 'MIRROR GFXSTR', 'WINDOW FLIP', 'WINDOW MIRROR', 'PR ITALIC', 'PR BOLD',
      'SPRITE FRONT', 'SPRITE BACK', 'SPRITE FRONT ADD', 'SPRITE BACK DEC', 'CHANNEL RATE STRING', 'GFX SCALE XY',
      'GFX SCALE TO', 'SCREEN SAVE', 'GRAPHIC SAVE', 'WAIT KEY', 'WAIT KEY PRESS', 'PALETTE EGA', 'PALETTE CGA',
-     'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP', 'PLAY STOP', 'MOUSE TO ', 'PALETTE APPLE LGR', 'PALETTE APPLE HGR');
+     'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP', 'PLAY STOP', 'MOUSE TO ', 'PALETTE APPLE LGR',
+     'PALETTE APPLE HGR', 'PALETTE CPC');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.

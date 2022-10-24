@@ -1357,7 +1357,8 @@ end;
 
 Procedure SP_DrawEllipse32(CX, CY, Rx, Ry: Integer);
 var
-  Rx2, Ry2, twoRx2, twoRy2, p, x, y, px, py: Integer;
+  x, y, p, px, py, twoRx2, twoRy2: Integer;
+  Rx2, Ry2: Int64;
   cxpx, cypy, cxmx, cymy: Integer;
 begin
 

@@ -452,6 +452,9 @@ Var
   REALSCREENWIDTH,
   REALSCREENHEIGHT:         LongWord;
   FocusedWindow:            Integer;
+  ScaledWidth,
+  ScaledHeight:             Integer;
+
 
   NEWPROGNAME:              aString;      // The default project name
 

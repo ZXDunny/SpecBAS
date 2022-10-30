@@ -72,7 +72,7 @@ Var
   SP_User_Program_Count: Integer;
 
   SortedTokens: Array of TCompoundWord;
-  Hashes: Array[0..25] of Integer;
+  Hashes: Array[0..26] of Integer;
 
 Const
 
@@ -2945,6 +2945,7 @@ Begin
         Hashes[j] := i;
         Break;
       End;
+  Hashes[26] := numTokens -1;
 
 End;
 

@@ -122,7 +122,6 @@ var
   DoScale: Boolean = False;
   ScaleFactor: Integer = 1;
   ScaleMouseX, ScaleMouseY: aFloat;
-  ScaledWidth, ScaledHeight: Integer;
   MouseInForm, IgnoreNextMenuChar, AltDown, FormActivated: Boolean;
   AltChars: aString;
 

@@ -30,14 +30,15 @@ By default, in Windows 7 and up, it's in c:\users\<username>\specbas. You can go
 You can create a folder for SpecBAS's interpreter anywhere you like, say, c:\program files\SpecBAS - and copy the following files in there:
 
 SpecBAS.exe
-SpecBAS_x64.exe
+SpecBAS_32.exe
 Bass.dll
 Bass64.dll
 What's New.txt
 
-To launch SpecBAS, just double click either of the exe files. SpecBAS.exe is 32bit, SpecBAS_x64.exe is 64bit. The 64bit build is faster, and contains 64bit optimisations. 
+To launch SpecBAS, just double click either of the exe files. SpecBAS.exe is 64bit, SpecBAS_32.exe is 32bit. The 64bit build is faster, and contains 64bit optimisations. 
 
-You may notice that the font is small on current monitors. Worry not - unpack the specbas_sysfiles.zip file into your c:\users\<username>\specbas folder. It contains more folders, and the important one is "s" where the file "startup-sequence" lives. This is a BASIC program that is executed when SpecBAS starts up, or a NEW command is issued. If you inspect this file in notepad, you will see the DATA statement at line 60 contains the words "edfontscalex" and "edfontscaley" - the numbers after those are the scaling factor for the font. If you like a small font, use 1 for each. If you want double size, set them both to 2.
+You may notice that the font is small on current monitors. Worry not - unpack the specbas_sysfiles.zip file into your c:\users\<username>\specbas folder. It contains 
+more folders, and the important one is "s" where the file "startup-sequence" lives. This is a BASIC program that is executed when SpecBAS starts up, or a NEW command is issued. If you inspect this file in notepad, you will see the DATA statement at line 60 contains the words "edfontscalex" and "edfontscaley" - the numbers after those are the scaling factor for the font. If you like a small font, use 1 for each. If you want double size, set them both to 2.
 
 And you'll probably want demos.
 

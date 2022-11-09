@@ -180,7 +180,14 @@ Begin
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
-  Priority := tpHighest;
+  if CORECOUNT >= 4 then
+    Priority := tpTimeCritical
+  else
+    if CORECOUNT > 1 then
+      Priority := tpHigher
+    else
+      Priority := tpIdle;
+
   StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
 
@@ -1024,6 +1031,7 @@ begin
   SoundEnabled := LoadLibrary(bassdll) <> 0;
   SP_Init_Sound;
 
+  CORECOUNT := System.CPUCount;
   Setpriorityclass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
   SetProcessAffinityMask(GetCurrentProcess, $F);
 

@@ -2,19 +2,18 @@
 <BorlandProject>
 	<Transactions>
     <Transaction>2021/04/02 22:58:05.000.848,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2021/04/02 22:58:27.000.139,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_SliderUnit.pas</Transaction>
+    <Transaction>2021/04/02 22:58:27.000.139,D:\Projects\SpecBAS\src\SP_SliderUnit.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2021/05/23 13:23:13.000.064,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2021/05/23 13:23:38.000.563,D:\Projects\SpecBAS\src\SP_ProgressBarUnit.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2021/05/23 13:23:38.000.563,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_ProgressBarUnit.pas</Transaction>
     <Transaction>2022/03/18 13:55:53.000.131,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2022/03/18 13:56:12.000.812,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_ToolTipWindow.pas</Transaction>
+    <Transaction>2022/03/18 13:56:12.000.812,D:\Projects\SpecBAS\src\SP_ToolTipWindow.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2022/07/17 14:29:03.000.630,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2022/07/17 14:29:48.000.901,D:\Projects\SpecBAS\src\RunTimeCompiler.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2022/07/17 14:29:48.000.901,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\RunTimeCompiler.pas</Transaction>
     <Transaction>2022/10/22 22:53:45.000.948,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2022/10/22 22:54:03.000.640,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_Util2.pas</Transaction>
+    <Transaction>2022/10/22 22:54:03.000.640,D:\Projects\SpecBAS\src\SP_Util2.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
   </Transactions>
 	<ProjectSortOrder AutoSort="0" SortType="0">
     <File Path="MainForm.pas"/>
     <File Path="MainForm.dfm"/>
-    <File Path="SP_Util2.pas"/>
   </ProjectSortOrder>
 </BorlandProject>

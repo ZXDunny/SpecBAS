@@ -50,6 +50,7 @@ Procedure SP_FileSeek(ID, Position: Integer; Var Error: TSP_ErrorCode);
 Function  SP_FileSize(ID: Integer; Var Error: TSP_ErrorCode): Integer;
 Function  SP_FilePosition(ID: Integer; Var Error: TSP_ErrorCode): Integer;
 Function  SP_FileRead(ID: Integer; Buffer: Pointer; Count: Integer; Var Error: TSP_ErrorCode): Integer;
+Function  SP_FileReadLn(ID: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_FileWrite(ID: Integer; Buffer: Pointer; Count: Integer; Var Error: TSP_ErrorCode): Integer;
 Function  SP_FileReWrite(ID: Integer; Var Error: TSP_ErrorCode): Integer;
 Procedure SP_FileClose(ID: Integer; Var Error: TSP_ErrorCode);
@@ -630,6 +631,56 @@ Begin
         Result := -1;
         Exit;
       End;
+  End Else
+    Error.Code := SP_ERR_FILE_NOT_OPEN;
+
+End;
+
+Function SP_FileReadLn(ID: Integer; Var Error: TSP_ErrorCode): aString;
+Var
+  Done: Boolean;
+  Idx, l, i, cl: Integer;
+  Buffer: Array of Byte;
+  readByte: Byte;
+Begin
+
+  Result := '';
+  Idx := SP_FileFindID(ID);
+  If Idx > -1 Then Begin
+    If SP_FileList[Idx]^.PackageFile Then
+      Result := SP_ReadLnFromPackageFile(SP_FileList[Idx]^.Filename, Error)
+    Else
+      With SP_FileList[Idx]^ Do
+        If Stream <> nil Then Begin
+          cl := 0;
+          SetLength(Buffer, 1024);
+          Done := False;
+          While Not Done Do Begin
+            l := Stream.Read(Buffer[cl], 1024);
+            i := cl;
+            While i < l + cl Do Begin
+              if Buffer[i] = 13 Then Begin
+                Done := True;
+                Break;
+              End Else
+                inc(i);
+            End;
+            If Not Done Then Begin
+              Inc(cl, l);
+              SetLength(Buffer, cl + 1025);
+            End Else Begin
+              SetLength(Result, i -1);
+              CopyMem(@Result[1], @Buffer[0], i -1);
+              Stream.Position := i +1;
+              Stream.Read(readByte, 1);
+              if ReadByte <> 10 then
+                Stream.Position := i +1;
+            End;
+          End;
+        End Else Begin
+          Result := '';
+          Exit;
+        End;
   End Else
     Error.Code := SP_ERR_FILE_NOT_OPEN;
 

@@ -455,6 +455,8 @@ Var
   ScaledWidth,
   ScaledHeight:             Integer;
 
+  CORECOUNT:                Integer;
+
 
   NEWPROGNAME:              aString;      // The default project name
 

@@ -136,6 +136,8 @@ Procedure SP_Interpret(Const Tokens: paString; Var nPosition: Integer; Var Error
 
 Procedure SP_Interpret_COMPILE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_UNHANDLED(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_STK(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_STKS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_SCREENS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_JOINS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_TEXTURES(Var Info: pSP_iInfo);
@@ -567,6 +569,7 @@ Procedure SP_Interpret_BANK_ERASE_ALL(Var Info: pSP_iInfo);
 Procedure SP_Interpret_BANK_COPY(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_NEW(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_READ(Var Info: pSP_iInfo);
+Procedure SP_Interpret_STREAM_READLN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_WRITE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_SEEK(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_CLOSE(Var Info: pSP_iInfo);
@@ -6756,6 +6759,30 @@ Begin
   With SP_StackPtr^ Do Begin
     Val := MOUSEBTN;
     OpType := SP_VALUE;
+  End;
+End;
+
+Procedure SP_Interpret_FN_STK(Var Info: pSP_iInfo);
+Var
+  v: aFloat;
+Begin
+  v := SP_StackPtr^.Val;
+  Inc(SP_StackPtr);
+  With SP_StackPtr^ Do Begin
+    Val := v;
+    OpType := SP_VALUE;
+  End;
+End;
+
+Procedure SP_Interpret_FN_STKS(Var Info: pSP_iInfo);
+Var
+  s: aString;
+Begin
+  s := SP_StackPtr^.Str;
+  Inc(SP_StackPtr);
+  With SP_StackPtr^ Do Begin
+    Str := s;
+    OpType := SP_STRING;
   End;
 End;
 
@@ -15240,6 +15267,19 @@ Begin
   With SP_StackPtr^ Do Begin
     SetLength(Str, BytesRead);
     CopyMem(@Str[1], @Buffer[0], BytesRead);
+    OpType := SP_STRING;
+  End;
+
+End;
+
+Procedure SP_Interpret_STREAM_READLN(Var Info: pSP_iInfo);
+Var
+  StreamID: Integer;
+Begin
+
+  StreamID := Round(SP_StackPtr^.Val);
+  With SP_StackPtr^ Do Begin
+    Str := SP_StreamReadline(StreamID, Info^.Error^);
     OpType := SP_STRING;
   End;
 
@@ -26293,6 +26333,8 @@ Initialization
   InterpretProcs[SP_FN_MOUSEDY] := @SP_Interpret_FN_MOUSEDY;
   InterpretProcs[SP_FN_MOUSEBTN] := @SP_Interpret_FN_MOUSEBTN;
   InterpretProcs[SP_FN_RND] := @SP_Interpret_FN_RND;
+  InterpretProcs[SP_FN_STK] := @SP_Interpret_FN_STK;
+  InterpretProcs[SP_FN_STKS] := @SP_Interpret_FN_STKS;
   InterpretProcs[SP_FN_INKEYS] := @SP_Interpret_FN_INKEYS;
   InterpretProcs[SP_FN_KEY] := @SP_Interpret_FN_KEY;
   InterpretProcs[SP_FN_PI] := @SP_Interpret_FN_PI;

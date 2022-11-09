@@ -39,6 +39,7 @@ Type
   Function SP_NewStream(BankID: Integer; Filename: aString; Var Error: TSP_ErrorCode): Integer;
   Function SP_FindStreamID(StreamID: Integer; Var Error: TSP_ErrorCode): Integer;
   Function SP_StreamRead(StreamID: Integer; Buffer: Pointer; Count: Integer; Var Error: TSP_ErrorCode): Integer;
+  Function SP_StreamReadLine(StreamID: Integer; Var Error: TSP_ErrorCode): aString;
   Function SP_StreamWrite(StreamID: Integer; Buffer: Pointer; Count: Integer; Var Error: TSP_ErrorCode): Integer;
   Function SP_StreamSeek(StreamID: Integer; Position: Integer; Var Error: TSP_ErrorCode): Integer;
   Function SP_StreamClose(StreamID: Integer; Var Error: TSP_ErrorCode): Integer;
@@ -194,6 +195,49 @@ Begin
   End;
 
 End;
+
+Function SP_StreamReadLine(StreamID: Integer; Var Error: TSP_ErrorCode): aString;
+Var
+  StreamIdx, Idx: Integer;
+  Buffer: Array of Byte;
+  Stream: pSP_Stream;
+  Bank: pSP_Bank;
+  Ptr: pByte;
+Begin
+
+  SetLength(Buffer, 1024);
+  StreamIdx := SP_FindStreamID(StreamID, Error);
+  If StreamIdx > -1 Then Begin
+    Stream := SP_StreamList[StreamIdx];
+    If Stream^.BankID > -1 Then Begin
+      Bank := SP_BankList[SP_FindBankID(Stream^.BankID)];
+      If Stream^.Position < Length(Bank^.Memory) Then Begin
+        Idx := 0;
+        ptr := @Buffer[0];
+        While Ptr^ <> 13 Do Begin
+          Ptr^ := Bank^.Memory[Idx];
+          Inc(Ptr);
+          Inc(Idx);
+          if Idx > Length(Buffer) then
+            SetLength(Buffer, Length(Buffer) + 1024);
+        End;
+        if Ptr^ = 13 Then Begin Inc(Ptr); Inc(Idx); End;
+        if Ptr^ = 10 Then Inc(Idx);
+        Inc(Stream^.Position, Idx);
+        SetLength(Buffer, Idx);
+        SetLength(Result, Idx);
+        CopyMem(@Result[1], @Buffer[0], Idx);
+      End Else
+        Result := '';
+    End Else Begin
+      Result := SP_FileReadLn(Stream^.FileID, Error);
+      Stream^.Position := SP_FilePosition(Stream^.FileID, Error);
+    End;
+  End;
+
+End;
+
+
 
 Function  SP_StreamWrite(StreamID: Integer; Buffer: Pointer; Count: Integer; Var Error: TSP_ErrorCode): Integer;
 Var

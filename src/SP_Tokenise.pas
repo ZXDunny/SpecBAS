@@ -724,10 +724,11 @@ Const
   SP_KW_PAL_APPLELGR        = 4400;
   SP_KW_PAL_APPLEHGR        = 4401;
   SP_KW_PAL_CPC             = 4402;
+  SP_KW_STREAM_READLN       = 4403;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..351] of aString =
+  SP_Keyword_Names: Array[0..352] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -777,12 +778,12 @@ Const
      'SPRITE FRONT', 'SPRITE BACK', 'SPRITE FRONT ADD', 'SPRITE BACK DEC', 'CHANNEL RATE STRING', 'GFX SCALE XY',
      'GFX SCALE TO', 'SCREEN SAVE', 'GRAPHIC SAVE', 'WAIT KEY', 'WAIT KEY PRESS', 'PALETTE EGA', 'PALETTE CGA',
      'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP', 'PLAY STOP', 'MOUSE TO ', 'PALETTE APPLE LGR',
-     'PALETTE APPLE HGR', 'PALETTE CPC');
+     'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.
 
-  SP_FUNCTIONS_EXTRA: Array[0..269] of aString =
+  SP_FUNCTIONS_EXTRA: Array[0..271] of aString =
     ('nRND', 'nINKEY$', 'oPI', 'nVAL$ ', 'oCODE ', 'oVAL ', 'oLEN ', 'nSIN ', 'nCOS ',
      'nTAN ', 'nASN ', 'nACS ', 'nATN ', 'oLN ', 'oEXP ', 'oINT ', 'oSQR ', 'oSGN ', 'oABS ', 'n IN ',
      'nUSR ', 'oSTR$ ','oCHR$ ', 'nPEEK ', 'oNOT ', 'o OR ', 'o AND ', 'o MOD ', 'o XOR ', 'o SHL ',
@@ -813,7 +814,7 @@ Const
      'nDATADDR', 'nWINADDR', 'nMEMRD', 'nDMEMRD', 'nQMEMRD', 'nMEMRD$', 'nSTRADDR ', 'oCHOOSE', 'oCHOOSE$',
      'oTAU', 'nMILLISECONDS', 'oBINV', 'oBREV', 'oINTERP', 'oMIN$', 'oMAX$', 'nFMEMRD', 'nTXTw', 'nTXTh',
      'nNOISE', 'nOCTNOISE', 'oPAR ', 'oMAP', 'o EQV ', 'o IMP ', 'oSINH ', 'oCOSH ', 'oTANH ', 'oASNH ',
-     'oACSH ', 'oATNH ', 'oMID', 'nPARAM$');
+     'oACSH ', 'oATNH ', 'oMID', 'nPARAM$', 'nSTK', 'nSTK$');
 
   // Constants, like above, for identifying Functions in token form
 
@@ -1089,6 +1090,8 @@ Const
   SP_FN_ATNH                = 2267;
   SP_FN_MID                 = 2268;
   SP_FN_PARAMS              = 2269;
+  SP_FN_STK                 = 2270;
+  SP_FN_STKS                = 2271;
 
   // Meta-functions
 

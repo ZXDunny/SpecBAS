@@ -1193,7 +1193,7 @@ Begin
             SP_FN_FONTWIDTH, SP_FN_FONTHEIGHT, SP_FN_FONTMODE, SP_FN_FONTTRANSPARENT, SP_FN_MOUSEDX, SP_FN_MOUSEDY,
             SP_FN_HEADING, SP_FN_DRPOSX, SP_FN_DRPOSY, SP_FN_LASTK, SP_FN_FRAMES, SP_FN_TIME, SP_FN_MOUSEWHEEL,
             SP_FN_ITEM, SP_FN_POPLINE, SP_FN_POPST, SP_FN_VOL, SP_FN_LOGW, SP_FN_LOGH, SP_FN_ORGX, SP_FN_ORGY,
-            SP_FN_MUSICPOS, SP_FN_MUSICLEN, SP_FN_LASTM, SP_FN_LASTMI, SP_FN_TXTW, SP_FN_TXTH:
+            SP_FN_MUSICPOS, SP_FN_MUSICLEN, SP_FN_LASTM, SP_FN_LASTMI, SP_FN_TXTW, SP_FN_TXTH, SP_FN_STK:
               Begin
                 Inc(StackPtr);
                 Stack[StackPtr] := SP_VALUE;
@@ -1274,7 +1274,7 @@ Begin
 
             // Functions that take no parameters and return a String:
 
-            SP_FN_INKEYS, SP_FN_GETDIR, SP_FN_DIR, SP_FN_ERRORS:
+            SP_FN_INKEYS, SP_FN_GETDIR, SP_FN_DIR, SP_FN_ERRORS, SP_FN_STKS:
               Begin
                 Inc(StackPtr);
                 Stack[StackPtr] := SP_STRING;
@@ -2909,7 +2909,7 @@ Begin
             SP_FN_FONTHEIGHT, SP_FN_FONTMODE, SP_FN_FONTTRANSPARENT,SP_FN_MOUSEDX, SP_FN_MOUSEDY, SP_FN_HEADING, SP_FN_DRPOSX,
             SP_FN_DRPOSY, SP_FN_LASTK, SP_FN_FRAMES, SP_FN_TIME, SP_FN_MOUSEWHEEL, SP_FN_ERRORS, SP_FN_POPLINE, SP_FN_POPST,
             SP_FN_VOL, SP_FN_LOGW, SP_FN_LOGH, SP_FN_ORGX, SP_FN_ORGY, SP_FN_MSECS, SP_FN_MUSICPOS, SP_FN_MUSICLEN, SP_FN_LASTM,
-            SP_FN_LASTMI, SP_FN_TXTW, SP_FN_TXTH:
+            SP_FN_LASTMI, SP_FN_TXTW, SP_FN_TXTH, SP_FN_STK, SP_FN_STKS:
               Begin
                 Inc(Position, SizeOf(LongWord));
                 FnResult := '';
@@ -11370,7 +11370,7 @@ Var
   KeyWordPos: LongWord;
 Begin
 
-  // STREAM [NEW numvar,[BankID|Filename$]|READ id,strvar,count|WRITE id,strexpr|SEEK id,Position|CLOSE id]
+  // STREAM [NEW numvar,[BankID|Filename$]|READ id,strvar,count|READ LINE id,strvar|WRITE id,strexpr|SEEK id,Position|CLOSE id]
 
   Result := '';
 
@@ -11405,33 +11405,59 @@ Begin
 
     Inc(Position, 1 + SizeOf(LongWord));
 
-    Result := SP_Convert_Expr(Tokens, Position, Error, -1); // Stream ID
-    If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
-      Error.Code := SP_ERR_MISSING_NUMEXPR;
-      Exit;
-    End;
-    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
-      Inc(Position, 2);
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_LINE) Then Begin //
 
-      If Byte(Tokens[Position]) = SP_STRVAR Then Begin
+      Result := SP_Convert_Expr(Tokens, Position, Error, -1); // Stream ID
+      If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+        Error.Code := SP_ERR_MISSING_NUMEXPR;
+        Exit;
+      End;
+      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+        Inc(Position, 2);
 
-        VarResult := SP_Convert_Var_Assign(Tokens, Position, Error); // Destination string variable
-        If Error.Code <> SP_ERR_OK Then Exit;
-        KeyWordPos := Position -1;
+        If Byte(Tokens[Position]) = SP_STRVAR Then Begin
 
-        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
-          Inc(Position, 2);
-          Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result; // Count
-          If Error.Code <> SP_ERR_OK then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-          Result := Result + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_STREAM_READ)+ VarResult;
+          VarResult := SP_Convert_Var_Assign(Tokens, Position, Error); // Destination string variable
+          If Error.Code <> SP_ERR_OK Then Exit;
+          KeyWordPos := Position -1;
+          Result := Result + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_STREAM_READLN)+ VarResult;
           If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
           Exit;
+
         End Else
-          Error.Code := SP_ERR_MISSING_COMMA;
+          Error.Code := SP_ERR_MISSING_VARIABLE;
+      End;
+
+    End Else Begin
+      Result := SP_Convert_Expr(Tokens, Position, Error, -1); // Stream ID
+      If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+        Error.Code := SP_ERR_MISSING_NUMEXPR;
+        Exit;
+      End;
+      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+        Inc(Position, 2);
+
+        If Byte(Tokens[Position]) = SP_STRVAR Then Begin
+
+          VarResult := SP_Convert_Var_Assign(Tokens, Position, Error); // Destination string variable
+          If Error.Code <> SP_ERR_OK Then Exit;
+          KeyWordPos := Position -1;
+
+          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+            Inc(Position, 2);
+            Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result; // Count
+            If Error.Code <> SP_ERR_OK then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
+            Result := Result + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_STREAM_READ)+ VarResult;
+            If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
+            Exit;
+          End Else
+            Error.Code := SP_ERR_MISSING_COMMA;
+        End Else
+          Error.Code := SP_ERR_MISSING_VARIABLE;
       End Else
-        Error.Code := SP_ERR_MISSING_VARIABLE;
-    End Else
-      Error.Code := SP_ERR_MISSING_COMMA;
+        Error.Code := SP_ERR_MISSING_COMMA;
+    End;
+
   End;
 
   If Error.Code <> SP_ERR_OK Then Exit;

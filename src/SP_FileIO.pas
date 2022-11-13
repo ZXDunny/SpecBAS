@@ -639,7 +639,7 @@ End;
 Function SP_FileReadLn(ID: Integer; Var Error: TSP_ErrorCode): aString;
 Var
   Done: Boolean;
-  Idx, l, i, cl: Integer;
+  Idx, l, i, cl, iPos: Integer;
   Buffer: Array of Byte;
   readByte: Byte;
 Begin
@@ -653,13 +653,15 @@ Begin
       With SP_FileList[Idx]^ Do
         If Stream <> nil Then Begin
           cl := 0;
+          iPos := Stream.Position;
           SetLength(Buffer, 1024);
           Done := False;
           While Not Done Do Begin
             l := Stream.Read(Buffer[cl], 1024);
+            if (l = 0) and (cl = 0) then Exit;
             i := cl;
             While i < l + cl Do Begin
-              if Buffer[i] = 13 Then Begin
+              if Buffer[i] in [13, 10] Then Begin
                 Done := True;
                 Break;
               End Else
@@ -669,12 +671,14 @@ Begin
               Inc(cl, l);
               SetLength(Buffer, cl + 1025);
             End Else Begin
-              SetLength(Result, i -1);
-              CopyMem(@Result[1], @Buffer[0], i -1);
-              Stream.Position := i +1;
-              Stream.Read(readByte, 1);
-              if ReadByte <> 10 then
-                Stream.Position := i +1;
+              SetLength(Result, i);
+              CopyMem(@Result[1], @Buffer[0], i);
+              Stream.Seek(iPos + i +1, soFromBeginning);
+              if Buffer[i] <> 10 then Begin // Handle CRLF
+                Stream.Read(readByte, 1);
+                if ReadByte <> 10 then
+                  Stream.Seek(-1, soFromCurrent);
+              End;
             End;
           End;
         End Else Begin

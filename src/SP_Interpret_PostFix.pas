@@ -25964,6 +25964,7 @@ Initialization
   InterpretProcs[SP_KW_BANK_COPY] := @SP_Interpret_BANK_COPY;
   InterpretProcs[SP_KW_STREAM_NEW] := @SP_Interpret_STREAM_NEW;
   InterpretProcs[SP_KW_STREAM_READ] := @SP_Interpret_STREAM_READ;
+  InterpretProcs[SP_KW_STREAM_READLN] := @SP_Interpret_STREAM_READLN;
   InterpretProcs[SP_KW_STREAM_WRITE] := @SP_Interpret_STREAM_WRITE;
   InterpretProcs[SP_KW_STREAM_SEEK] := @SP_Interpret_STREAM_SEEK;
   InterpretProcs[SP_KW_STREAM_CLOSE] := @SP_Interpret_STREAM_CLOSE;

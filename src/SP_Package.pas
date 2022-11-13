@@ -595,7 +595,7 @@ End;
 
 Function SP_ReadLnFromPackageFile(Filename: aString; var Error: TSP_ErrorCode): aString;
 Begin
-
+  // TO DO
 End;
 
 Function SP_ReadFromPackageFile(Filename: aString; BuffPtr: pByte; Size: LongWord; var Error: TSP_ErrorCode): LongWord;

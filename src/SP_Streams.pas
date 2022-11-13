@@ -214,11 +214,11 @@ Begin
       If Stream^.Position < Length(Bank^.Memory) Then Begin
         Idx := 0;
         ptr := @Buffer[0];
-        While Ptr^ <> 13 Do Begin
+        While (Ptr^ <> 13) and (Idx < Length(Bank^.Memory)) Do Begin
           Ptr^ := Bank^.Memory[Idx];
           Inc(Ptr);
           Inc(Idx);
-          if Idx > Length(Buffer) then
+          if Idx >= Length(Buffer) then
             SetLength(Buffer, Length(Buffer) + 1024);
         End;
         if Ptr^ = 13 Then Begin Inc(Ptr); Inc(Idx); End;
@@ -236,8 +236,6 @@ Begin
   End;
 
 End;
-
-
 
 Function  SP_StreamWrite(StreamID: Integer; Buffer: Pointer; Count: Integer; Var Error: TSP_ErrorCode): Integer;
 Var

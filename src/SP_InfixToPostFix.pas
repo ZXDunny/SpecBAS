@@ -11407,6 +11407,7 @@ Begin
 
     If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_LINE) Then Begin //
 
+      Inc(Position, SizeOf(LongWord) +1);
       Result := SP_Convert_Expr(Tokens, Position, Error, -1); // Stream ID
       If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
         Error.Code := SP_ERR_MISSING_NUMEXPR;

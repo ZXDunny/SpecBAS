@@ -623,6 +623,9 @@ End;
 
 Procedure SP_WaitForSync;
 Begin
+  Repeat
+    CB_YIELD;
+  Until Not CauseUpdate;
   SP_NeedDisplayUpdate := True;
   CauseUpdate := True;
   Repeat

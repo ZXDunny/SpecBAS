@@ -1774,10 +1774,12 @@ Begin
     // If this line has a line number, then strip the preceding spaces out.
 
     Idx := 1;
-    While (Idx <= Length(CodeLine)) And (CodeLine[Idx] <= ' ') Do Inc(Idx);
-    If (Idx <= Length(CodeLine)) and (Idx > 1) Then
+    l := Length(CodeLine);
+    While (Idx <= l) And (CodeLine[Idx] <= ' ') Do Inc(Idx);
+    If (Idx <= l) and (Idx > 1) Then
       If (CodeLine[Idx] in ['0'..'9']) And Not SP_WasPrevSoft(Line) Then Begin
         CodeLine := Copy(CodeLine, Idx);
+        Dec(l, Idx -1);
         If Listing.FPCLine = Line Then
           If Listing.FPCPos >= Idx Then Listing.FPCPos := Listing.FPCPos - (Idx -1)
         Else
@@ -1789,7 +1791,6 @@ Begin
         NeedUpdate := True;
       End;
 
-    l := Length(CodeLine);
     Inc(l, Listing.Flags[Line].Indent);
     FPLongestLineLen := Max(l, FPLongestLineLen);
 

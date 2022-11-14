@@ -9413,7 +9413,7 @@ End;
 
 Procedure SP_Interpret_CLS(Var Info: pSP_iInfo);
 Var
-  Val: Integer;
+  Val: LongWord;
 Begin
 
   Val := CPAPER;
@@ -10846,23 +10846,10 @@ Begin
   Delay := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  If Not SCREENLOCK Then
+  Repeat
     SP_ForceScreenUpdate;
-
-  If Delay = 0 Then Begin
-    While Not (SP_AreAnyKeysDown or QUITMSG) Do
-      CB_Yield;
-  End Else
-    If Delay > 0 Then Begin
-      CurrentTicks := CB_GetTicks;
-      TargetTicks := CurrentTicks + (Delay * FRAME_MS);
-      While CB_GetTicks < TargetTicks Do Begin
-        CB_Yield;
-        If Length(ActiveKeys) <> 0 Then
-          If (CB_GetTicks >= CurrentTicks + FRAME_MS) or QUITMSG Then
-            Break;
-      End;
-    End;
+    if Delay > 1 then Dec(Delay);
+  Until (Delay = 1) or (Length(ActiveKeys) <> 0);
 
   If KEYSTATE[K_ESCAPE] = 1 Then BreakSignal := True;
 
@@ -15681,9 +15668,9 @@ Begin
   WINORIGIN := False;
   dX := Dist * Cos(Hdg);
   dY := Dist * Sin(Hdg);
+  SP_ConvertToOrigin_d(dX, dY);
   odX := DRPOSX + dX;
   odY := DRPOSY + dY;
-  SP_ConvertToOrigin_d(dX, dY);
   If WINFLIPPED Then dY := -dY;
   SP_DrawLine(dX, dY);
   DRPOSX := odX;

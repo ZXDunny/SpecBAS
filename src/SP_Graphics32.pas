@@ -52,7 +52,7 @@ Type
   Procedure SP_PutRegion_NO_OVER32To32(Dst: pLongWord; dX, dY: Integer; dW, dH: LongWord; Src: pLongWord; SrcLen: Integer; Var cX1, cY1, cX2, cY2: Integer; Var Error: TSP_ErrorCode);
 
   Function  IntersectRect(ax1,ay1,ax2,ay2,bx1,by1,bx2,by2: Integer): Integer;
-  Function  SP_AlphaBlend(PixelA, PixelB: LongWord): LongWord; Inline;
+  Function  SP_AlphaBlend(PixelA, PixelB: LongWord): LongWord; inline;
 
   Procedure SP_SetPixel32(X, Y: aFloat); Inline;
   Procedure SP_SetPixelPtr32(Ptr: pLongWord); Inline;
@@ -809,7 +809,7 @@ Begin
 
 End;
 
-Function SP_AlphaBlend(PixelA, PixelB: LongWord): LongWord; Inline;
+Function SP_AlphaBlend(PixelA, PixelB: LongWord): LongWord; inline;
 Var
   A: Byte;
 Begin
@@ -821,7 +821,7 @@ Begin
   RGBA(Result).R := (A * (RGBA(PixelA).R - RGBA(PixelB).R) Shr 8) + RGBA(PixelB).R;
   RGBA(Result).G := (A * (RGBA(PixelA).G - RGBA(PixelB).G) Shr 8) + RGBA(PixelB).G;
   RGBA(Result).B := (A * (RGBA(PixelA).B - RGBA(PixelB).B) Shr 8) + RGBA(PixelB).B;
-  RGBA(Result).A := (A * (RGBA(PixelA).A - RGBA(PixelB).A) Shr 8) + RGBA(PixelB).A;
+  RGBA(Result).A := A;
 
 End;
 

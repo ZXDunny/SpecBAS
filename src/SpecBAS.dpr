@@ -17,7 +17,16 @@
 // along with SpecBAS.  If not, see <http://www.gnu.org/licenses/>.
 
 program SpecBAS;
+
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
 uses
+{$IFnDEF FPC}
+{$ELSE}
+  Interfaces,
+{$ENDIF}
   Forms,
   MainForm in 'MainForm.pas' {Main};
 

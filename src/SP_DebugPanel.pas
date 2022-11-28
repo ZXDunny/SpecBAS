@@ -2,7 +2,7 @@ unit SP_DebugPanel;
 
 interface
 
-uses Math, Classes, System.SyncObjs, SysUtils, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUnit, SP_ControlMsgs, SP_ButtonUnit, SP_Input, SP_ContainerUnit;
+uses Math, Classes, SyncObjs, SysUtils, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUnit, SP_ControlMsgs, SP_ButtonUnit, SP_Input, SP_ContainerUnit;
 
 Type
 
@@ -901,7 +901,7 @@ Begin
               lbl := lbl + '(';
               Inc(ps);
               bc := 0;
-              while (ps < Length(s)) and (s[ps] in ['_', '0'..'9', 'a'..'z', '0'..'9', '(', ')', ',', ' ']) Do Begin
+              while (ps < Length(s)) and (s[ps] in ['_', '0'..'9', 'a'..'z', '(', ')', ',', ' ']) Do Begin
                 if s[ps] = '(' then Begin
                   Inc(ps);
                   lbl := lbl + '(';

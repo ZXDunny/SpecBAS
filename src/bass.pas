@@ -822,6 +822,10 @@ type
     RETURN : TRUE = continue recording, FALSE = stop
   }
 
+{$IFDEF FPC}
+  {$macro on}
+  {$define delayed:=}
+{$ENDIF}
 
 // Functions
 const

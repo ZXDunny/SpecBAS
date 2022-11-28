@@ -25,7 +25,7 @@ Unit SP_Interpret_PostFix;
 
 interface
 
-Uses Forms, IOUtils, SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
+Uses Forms, {$IFNDEF FPC}IOUtils,{$ELSE}FileUtil,{$ENDIF} SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
      SP_Input, SP_BankManager, SP_BankFiling, SP_Streams, SP_Sound, SP_Package, Math, Classes, SysUtils, SP_Math,
      {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_Strings, SP_Menu, SP_UITools, SP_AnsiStringlist, SP_Variables;
 
@@ -1203,9 +1203,15 @@ Begin
   End;
 
   If FileExists(sFilename) Then Begin
+    {$IFNDEF FPC}
     If FileExists(dFilename) Then
       TFile.Delete(dFilename);
     TFile.Copy(sFilename, dFilename);
+    {$ELSE}
+    If FileExists(dFilename) Then
+      DeleteFile(dFilename);
+    CopyFile(sFilename, dFilename);
+    {$ENDIF}
     payLoadData := MakeDataPayload(Line, Banks);
     payLoad := TPayLoad.Create(dFilename);
     payload.SetPayload(payLoadData[1], Length(PayLoadData));
@@ -4498,7 +4504,7 @@ End;
 Procedure SP_ReplaceAll(Const Host, Find, Rep: aString; var OutStr: aString);
 var
   hLen, rLen, fLen, cnt: Integer;
-  src, dst, dStart, rPtr, fPtr1, fPtr2, hostEnd: pByte;
+  src, dst, {$IFDEF FPC}t, {$ENDIF}dStart, rPtr, fPtr1, fPtr2, hostEnd: pByte;
 begin
 
   hLen := Length(Host);
@@ -4522,7 +4528,12 @@ begin
       Inc(cnt);
       Inc(fPtr2);
       if cnt = fLen then Begin
+        {$IFNDEF FPC}
         MoveMemory(pByte(NativeUInt(dst) - cnt), rPtr, rLen);
+        {$ELSE}
+        t := pByte(NativeUInt(dst) - cnt);
+        Move(rPtr, t, rLen);
+        {$ENDIF}
         Inc(dst, rLen - fLen);
         cnt := 0;
         fPtr2 := fPtr1;
@@ -9413,7 +9424,7 @@ End;
 
 Procedure SP_Interpret_CLS(Var Info: pSP_iInfo);
 Var
-  Val: LongWord;
+  Val: Integer;
 Begin
 
   Val := CPAPER;
@@ -10840,7 +10851,6 @@ End;
 Procedure SP_Interpret_PAUSE(Var Info: pSP_iInfo);
 Var
   Delay: Integer;
-  CurrentTicks, TargetTicks: aFloat;
 Begin
 
   Delay := Round(SP_StackPtr^.Val);
@@ -14335,10 +14345,13 @@ Begin
   X1 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
-  X2 := X1 + W -1;
-  Y2 := Y1 + H -1;
+  X2 := X1 + W;
+  Y2 := Y1 + H;
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
+  X2 := X2 - 1;
+  Y2 := Y2 - 1;
+
   If WINFLIPPED Then Begin
     Y1 := (SCREENHEIGHT - 1) - Y1;
     Y2 := (SCREENHEIGHT - 1) - Y2;
@@ -14466,6 +14479,8 @@ Begin
   Y2 := Y1 + H -1;
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
+  X2 := X2 - 1;
+  Y2 := Y2 - 1;
   If WINFLIPPED Then Begin
     Y1 := (SCREENHEIGHT - 1) - Y1;
     Y2 := (SCREENHEIGHT - 1) - Y2;

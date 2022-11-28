@@ -1,6 +1,6 @@
 1 VERSIONINFO
-FILEVERSION 0,0,0,1265
-PRODUCTVERSION 0,0,0,1265
+FILEVERSION 0,0,0,1267
+PRODUCTVERSION 0,0,0,1267
 {
  BLOCK "StringFileInfo"
  {
@@ -9,13 +9,13 @@ PRODUCTVERSION 0,0,0,1265
    VALUE "Comments", "\000"
    VALUE "CompanyName", "\000"
    VALUE "FileDescription", "\000"
-   VALUE "FileVersion", "0.0.0.1265\000"
+   VALUE "FileVersion", "0.0.0.1267\000"
    VALUE "InternalName", "\000"
    VALUE "LegalCopyright", "\000"
    VALUE "LegalTrademarks", "\000"
    VALUE "OriginalFilename", "\000"
    VALUE "ProductName", "\000"
-   VALUE "ProductVersion", "0.0.0.1265\000"
+   VALUE "ProductVersion", "0.0.0.1267\000"
   }
  }
  BLOCK "VarFileInfo"

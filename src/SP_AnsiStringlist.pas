@@ -77,6 +77,7 @@ Type
     Procedure SetFPCPos(i: Integer);
     Function  IndexOf(s: AnsiString): Integer;
     Procedure SetCapacity(v: Integer);
+    Procedure LoadFromHost(Filename: String);
     Procedure LoadFromFile(Filename: AnsiString);
     Procedure SaveToFile(Filename: AnsiString);
     Procedure Resize(NewSize: Integer);
@@ -108,7 +109,7 @@ Const
 
 implementation
 
-Uses SP_Util, SP_FileIO, SP_Errors;
+Uses SysUtils, SP_Util, SP_FileIO, SP_Errors;
 
 { TAnsiStringList }
 
@@ -967,6 +968,46 @@ Procedure TAnsiStringList.SetCapacity(v: Integer);
 Begin
 
   Resize(v);
+
+End;
+
+Procedure TAnsiStringList.LoadFromHost(Filename: String);
+Var
+  st: TFileStream;
+  Idx, Size: Integer;
+  FileBuffer: Array of Byte;
+  s: aString;
+Begin
+
+  If FileExists(Filename) Then Begin
+
+    st := TFileStream.Create(Filename, fmOpenRead or fmShareDenyNone);
+    if Assigned(st) then Begin
+      Clear;
+      Size := st.Size;
+      If Size > 0 Then Begin
+        SetLength(FileBuffer, Size);
+        st.Read(FileBuffer[0], Size);
+        st.Free;
+        Idx := 0;
+        s := '';
+        While Idx < Length(FileBuffer) Do Begin
+          If FileBuffer[Idx] in [10, 13] Then Begin
+            Add(s);
+            s := '';
+            While (Idx < Length(FileBuffer)) And (FileBuffer[Idx] in [10, 13]) Do
+              Inc(Idx);
+          End Else Begin
+            s := s + AnsiChar(FileBuffer[Idx]);
+            Inc(Idx);
+          End;
+        End;
+        If (Count > 0) And (fStrings[Count -1] = '') Then
+          Delete(Count -1);
+      End;
+    End;
+
+  End;
 
 End;
 

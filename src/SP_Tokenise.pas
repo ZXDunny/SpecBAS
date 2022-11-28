@@ -1280,7 +1280,7 @@ Var
   StoreVal, StoreLen, TempVal, LineLen, Idx, tIdx, lIdx, cnt, l: Integer;
   StoreText, tStore, tempStr, tStr: aString;
   FoundBase: Boolean;
-  rPtr, rStart, rEnd: pByte;
+  rPtr, rStart, rEnd: {$IFDEF FPC}Integer{$ELSE}pByte{$ENDIF};
 Label
   Finish;
 Const
@@ -1305,7 +1305,11 @@ Const
   procedure AddToResult(const str: aString);
   begin
     l := Length(Str);
+    {$IFNDEF FPC}
     MoveMemory(rPtr, pByte(pNativeUInt(@str)^), l);
+    {$ELSE}
+    Move(str[1], Result[rPtr], l);
+    {$ENDIF}
     inc(rPtr, l);
   end;
 
@@ -1316,10 +1320,14 @@ Begin
   // and stored. Strings go in as-is, with a STRINGID byte followed by a LONGWORD
   // Length byte.
 
-  SetLength(Result, Max(SizeOf(TToken) * Length(Line), 50));
+  {$IFDEF FPC}
+  SetLength(Result, SizeOf(TToken) * Max(Length(Line), 50));
+  rptr := 1;
+  {$ELSE}
+  SetLength(Result, SizeOf(TToken) * Max(Length(Line), 50));
   rptr := pByte(pNativeUInt(@Result)^);
+  {$ENDIF}
   rStart := rPtr;
-
   Idx := 1;
 
   While Copy(Line, 1, 1) = ' ' Do
@@ -1656,6 +1664,23 @@ Begin
                     AddToResult(aChar(SP_LABEL) + LongWordToString(Length(StoreText)) + StoreText);
                     Dec(Idx);
                   End Else
+                    {$IFDEF FPC}
+                    If (Ord(Result[rPtr -2]) = SP_SYMBOL) And (line[Idx] = '=') Then Begin
+                      rEnd := rPtr -1;
+                      Case Result[rEnd] of
+                        '>': Result[rEnd] := SP_CHAR_GTE;
+                        '<': Result[rEnd] := SP_CHAR_LTE;
+                        '+': Result[rEnd] := SP_CHAR_INCVAR;
+                        '-': Result[rEnd] := SP_CHAR_DECVAR;
+                        '*': Result[rEnd] := SP_CHAR_MULVAR;
+                        '/': Result[rEnd] := SP_CHAR_DIVVAR;
+                        '^': Result[rEnd] := SP_CHAR_POWVAR;
+                        '%': Result[rEnd] := SP_CHAR_MODVAR;
+                        '&': Result[rEnd] := SP_CHAR_ANDVAR;
+                        '|': Result[rEnd] := SP_CHAR_ORVAR;
+                        '~': Result[rEnd] := SP_CHAR_XORVAR;
+                        '!': Result[rEnd] := SP_CHAR_NOTVAR;
+                    {$ELSE}
                     If (pByte(NativeUInt(rPtr) -2)^ = SP_SYMBOL) And (Line[Idx] = '=') Then Begin
                       rEnd := pByte(NativeUInt(rPtr) -1);
                       Case aChar(rEnd^) of
@@ -1671,6 +1696,7 @@ Begin
                         '|': rEnd^ := Ord(SP_CHAR_ORVAR);
                         '~': rEnd^ := Ord(SP_CHAR_XORVAR);
                         '!': rEnd^ := Ord(SP_CHAR_NOTVAR);
+                    {$ENDIF}
                       Else
                         If Line[Idx] > #127 Then
                           AddToResult(aChar(SP_LITERAL_SYMBOL) + Line[Idx])
@@ -1690,10 +1716,17 @@ Begin
                           Inc(Idx);
                         End;
                       End Else
+                        {$IFDEF FPC}
+                        If Ord(Result[rPtr -2]) = SP_SYMBOL Then Begin
+                          rEnd := rPtr -1;
+                          If (Line[Idx] = '>') And (Result[rEnd] = '<') Then
+                            Result[rEnd] := SP_CHAR_DNE
+                        {$ELSE}
                         If pByte(NativeUInt(rPtr) -2)^ = SP_SYMBOL Then Begin
                           rEnd := pByte(NativeUInt(rPtr) -1);
                           If (Line[Idx] = '>') And (rEnd^ = Ord('<')) Then
                             rEnd^ := Ord(SP_CHAR_DNE)
+                        {$ENDIF}
                           Else Begin
                             If Line[Idx] > #127 Then
                               AddToResult(aChar(SP_LITERAL_SYMBOL) + Line[Idx])
@@ -1719,7 +1752,11 @@ Finish:
 
   End;
 
+  {$IFDEF FPC}
+  Result := Copy(Result, 1, rPtr -1);
+  {$ELSE}
   Result := Copy(Result, 1, NativeUInt(rPtr) - NativeUint(rStart));
+  {$ENDIF}
 
 End;
 

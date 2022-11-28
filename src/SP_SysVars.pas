@@ -45,7 +45,7 @@ Var
   PAYLOADPRESENT:           Boolean;
   PCOUNT:                   Integer;      // Number of parameters on command line
   {$IFDEF FPC}
-  PARAMS:                   TAnsiStringList;
+  PARAMS:                   TStringList;
   {$ELSE}
   PARAMS:                   TStringlist;  // Commandline parameters
   {$ENDIF}

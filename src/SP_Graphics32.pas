@@ -816,12 +816,14 @@ Begin
 
   // PixelA is the background, and its alpha is ignored. PixelB's Alpha is used.
 
+  {$R-}
   A := 255 - RGBA(PixelB).A;
 
   RGBA(Result).R := (A * (RGBA(PixelA).R - RGBA(PixelB).R) Shr 8) + RGBA(PixelB).R;
   RGBA(Result).G := (A * (RGBA(PixelA).G - RGBA(PixelB).G) Shr 8) + RGBA(PixelB).G;
   RGBA(Result).B := (A * (RGBA(PixelA).B - RGBA(PixelB).B) Shr 8) + RGBA(PixelB).B;
   RGBA(Result).A := A;
+  {$R+}
 
 End;
 

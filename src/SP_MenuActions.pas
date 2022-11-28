@@ -2,7 +2,7 @@ unit SP_MenuActions;
 
 interface
 
-Uses System.SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_LabelUnit, SP_Interpret_PostFix;
+Uses SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_LabelUnit, SP_Interpret_PostFix;
 
 Type
 

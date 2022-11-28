@@ -2686,7 +2686,7 @@ Label
   Function SP_CreateFromStack(min, Max: Integer; Var c: Integer): aString;
   var
     i, l: Integer;
-    Ptr: pByte;
+    Ptr{$IFDEF FPC}, t{$ENDIF}: pByte;
   begin
 
     l := 0;
@@ -2706,7 +2706,12 @@ Label
         Cache := 0;
         BPIndex := -1;
         Inc(ptr, SizeOf(TToken));
+        {$IFNDEF FPC}
         MoveMemory(ptr, pByte(pNativeUInt(@Content)^), TokenLen);
+        {$ELSE}
+        t := pByte(pNativeUInt(@Content)^);
+        Move(t, ptr, TokenLen);
+        {$ENDIF}
         Inc(Ptr, TokenLen);
       End;
 

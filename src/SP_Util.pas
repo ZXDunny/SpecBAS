@@ -33,9 +33,9 @@ Uses Math, Classes, SysUtils, Types, SyncObjs, SP_AnsiStringlist, RunTimeCompile
 Type
 
   {$IFDEF FPC}
-  aString = String;
-  aChar = Char;
-  TAnsiStringlist = TStringlist;
+  aString = AnsiString;
+  aChar = AnsiChar;
+  TStringlist = TAnsiStringlist;
   pNativeUInt = ^NativeUInt;
   {$ELSE}
 
@@ -51,6 +51,9 @@ Type
   paFloat = ^aFloat;
 
 Procedure Delay(ms: Integer);
+{$IFDEF FPC}
+Function  IntersectRect(R1, R2: TRect): Boolean;
+{$ENDIF}
 Function  Pos(Const SubStr, s: aString; StartAt: Integer = 1): Integer; Overload;
 Function  Pos(Const SubStr: aChar; s: aString; StartAt: Integer = 1): Integer; Overload;
 Function  ReadLinuxFile(Filename: aString): aString;
@@ -180,6 +183,14 @@ Const
 implementation
 
 Uses SP_Main;
+
+{$IFDEF FPC}
+Function IntersectRect(R1, R2: TRect): Boolean;
+Begin
+  Result := (R1.Left < R2.Right) And (R1.Right > R2.Left) And (R1.Top > R2.Bottom) And (R1.Bottom < R2.Top);
+End;
+
+{$ENDIF}
 
 Procedure Log(Text: aString);
 Begin

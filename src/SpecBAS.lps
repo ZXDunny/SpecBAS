@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <PathDelim Value="\"/>
+    <Version Value="12"/>
+    <BuildModes Active="Default"/>
+    <Units>
+      <Unit>
+        <Filename Value="SpecBAS.dpr"/>
+        <IsPartOfProject Value="True"/>
+        <UsageCount Value="26"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="MainForm.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="Main"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="7"/>
+        <CursorPos X="119" Y="31"/>
+        <UsageCount Value="26"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_Variables.pas"/>
+        <EditorIndex Value="9"/>
+        <TopLine Value="13"/>
+        <CursorPos X="61" Y="28"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_Interpret_PostFix.pas"/>
+        <EditorIndex Value="10"/>
+        <TopLine Value="3713"/>
+        <CursorPos Y="3731"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="bass.pas"/>
+        <UnitName Value="BASS"/>
+        <EditorIndex Value="11"/>
+        <TopLine Value="807"/>
+        <CursorPos X="9" Y="828"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_UITools.pas"/>
+        <EditorIndex Value="12"/>
+        <CursorPos X="59" Y="5"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_EditUnit.pas"/>
+        <EditorIndex Value="13"/>
+        <CursorPos X="31" Y="5"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_Util.pas"/>
+        <EditorIndex Value="14"/>
+        <TopLine Value="1189"/>
+        <CursorPos Y="1211"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_SysVars.pas"/>
+        <EditorIndex Value="15"/>
+        <TopLine Value="31"/>
+        <CursorPos X="30" Y="47"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_MenuActions.pas"/>
+        <EditorIndex Value="16"/>
+        <CursorPos X="36" Y="5"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_ProgressBarUnit.pas"/>
+        <EditorIndex Value="17"/>
+        <CursorPos X="36" Y="5"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_DebugPanel.pas"/>
+        <EditorIndex Value="18"/>
+        <TopLine Value="887"/>
+        <CursorPos X="78" Y="904"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_ToolTipWindow.pas"/>
+        <EditorIndex Value="19"/>
+        <TopLine Value="144"/>
+        <CursorPos X="10" Y="176"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_InfixToPostFix.pas"/>
+        <EditorIndex Value="6"/>
+        <TopLine Value="2690"/>
+        <CursorPos X="29" Y="2715"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_Tokenise.pas"/>
+        <EditorIndex Value="7"/>
+        <TopLine Value="1654"/>
+        <CursorPos X="60" Y="1671"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\lcl\include\wincontrol.inc"/>
+        <EditorIndex Value="5"/>
+        <TopLine Value="6498"/>
+        <CursorPos Y="6519"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_Main.pas"/>
+        <EditorIndex Value="3"/>
+        <TopLine Value="130"/>
+        <CursorPos Y="148"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_Editor.pas"/>
+        <EditorIndex Value="4"/>
+        <TopLine Value="170"/>
+        <CursorPos Y="186"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="SP_FPEditor.pas"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="8"/>
+        <TopLine Value="2748"/>
+        <CursorPos X="20" Y="2771"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+      <Unit>
+        <Filename Value="C:\lazarus\lcl\lmessages.pp"/>
+        <UnitName Value="LMessages"/>
+        <EditorIndex Value="2"/>
+        <TopLine Value="309"/>
+        <CursorPos X="6" Y="337"/>
+        <UsageCount Value="13"/>
+        <Loaded Value="True"/>
+      </Unit>
+    </Units>
+    <JumpHistory HistoryIndex="29">
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2673" TopLine="2648"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2674" TopLine="2648"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2675" TopLine="2648"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2676" TopLine="2648"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2677" TopLine="2649"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2678" TopLine="2650"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2681" TopLine="2653"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2682" TopLine="2654"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2684" TopLine="2656"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2685" TopLine="2657"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2686" TopLine="2658"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2717" TopLine="2700"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2718" TopLine="2700"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2719" TopLine="2700"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2720" TopLine="2700"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2721" TopLine="2700"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2722" TopLine="2700"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2723" TopLine="2700"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2724" TopLine="2700"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2725" TopLine="2700"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2732" TopLine="2704"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2747" TopLine="2730"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2749" TopLine="2730"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2753" TopLine="2730"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2765" TopLine="2748"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2767" TopLine="2748"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2768" TopLine="2748"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2769" TopLine="2748"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2770" TopLine="2748"/>
+      </Position>
+      <Position>
+        <Filename Value="SP_FPEditor.pas"/>
+        <Caret Line="2771" TopLine="2748"/>
+      </Position>
+    </JumpHistory>
+    <RunParams>
+      <FormatVersion Value="2"/>
+      <Modes ActiveMode=""/>
+    </RunParams>
+  </ProjectSession>
+  <Debugging>
+    <BreakPoints>
+      <Item>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="SP_FPEditor.pas"/>
+        <Line Value="2627"/>
+      </Item>
+      <Item>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="SP_FPEditor.pas"/>
+        <Line Value="2771"/>
+      </Item>
+    </BreakPoints>
+  </Debugging>
+</CONFIG>

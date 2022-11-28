@@ -18,16 +18,21 @@
 
 unit MainForm;
 
+{$IFDEF FPC}
+  {$MODE Delphi}
+{$ENDIF}
+
 {$INCLUDE SpecBAS.inc}
 {$DEFINE OPENGL}
 
 interface
 
 uses
-  System.Types, ShellAPI, SHFolder, Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math,
-  Dialogs, System.SyncObjs, SP_SysVars, SP_Graphics, SP_Graphics32, SP_BankManager, SP_Util, SP_Main, SP_FileIO,
-  ExtCtrls, SP_Input, MMSystem, SP_Errors, SP_Sound, Bass, SP_Tokenise, SP_Menu, PNGImage, RunTimeCompiler,
-  GIFImg{$IFDEF OPENGL}, dglOpenGL{$ENDIF}, SP_Components, SP_BaseComponentUnit, Clipbrd;
+  {$IFNDEF FPC}System.Types, SyncObjs, SHellAPI, PNGImage, GIFImg, WIndows, Messages,{$ELSE} LCLIntf, LCLType, {$IFDEF Windows}Windows, Messages{$ELSE}LMessages{$ENDIF}, {$ENDIF}
+  SHFolder, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math,
+  Dialogs, SP_SysVars, SP_Graphics, SP_Graphics32, SP_BankManager, SP_Util, SP_Main, SP_FileIO,
+  ExtCtrls, SP_Input, MMSystem, SP_Errors, SP_Sound, Bass, SP_Tokenise, SP_Menu, RunTimeCompiler,
+  {$IFDEF OPENGL}dglOpenGL{$ENDIF}, SP_Components, SP_BaseComponentUnit, Clipbrd;
 
 Const
 
@@ -134,9 +139,13 @@ Const
 
 implementation
 
-Uses SP_FPEditor, SP_ToolTipWindow;
+Uses {$IFDEF FPC}ShlObj, {$ENDIF}SP_FPEditor, SP_ToolTipWindow;
 
-{$R *.dfm}
+{$IFDEF FPC}
+  {$R *.lfm}
+{$ELSE}
+  {$R *.dfm}
+{$ENDIF}
 
 Procedure TMain.OnResizeMain(Var Msg: TMessage);
 Var
@@ -1036,7 +1045,9 @@ begin
   SetProcessAffinityMask(GetCurrentProcess, $F);
 
   BASThread := TSpecBAS_Thread.Create(True);
+  {$IFNDEF FPC}
   Application.OnMessage := OnAppMessage;
+  {$ENDIF}
   SetThreadAffinityMask(GetCurrentThread(), 1);
   SetThreadAffinityMask(BASThread.ThreadID, 2);
   SetThreadAffinityMask(RefreshTimer.ThreadID, 4);
@@ -1549,6 +1560,12 @@ Var
   Ext, FirstBytes, OldFilename, tStr: aString;
   FS: TFileStream;
   RGBQ: Array[0..255] of RGBQUAD;
+
+{$IFDEF FPC}
+Type
+  TPNGImage = TPortableNetworkGraphic;
+{$ENDIF}
+
 Begin
 
   // Loads (using arch-specific routines - GraphicEx under Win32, SDL_Image under linux) an image,
@@ -1590,16 +1607,18 @@ Begin
     End;
     If Error.Code = SP_ERR_OK Then Begin
       If Bmp.Graphic Is TPNGImage Then Begin
+        {$IFNDEF FPC}
         If ((Bmp.Graphic as TPNGImage).Header.ColorType <> COLOR_PALETTE) And ((Bmp.Graphic as TPNGImage).Header.ColorType <> COLOR_GRAYSCALE) Then
+        {$ELSE}
+        If ((Bmp.Graphic as TPNGImage).PixelFormat <> pf8Bit) Then
+        {$ENDIF}
           Error.Code := SP_ERR_INVALID_IMAGE_FORMAT
+
       End Else
         If Bmp.Graphic is TBitmap Then Begin
           If (Bmp.Graphic As TBitmap).PixelFormat <> pf8Bit Then
             Error.Code := SP_ERR_INVALID_IMAGE_FORMAT;
-        End Else
-          If Bmp.Graphic is TGIFImage Then Begin
-            // GIFs are always 8bit!
-          End;
+        End;
       If Error.Code = SP_ERR_OK Then Begin
         SetLength(ImgResource, Bmp.Graphic.Width * Bmp.Graphic.Height);
         NewBmp := TBitmap.Create;
@@ -1640,6 +1659,10 @@ Begin
 End;
 
 Procedure SaveImage(Filename: aString; w, h: Integer; Pixels, Palette: pByte);
+{$IFDEF FPC}
+Type
+  TPNGImage = TPortableNetworkGraphic;
+{$ENDIF}
 Var
   Ext: aString;
   i: Integer;
@@ -1737,8 +1760,14 @@ begin
   for i := 0 to count - 1 do
   begin
     DragQueryFile(msg.WParam, i, dropFileName, MAXFILENAME);
+    s := '';
+    j := 0;
+    While (j < 512) and (dropFileName[j] > #0) do Begin
+      s := s + aChar(dropFilename[j]);
+      inc(j);
+    end;
     sl := TStringlist.Create;
-    sl.LoadFromFile(aString(dropFilename));
+    sl.LoadFromHost(s);
     Paste := '';
     If sl.Count > 0 Then Begin
       if sl[0] = 'ZXASCII' Then Begin

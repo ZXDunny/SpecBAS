@@ -1,0 +1,31 @@
+object Main: TMain
+  Left = 561
+  Height = 449
+  Top = 212
+  Width = 634
+  BorderIcons = [biSystemMenu, biMinimize]
+  BorderStyle = bsSingle
+  Caption = 'SpecBAS'
+  Color = clGray
+  Font.Color = clWindowText
+  Font.Height = -11
+  Font.Name = 'Tahoma'
+  KeyPreview = True
+  OnActivate = FormActivate
+  OnCloseQuery = FormCloseQuery
+  OnCreate = FormCreate
+  OnDeactivate = FormDeactivate
+  OnDestroy = FormDestroy
+  OnKeyDown = FormKeyDown
+  OnKeyPress = FormKeyPress
+  OnKeyUp = FormKeyUp
+  OnMouseDown = FormMouseDown
+  OnMouseMove = FormMouseMove
+  OnMouseUp = FormMouseUp
+  OnMouseWheelDown = FormMouseWheelDown
+  OnMouseWheelUp = FormMouseWheelUp
+  OnPaint = FormPaint
+  OnResize = FormResize
+  OnShow = FormShow
+  LCLVersion = '2.2.4.0'
+end

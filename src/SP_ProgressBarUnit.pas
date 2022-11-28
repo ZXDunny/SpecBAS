@@ -2,7 +2,7 @@ unit SP_ProgressBarUnit;
 
 interface
 
-Uses System.SysUtils, Types, SP_BaseComponentUnit, SP_ButtonUnit, SP_Util;
+Uses SysUtils, Types, SP_BaseComponentUnit, SP_ButtonUnit, SP_Util;
 
 Type
 

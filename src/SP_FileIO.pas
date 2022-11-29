@@ -1393,7 +1393,7 @@ Begin
                     lIdx := Idx;
                     Done := False;
                     While not Done Do Begin
-                      If (Buffer[lIdx] in [13, 10]) or (lIdx >= FileSize) Then
+                      If (lIdx >= FileSize) or (Buffer[lIdx] in [13, 10]) Then
                         Done := True
                       Else
                         Inc(lIdx);
@@ -1404,8 +1404,10 @@ Begin
                     ProgLine := StrCopy(@Buffer[Idx], lIdx - Idx);
                     PlainCode := StripLeadingSpaces(ProgLine);
                     Idx := lIdx;
-                    If Buffer[Idx] = 13 Then Inc(Idx);
-                    If Buffer[Idx] = 10 Then Inc(Idx);
+                    if Idx < FileSize Then Begin
+                      If Buffer[Idx] = 13 Then Inc(Idx);
+                      If Buffer[Idx] = 10 Then Inc(Idx);
+                    End;
 
                     // Strip trailing spaces
                     While (ProgLine <> '') And (ProgLine[Length(ProgLine)] <= ' ') Do

@@ -2116,7 +2116,11 @@ Begin
           End Else Begin
             With SP_StackPtr^ Do Begin
               OpType := SP_STRING;
-              Str := SP_StackPtr^.Str[pLongWord(@gbIndices[1])^];
+              Idx := pLongWord(@gbIndices[1])^;
+              if Idx > 0 then
+                Str := SP_StackPtr^.Str[Idx]
+              else
+                Str := '';
             End;
           End;
         End Else

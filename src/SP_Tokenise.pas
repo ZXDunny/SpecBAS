@@ -2976,7 +2976,7 @@ Begin
 
   Sort(0, High(SortedTokens));
 
-  For i := 0 to 24 Do
+  For i := 0 to 25 Do
     Hashes[i] := -1;
 
   For j := 0 To 25 Do
@@ -2985,7 +2985,7 @@ Begin
         Hashes[j] := i;
         Break;
       End;
-  Hashes[26] := numTokens -1;
+  Hashes[26] := numTokens;
 
 End;
 

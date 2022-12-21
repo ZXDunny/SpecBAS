@@ -1648,7 +1648,7 @@ Begin
   pss := NativeUInt(ps);
   inc(ps, StartAt -1);
 
-  While NativeUint(ps) <= l Do
+  While NativeUint(ps) < l Do
     if ps^ = Ord(SubStr) Then Begin
       Result := (NativeUint(ps) - pss) +1;
       Exit;

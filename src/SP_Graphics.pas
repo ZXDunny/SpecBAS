@@ -4275,20 +4275,19 @@ Begin
 
     Nodes := 0;
     J := NumPoints -1;
-
     For I := 0 To NumPoints -1 Do Begin
-      If ((Points[I].Y < PixelY) And (Points[J].Y >= PixelY)) or ((Points[J].Y < PixelY) And (Points[I].Y >= PixelY)) Then Begin
-        NodeX[Nodes] := Round(Points[I].X+(PixelY-Points[I].Y)/(Points[J].Y-Points[I].Y) * (Points[J].X-Points[I].X));
+      If (Points[I].Y < PixelY) And (Points[J].Y >= PixelY) or (Points[J].Y < PixelY) And (Points[I].Y >= PixelY) Then Begin
+        NodeX[Nodes] := Round(Points[I].X + (PixelY-Points[I].Y)/(Points[J].Y-Points[I].Y)*(Points[J].X-Points[I].X));
         Inc(Nodes);
       End;
       J := I;
     End;
 
-
     I := 0;
     While I < Nodes -1 Do
       If NodeX[I] > NodeX[I+1] Then Begin
         NodeX[I] := NodeX[I] Xor NodeX[I+1]; NodeX[I+1] := NodeX[I] Xor NodeX[I+1]; NodeX[I] := NodeX[I] Xor NodeX[I+1];
+        If I > 0 Then Dec(I);
       End Else
         Inc(I);
 

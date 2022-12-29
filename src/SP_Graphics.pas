@@ -1333,14 +1333,14 @@ Begin
       MOUSEVISIBLE := False;
       SIZINGMAIN := True;
       CB_SetScreenRes(Window^.Width, Window^.Height, SCALEWIDTH, SCALEHEIGHT, FullScreen);
+      DisplaySection.Leave;
       Repeat
         CB_YIELD;
       Until Not SIZINGMAIN;
       SP_CLS(CPAPER);
       MOUSEVISIBLE := OldMouse;
-    End;
-
-    DisplaySection.Leave;
+    End Else
+      DisplaySection.Leave;
 
   End;
 

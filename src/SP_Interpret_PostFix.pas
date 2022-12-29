@@ -10027,9 +10027,10 @@ End;
 
 Procedure SP_Interpret_FOR(Var Info: pSP_iInfo);
 Var
-  VarIdx: Integer;
+  VarIdx, varType, i: Integer;
   LineItem: TSP_GOSUB_Item;
   StartFrom, EndAt, Step: aFloat;
+  varName: aString;
 Begin
 
   // On entry, the stack contains: From, To and optional Step values,
@@ -10039,12 +10040,10 @@ Begin
   Dec(SP_StackPtr);
   EndAt := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-  If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
-    If StartFrom > EndAt Then
-      Step := -1
-    Else
-      Step := 1;
-  End Else Begin
+  varType := SP_StackPtr^.OpType;
+  If varType = SP_NUMVAR Then
+    Step := 1
+  Else Begin
     Step := SP_StackPtr^.Val;
     Dec(SP_StackPtr);
   End;
@@ -10053,14 +10052,32 @@ Begin
 
     With Info^ Do Begin
       VarIdx := Round(Val);
+      varName := Str;
       If Error^.Line >= 0 Then Begin
         LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1);
-        SP_UpdateFORVar(VarIdx, Str, StartFrom, EndAt, Step, LineItem.Line, LineItem.Statement, LineItem.St, Ptr, Error^);
       End Else Begin
         LineItem.Line := -2;
         LineItem.Statement := SP_FindStatement(@COMMAND_TOKENS, Error^.Statement + 1);
         LineItem.St := Error^.Statement + 1;
-        SP_UpdateFORVar(VarIdx, Str, StartFrom, EndAt, Step, LineItem.Line, LineItem.Statement, LineItem.St, Ptr, Error^);
+      End;
+      SP_UpdateFORVar(VarIdx, varName, StartFrom, EndAt, Step, LineItem.Line, LineItem.Statement, LineItem.St, Ptr, Error^);
+      If ((Step > 0) And (StartFrom > EndAt)) or ((Step < 0) And (StartFrom < EndAt)) Then Begin
+        i := 0;
+        While i < SP_NextCount Do Begin
+          If SP_NextEntries[i].Line = LineItem.Line Then Begin
+            If SP_NextEntries[i].Statement > LineItem.St Then
+              Break;
+          End Else
+            If SP_NextEntries[i].Line > LineItem.Line Then
+              Break;
+          Inc(i);
+        End;
+        If i < SP_NextCount Then Begin
+          NXTLINE := SP_NextEntries[i].Line;
+          NXTSTATEMENT := SP_NextEntries[i].Statement;
+          Error.Statement := LineItem.St;
+          Error.ReturnType := SP_JUMP;
+        End;
       End;
     End;
 
@@ -10660,12 +10677,14 @@ Begin
     Dec(SP_StackPtr);
     SP_ConvertToOrigin_d(dX, dY);
     If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
+    {$R-}
     xPos := Round(dX); yPos := Round(dY);
     If SCREENBPP = 8 Then
       SP_SetPixel(xPos, yPos)
     Else
       SP_SetPixel32(xPos, yPos);
     If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
+    {$R+}
   End;
 
   SP_BankList[0]^.Changed := True;
@@ -11266,16 +11285,17 @@ Var
   R, dX, dY, Aspect, Radius1, Radius2: aFloat;
 Begin
 
+  Aspect := (ScaleWidth/DisplayWidth)/(ScaleHeight/DisplayHeight);
   If WINSCALE Then Begin
     R := SP_StackPtr^.Val;
     Radius1 := R/WINSCALEX;
     Radius2 := R/WINSCALEY;
+    Aspect := Aspect * (WINSCALEY/WINSCALEX);
   End Else Begin
     Radius1 := SP_StackPtr^.Val;
     Radius2 := Radius1;
   End;
 
-  Aspect := (ScaleWidth/DisplayWidth)/(ScaleHeight/DisplayHeight);
   if Aspect <> 1 then
     if Aspect < 1 then
       Radius2 := Radius2 * Aspect
@@ -11332,16 +11352,17 @@ Begin
 
   If Info^.Error^.Code <> SP_ERR_OK Then Exit;
 
+  Aspect := (ScaleWidth/DisplayWidth)/(ScaleHeight/DisplayHeight);
   If WINSCALE Then Begin
     R := SP_StackPtr^.Val;
     Radius1 := R/WINSCALEX;
     Radius2 := R/WINSCALEY;
+    Aspect := Aspect * (WINSCALEY/WINSCALEX);
   End Else Begin
     Radius1 := SP_StackPtr^.Val;
     Radius2 := Radius1;
   End;
 
-  Aspect := (ScaleWidth/DisplayWidth)/(ScaleHeight/DisplayHeight);
   if Aspect <> 1 then
     if Aspect < 1 then
       Radius2 := Radius2 * Aspect
@@ -14479,8 +14500,8 @@ Begin
   X1 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
-  X2 := X1 + W -1;
-  Y2 := Y1 + H -1;
+  X2 := X1 + W;
+  Y2 := Y1 + H;
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
   X2 := X2 - 1;

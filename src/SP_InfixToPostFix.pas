@@ -1872,7 +1872,7 @@ Begin
 
                 // Takes an array as a parameter
 
-                If (StackPtr < 0) Or (Stack[StackPtr -1] in [SP_NUMVAR, SP_STRVAR]) Then Begin
+                If (StackPtr < 0) Or ((StackPtr > 0) And (Stack[StackPtr -1] in [SP_NUMVAR, SP_STRVAR])) Then Begin
                   Error.Code := SP_ERR_SYNTAX_ERROR;
                   Position := Token^.TokenPos;
                   Exit;
@@ -2875,20 +2875,24 @@ Begin
 
           // MUST follow a stringvar or string-array.
 
-          Inc(SP_OperandPtr);
-          SP_OperandStack[SP_OperandPtr].StrPos := Position;
+          If SP_OperandPtr >= 0 Then Begin
+            Inc(SP_OperandPtr);
+            SP_OperandStack[SP_OperandPtr].StrPos := Position;
 
-          With SP_OperandStack[SP_OperandPtr] Do Begin
-            OpType := Byte(Tokens[Position]);
-            Inc(Position);
-            Content := LowerNoSpaces(Copy(Tokens, Position + SizeOf(LongWord), pLongWord(@Tokens[Position])^));
-            Inc(Position, SizeOf(LongWord) + pLongWord(@Tokens[Position])^);
-          End;
-          ExpectOperand := False;
-          If Token = SP_STRUCT_MEMBER_N Then
-            Error.ReturnType := SP_VALUE
-          Else
-            Error.ReturnType := SP_STRING;
+            With SP_OperandStack[SP_OperandPtr] Do Begin
+              OpType := Byte(Tokens[Position]);
+              Inc(Position);
+              Content := LowerNoSpaces(Copy(Tokens, Position + SizeOf(LongWord), pLongWord(@Tokens[Position])^));
+              Inc(Position, SizeOf(LongWord) + pLongWord(@Tokens[Position])^);
+            End;
+            ExpectOperand := False;
+            If Token = SP_STRUCT_MEMBER_N Then
+              Error.ReturnType := SP_VALUE
+            Else
+              Error.ReturnType := SP_STRING;
+          End Else
+            Error.Code := SP_ERR_SYNTAX_ERROR;
+          If Error.Code <> SP_ERR_OK Then Exit;
 
         End;
 

@@ -2325,7 +2325,11 @@ Begin
   While (i <= Length(Txt)) And (Txt[i] <= ' ') Do Inc(i);
   While (i <= Length(Txt)) And (Txt[i] in ['0'..'9']) Do Begin
     Result := (Result * 10) + Ord(Txt[i]) - 48;
-    Inc(i);
+    If i > 6 Then Begin
+      Result := 0;
+      Exit;
+    End Else
+      Inc(i);
   End;
 
 End;
@@ -2431,10 +2435,17 @@ Var
   InString, InREM, InClr: Boolean;
 Begin
 
+  InString := False; InREM := False; InClr := False;
+
   For Idx := 0 To Listing.Count -1 Do Begin
 
     s := Listing[Idx];
-    LineNum := SP_GetLineNumberFromText(s);
+
+    If Not InString Then
+      LineNum := SP_GetLineNumberFromText(s)
+    Else
+      LineNum := 0;
+
     If LineNum > 0 Then Begin
       St := 1;
       InString := False;

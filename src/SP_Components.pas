@@ -443,15 +443,17 @@ Begin
     If (x >= 0) And (x < Integer(DISPLAYWIDTH)) And (y >= 0) And (y < Integer(DISPLAYHEIGHT)) Then Begin
       Idx := Length(SP_BankList) -1;
       While Idx >= 0 Do Begin
-        Result := @SP_BankList[Idx]^.Info[0];
-        GotWindow:
-        If SP_BankList[Idx]^.DataType = SP_WINDOW_BANK then With pSP_Window_Info(Result)^ Do
-          If PtInRect(Rect(Left, Top, Left + Width, Top + Height), Point(X, Y)) Then Begin
-            Dec(X, Left);
-            Dec(Y, Top);
-            ID := SP_BankList[Idx].ID;
-            Exit;
-          End;
+        If Length(SP_BankList[Idx]^.Info) > 0 Then Begin
+          Result := @SP_BankList[Idx]^.Info[0];
+          GotWindow:
+          If SP_BankList[Idx]^.DataType = SP_WINDOW_BANK then With pSP_Window_Info(Result)^ Do
+            If PtInRect(Rect(Left, Top, Left + Width, Top + Height), Point(X, Y)) Then Begin
+              Dec(X, Left);
+              Dec(Y, Top);
+              ID := SP_BankList[Idx].ID;
+              Exit;
+            End;
+        End;
         Dec(Idx);
       End;
     End;

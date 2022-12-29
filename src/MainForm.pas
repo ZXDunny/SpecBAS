@@ -745,32 +745,38 @@ begin
       // Now check for controls under the mouse
 
       Handled := False;
+      If DisplaySection.TryEnter Then Begin
 
-      tX := X; tY := Y;
-      If TipWindowID <> -1 Then CheckForTip(tx, ty);
-      Win := WindowAtPoint(tX, tY, ID);
-      If Assigned(Win) Then Begin
-        Win := ControlAtPoint(Win, tX, tY);
-        If Assigned(Win) And (MouseControl <> pSP_BaseComponent(Win)^) Then
-          If Assigned(MouseControl) Then
-            MouseControl.MouseExit;
-      End;
-      If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
-        p := CaptureControl.ScreenToClient(Point(x, y));
-        CaptureControl.PreMouseMove(p.x, p.y, Btn);
-      End Else Begin
+        tX := X; tY := Y;
+        If TipWindowID <> -1 Then CheckForTip(tx, ty);
+        Win := WindowAtPoint(tX, tY, ID);
+
         If Assigned(Win) Then Begin
-          If MouseControl <> pSP_BaseComponent(Win)^ Then Begin
-            MouseControl := pSP_BaseComponent(Win)^;
-            p := MouseControl.ScreenToClient(Point(tX, tY));
-            MouseControl.MouseEnter(p.X, p.Y);
-          End;
-          pSP_BaseComponent(Win)^.PreMouseMove(tX, tY, Btn);
-          Handled := True;
-        End Else
-          If Assigned(MouseControl) Then
-            MouseControl.MouseExit;
+          Win := ControlAtPoint(Win, tX, tY);
+          If Assigned(Win) And (MouseControl <> pSP_BaseComponent(Win)^) Then
+            If Assigned(MouseControl) Then
+              MouseControl.MouseExit;
+        End;
+        If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
+          p := CaptureControl.ScreenToClient(Point(x, y));
+          CaptureControl.PreMouseMove(p.x, p.y, Btn);
+        End Else Begin
+          If Assigned(Win) Then Begin
+            If MouseControl <> pSP_BaseComponent(Win)^ Then Begin
+              MouseControl := pSP_BaseComponent(Win)^;
+              p := MouseControl.ScreenToClient(Point(tX, tY));
+              MouseControl.MouseEnter(p.X, p.Y);
+            End;
+            pSP_BaseComponent(Win)^.PreMouseMove(tX, tY, Btn);
+            Handled := True;
+          End Else
+            If Assigned(MouseControl) Then
+              MouseControl.MouseExit;
+        End;
+
       End;
+
+      DisplaySection.Leave;
 
     End;
 
@@ -1767,7 +1773,7 @@ begin
       inc(j);
     end;
     sl := TStringlist.Create;
-    sl.LoadFromHost(s);
+    sl.LoadFromHost(String(s));
     Paste := '';
     If sl.Count > 0 Then Begin
       if sl[0] = 'ZXASCII' Then Begin

@@ -421,9 +421,18 @@ Var
 Begin
   KeyLock.Enter;
   l := Length(ActiveKeys);
-  If l > 0 Then
-    Result := ActiveKeys[l -1].KeyChar
-  Else
+  If l > 0 Then Begin
+    Result := ActiveKeys[l -1].KeyChar;
+    If Result = #0 Then
+      Case ActiveKeys[l -1].KeyCode of
+        37: Result := aChar(8);
+        38: Result := aChar(11);
+        39: Result := aChar(9);
+        40: Result := aChar(10);
+      Else
+        Result := aChar(ActiveKeys[l -1].KeyCode);
+      End;
+  End Else
     Result := '';
   KeyLock.Leave;
 End;

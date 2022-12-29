@@ -38,6 +38,11 @@ Type
   End;
   pHashEntry = ^THashEntry;
 
+  TNextEntry = Record
+    VarName: aString;
+    Line, Statement: Integer;
+  End;
+
   TSP_NumVarContent = Record
     Value, InitVal: aFloat;
     VarType, LoopLine, LoopStatement, St: Integer;
@@ -261,6 +266,8 @@ Var
   Structures: Array of TSP_STRUCTURE;
   LineLUT: Array of Integer;
   Constants: Array of TSP_Constant;
+  SP_NextEntries: Array[0..1024] of TNextEntry;
+  SP_NextCount: Integer;
   NVLen, SVLen, NumNV, NumSV: Integer;
   logtext: astring;
 
@@ -2268,17 +2275,17 @@ Type
   pVarType = ^VarType;
 Var
   Tkn, Tkn2: pToken;
-  Idx, Idx2, Idx3, sIdx, pStatement,
+  Idx, Idx2, Idx3, Idx4, sIdx, pStatement,
   LabelPos, LabelLen, ProcIdx, LastStrAt, LastStrLen, DATALine, DATAStatement: Integer;
   Tokens, Name, s: aString;
   Changed, Reference, NewStatement: Boolean;
   TempLine, cLine: TSP_GOSUB_Item;
   xVar: pVarType;
-  KeyWord, MaxLineNum, cKW, LastKW: LongWord;
+  KeyWord, MaxLineNum, cKW, LastKW, CurLine: LongWord;
   ProcLines: aString;
   StrPtr: pByte;
   KwPtr: pLongWord;
-  TknType: Byte;
+  TknType, LastTknType: Byte;
 Label
   NextLine;
 Begin
@@ -2317,6 +2324,7 @@ Begin
   LastKW := 0;
   LastStrAt := 0;
   LastStrLen := 0;
+  SP_NextCount := 0;
   SetLength(LineLUT, 0);
 
   If Not PAYLOADPRESENT Then
@@ -2327,6 +2335,9 @@ Begin
     Idx := -2
   else
     Idx := -1;
+
+  LastTknType := $FF;
+  CurLine := 0;
 
   While True Do Begin
 
@@ -2345,8 +2356,9 @@ Begin
     Idx2 := 1;
     TknType := 0;
     If Byte(Tokens[Idx3]) = SP_LINE_NUM Then Begin
-      If pLongWord(@Tokens[Idx3 +1])^ > MaxLineNum Then
-        MaxLineNum := pLongWord(@Tokens[Idx3 +1])^;
+      CurLine := pLongWord(@Tokens[Idx3 +1])^;
+      If CurLine > MaxLineNum Then
+        MaxLineNum := CurLine;
       Inc(Idx3, 1 + SizeOf(LongWord));
     End;
     If Byte(Tokens[Idx3]) = SP_STATEMENTS Then Inc(Idx3, 1+((1 + pLongWord(@Tokens[Idx3+1])^) * SizeOf(LongWord)));
@@ -2508,12 +2520,27 @@ Begin
             End;
           SP_NUMVAR, SP_STRVAR:
             Begin
+              Idx4 := Idx3;
+              xVar := @Tokens[Idx4];
+              Inc(Idx4, SizeOf(VarType));
+              Name := LowerNoSpaces(Copy(Tokens, Idx4, xVar^.StrLen));
+              If xVar^.ID = SP_STRVAR Then Name := Name + '$';
               Inc(Idx3, 1 + (SizeOf(LongWord) * 2) + pLongWord(@Tokens[Idx3 + 1 + SizeOf(LongWord)])^);
+              If (LastTknType = SP_KEYWORD) And (LastKW = SP_KW_NEXT) Then Begin
+                With SP_NextEntries[SP_NextCount] Do Begin
+                  VarName := Name;
+                  Line := CurLine;
+                  Statement := pStatement +1;
+                End;
+                Inc(SP_NextCount);
+              End;
               NewStatement := False;
             End;
           255:
             Break;
         End;
+
+        LastTknType := TknType;
 
       End;
 
@@ -2757,6 +2784,14 @@ Begin
 
   End;
 
+  // Convert the NEXT jump table to offsets
+
+  For Idx := 0 To SP_NextCount -1 Do Begin
+    TempLine := SP_ConvertLineStatement(SP_FindLine(SP_NextEntries[Idx].Line, False), SP_NextEntries[Idx].Statement);
+    SP_NextEntries[Idx].Line := TempLine.Line;
+    SP_NextEntries[Idx].Statement := TempLine.Statement;
+  End;
+
   // Finally, insert breakpoint flags if necessary
 
   SP_PrepareBreakpoints(True);
@@ -2866,7 +2901,7 @@ Var
           End;
         SP_VALUE:
           Begin
-            If pToken(@Tokens[Idx + Token^.TokenLen])^.Token = SP_FUNCTION Then Begin
+            If (Idx + Token^.TokenLen < Length(Tokens)) and (pToken(@Tokens[Idx + Token^.TokenLen])^.Token = SP_FUNCTION) Then Begin
               Kwd := pLongWord(@Tokens[Idx + Token^.TokenLen + SizeOf(TToken)])^;
               If (Kwd = SP_FN_IIF) or (Kwd = SP_FN_IIFS) Then Begin
                 // Found a value followed by an IIF or IIF$.

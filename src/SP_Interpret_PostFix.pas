@@ -8300,7 +8300,7 @@ Begin
 
   End Else Begin
 
-    Y := Round(SP_StackPtr^.Val);
+    Y := Round(SP_StackPtr^.Val * T_SCALEY);
     T_CENTRE := True;
     T_CENTRE_Y := Y;
 

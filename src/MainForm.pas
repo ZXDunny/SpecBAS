@@ -395,6 +395,7 @@ Begin
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     SwapBuffers(DC);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, tmp); //DISPLAYWIDTH);
+    glFinish;
 
   {$ELSE}
     InvalidateRect(Main.Handle, iRect, False);
@@ -1444,6 +1445,7 @@ begin
         End;
 
         glEnable(GL_TEXTURE_2D);
+        wglSwapIntervalEXT(1);
 
       End;
 

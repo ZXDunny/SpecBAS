@@ -737,6 +737,8 @@ Var
   BlockIDX, Offset, Idx: Integer;
 Const
   BlockChars = '12345678!"£$%^&*';
+  BlockOffsets: Array[0..15] of Integer = ( 1,  2,  3,  4,  5, 6, 7, 0,
+                                           14, 13, 12, 11, 10, 9, 8, 15);
 Begin
 
   // Small characters in positions 0..31
@@ -754,8 +756,8 @@ Begin
   BlockIdx := 0;
   Offset := 0;
   For Idx := 0 to 15 Do Begin
-    SP_SetSpeccyStyleChar(ID, 128 + Ord(BlockChars[Idx +1]), @BlockGraphics[BlockIdx + Offset]);
-    SP_SetSpeccyStyleChar(ID, 128 + Ord('a') + Idx, @BlockGraphics[BlockIdx + Offset]);
+    SP_SetSpeccyStyleChar(ID, 128 + Ord(BlockChars[Idx +1]), @BlockGraphics[BlockOffsets[Idx] * 8]);
+    SP_SetSpeccyStyleChar(ID, 128 + Idx, @BlockGraphics[BlockIdx + Offset]);
     Inc(Offset, 8);
   End;
 
@@ -2914,8 +2916,8 @@ Begin
     Ink := T_INK and $FF
   Else
     Ink := T_PAPER and $FF;
-  xr := Round(X); yr := Round(Y);
-  If (xr >= T_CLIPX1) And (xr < T_CLIPX2) And (yr >= T_CLIPY1) And (yr < T_CLIPY2) Then Begin
+  If (x >= T_CLIPX1) And (x < T_CLIPX2) And (y >= T_CLIPY1) And (y < T_CLIPY2) Then Begin
+    xr := Round(X); yr := Round(Y);
     Ptr := pByte(NativeUInt(SCREENPOINTER)+(LongWord(yr * SCREENSTRIDE) + LongWord(xr)));
     IF T_OVER = 0 Then
       Ptr^ := Ink

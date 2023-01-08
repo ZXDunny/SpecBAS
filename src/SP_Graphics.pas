@@ -3001,9 +3001,11 @@ begin
     cxmx := Cx - X; cymy := Cy - Y;
 
     SP_SetPixel(cxpx, cypy);
-    SP_SetPixel(cxmx, cypy);
     SP_SetPixel(cxpx, cymy);
-    SP_SetPixel(cxmx, cymy);
+    If cxmx <> cxpx Then Begin
+      SP_SetPixel(cxmx, cymy);
+      SP_SetPixel(cxmx, cypy);
+    End;
 
     p := Ry2 - (Rx2 * Ry) + (Rx2 div 4);
 
@@ -3046,8 +3048,10 @@ begin
        inc(cymy);
        SP_SetPixel(cxpx, cypy);
        SP_SetPixel(cxmx, cypy);
-       SP_SetPixel(cxpx, cymy);
-       SP_SetPixel(cxmx, cymy);
+       if y > 0 Then Begin
+         SP_SetPixel(cxpx, cymy);
+         SP_SetPixel(cxmx, cymy);
+       End;
     end;
 
   End Else
@@ -3065,8 +3069,49 @@ var
   DstA, TexBase: pByte;
   tClr, Clr: Byte;
   Graphic: pSP_Graphic_Info;
-  x, y, r, rx2: Int64;
-  xmn, xmx, ymn, ymx, w: Integer;
+  x, y, p, px, py, twoRx2, twoRy2: Int64;
+  Rx2, Ry2: Int64;
+  cxpx, cypy, cxmx, cymy, lcypy, lcymy: Integer;
+
+  Procedure DrawTexSpan(X1, X2, Y: Integer);
+  Begin
+    X1 := Max(T_CLIPX1, X1);
+    X2 := Min(T_CLIPX2, X2);
+    If X2 > X1 Then Begin
+      DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
+      If T_OVER = 0 Then Begin
+        If Trans <> $FFFF Then Begin
+          While X2 >= X1 Do Begin
+            Clr := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
+            If Clr <> tClr Then DstA^ := Clr;
+            Inc(DstA);
+            Inc(X1);
+          End;
+        End Else
+          While X2 >= X1 Do Begin
+            DstA^ := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
+            Inc(DstA);
+            Inc(X1);
+          End;
+      End Else Begin
+        If Trans <> $FFFF Then Begin
+          While X2 >= X1 Do Begin
+            Clr := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
+            If Clr <> tClr Then SP_OverPixelPtrVal(DstA, Clr, T_OVER);;
+            Inc(DstA);
+            Inc(X1);
+          End;
+        End Else
+          While X2 >= X1 Do Begin
+            SP_OverPixelPtrVal(DstA, pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^, T_OVER);
+            Inc(DstA);
+            Inc(X1);
+          End;
+      End;
+    End;
+  End;
+
+
 begin
 
   If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
@@ -3091,92 +3136,72 @@ begin
     If Trans <> $FFFF Then
       tClr := Trans And $FF;
 
-    r := Round((Rx+0.5)*Ry*Rx*rY);
-    xmn := Max(T_CLIPX1,    Cx - rX) - cX;
-    xmx := Min(T_CLIPX2 -1, Cx + rX) - cX;
-    ymn := Max(T_CLIPY1,    Cy - rY) - cY;
-    ymx := Min(T_CLIPY2 -1, Cy + rY) - cY;
-    w := SCREENSTRIDE - (xmx - xmn + 1);
+    Rx := Abs(Rx);
+    Ry := Abs(Ry);
 
-    DstA := pByte(NativeUInt(SCREENPOINTER) + (xmn + cX) + ((ymn + cY) * SCREENSTRIDE));
+    Rx2 := Rx * Rx;
+    Ry2 := Ry * Ry;
+    twoRx2 := 2 * Rx2;
+    twoRy2 := 2 * Ry2;
+    x := 0;
+    y := Ry;
+    px := 0;
+    py := twoRx2 * y;
 
-    If T_OVER = 0 Then Begin
+    cxpx := Cx + X; cypy := Cy + Y;
+    cxmx := Cx - X; cymy := Cy - Y;
 
-      If Trans <> $FFFF Then Begin
-
-        y := ymn;
-        While y <= ymx Do Begin
-          rx2 := y*Rx*y*Rx;
-          x := xmn;
-          While x <= xmx Do Begin
-            If x*rY*x*rY+rx2 <= r Then Begin
-              Clr := pByte(TexBase + ((x - xmn) mod Integer(tW)) + ((y - ymn) mod Integer(tH)) * Integer(tw))^;
-              If Clr <> tClr Then DstA^ := Clr;
-            End;
-            Inc(DstA);
-            Inc(x);
-          End;
-          Inc(DstA, w);
-          Inc(y);
-        End;
-
-      End Else Begin
-
-        y := ymn;
-        While y <= ymx Do Begin
-          rx2 := y*Rx*y*Rx;
-          x := xmn;
-          While x <= xmx Do Begin
-            If x*rY*x*rY+rx2 <= r Then
-              DstA^ := pByte(TexBase + ((x - xmn) mod Integer(tW)) + ((y - ymn) mod Integer(tH)) * Integer(tw))^;
-            Inc(DstA);
-            Inc(x);
-          End;
-          Inc(DstA, w);
-          Inc(y);
-        End;
-
-      End;
-
-    End Else Begin
-
-      If Trans <> $FFFF Then Begin
-
-        y := ymn;
-        While y <= ymx Do Begin
-          rx2 := y*Rx*y*Rx;
-          x := xmn;
-          While x <= xmx Do Begin
-            If x*rY*x*rY+rx2 <= r Then Begin
-              Clr := pByte(TexBase + ((x - xmn) mod Integer(tW)) + ((y - ymn) mod Integer(tH)) * Integer(tw))^;
-              If Clr <> tClr Then SP_OverPixelPtrVal(DstA, Clr, T_OVER);
-            End;
-            Inc(DstA);
-            Inc(x);
-          End;
-          Inc(DstA, w);
-          Inc(Y);
-        End;
-
-      End Else Begin
-
-        y := ymn;
-        While y <= ymx Do Begin
-          rx2 := y*Rx*y*Rx;
-          x := xmn;
-          While x <= xmx Do Begin
-            If x*rY*x*rY+rx2 <= r Then
-              SP_OverPixelPtrVal(DstA, pByte(TexBase + ((x - xmn) mod Integer(tW)) + ((y - ymn) mod Integer(tH)) * Integer(tw))^, T_OVER);
-            Inc(DstA);
-            Inc(x);
-          End;
-          Inc(DstA, w);
-          Inc(y);
-        End;
-
-      End;
-
+    SP_SetPixelClr(cxpx, cypy, pByte(TexBase + ((cxpx mod Integer(tW)) + ((cypy mod Integer(tH)) * Integer(tw))))^);
+    SP_SetPixelClr(cxpx, cymy, pByte(TexBase + ((cxpx mod Integer(tW)) + ((cymy mod Integer(tH)) * Integer(tw))))^);
+    If cxmx <> cxpx Then Begin
+      SP_SetPixelClr(cxmx, cymy, pByte(TexBase + ((cxmx mod Integer(tW)) + ((cymy mod Integer(tH)) * Integer(tw))))^);
+      SP_SetPixelClr(cxmx, cypy, pByte(TexBase + ((cxmx mod Integer(tW)) + ((cypy mod Integer(tH)) * Integer(tw))))^);
     End;
+
+    p := Ry2 - (Rx2 * Ry) + (Rx2 div 4);
+    lcypy := cypy;
+    lcymy := cymy;
+
+    while px < py do begin
+       Inc(x);
+       Inc(px, twoRy2);
+       if p < 0 then
+          Inc(p, Ry2 + px)
+       else begin
+          Dec(y);
+          Dec(py, twoRx2);
+          Inc(p, Ry2 + px - py);
+          dec(cypy);
+          inc(cymy);
+       end;
+       inc(cxpx);
+       dec(cxmx);
+       if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cypy);
+       if (lcymy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cymy);
+       lcypy := cypy;
+       lcymy := cymy;
+    end;
+
+    {$R-}
+    p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
+    {$R-}
+    while y > 0 do begin
+       Dec(y);
+       Dec(py, twoRx2);
+       if p > 0 then
+          Inc(p, Rx2 - py)
+       else begin
+          Inc(x);
+          Inc(px, twoRy2);
+          Inc(p, Rx2 - py + px);
+          inc(cxpx);
+          dec(cxmx);
+       end;
+       dec(cypy);
+       inc(cymy);
+       if (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cypy);
+       if (y > 0) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cymy);
+    end;
 
   End Else
 
@@ -3190,9 +3215,33 @@ end;
 Procedure SP_DrawSolidEllipse(CX, CY, Rx, Ry: Integer);
 var
   Ink: Byte;
-  x, y, r, rx2: Int64;
-  xmn, xmx, ymn, ymx, w: Integer;
   DstA: pByte;
+  x, y, p, px, py, twoRx2, twoRy2: Int64;
+  Rx2, Ry2: Int64;
+  cxpx, cypy, cxmx, cymy, lcypy, lcymy: Integer;
+
+  Procedure DrawSpan(X1, X2, Y: Integer);
+  Begin
+    X1 := Max(T_CLIPX1, X1);
+    X2 := Min(T_CLIPX2, X2);
+    If X2 > X1 Then Begin
+      DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
+      If T_OVER = 0 Then Begin
+        While X2 >= X1 Do Begin
+          DstA^ := Ink;
+          Inc(DstA);
+          Dec(X2);
+        End;
+      End Else Begin
+        While X2 >= X1 Do Begin
+          SP_OverPixelPtrVal(DstA, Ink, T_OVER);
+          Inc(DstA);
+          Dec(X2);
+        End;
+      End;
+    End;
+  End;
+
 begin
 
   If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
@@ -3204,48 +3253,72 @@ begin
     Else
       Ink := T_PAPER;
 
-    r := Round((Rx+0.5)*Ry*Rx*rY);
-    xmn := Max(T_CLIPX1, Cx - rX) - cX;
-    xmx := Min(T_CLIPX2 -1, Cx + rX) - cX;
-    ymn := Max(T_CLIPY1, Cy - rY) - cY;
-    ymx := Min(T_CLIPY2 -1, Cy + rY) - cY;
-    w := SCREENSTRIDE - (xmx - xmn + 1);
+    Rx := Abs(Rx);
+    Ry := Abs(Ry);
 
-    DstA := pByte(NativeUInt(SCREENPOINTER) + (xmn + cX) + ((ymn + cY) * SCREENSTRIDE));
+    Rx2 := Rx * Rx;
+    Ry2 := Ry * Ry;
+    twoRx2 := 2 * Rx2;
+    twoRy2 := 2 * Ry2;
+    x := 0;
+    y := Ry;
+    px := 0;
+    py := twoRx2 * y;
 
-    If T_OVER = 0 Then Begin
+    cxpx := Cx + X; cypy := Cy + Y;
+    cxmx := Cx - X; cymy := Cy - Y;
 
-      y := ymn;
-      While y <= ymx Do Begin
-        rx2 := y*Rx*y*Rx;
-        x := xmn;
-        While x <= xmx Do Begin
-          If x*rY*x*rY+rx2 <= r Then
-            DstA^ := Ink;
-          Inc(DstA);
-          Inc(x);
-        End;
-        Inc(DstA, w);
-        Inc(y);
-      End;
-
-    End Else Begin
-
-      y := ymn;
-      While y <= ymx Do Begin
-        rx2 := y*Rx*y*Rx;
-        x := xmn;
-        While x <= xmx Do Begin
-          If x*rY*x*rY+rx2 <= r Then
-            SP_OverPixelPtrVal(DstA, Ink, T_OVER);
-          Inc(DstA);
-          Inc(x);
-        End;
-        Inc(DstA, w);
-        Inc(y);
-      End;
-
+    SP_SetPixel(cxpx, cypy);
+    SP_SetPixel(cxpx, cymy);
+    If cxmx <> cxpx Then Begin
+      SP_SetPixel(cxmx, cymy);
+      SP_SetPixel(cxmx, cypy);
     End;
+
+    p := Ry2 - (Rx2 * Ry) + (Rx2 div 4);
+    lcypy := cypy;
+    lcymy := cymy;
+
+    while px < py do begin
+       Inc(x);
+       Inc(px, twoRy2);
+       if p < 0 then
+          Inc(p, Ry2 + px)
+       else begin
+          Dec(y);
+          Dec(py, twoRx2);
+          Inc(p, Ry2 + px - py);
+          dec(cypy);
+          inc(cymy);
+       end;
+       inc(cxpx);
+       dec(cxmx);
+       if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
+       if (lcymy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
+       lcypy := cypy;
+       lcymy := cymy;
+    end;
+
+    {$R-}
+    p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
+    {$R-}
+    while y > 0 do begin
+       Dec(y);
+       Dec(py, twoRx2);
+       if p > 0 then
+          Inc(p, Rx2 - py)
+       else begin
+          Inc(x);
+          Inc(px, twoRy2);
+          Inc(p, Rx2 - py + px);
+          inc(cxpx);
+          dec(cxmx);
+       end;
+       dec(cypy);
+       inc(cymy);
+       if (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
+       if (y > 0) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
+    end;
 
   End Else
 

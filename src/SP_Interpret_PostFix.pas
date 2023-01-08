@@ -11283,6 +11283,7 @@ End;
 Procedure SP_Interpret_CIRCLE(Var Info: pSP_iInfo);
 Var
   R, dX, dY, Aspect, Radius1, Radius2: aFloat;
+  xPos, yPos: Integer;
 Begin
 
   Aspect := (ScaleWidth/DisplayWidth)/(ScaleHeight/DisplayHeight);
@@ -11312,7 +11313,18 @@ Begin
   SP_ConvertToOrigin_d(dX, dY);
   If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
 
-  SP_DrawEllipse(Round(dX), Round(dY), Round(Radius1), Round(Radius2));
+  xPos := Round(dX);
+  yPos := Round(dY);
+  if (Radius1 > 0) and (Radius1 <= 0.5) and (Radius2 > 0) and (Radius2 <= 0.5) Then Begin
+    If SCREENBPP = 8 Then
+      SP_SetPixel(xPos, yPos)
+    Else
+      SP_SetPixel32(xPos, yPos);
+    If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
+    Exit;
+  End;
+
+  SP_DrawEllipse(xPos, yPos, Round(Radius1), Round(Radius2));
 
   SP_NeedDisplayUpdate := True;
 
@@ -11321,7 +11333,7 @@ End;
 Procedure SP_Interpret_CIRCLEFILL(Var Info: pSP_iInfo);
 Var
   Aspect, R, dX, dY, Radius1, Radius2: aFloat;
-  tW, tH, BankID: Integer;
+  tW, tH, BankID, xPos, yPos: Integer;
   TextureStr: aString;
   Valid, BankFill, Bits32: Boolean;
   gBank: pSP_Bank;
@@ -11380,8 +11392,19 @@ Begin
 
   If Not BankFill Then Begin
     Valid := False;
+    xPos := Round(dX);
+    yPos := Round(dY);
+    if (Radius1 > 0) and (Radius1 <= 0.5) and (Radius2 > 0) and (Radius2 <= 0.5) Then Begin
+      If SCREENBPP = 8 Then
+        SP_SetPixel(xPos, yPos)
+      Else
+        SP_SetPixel32(xPos, yPos);
+      If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
+      Exit;
+    End;
+
     If TextureStr = '' Then
-      SP_DrawSolidEllipse(Round(dX), Round(dY), Abs(Round(Radius1)), Abs(Round(Radius2)))
+      SP_DrawSolidEllipse(xPos, yPos, Abs(Round(Radius1)), Abs(Round(Radius2)))
     Else Begin
       If Length(TextureStr) > 10 Then Begin
         tW := pLongWord(@TextureStr[1])^;
@@ -11401,14 +11424,14 @@ Begin
       Bits32 := TextureStr[10] = #32;
       If Bits32 Then Begin
         If SCREENBPP = 32 Then
-          SP_DrawTexEllipse32To32(Round(dX), Round(dY), Abs(Round(Radius1)), Abs(Round(Radius2)), TextureStr, tW, tH)
+          SP_DrawTexEllipse32To32(xPos, yPos, Abs(Round(Radius1)), Abs(Round(Radius2)), TextureStr, tW, tH)
         Else
           Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
       End Else
         If SCREENBPP = 8 Then
-          SP_DrawTexEllipse(Round(dX), Round(dY), Abs(Round(Radius1)), Abs(Round(Radius2)), TextureStr, tW, tH)
+          SP_DrawTexEllipse(xPos, yPos, Abs(Round(Radius1)), Abs(Round(Radius2)), TextureStr, tW, tH)
         Else
-          SP_DrawTexEllipse8To32(Round(dX), Round(dY), Abs(Round(Radius1)), Abs(Round(Radius2)), TextureStr, tW, tH);
+          SP_DrawTexEllipse8To32(xPos, yPos, Abs(Round(Radius1)), Abs(Round(Radius2)), TextureStr, tW, tH);
     End;
   End;
 
@@ -12958,9 +12981,9 @@ Begin
 
   SP_StackPtr^.Val := 1;
   Inc(SP_StackPtr);
-  SP_StackPtr^.Val := Screen.Width;
+  SP_StackPtr^.Val := REALSCREENWIDTH;
   Inc(SP_StackPtr);
-  SP_StackPtr^.Val := Screen.Height;
+  SP_StackPtr^.Val := REALSCREENHEIGHT;
   Inc(SP_StackPtr);
   SP_StackPtr^.Val := Win^.Width;
   Inc(SP_StackPtr);

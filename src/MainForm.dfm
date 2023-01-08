@@ -15,6 +15,7 @@ object Main: TMain
   GlassFrame.Enabled = True
   KeyPreview = True
   OldCreateOrder = False
+  Scaled = False
   OnActivate = FormActivate
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate

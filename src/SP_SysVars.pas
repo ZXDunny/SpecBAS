@@ -450,7 +450,7 @@ Var
   MODALWINDOW:              Integer;
   USERMOUSEVISIBLE:         Boolean = True;
   REALSCREENWIDTH,
-  REALSCREENHEIGHT:         LongWord;
+  REALSCREENHEIGHT:         Integer;
   FocusedWindow:            Integer;
   ScaledWidth,
   ScaledHeight:             Integer;

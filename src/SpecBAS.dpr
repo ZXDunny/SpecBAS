@@ -24,6 +24,7 @@ program SpecBAS;
 
 uses
 {$IFnDEF FPC}
+  Windows,
 {$ELSE}
   Interfaces,
 {$ENDIF}
@@ -32,6 +33,7 @@ uses
 
 {$R *.res}
 begin
+  SetProcessDPIAware;
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.Title := 'SpecBAS';

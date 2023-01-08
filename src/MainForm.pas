@@ -200,9 +200,9 @@ Begin
   StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
 
-   While Not QUITMSG Do Begin
+  While Not QUITMSG Do Begin
 
-    FRAMES := Round((CB_GETTICKS - StartTime)/FRAME_MS);
+    FRAMES := Trunc((CB_GETTICKS - StartTime)/FRAME_MS);
     If FRAMES <> LastFrames Then Begin
 
       FrameElapsed := True;
@@ -447,7 +447,7 @@ End;
 
 Function SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
 Var
-  l, t, w, h: NativeUInt;
+  l, t, w, h: NativeInt;
   r: TRect;
 Begin
 
@@ -492,8 +492,8 @@ Begin
       l := ((r.Right - r.Left) - Main.Width) Div 2;
       t := ((r.Bottom - r.Top) - Main.Height) Div 2;
     End Else Begin
-      l := WINLEFT; //(Screen.Width - sWidth) Div 2;
-      t := WINTOP; //(Screen.Height - sHeight) Div 2;
+      l := WINLEFT;
+      t := WINTOP;
     End;
   End;
 
@@ -505,6 +505,7 @@ function TestScreenResolution(Width, Height: Integer; FullScreen: Boolean): Bool
 var
   DeviceMode: TDeviceMode;
   hMod, wMod: Integer;
+  error: TSP_ErrorCode;
 begin
 
   If FullScreen Then Begin
@@ -515,13 +516,26 @@ begin
       dmPelsHeight := Height;
       dmFields := DM_PELSWIDTH or DM_PELSHEIGHT;
     end;
-    Result := ChangeDisplaySettings(DeviceMode, CDS_TEST) = DISP_CHANGE_SUCCESSFUL;
+    hMod := ChangeDisplaySettings(DeviceMode, CDS_TEST);
+    Result := hMod = DISP_CHANGE_SUCCESSFUL;
+    if Not Result then
+      SP_PRINT(-1,0,0,-1,IntToString(hMod)+','+inttostring(width)+'x'+inttostring(height),0,8,error);
 
+{
+DISP_CHANGE_SUCCESSFUL
+DISP_CHANGE_BADDUALVIEW
+DISP_CHANGE_BADFLAGS
+DISP_CHANGE_BADMODE
+DISP_CHANGE_BADPARAM
+DISP_CHANGE_FAILED
+DISP_CHANGE_NOTUPDATED
+DISP_CHANGE_RESTART
+}
   End Else Begin
 
     hMod := Main.Height - Main.ClientHeight;
     wMod := Main.Width - Main.ClientWidth;
-    Result := (Width + wMod <= Screen.Width) and (Height + hMod <= Screen.Height);
+    Result := (Width + wMod <= REALSCREENWIDTH) and (Height + hMod <= REALSCREENHEIGHT);
 
   End;
 end;
@@ -908,8 +922,10 @@ begin
 
   DisplaySection.Enter;
 
-  OrgWidth := Screen.Width;
-  OrgHeight := Screen.Height;
+  REALSCREENWIDTH := Round(Screen.Width);
+  REALSCREENHEIGHT := Round(Screen.Height);
+  OrgWidth := REALSCREENWIDTH;
+  OrgHeight := REALSCREENHEIGHT;
 
   MOUSEVISIBLE := FALSE;
 
@@ -1006,8 +1022,6 @@ begin
   ScrHeight := 480;
   SCALEWIDTH := 800;
   SCALEHEIGHT := 480;
-  REALSCREENWIDTH := Screen.Width;
-  REALSCREENHEIGHT := Screen.Height;
   MENUBLOCK := False;
 
   Application.OnActivate := OnActivate;
@@ -1030,7 +1044,7 @@ begin
   CB_MouseMove := MouseMoveTo;
 
   SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
-  SetBounds((Screen.Width - Width) Div 2, (Screen.Height - Height) Div 2, Width, Height);
+  SetBounds((REALSCREENWIDTH - Width) Div 2, (REALSCREENHEIGHT - Height) Div 2, Width, Height);
   RefreshTimer := TRefreshThread.Create(False);
 
   WINLEFT := Left;

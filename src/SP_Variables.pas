@@ -2901,7 +2901,7 @@ Var
           End;
         SP_VALUE:
           Begin
-            If (Idx + Token^.TokenLen < Length(Tokens)) and (pToken(@Tokens[Idx + Token^.TokenLen])^.Token = SP_FUNCTION) Then Begin
+            If (Idx + Token^.TokenLen < LongWord(Length(Tokens))) and (pToken(@Tokens[Idx + Token^.TokenLen])^.Token = SP_FUNCTION) Then Begin
               Kwd := pLongWord(@Tokens[Idx + Token^.TokenLen + SizeOf(TToken)])^;
               If (Kwd = SP_FN_IIF) or (Kwd = SP_FN_IIFS) Then Begin
                 // Found a value followed by an IIF or IIF$.

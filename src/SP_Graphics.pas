@@ -3111,7 +3111,6 @@ var
     End;
   End;
 
-
 begin
 
   If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
@@ -3151,36 +3150,40 @@ begin
     cxpx := Cx + X; cypy := Cy + Y;
     cxmx := Cx - X; cymy := Cy - Y;
 
-    SP_SetPixelClr(cxpx, cypy, pByte(TexBase + ((cxpx mod Integer(tW)) + ((cypy mod Integer(tH)) * Integer(tw))))^);
-    SP_SetPixelClr(cxpx, cymy, pByte(TexBase + ((cxpx mod Integer(tW)) + ((cymy mod Integer(tH)) * Integer(tw))))^);
+    if Ry = 1 Then Begin
+      SP_SetPixelClr(cxpx, cypy, pByte(TexBase + ((cxpx mod Integer(tW)) + ((cypy mod Integer(tH)) * Integer(tw))))^);
+      SP_SetPixelClr(cxpx, cymy, pByte(TexBase + ((cxpx mod Integer(tW)) + ((cymy mod Integer(tH)) * Integer(tw))))^);
+    End;
     If cxmx <> cxpx Then Begin
       SP_SetPixelClr(cxmx, cymy, pByte(TexBase + ((cxmx mod Integer(tW)) + ((cymy mod Integer(tH)) * Integer(tw))))^);
       SP_SetPixelClr(cxmx, cypy, pByte(TexBase + ((cxmx mod Integer(tW)) + ((cypy mod Integer(tH)) * Integer(tw))))^);
     End;
 
     p := Ry2 - (Rx2 * Ry) + (Rx2 div 4);
-    lcypy := cypy;
-    lcymy := cymy;
+    lcypy := -1;
+    lcymy := -1;
 
     while px < py do begin
-       Inc(x);
-       Inc(px, twoRy2);
-       if p < 0 then
-          Inc(p, Ry2 + px)
-       else begin
-          Dec(y);
-          Dec(py, twoRx2);
-          Inc(p, Ry2 + px - py);
-          dec(cypy);
-          inc(cymy);
-       end;
-       inc(cxpx);
-       dec(cxmx);
-       if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cypy);
-       if (lcymy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cymy);
-       lcypy := cypy;
-       lcymy := cymy;
+      Inc(x);
+      Inc(px, twoRy2);
+      if p < 0 then
+        Inc(p, Ry2 + px)
+      else begin
+        if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cypy);
+        if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cymy);
+        lcypy := cypy;
+        lcymy := cymy;
+        Dec(y);
+        Dec(py, twoRx2);
+        Inc(p, Ry2 + px - py);
+        dec(cypy);
+        inc(cymy);
+      end;
+      inc(cxpx);
+      dec(cxmx);
     end;
+    if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cypy);
+    if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cymy);
 
     {$R-}
     p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
@@ -3200,7 +3203,7 @@ begin
        dec(cypy);
        inc(cymy);
        if (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cypy);
-       if (y > 0) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cymy);
+       if (y > 0) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cymy);
     end;
 
   End Else
@@ -3268,36 +3271,40 @@ begin
     cxpx := Cx + X; cypy := Cy + Y;
     cxmx := Cx - X; cymy := Cy - Y;
 
-    SP_SetPixel(cxpx, cypy);
-    SP_SetPixel(cxpx, cymy);
+    If Ry = 1 Then Begin
+      SP_SetPixel(cxpx, cypy);
+      SP_SetPixel(cxpx, cymy);
+    End;
     If cxmx <> cxpx Then Begin
       SP_SetPixel(cxmx, cymy);
       SP_SetPixel(cxmx, cypy);
     End;
 
     p := Ry2 - (Rx2 * Ry) + (Rx2 div 4);
-    lcypy := cypy;
-    lcymy := cymy;
+    lcypy := -1;
+    lcymy := -1;
 
     while px < py do begin
-       Inc(x);
-       Inc(px, twoRy2);
-       if p < 0 then
-          Inc(p, Ry2 + px)
-       else begin
-          Dec(y);
-          Dec(py, twoRx2);
-          Inc(p, Ry2 + px - py);
-          dec(cypy);
-          inc(cymy);
-       end;
-       inc(cxpx);
-       dec(cxmx);
-       if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
-       if (lcymy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
-       lcypy := cypy;
-       lcymy := cymy;
+      Inc(x);
+      Inc(px, twoRy2);
+      if p < 0 then
+        Inc(p, Ry2 + px)
+      else begin
+        if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
+        if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
+        lcypy := cypy;
+        lcymy := cymy;
+        Dec(y);
+        Dec(py, twoRx2);
+        Inc(p, Ry2 + px - py);
+        dec(cypy);
+        inc(cymy);
+      end;
+      inc(cxpx);
+      dec(cxmx);
     end;
+    if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
+    if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
 
     {$R-}
     p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
@@ -3317,7 +3324,7 @@ begin
        dec(cypy);
        inc(cymy);
        if (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
-       if (y > 0) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
+       if (y > 0) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
     end;
 
   End Else

@@ -111,7 +111,7 @@ Type
   TSP_InterpretProc = Procedure(Var Info: pSP_iInfo);
   pSP_InterpretProc = ^TSP_InterpretProc;
 
-Procedure SP_Execute(Line: aString; Var Error: TSP_ErrorCode);
+Procedure SP_Execute(Line: aString; InitInterpreter: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_Interpreter(Var Tokens: paString; Var Position: Integer; Var Error: TSP_ErrorCode; PreParseErrorCode: Integer; Continue: Boolean = False);
 
 Procedure DoPeriodicalEvents(var Error: TSP_ErrorCode);
@@ -1015,7 +1015,7 @@ implementation
 
 Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, RunTimeCompiler, SP_Util2;
 
-Procedure SP_Execute(Line: aString; Var Error: TSP_ErrorCode);
+Procedure SP_Execute(Line: aString; InitInterpreter: Boolean; Var Error: TSP_ErrorCode);
 Var
   Tokens: paString;
   aSave: Boolean;
@@ -1036,7 +1036,7 @@ Begin
   NXTSTATEMENT := -1;
   NXTLINE := -1;
   SP_StackPtr := SP_StackStart;
-  SP_PreParse(False, False, Error, Tokens^);
+  SP_PreParse(InitInterpreter, InitInterpreter, Error, Tokens^);
   PROGSTATE := SP_PR_RUN;
   SP_Interpreter(Tokens, Error.Position, Error, Error.Code);
 
@@ -1173,13 +1173,13 @@ End;
 Procedure SP_Interpret_COMPILE(Var Info: pSP_iInfo);
 var
   sFilename, dFilename, Dir: String;
-  payLoadData: aString;
+  payLoadData, Caption: aString;
   payLoad: TPayLoad;
   Line, NumBanks: Integer;
   Banks: Array of Integer;
-//  {$IFDEF DEBUG}
-//  s: TFileStream;
-//  {$ENDIF}
+  {$IFDEF DEBUG}
+  s: TFileStream;
+  {$ENDIF}
 Begin
 
   // Create an executable with the current program as a payload.
@@ -1187,6 +1187,9 @@ Begin
   Dir := ExtractFilePath(EXENAME);
   sFilename := EXENAME;
   dFilename := String(SP_StackPtr^.Str);
+  Dec(SP_StackPtr);
+
+  Caption := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
 
   Line := Trunc(SP_StackPtr^.Val);
@@ -1212,18 +1215,18 @@ Begin
       DeleteFile(dFilename);
     CopyFile(sFilename, dFilename);
     {$ENDIF}
-    payLoadData := MakeDataPayload(Line, Banks);
+    payLoadData := MakeDataPayload(Line, Caption, Banks);
     payLoad := TPayLoad.Create(dFilename);
     payload.SetPayload(payLoadData[1], Length(PayLoadData));
     payLoad.Free;
-//    {$IFDEF DEBUG}
-//    sFilename := Dir + 'payload.bin';
-//    if FileExists(sFilename) then
-//      TFile.Delete(sFilename);
-//    s := TFileStream.Create(sFilename, fmCreate);
-//    s.Write(payLoadData[1], Length(payLoadData));
-//    s.Free;
-//    {$ENDIF}
+    {$IFDEF DEBUG}
+    sFilename := Dir + 'payload.bin';
+    if FileExists(sFilename) then
+      TFile.Delete(sFilename);
+    s := TFileStream.Create(sFilename, fmCreate);
+    s.Write(payLoadData[1], Length(payLoadData));
+    s.Free;
+    {$ENDIF}
   End;
 
 End;
@@ -13868,7 +13871,7 @@ Begin
 
     If SP_FileExists('s:startup-sequence') Then Begin
       Dir := SP_GetCurrentDir;
-      SP_Execute('LOAD "s:startup-sequence": RUN', Error^);
+      SP_Execute('LOAD "s:startup-sequence": RUN', False, Error^);
       SP_SetCurrentDir(Dir, Error^);
     End;
 

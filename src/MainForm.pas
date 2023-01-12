@@ -100,6 +100,7 @@ type
   Procedure SaveImage(Filename: aString; w, h: Integer; Pixels, Palette: pByte);
   Procedure FreeImageResource;
   Procedure UpdateLinuxBuildStr;
+  Procedure SetWindowCaption;
 
 var
   Main: TMain;
@@ -908,6 +909,17 @@ Begin
 
 End;
 
+Procedure SetWindowCaption;
+Var
+  s: aString;
+Begin
+  if WCAPTION <> '' Then
+    s := WCAPTION
+  Else
+    s := aString(ChangeFileExt(ExtractFilename(ParamStr(0)), ''));
+  Main.Caption := String(s);
+End;
+
 procedure TMain.FormCreate(Sender: TObject);
 Var
   Path: Array [0..MAX_PATH] of Char;
@@ -1042,6 +1054,7 @@ begin
   CB_Free_Image := FreeImageResource;
   CB_Messages := MsgProc;
   CB_MouseMove := MouseMoveTo;
+  CB_SETWINDOWCAPTION := SetWindowCaption;
 
   SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
   SetBounds((REALSCREENWIDTH - Width) Div 2, (REALSCREENHEIGHT - Height) Div 2, Width, Height);

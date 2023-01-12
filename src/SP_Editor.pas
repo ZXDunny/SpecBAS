@@ -73,10 +73,12 @@ Var
   Info: TSP_iInfo;
   tStr: aString;
   s: aString;
-  ps, i: Integer;
-//  {$IFDEF DEBUG}
-//  fs: TFileStream;
-//  {$ENDIF}
+  i: Integer;
+  {$IFDEF DEBUG}
+  fs: TFileStream;
+  {$ELSE}
+  ps: Integer;
+  {$ENDIF}
 Label
   RunTimeExit;
 Begin
@@ -84,9 +86,9 @@ Begin
   Info.Error := @Error;
   pInfo := @Info;
 
-//  {$IFDEF DEBUG}
-//  PAYLOADPRESENT := True;
-//  {$ENDIF}
+  {$IFDEF DEBUG}
+  PAYLOADPRESENT := FileExists(ExtractFilePath(EXENAME) + 'payload.bin');
+  {$ENDIF}
   If Not PAYLOADPRESENT Then begin
 
     SP_InitFPEditor;
@@ -110,12 +112,12 @@ Begin
     MaxCompileLines := -1;
     MaxDirtyLines := -1;
     If SP_FileExists('s:startup-sequence') Then Begin
-      SP_Execute('LOAD "s:startup-sequence": RUN', Error);
+      SP_Execute('LOAD "s:startup-sequence": RUN', False, Error);
       // Clear any errors, as we just ignore them.
       Error.Code := SP_ERR_OK;
     End Else
       If SP_FileExists('startup-sequence') Then Begin
-        SP_Execute('LOAD "startup-sequence": RUN', Error);
+        SP_Execute('LOAD "startup-sequence": RUN', False, Error);
         // Clear any errors, as we just ignore them.
         Error.Code := SP_ERR_OK;
       End;
@@ -140,7 +142,7 @@ Begin
         CompilerThread := TCompilerThread.Create(False);
         SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
         SP_Interpreter_Ready := True;
-        SP_Execute('RUN '+IntToString(CurLine), Error);
+        SP_Execute('RUN '+IntToString(CurLine), True, Error);
       End;
       SP_Interpret_QUIT(pInfo);
       Exit;
@@ -190,27 +192,28 @@ Begin
 
     // run the payload
 
-//    {$IFDEF DEBUG}
-//    s := ExtractFilePath(EXENAME) + 'payload.bin';
-//    If FileExists(s) Then Begin
-//      fs := TFileStream.Create(s, fmOpenRead);
-//      SetLength(s, fs.size);
-//      fs.read(s[1], fs.Size);
-//      fs.Free;
-//    End;
-//    {$ELSE}
+    {$IFDEF DEBUG}
+    s := aString(ExtractFilePath(EXENAME) + 'payload.bin');
+    If FileExists(String(s)) Then Begin
+      fs := TFileStream.Create(String(s), fmOpenRead);
+      SetLength(s, fs.size);
+      fs.read(s[1], fs.Size);
+      fs.Free;
+    End;
+    {$ELSE}
     ps := PayLoad.PayloadSize;
     SetLength(s, ps);
     PayLoad.GetPayLoad(s[1]);
-//    {$ENDIF}
+    {$ENDIF}
     CurLine := UnPackPayload(s);
+    CB_SETWINDOWCAPTION;
     For i := 0 To SP_Program_Count -1 do
       SP_AddHandlers(SP_Program[i]);
     NXTLINE := CurLine;
     If CurLine = -1 Then CurLine := 0;
     SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
     SP_Interpreter_Ready := True;
-    SP_Execute('GO TO '+IntToString(CurLine), Error);
+    SP_Execute('GO TO '+IntToString(CurLine), True, Error);
 
     SP_Interpret_QUIT(pInfo);
 

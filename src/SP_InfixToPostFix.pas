@@ -11553,12 +11553,18 @@ var
   BankExpr: aString;
 Begin
 
-  // COMPILE strexpr [LINE numexpr] [BANK id[,id..]]
+  // COMPILE strexpr[,strexpr] [LINE numexpr] [BANK id[,id..]]
 
-  Result := SP_Convert_Expr(Tokens, Position, Error, -1);
+  Result := SP_Convert_Expr(Tokens, Position, Error, -1); // filename
   If Error.Code = SP_ERR_OK Then
     If Error.ReturnType <> SP_STRING Then
       Error.Code := SP_ERR_MISSING_STREXPR;
+
+  If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ',') Then Begin // window caption
+    Inc(Position, 2);
+    Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result;
+  End Else
+    Result := CreateToken(SP_STRING, Position, 0) + Result;
 
   If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_LINE) Then Begin
     Inc(Position, 1 + SizeOf(Longword));

@@ -443,6 +443,7 @@ Var
 
   INITMS:                   LongWord;     // The time that SpecBAS was started, in MS.
 
+  WCAPTION:                 aString;      // Window caption for compiled executables
   WINLEFT,
   WINTOP,
   WINWIDTH,

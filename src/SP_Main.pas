@@ -50,6 +50,7 @@ Type
   TCB_InitSticks = Procedure;
   TCB_ReleaseSticks = Procedure;
   TCB_MouseMove = Procedure(ToX, ToY: integer);
+  TCB_CAPTIONPROC = Procedure;
 
 Function  SP_FrameUpdate: Boolean;
 Procedure DoAutoSave(SaveOLD: Boolean = False);
@@ -70,6 +71,7 @@ Function  SP_GetLineNumber(Index: Integer): Integer;
 
 Var
 
+  CB_SETWINDOWCAPTION: TCB_CAPTIONPROC;
   CB_Messages: TCB_MsgProc;
   CB_Yield: TCB_YieldProc;
   CB_Quit: TCB_QuitProc;

@@ -989,8 +989,13 @@ begin
       BUILDSTR := BUILDSTR + ' x64';
     {$ENDIF}
     {$IFDEF DEBUG}
-      BUILDSTR := BUILDSTR + ' [Debug]';
+      BUILDSTR := BUILDSTR + ' [Debug';
     {$ENDIF}
+    if (DebugHook <> 0) or IsDebuggerPresent then BUILDSTR := BUILDSTR + ' IDE';
+    {$IFDEF DEBUG}
+      BUILDSTR := BUILDSTR + ']';
+    {$ENDIF}
+
 
     // Set the HOME folder - if we're loading a parameter file, extract the
     // directory and set that as HOMEFOLDER

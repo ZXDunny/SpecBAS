@@ -463,6 +463,8 @@ Var
 
 Const
 
+  MAXDEPTH = 1024 * 1024;
+
   SS_INPUT =            0;
   SS_PAUSE =            1;
   SS_INTERPRET =        2;

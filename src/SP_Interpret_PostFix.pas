@@ -947,11 +947,11 @@ Procedure SP_Interpret_SP_RESTORECOLOURS(Var Info: pSP_iInfo);
 
 Var
 
-  SP_CaseList: Array[0..1023] of TSP_CaseItem;
+  SP_CaseList: Array[0..MAXDEPTH -1] of TSP_CaseItem;
   SP_CaseListPtr: Integer;
-  SP_ProcsList: Array [0..1023] of TSP_ProcItem;
+  SP_ProcsList: Array [0..MAXDEPTH -1] of TSP_ProcItem;
   SP_ProcsListPtr: Integer;
-  SP_Stack: Array [0..1023] of SP_StackItem;
+  SP_Stack: Array [0..MAXDEPTH -1] of SP_StackItem;
   SP_StackPtr, SP_StackStart: pSP_StackItem;
   SP_EveryItems: Array of TSP_EveryItem;
   SP_EveryCount: Integer = 0;
@@ -3709,7 +3709,7 @@ Var
   cLine, cStatement: Integer;
 Begin
   Inc(INPROC);
-  If INPROC > 1023 Then
+  If INPROC >= MAXDEPTH Then
     Error.Code := SP_ERR_OUT_OF_MEMORY
   Else Begin
     cLine := CONTLINE;
@@ -6373,7 +6373,7 @@ Procedure SP_Interpret_FN_DAYS(Var Info: pSP_iInfo);
 Begin
   With SP_StackPtr^ Do Begin
     OpType := SP_STRING;
-    Str := Days[DayOfWeek(SP_StackPtr^.Val) -2];
+    Str := Days[(DayOfWeek(SP_StackPtr^.Val) +5) Mod 7];
   End;
 End;
 
@@ -8334,6 +8334,7 @@ Begin
     PRPOSX := Round(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
     SP_ConvertToOrigin_d(PRPOSX, PRPOSY);
+    If WINFLIPPED Then PRPOSY := (SCREENHEIGHT - 1) - PRPOSY;
 
   End;
 
@@ -9832,7 +9833,7 @@ RunIt :
     CB_YIELD;
 
   SP_CLS(CPAPER);
-  SP_GOSUB_STACKLEN := 1024;
+  SP_GOSUB_STACKLEN := MAXDEPTH;
   SetLength(SP_GOSUB_Stack, SP_GOSUB_STACKLEN);
   SP_GOSUB_STACKPTR := 0;
   IGNORE_ON_ERROR := False;
@@ -16418,7 +16419,7 @@ FoundIt:
       // Finally, having got correct parameters, we set up a procstack entry for this
       // procedure
 
-      If SP_ProcStackPtr <= 1023 Then Begin
+      If SP_ProcStackPtr < MAXDEPTH Then Begin
 
         Inc(SP_ProcStackPtr);
         With SP_ProcStack[SP_ProcStackPtr] Do Begin
@@ -16482,7 +16483,7 @@ FoundIt:
         End;
         Error.ReturnType := SP_JUMP;
         Inc(INPROC);
-        If INPROC > 1023 Then
+        If INPROC >= MAXDEPTH Then
           Error.Code := SP_ERR_OUT_OF_MEMORY;
 
       End Else
@@ -22744,7 +22745,7 @@ Begin
   // Add the current CASE information to the case-stack - the value to match, the line and statement of the END CASE
   // and the "completed" flag set to false.
 
-  If SP_CaseListPtr > 1023 Then
+  If SP_CaseListPtr >= MAXDEPTH Then
     Info^.Error^.Code := SP_ERR_OUT_OF_MEMORY
   Else Begin
 

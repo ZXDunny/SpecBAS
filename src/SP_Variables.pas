@@ -274,7 +274,7 @@ Var
   SP_DATA_Line: TSP_GOSUB_Item;
   SP_DATA_Tokens: paString;
   ProcListAvailable: Boolean;
-  SP_ProcStack: Array [0 .. 1023] of TSP_ProcStackItem;
+  SP_ProcStack: Array [0 .. MAXDEPTH -1] of TSP_ProcStackItem;
   SP_ProcStackPtr: Integer;
 
 Const

@@ -8353,7 +8353,7 @@ Begin
 
       Idx := 0;
       While Idx < NewList.Count Do Begin
-        If (pLongWord(@NewList[Idx][1])^ = spSoftReturn) or (Idx = 0) Then Begin
+        If (NewList[Idx][1 + (SizeOf(LongWord) * 2)] in ['0'..'9']) or (Idx = 0) Then Begin
           nl := SP_GetLineNumberFromText(Copy(NewList[Idx], 9));
           If nl >= LineNum Then Break;
         End;

@@ -139,8 +139,13 @@ Begin
   FPFileMenu.AddItem(CreateItem('&MERGE ""', True, True, False, False, '', Nil, SP_MenuActionProcs.FPMenu_MERGEQQ));
   FPFileMenu.AddItem(CreateItem('Recent Files', Length(SP_RecentFiles) > 0, True, False, False, '', FPRecentMenu, Nil));
   FPFileMenu.AddItem(CreateItem('-', True, True, False, False, '', Nil, Nil));
-  FPFileMenu.AddItem(CreateItem('&SAVE "' + SP_ExtractFileName(PROGNAME) + '"', FILENAMED, True, False, False, 'K_CTRL,K_S', Nil, SP_MenuActionProcs.FPMenu_SAVE));
-  FPFileMenu.AddItem(CreateItem('S&ave as...', True, True, False, False, '', Nil, SP_MenuActionProcs.FPMenu_SAVEQQ));
+  If FILENAMED Then Begin
+    FPFileMenu.AddItem(CreateItem('&SAVE "' + SP_ExtractFileName(PROGNAME) + '"', True, True, False, False, 'K_CTRL,K_S', Nil, SP_MenuActionProcs.FPMenu_SAVE));
+    FPFileMenu.AddItem(CreateItem('S&ave as...', True, True, False, False, '', Nil, SP_MenuActionProcs.FPMenu_SAVEQQ));
+  End Else Begin
+    FPFileMenu.AddItem(CreateItem('&SAVE "' + SP_ExtractFileName(PROGNAME) + '"', False, True, False, False, '', Nil, SP_MenuActionProcs.FPMenu_SAVE));
+    FPFileMenu.AddItem(CreateItem('S&ave as...', True, True, False, False, 'K_CTRL,K_S', Nil, SP_MenuActionProcs.FPMenu_SAVEQQ));
+  End;
   FPFileMenu.AddItem(CreateItem('-', True, True, False, False, '', Nil, Nil));
   FPFileMenu.AddItem(CreateItem('&Quit', True, True, False, False, '', Nil, SP_MenuActionProcs.FPMenu_QUIT));
 

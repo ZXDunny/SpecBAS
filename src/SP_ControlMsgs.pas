@@ -52,7 +52,9 @@ Begin
 
       clInterpretCommand:
         Begin
+          ControlMsgLock.Leave;
           SP_FPExecuteEditLine(ControlMsgList[0].Data);
+          ControlMsgLock.Enter;
         End;
 
       clKeyPress:

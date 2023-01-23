@@ -1839,7 +1839,8 @@ End;
 Function SP_GetNumber(Line: aString; Var Idx: Integer; Var Number: aFloat; AllowSpaces: Boolean): Boolean;
 Var
   NegExp: Boolean;
-  OldIdx, NewIdx, NumDigits, c, l: Integer;
+  NumDigits: LongWord;
+  OldIdx, NewIdx, c, l: Integer;
   Dec_Value, Dec_Count, Exponent: aFloat;
 Begin
 
@@ -1869,7 +1870,7 @@ Begin
           If Line[Idx] = '1' Then
             Number := Number + NumDigits;
           Inc(c);
-          if c>= 31 Then Begin
+          if c > 32 Then Begin
             Result := False;
             Exit;
           End;

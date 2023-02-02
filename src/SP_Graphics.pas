@@ -3615,6 +3615,8 @@ Begin
 
   End;
 
+  Error.Code := SP_ERR_OK;
+
 End;
 
 Procedure SP_PutRegion(Dst: pByte; dX, dY: Integer; dW, dH: LongWord; Src: pByte; SrcLen: Integer; RotAngle, Scale: aFloat; Var cX1, cY1, cX2, cY2: Integer; Var Error: TSP_ErrorCode);

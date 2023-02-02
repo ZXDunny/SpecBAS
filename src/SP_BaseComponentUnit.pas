@@ -1777,7 +1777,8 @@ Begin
     If Assigned(Src) Then Begin
       cx1 := 0; cy1 := 0; cx2 := width; cy2 := height;
       SP_GetRegion(Src, w, h, Source, Left, Top, Width, Height, -1, Error);
-      SP_PutRegion(Dst, 0, 0, Width, Height, @Source[1], Length(Source), 0, 1, cx1, cy1, cx2, cy2, Error);
+      If Error.Code = SP_ERR_OK Then
+        SP_PutRegion(Dst, 0, 0, Width, Height, @Source[1], Length(Source), 0, 1, cx1, cy1, cx2, cy2, Error);
     End;
   End;
 

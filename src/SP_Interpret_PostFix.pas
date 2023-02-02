@@ -9619,7 +9619,7 @@ Begin
   SplitString := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
 
-  If (SplitCnt <> 0) And Not ((SplitCnt = 1) And (Splitters[1] = ' ')) Then Begin
+  If (SplitCnt <> 0) And Not ((SplitCnt = 1) And (Splitters[0] = ' ')) Then Begin
 
     If Length(SplitString) > 0 Then Begin
 
@@ -12187,13 +12187,15 @@ End;
 
 Procedure SP_Interpret_PALETTE(Var Info: pSP_iInfo);
 Var
+  v: aFloat;
   Val1, Val2, Val3, Val4: Integer;
 Begin
 
   Val1 := Trunc(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  Val2 := Trunc(SP_StackPtr^.Val);
+  v := SP_StackPtr^.Val;
+  Val2 := Trunc(v);
   Dec(SP_StackPtr);
 
   If SP_StackPtr <> SP_StackStart Then Begin
@@ -12211,7 +12213,7 @@ Begin
 
   End Else Begin
 
-    SP_SetWindowPalette(Val2, (Val1 Shr 16) And $FF, (Val1 Shr 8) And $FF, Val1 And $FF);
+    SP_SetWindowPalette(Round(v), (Val1 Shr 16) And $FF, (Val1 Shr 8) And $FF, Val1 And $FF);
 
   End;
 

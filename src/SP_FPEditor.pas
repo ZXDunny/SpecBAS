@@ -8826,7 +8826,7 @@ Begin
 
     cnt := 0;
     i := CPos -1;
-    While i > 0 Do Begin
+    While (i > 0) And (i < Length(s)) Do Begin
       If s[i] = c Then
         Inc(cnt)
       Else

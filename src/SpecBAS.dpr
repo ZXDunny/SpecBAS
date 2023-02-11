@@ -23,13 +23,14 @@ program SpecBAS;
 {$ENDIF}
 
 uses
-{$IFnDEF FPC}
+  {$IFnDEF FPC}
   Windows,
-{$ELSE}
+  {$ELSE}
   Interfaces,
-{$ENDIF}
+  {$ENDIF }
   Forms,
-  MainForm in 'MainForm.pas' {Main};
+  MainForm in 'MainForm.pas' {Main},
+  SP_MIDI in 'SP_MIDI.pas';
 
 {$R *.res}
 begin

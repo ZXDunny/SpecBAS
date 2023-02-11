@@ -268,33 +268,40 @@ End;
 Function perlin(x, y, z: aFloat): aFloat;
 Var
   xf, yf, zf, u, v, w, x1, y1, x2, y2: aFloat;
-  xi, yi, zi, aaa, aba, aab, abb, baa, bba, bab, bbb: Integer;
+  xi, yi, zi, aaa, aba, aab, abb, baa, bba, bab, bbb, t, p: Integer;
 Begin
 
   x := Abs(x);
   y := Abs(y);
   z := Abs(z);
 
-  xi := Trunc(x) And $FF;
-  yi := Trunc(y) And $FF;
-  zi := Trunc(z) And $FF;
+  t := Trunc(x);
+  xi := t And $FF;
+  xf := x-t;
 
-  xf := x-Trunc(x);
-  yf := y-Trunc(y);
-  zf := z-Trunc(z);
+  t := Trunc(y);
+  yi := t And $FF;
+  yf := y-t;
+
+  t := trunc(z);
+  zi := t And $FF;
+  zf := z-t;
 
   u := fade(xf);
   v := fade(yf);
   w := fade(zf);
 
-  aaa := p2[p2[p2[xi]+yi]+zi];
-  aba := p2[p2[p2[xi]+yi+1]+zi];
-  aab := p2[p2[p2[xi]+yi]+zi+1];
-  abb := p2[p2[p2[xi]+yi+1]+zi+1];
-  baa := p2[p2[p2[xi+1]+yi]+zi];
-  bba := p2[p2[p2[xi+1]+yi+1]+zi];
-  bab := p2[p2[p2[xi+1]+yi]+zi+1];
-  bbb := p2[p2[p2[xi+1]+yi+1]+zi+1];
+  p := p2[xi];
+  aaa := p2[p2[p+yi]+zi];
+  aba := p2[p2[p+yi+1]+zi];
+  aab := p2[p2[p+yi]+zi+1];
+  abb := p2[p2[p+yi+1]+zi+1];
+
+  p := p2[xi+1];
+  baa := p2[p2[p+yi]+zi];
+  bba := p2[p2[p+yi+1]+zi];
+  bab := p2[p2[p+yi]+zi+1];
+  bbb := p2[p2[p+yi+1]+zi+1];
 
   x1 := lerp(grad(aaa, xf  , yf  , zf), grad(baa, xf-1, yf  , zf),	u);
   x2 := lerp(grad(aba, xf  , yf-1, zf), grad(bba, xf-1, yf-1, zf), u);

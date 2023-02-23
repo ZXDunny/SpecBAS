@@ -10691,6 +10691,8 @@ End;
 Function SP_Convert_RECTANGLE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
   Expr: aString;
+label
+  gotTO;
 Begin
 
   // RECTANGLE [ALPHA] [INK numexpr;]x1,y1{,| TO }x2,y2[FILL {fill$|GRAPHIC n}]
@@ -10699,6 +10701,9 @@ Begin
 
   Result := SP_Convert_Embedded_Colours(Tokens, Position, Error);
   If Error.Code <> SP_ERR_OK Then Exit;
+
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then
+    goto GotTo;
 
   Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
   If Error.Code <> SP_ERR_OK Then Exit;
@@ -10716,6 +10721,7 @@ Begin
       Exit;
     End;
     Result := Result + Expr;
+  GotTO:
     If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO)  Then Begin
       Inc(Position, 1 + SizeOf(LongWord));
       Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
@@ -10824,7 +10830,7 @@ Begin
         End Else
           Error.Code := SP_ERR_ILLEGAL_CHAR;
       End Else
-        Error.Code := SP_ERR_ILLEGAL_CHAR;
+        Exit;
   End Else
     Error.Code := SP_ERR_ILLEGAL_CHAR;
 

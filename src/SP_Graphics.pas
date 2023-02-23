@@ -748,8 +748,10 @@ Begin
 
   // Default font characters
 
-  For Idx := 0 To 95 Do
+  For Idx := 0 To 95 Do Begin
     SP_Font_Bank_SetChar(ID, Idx + 32, @DefaultFont[Idx * 64]);
+    SP_Font_Bank_SetChar(ID, Idx + 32 + 128, @DefaultFont[Idx * 64]);
+  End;
 
   // UDGs - block graphic characters on 1-8, and shift 1-8
 

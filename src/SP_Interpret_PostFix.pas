@@ -9432,19 +9432,18 @@ End;
 
 Procedure SP_Interpret_CLS(Var Info: pSP_iInfo);
 Var
-  Val: Integer;
+  Val: LongWord;
 Begin
 
   Val := CPAPER;
   If SP_StackPtr <> SP_StackStart Then Begin
     Val := Round(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
-    If Val <> -1 Then
-      If (pSP_Window_Info(WINDOWPOINTER)^.bpp = 8) And (Val > 255) Then Begin
-        Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-        Info^.Error^.Position := SP_StackPtr^.tPos;
-        Exit;
-      End;
+    If (pSP_Window_Info(WINDOWPOINTER)^.bpp = 8) And (Val > 255) Then Begin
+      Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+      Info^.Error^.Position := SP_StackPtr^.tPos;
+      Exit;
+    End;
   End;
 
   SP_CLS(Val);
@@ -14367,10 +14366,15 @@ Begin
   Dec(SP_StackPtr);
   X2 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-  Y1 := SP_StackPtr^.Val;
-  Dec(SP_StackPtr);
-  X1 := SP_StackPtr^.Val;
-  Dec(SP_StackPtr);
+  if NativeUInt(SP_StackPtr) > NativeUInt(SP_StackStart) then Begin
+    Y1 := SP_StackPtr^.Val;
+    Dec(SP_StackPtr);
+    X1 := SP_StackPtr^.Val;
+    Dec(SP_StackPtr);
+  End Else Begin
+    X1 := DRPOSX; X2 := X2 + DRPOSX;
+    Y1 := DRPOSY; Y2 := Y2 + DRPOSY;
+  End;
 
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
@@ -14452,10 +14456,15 @@ Begin
   Dec(SP_StackPtr);
   X2 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-  Y1 := SP_StackPtr^.Val;
-  Dec(SP_StackPtr);
-  X1 := SP_StackPtr^.Val;
-  Dec(SP_StackPtr);
+  if NativeUInt(SP_StackPtr) > NativeUInt(SP_StackStart) then Begin
+    Y1 := SP_StackPtr^.Val;
+    Dec(SP_StackPtr);
+    X1 := SP_StackPtr^.Val;
+    Dec(SP_StackPtr);
+  End Else Begin
+    X1 := DRPOSX; X2 := X2 + DRPOSX;
+    Y1 := DRPOSY; Y2 := Y2 + DRPOSY;
+  End;
 
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
@@ -24384,11 +24393,15 @@ Begin
   Dec(SP_StackPtr);
   X2 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-  Y1 := SP_StackPtr^.Val;
-  Dec(SP_StackPtr);
-  X1 := SP_StackPtr^.Val;
-  Dec(SP_StackPtr);
-
+  if NativeUInt(SP_StackPtr) > NativeUInt(SP_StackStart) then Begin
+    Y1 := SP_StackPtr^.Val;
+    Dec(SP_StackPtr);
+    X1 := SP_StackPtr^.Val;
+    Dec(SP_StackPtr);
+  End Else Begin
+    X1 := DRPOSX; X2 := X2 + DRPOSX;
+    Y1 := DRPOSY; Y2 := Y2 + DRPOSY;
+  End;
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);
   If WINFLIPPED Then Begin
@@ -24828,6 +24841,7 @@ Begin
     Dec(SP_StackPtr);
     SP_ConvertToOrigin_d(dX, dY);
     If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
+    log(floatToStr(dx)+','+floatToStr(dy));
     xPos := Round(dX); yPos := Round(dY);
     SP_SetPixel32Alpha(xPos, yPos);
     If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
@@ -25003,10 +25017,16 @@ Begin
   Dec(SP_StackPtr);
   X2 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-  Y1 := SP_StackPtr^.Val;
-  Dec(SP_StackPtr);
-  X1 := SP_StackPtr^.Val;
-  Dec(SP_StackPtr);
+
+  if NativeUInt(SP_StackPtr) > NativeUInt(SP_StackStart) then Begin
+    Y1 := SP_StackPtr^.Val;
+    Dec(SP_StackPtr);
+    X1 := SP_StackPtr^.Val;
+    Dec(SP_StackPtr);
+  End Else Begin
+    X1 := DRPOSX; X2 := X2 + DRPOSX;
+    Y1 := DRPOSY; Y2 := Y2 + DRPOSY;
+  End;
 
   SP_ConvertToOrigin_d(X1, Y1);
   SP_ConvertToOrigin_d(X2, Y2);

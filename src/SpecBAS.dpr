@@ -34,7 +34,9 @@ uses
 
 {$R *.res}
 begin
+  {$IFDEF DELPHI}
   SetProcessDPIAware;
+  {$ENDIF}
   Application.Initialize;
   Application.MainFormOnTaskbar := True;
   Application.Title := 'SpecBAS';

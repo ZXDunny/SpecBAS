@@ -8,6 +8,9 @@
       <Unit>
         <Filename Value="SpecBAS.dpr"/>
         <IsPartOfProject Value="True"/>
+        <IsVisibleTab Value="True"/>
+        <TopLine Value="9"/>
+        <CursorPos X="11" Y="38"/>
         <UsageCount Value="26"/>
         <Loaded Value="True"/>
       </Unit>
@@ -18,8 +21,8 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <EditorIndex Value="1"/>
-        <TopLine Value="7"/>
-        <CursorPos X="119" Y="31"/>
+        <TopLine Value="977"/>
+        <CursorPos X="19" Y="996"/>
         <UsageCount Value="26"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -151,10 +154,9 @@
       </Unit>
       <Unit>
         <Filename Value="SP_FPEditor.pas"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="8"/>
-        <TopLine Value="2748"/>
-        <CursorPos X="20" Y="2771"/>
+        <TopLine Value="2697"/>
+        <CursorPos X="27" Y="2771"/>
         <UsageCount Value="13"/>
         <Loaded Value="True"/>
       </Unit>
@@ -169,10 +171,6 @@
       </Unit>
     </Units>
     <JumpHistory HistoryIndex="29">
-      <Position>
-        <Filename Value="SP_FPEditor.pas"/>
-        <Caret Line="2673" TopLine="2648"/>
-      </Position>
       <Position>
         <Filename Value="SP_FPEditor.pas"/>
         <Caret Line="2674" TopLine="2648"/>
@@ -287,7 +285,11 @@
       </Position>
       <Position>
         <Filename Value="SP_FPEditor.pas"/>
-        <Caret Line="2771" TopLine="2748"/>
+        <Caret Line="2771" Column="27" TopLine="2697"/>
+      </Position>
+      <Position>
+        <Filename Value="MainForm.pas"/>
+        <Caret Line="996" Column="19" TopLine="977"/>
       </Position>
     </JumpHistory>
     <RunParams>
@@ -303,13 +305,6 @@
         <WatchKind Value="wpkWrite"/>
         <Source Value="SP_FPEditor.pas"/>
         <Line Value="2627"/>
-      </Item>
-      <Item>
-        <Kind Value="bpkSource"/>
-        <WatchScope Value="wpsLocal"/>
-        <WatchKind Value="wpkWrite"/>
-        <Source Value="SP_FPEditor.pas"/>
-        <Line Value="2771"/>
       </Item>
     </BreakPoints>
   </Debugging>

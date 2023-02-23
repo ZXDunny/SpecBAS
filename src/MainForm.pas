@@ -991,7 +991,9 @@ begin
     {$IFDEF DEBUG}
       BUILDSTR := BUILDSTR + ' [Debug';
     {$ENDIF}
+    {$IFDEF DELPHI}
     if (DebugHook <> 0) or IsDebuggerPresent then BUILDSTR := BUILDSTR + ' IDE';
+    {$ENDIF}
     {$IFDEF DEBUG}
       BUILDSTR := BUILDSTR + ']';
     {$ENDIF}

@@ -2328,7 +2328,7 @@ Begin
   SetLength(LineLUT, 0);
 
   If Not PAYLOADPRESENT Then
-    SP_CompileProgram;
+    SP_ForceCompile;
 
   sIdx := -1;
   if CmdTokens <> '' then

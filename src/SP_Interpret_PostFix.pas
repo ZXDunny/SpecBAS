@@ -14357,6 +14357,196 @@ Begin
 
 End;
 
+Procedure SP_Interpret_RECTANGLE_TO(Var Info: pSP_iInfo);
+Var
+  Y1, Y2, X1, X2: aFloat;
+Begin
+
+  Y2 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  X2 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  X1 := DRPOSX;
+  Y1 := DRPOSY;
+
+  SP_ConvertToOrigin_d(X1, Y1);
+  SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
+
+  SP_DrawRectangle(Round(X1), Round(Y1), Round(X2), Round(Y2));
+
+  SP_NeedDisplayUpdate := True;
+
+End;
+
+Procedure SP_Interpret_RECTFILL_TO(Var Info: pSP_iInfo);
+Var
+  Valid, BankFill: Boolean;
+  TextureStr: aString;
+  tW, tH, BankID: Integer;
+  X1, Y1, X2, Y2: aFloat;
+  gBank: pSP_Bank;
+  Graphic: pSP_Graphic_Info;
+Begin
+
+  tw := 0; th := 0;
+  BankFill := False;
+  If SP_StackPtr^.OpType = SP_VALUE Then Begin
+    TextureStr := '';
+    BankID := SP_FindBankID(Round(SP_StackPtr^.Val));
+    If BankID > -1 Then Begin
+      gBank := SP_BankList[BankID];
+      If gBank^.DataType = SP_GRAPHIC_BANK Then Begin
+        Graphic := @gBank^.Info[0];
+        tW := NativeUInt(Graphic^.Data);
+        tH := NativeUInt(Graphic);
+        BankFill := True;
+      End Else
+        Info^.Error^.Code := SP_ERR_INVALID_BANK;
+    End Else
+      Info^.Error^.Code := SP_ERR_BANK_NOT_FOUND;
+  End Else Begin
+    TextureStr := SP_StackPtr^.Str;
+  End;
+  Dec(SP_StackPtr);
+
+  Y2 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  X2 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  X1 := DRPOSX;
+  Y1 := DRPOSY;
+
+  SP_ConvertToOrigin_d(X1, Y1);
+  SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
+
+  If Not BankFill Then Begin
+    Valid := False;
+    If TextureStr = '' Then
+      SP_DrawSolidRectangle(Round(X1), Round(Y1), Round(X2), Round(Y2))
+    Else Begin
+      If Length(TextureStr) > 10 Then Begin
+        tW := pLongWord(@TextureStr[1])^;
+        tH := pLongWord(@TextureStr[5])^;
+        If Length(TextureStr) - 10 = tW * tH Then Valid := True;
+      End;
+      If Not Valid Then Begin
+        TextureStr := SP_StringToTexture(TextureStr);
+        If TextureStr = '' Then
+          SP_DefaultFill(TextureStr, T_INK);
+        tW := pLongWord(@TextureStr[1])^;
+        tH := pLongWord(@TextureStr[5])^;
+      End;
+      SP_DrawTexRectangle(Round(X1), Round(Y1), Round(X2), Round(Y2), TextureStr, tW, tH);
+    End;
+  End;
+
+  SP_NeedDisplayUpdate := True;
+
+End;
+
+Procedure SP_Interpret_ARECTANGLE_TO(Var Info: pSP_iInfo);
+Var
+  Y1, Y2, X1, X2: aFloat;
+Begin
+
+  Y2 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  X2 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+
+  X1 := DRPOSX;
+  Y1 := DRPOSY;
+
+  SP_ConvertToOrigin_d(X1, Y1);
+  SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
+
+  SP_DrawRectangle32Alpha(Round(X1), Round(Y1), Round(X2), Round(Y2));
+
+  SP_NeedDisplayUpdate := True;
+
+End;
+
+Procedure SP_Interpret_ARECTFILL_TO(Var Info: pSP_iInfo);
+Var
+  Valid, BankFill: Boolean;
+  TextureStr: aString;
+  tW, tH, BankID: Integer;
+  X1, Y1, X2, Y2: aFloat;
+  gBank: pSP_Bank;
+  Graphic: pSP_Graphic_Info;
+Begin
+
+  tw := 0; th := 0;
+  BankFill := False;
+  If SP_StackPtr^.OpType = SP_VALUE Then Begin
+    TextureStr := '';
+    BankID := SP_FindBankID(Round(SP_StackPtr^.Val));
+    If BankID > -1 Then Begin
+      gBank := SP_BankList[BankID];
+      If gBank^.DataType = SP_GRAPHIC_BANK Then Begin
+        Graphic := @gBank^.Info[0];
+        tW := NativeUInt(Graphic^.Data);
+        tH := NativeUInt(Graphic);
+        BankFill := True;
+      End Else
+        Info^.Error^.Code := SP_ERR_INVALID_BANK;
+    End Else
+      Info^.Error^.Code := SP_ERR_BANK_NOT_FOUND;
+  End Else Begin
+    TextureStr := SP_StackPtr^.Str;
+  End;
+  Dec(SP_StackPtr);
+
+  Y2 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  X2 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  X1 := DRPOSX;
+  Y1 := DRPOSY;
+  SP_ConvertToOrigin_d(X1, Y1);
+  SP_ConvertToOrigin_d(X2, Y2);
+  If WINFLIPPED Then Begin
+    Y1 := (SCREENHEIGHT - 1) - Y1;
+    Y2 := (SCREENHEIGHT - 1) - Y2;
+  End;
+
+  If Not BankFill Then Begin
+    Valid := False;
+    If TextureStr = '' Then
+      SP_DrawSolidRectangle32Alpha(Round(X1), Round(Y1), Round(X2), Round(Y2))
+    Else Begin
+      If Length(TextureStr) > 10 Then Begin
+        tW := pLongWord(@TextureStr[1])^;
+        tH := pLongWord(@TextureStr[5])^;
+        If Length(TextureStr) - 10 = tW * tH Then Valid := True;
+      End;
+      If Not Valid Then Begin
+        TextureStr := SP_StringToTexture(TextureStr);
+        If TextureStr = '' Then
+          SP_DefaultFill(TextureStr, T_INK);
+        tW := pLongWord(@TextureStr[1])^;
+        tH := pLongWord(@TextureStr[5])^;
+      End;
+      SP_DrawTexRectangle32Alpha(Trunc(X1), Trunc(Y1), Trunc(X2), Trunc(Y2), TextureStr, tW, tH);
+    End;
+  End;
+
+  SP_NeedDisplayUpdate := True;
+
+End;
+
 Procedure SP_Interpret_RECTANGLE(Var Info: pSP_iInfo);
 Var
   Y1, Y2, X1, X2: aFloat;
@@ -14926,7 +15116,7 @@ Begin
     NXTSTATEMENT := -1;
   End;
   SP_DeleteFile('s:oldprog', Info^.Error^);
-  SP_FileRename('s:old_temp', 's:oldprog', Info^.Error^);
+  SP_FileRename(SP_ConvertFilenameToHost('s:old_temp', Info^.Error^), SP_ConvertFilenameToHost('s:oldprog', Info^.Error^), Info^.Error^);
 
 End;
 
@@ -24841,7 +25031,6 @@ Begin
     Dec(SP_StackPtr);
     SP_ConvertToOrigin_d(dX, dY);
     If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
-    log(floatToStr(dx)+','+floatToStr(dy));
     xPos := Round(dX); yPos := Round(dY);
     SP_SetPixel32Alpha(xPos, yPos);
     If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
@@ -26016,6 +26205,10 @@ Initialization
   InterpretProcs[SP_KW_CLEAR_ERR] := @SP_Interpret_CLEAR_ERR;
   InterpretProcs[SP_KW_FILL] := @SP_Interpret_FILL;
   InterpretProcs[SP_KW_FILLTEX] := @SP_Interpret_FILLTEX;
+  InterpretProcs[SP_KW_ARECTANGLE_TO] := @SP_Interpret_ARECTANGLE_TO;
+  InterpretProcs[SP_KW_ARECTFILL_TO] := @SP_Interpret_ARECTFILL_TO;
+  InterpretProcs[SP_KW_RECTANGLE_TO] := @SP_Interpret_RECTANGLE_TO;
+  InterpretProcs[SP_KW_RECTFILL_TO] := @SP_Interpret_RECTFILL_TO;
   InterpretProcs[SP_KW_RECTANGLE] := @SP_Interpret_RECTANGLE;
   InterpretProcs[SP_KW_RECTFILL] := @SP_Interpret_RECTFILL;
   InterpretProcs[SP_KW_POLYLINE] := @SP_Interpret_POLYLINE;

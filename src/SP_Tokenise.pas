@@ -369,6 +369,7 @@ Const
   SP_KW_APPLELGR            = 1250;
   SP_KW_CPC                 = 1251;
 
+
   // These are meta-commands; they do not appear in listings, and are used during
   // execution only, having been inserted by the pre-processor.
 
@@ -725,10 +726,15 @@ Const
   SP_KW_PAL_APPLEHGR        = 4401;
   SP_KW_PAL_CPC             = 4402;
   SP_KW_STREAM_READLN       = 4403;
+  SP_KW_ARECTANGLE_TO       = 4404;
+  SP_KW_ARECTFILL_TO        = 4405;
+  SP_KW_RECTANGLE_TO        = 4406;
+  SP_KW_RECTFILL_TO         = 4407;
+
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..352] of aString =
+  SP_Keyword_Names: Array[0..356] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -778,7 +784,8 @@ Const
      'SPRITE FRONT', 'SPRITE BACK', 'SPRITE FRONT ADD', 'SPRITE BACK DEC', 'CHANNEL RATE STRING', 'GFX SCALE XY',
      'GFX SCALE TO', 'SCREEN SAVE', 'GRAPHIC SAVE', 'WAIT KEY', 'WAIT KEY PRESS', 'PALETTE EGA', 'PALETTE CGA',
      'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP', 'PLAY STOP', 'MOUSE TO ', 'PALETTE APPLE LGR',
-     'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN');
+     'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN', 'A-RECTANGLE TO', 'A-RECTFILL TO', 'RECTANGLE TO',
+     'RECTFILL TO');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.

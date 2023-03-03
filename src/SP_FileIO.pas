@@ -890,7 +890,7 @@ Begin
 
     ProgLen := Listing.Count;
 
-    If (Lower(Filename) <> 's:autosave') and (lower(filename) <> 's:oldprog') Then Begin
+    If (Lower(Filename) <> 's:autosave') and (lower(filename) <> 's:oldprog') and (lower(filename) <> 's:old_temp') Then Begin
       PROGNAME := SP_ExtractFileDir(Filename);
       Repeat
         p := Pos('\', PROGNAME);
@@ -1505,7 +1505,6 @@ Finish:
         CompilerLock.Enter;
         Listing.Clear;
         SyntaxListing.Clear;
-        CompiledListing.Clear;
         For Idx := 0 To Length(NewProg) -1 Do Begin
           s := NewProg[Idx]; i := 1;
           While (i < Length(s)) And (s[i] = #9) Do Inc(i);
@@ -2461,10 +2460,10 @@ Begin
       Filename := Copy(Filename, 1, p -1) + '/' + Copy(Filename, p +1);
   Until p = 0;
 
-  if Lower(Copy(Filename, Length(Filename) - 15, 16)) = 'startup-sequence' then Exit;
   If Not Saving And Not SP_FileExists(Filename) then Exit;
 
   Filename := SP_ConvertPathToAssigns(Filename);
+  If Lowercase(Copy(Filename, 1, 2)) = 's:' Then Exit;
 
   // Check if the filename already exists in the recents list.
 

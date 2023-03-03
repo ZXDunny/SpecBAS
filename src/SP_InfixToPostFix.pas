@@ -10691,26 +10691,35 @@ End;
 Function SP_Convert_RECTANGLE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
   Expr: aString;
+  GotA, GotB: Boolean;
 label
-  gotTO;
+  gotTO, CheckFill;
 Begin
 
   // RECTANGLE [ALPHA] [INK numexpr;]x1,y1{,| TO }x2,y2[FILL {fill$|GRAPHIC n}]
 
   SP_AlphaCheck(KeyWordID, Tokens, Position);
 
+  GotA := False; GotB := False;
   Result := SP_Convert_Embedded_Colours(Tokens, Position, Error);
   If Error.Code <> SP_ERR_OK Then Exit;
 
-  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+    If KeywordID = SP_KW_RECTANGLE Then
+      KeyWordID := SP_KW_RECTANGLE_TO
+    Else
+      If KeywordID = SP_KW_ARECTANGLE Then
+        KeyWordID := SP_KW_ARECTANGLE_TO;
     goto GotTo;
+  End;
 
   Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
   If Error.Code <> SP_ERR_OK Then Exit;
   If Error.ReturnType <> SP_VALUE Then Begin
     Error.Code := SP_ERR_MISSING_NUMEXPR;
     Exit;
-  End;
+  End Else
+    GotA := True;
   Result := Result + Expr;
   If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
     Inc(Position, 2);
@@ -10719,7 +10728,8 @@ Begin
     If Error.ReturnType <> SP_VALUE Then Begin
       Error.Code := SP_ERR_MISSING_NUMEXPR;
       Exit;
-    End;
+    End Else
+      GotB := True;
     Result := Result + Expr;
   GotTO:
     If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO)  Then Begin
@@ -10740,6 +10750,7 @@ Begin
           Exit;
         End;
         Result := Result + Expr;
+      CheckFill:
         If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_FILL) Then Begin
           Inc(Position, SizeOf(LongWord)+1);
           If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GRAPHIC) Then Begin
@@ -10768,7 +10779,14 @@ Begin
           If KeyWordID = SP_KW_ARECTANGLE Then
             KeyWordID := SP_KW_ARECTFILL
           Else
-            KeyWordID := SP_KW_RECTFILL;
+            If KeyWordID = SP_KW_RECTANGLE Then
+              KeyWordID := SP_KW_RECTFILL
+            Else
+              If KeyWordID = SP_KW_ARECTANGLE_TO Then
+                KeyWordID := SP_KW_ARECTFILL_TO
+              Else
+                If KeyWordID = SP_KW_RECTANGLE_TO Then
+                  KeyWordID := SP_KW_RECTFILL_TO;
         End;
         Exit;
       End Else
@@ -10830,7 +10848,10 @@ Begin
         End Else
           Error.Code := SP_ERR_ILLEGAL_CHAR;
       End Else
-        Exit;
+        If GotA And GotB Then
+          Goto CheckFill
+        Else
+          Exit;
   End Else
     Error.Code := SP_ERR_ILLEGAL_CHAR;
 

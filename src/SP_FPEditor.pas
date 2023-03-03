@@ -116,10 +116,6 @@ Procedure SP_InsertLine(Index: Integer; Const l, s, c: aString; MarkDirty: Boole
 Procedure SP_DeleteLine(Index: Integer; MarkDirty: Boolean = True);
 Procedure SP_ClearListing;
 Function  SP_WasPrevSoft(Idx: Integer): Boolean; Inline;
-Procedure SP_CompiledListingAdd(const s: aString);
-Procedure SP_CompiledListingDelete(Idx: Integer);
-Procedure SP_CompiledListingInsert(Idx: Integer; const s: aString);
-Procedure SP_CompiledListingClear;
 Function  SP_GetLineExtents(Idx: Integer; FindStart: Boolean = False): TPoint;
 Function  SP_GetLineY(Line: Integer): Integer;
 Function  SP_LineFlags(Index: Integer): pLineFlags;
@@ -190,7 +186,6 @@ Function  SP_FindText(Text: aString; StartAtL, StartAtP: Integer; const Options:
 Procedure SP_DWPerformEdit(Key: pSP_KeyInfo);
 Procedure SP_DWStoreLine(Line: aString);
 Procedure SP_EditorDisplayEditLine;
-Procedure SP_CompileProgram;
 Procedure SP_FPExecuteEditLine(Var Line: aString);
 Function  SP_FPExecuteNumericExpression(Const Expr: aString; var Error: TSP_ErrorCode): aFloat;
 Function  SP_FPExecuteStringExpression(Const Expr: aString; var Error: TSP_ErrorCode): aString;
@@ -269,7 +264,7 @@ Var
   FPClientWidth, FPClientHeight, FPClientLeft, FPClientTop, FPPaperLeft, FPPaperTop, FPPaperWidth, FPPaperHeight: Integer;
   FPPageHeight, FPTotalHeight, FPPageWidth, FPTotalWidth, FPVertScrollPos, FPHorzScrollPos, FPLongestLineLen: Integer;
   FPListTopIndex, FPGutterWidth, FPCaptionHeight, FPStripePos: Integer;
-  Listing, SyntaxListing, CompiledListing: TAnsiStringlist;
+  Listing, SyntaxListing: TAnsiStringlist;
   LineLens: Array Of Integer;
   EdSc, EdCSc: aString;
   FPScrollBars: Array of SP_ScrollBar;
@@ -532,7 +527,6 @@ Begin
             If Error.Code = SP_ERR_OK Then Begin
 
               If (lIdx < Listing.Count) Then Begin
-                CompiledListing[lIdx] := Compiled;
                 If SP_CheckForConflict(lIdx) Then
                   Listing.Flags[lIdx].State := spLineDuplicate
                 Else
@@ -593,7 +587,6 @@ Begin
   CompilerLock := TCriticalSection.Create;
   Listing := TStringList.Create;
   SyntaxListing := TStringList.Create;
-  CompiledListing := TStringList.Create;
   Listing.OnChange := ListingChange;
   DWUndoList := TStringList.Create;
   DWRedoList := TStringlist.Create;
@@ -693,7 +686,6 @@ Begin
   CompilerLock.Free;
   Listing.Free;
   SyntaxListing.Free;
-  CompiledListing.Free;
   DWUndoList.Free;
   DWRedoList.Free;
 
@@ -706,7 +698,6 @@ Begin
   CompilerLock.Enter;
   Listing.Add(l);
   SyntaxListing.Add(l);
-  SP_CompiledListingAdd(c);
   nl := SP_LineHasNumber(Listing.Count -1);
   If (nl > 0) And Not SP_WasPrevSoft(Listing.Count -1) Then Begin
     Listing.Flags[Listing.Count -1].State := spLineDirty;
@@ -727,7 +718,6 @@ Begin
   CompilerLock.Enter;
   Listing.Insert(Index, l);
   SyntaxListing.Insert(Index, s);
-  SP_CompiledListingInsert(Index, c);
   i := SP_LineHasNumber(Index);
   Listing.Flags[Index].ReturnType := 0;
   Listing.Flags[Index].Indent := 0;
@@ -747,7 +737,6 @@ Var
 Begin
   CompilerLock.Enter;
   Listing.Delete(Index);
-  SP_CompiledListingDelete(Index);
   SyntaxListing.Delete(Index);
   If MarkDirty Then Begin
     For i := Index To Listing.Count -1 Do Begin
@@ -761,7 +750,6 @@ End;
 Procedure SP_ClearListing;
 Begin
   Listing.Clear;
-  SP_CompiledListingClear;
   SyntaxListing.Clear;
   ClearDirtyLines;
 End;
@@ -1230,23 +1218,23 @@ Begin
   Idx := 0;
   SP_Program_Clear;
 
-  While Idx < Listing.Count Do Begin
-    cIdx := Idx;
-    s := Listing[Idx];
-    Inc(Idx);
-    While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do Begin
-      s := s + Listing[Idx];
+  if Assigned(Listing) then
+    While Idx < Listing.Count Do Begin
+      cIdx := Idx;
+      s := Listing[Idx];
       Inc(Idx);
-    End;
-    s := SP_TokeniseLine(s, False, True) + SP_TERMINAL_SEQUENCE;
-    If s <> SP_TERMINAL_SEQUENCE Then Begin
-      SP_Convert_ToPostFix(s, Error.Position, Error);
-      If Error.Code = SP_ERR_OK Then Begin
-        SP_Store_Line(s);
-        CompiledListing[cIdx] := s;
+      While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do Begin
+        s := s + Listing[Idx];
+        Inc(Idx);
+      End;
+      s := SP_TokeniseLine(s, False, True) + SP_TERMINAL_SEQUENCE;
+      If s <> SP_TERMINAL_SEQUENCE Then Begin
+        SP_Convert_ToPostFix(s, Error.Position, Error);
+        If Error.Code = SP_ERR_OK Then Begin
+          SP_Store_Line(s);
+        End;
       End;
     End;
-  End;
 
 End;
 
@@ -1290,42 +1278,6 @@ Begin
 
 End;
 
-Procedure SP_CompiledListingAdd(const s: aString);
-Begin
-
-  CompilerLock.Enter;
-  CompiledListing.Add(s);
-  CompilerLock.Leave;
-
-End;
-
-Procedure SP_CompiledListingDelete(Idx: Integer);
-Begin
-
-  CompilerLock.Enter;
-  CompiledListing.Delete(Idx);
-  CompilerLock.Leave;
-
-End;
-
-Procedure SP_CompiledListingInsert(Idx: Integer; const s: aString);
-Begin
-
-  CompilerLock.Enter;
-  CompiledListing.Insert(Idx, s);
-  CompilerLock.Leave;
-
-End;
-
-Procedure SP_CompiledListingClear;
-Begin
-
-  CompilerLock.Enter;
-  CompiledListing.Clear;
-  CompilerLock.Leave;
-
-End;
-
 Function SP_GetLineExtents(Idx: Integer; FindStart: Boolean = False): TPoint;
 Var
   nIdx: Integer;
@@ -1359,18 +1311,6 @@ Begin
     End;
   End;
   Result.Y := Idx -1;
-
-End;
-
-Procedure SP_CompiledListingChange(Idx: Integer; const s: aString);
-Begin
-
-  // Should only ever be called by the compiler.
-
-  CompilerLock.Enter;
-  CompiledListing[Idx] := s;
-  Listing.Flags[Idx].State := spLineOk;
-  CompilerLock.Leave;
 
 End;
 
@@ -3475,7 +3415,7 @@ Begin
     Idx := 1;
     While (Idx < Length(s)) And (s[Idx] in ['0'..'9']) And Not SP_WasPrevSoft(Result.Y) Do
       Inc(Idx);
-    If X < FPGutterWidth * FPFw Then Begin
+    If X < (FPGutterWidth +1) * FPFw Then Begin
       If Idx = 1 Then
         Result.X := 1
       Else
@@ -5582,8 +5522,6 @@ Begin
               s := Listing.PerformRedo;
             While SyntaxListing.Count < Listing.Count Do
               SyntaxListing.Add('');
-            While CompiledListing.Count < Listing.Count Do
-              CompiledListing.Add('');
             While s <> '' Do Begin
               Idx := pLongWord(@s[1])^;
               SP_MarkAsDirty(Idx);
@@ -8162,28 +8100,6 @@ Begin
   End;
 End;
 
-Procedure SP_CompileProgram;
-Var
-  CurLine, Idx: Integer;
-  s: aString;
-Begin
-
-  // Gathers up all the compiled code and builds a program from it
-
-  If Assigned(CompiledListing) Then Begin
-    SP_Program_Clear;
-    For Idx := 0 To CompiledListing.Count -1 Do Begin
-      s := CompiledListing[Idx];
-      If s <> '' Then Begin
-        CurLine := pLongWord(@s[2])^;
-        If SP_FindLineInListing(CurLine) > -1 Then
-          SP_Store_Line(s);
-      End;
-    End;
-  End;
-
-End;
-
 Procedure SP_DWStoreLine(Line: aString);
 Var
   s: aString;
@@ -8337,8 +8253,7 @@ Begin
       If LineNum <= 0 Then Begin
         S := LongWordToString(Listing.Flags[0].ReturnType) +
              LongWordToString(Length(Listing[0])) + Listing[0] +
-             LongWordToString(Length(SyntaxListing[0])) + SyntaxListing[0] +
-             LongWordToString(Length(CompiledListing[0])) + CompiledListing[0];
+             LongWordToString(Length(SyntaxListing[0])) + SyntaxListing[0];
         NewList.Add(s);
         SP_DeleteLine(0);
       End Else
@@ -8366,7 +8281,6 @@ Begin
         S := LongWordToString(Listing.Flags[nIdx].ReturnType) +
              LongWordToString(Length(Listing[nIdx])) + Listing[nIdx] +
              LongWordToString(Length(SyntaxListing[nIdx])) + SyntaxListing[nIdx] +
-             LongWordToString(Length(CompiledListing[nIdx])) + CompiledListing[nIdx] +
              LongWordToString(Listing.Flags[nIdx].Indent);
         If Idx = NewList.Count Then
           NewList.Add(s)
@@ -8394,10 +8308,6 @@ Begin
 
     nl := pLongWord(@s[1])^;
     SyntaxListing.Add(Copy(s, 5, nl));
-    s := copy(s, nl + 5);
-
-    nl := pLongWord(@s[1])^;
-    SP_CompiledListingAdd(Copy(s, 5, nl));
     s := copy(s, nl + 5);
 
     Listing.Flags[Idx].Indent := pLongWord(@s[1])^;

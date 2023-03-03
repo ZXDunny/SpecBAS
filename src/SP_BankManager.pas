@@ -995,30 +995,31 @@ Var
   FontBank: pSP_Font_Info;
 Begin
 
-  If FONTBANKID <> BankID Then Begin
-    Index := SP_FindBankID(BankID);
+  Index := SP_FindBankID(BankID);
+  Error.Code := SP_ERR_OK;
 
-    If Index >= 0 Then Begin
+  If Index >= 0 Then Begin
 
-      If SP_BankList[Index]^.DataType = SP_FONT_BANK Then Begin
+    If SP_BankList[Index]^.DataType = SP_FONT_BANK Then Begin
 
-        FontBank := @SP_BankList[Index]^.Info[0];
+      FontBank := @SP_BankList[Index]^.Info[0];
 
-        FONTBANKID := BankID;
-        FONTWIDTH := FontBank^.Width;
-        FONTHEIGHT := FontBank^.Height;
-        FONTTRANSPARENT := FontBank^.Transparent;
-        FONTTYPE := FontBank^.FontType;
+      FONTBANKID := BankID;
+      FONTWIDTH := FontBank^.Width;
+      FONTHEIGHT := FontBank^.Height;
+      FONTTRANSPARENT := FontBank^.Transparent;
+      FONTTYPE := FontBank^.FontType;
 
-        TABSIZE := (SCREENWIDTH Div Integer(FONTWIDTH)) Div 2;
-
-      End Else
-        Error.Code := SP_ERR_INVALID_BANK;
+      TABSIZE := (SCREENWIDTH Div Integer(FONTWIDTH)) Div 2;
 
     End Else
-      Error.Code := SP_ERR_BANK_NOT_FOUND;
+      Error.Code := SP_ERR_INVALID_BANK;
 
-  End;
+  End Else
+    Error.Code := SP_ERR_BANK_NOT_FOUND;
+
+  If (BankID <> SYSFONT) and (Error.Code <> SP_ERR_OK) Then
+    SP_SetSystemFont(SYSFONT, Error);
 
 End;
 

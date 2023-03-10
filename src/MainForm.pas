@@ -549,9 +549,18 @@ end;
 
 function SetScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
 var
-  DeviceMode: TDeviceMode;
+  oldDeviceMode, DeviceMode: TDeviceMode;
+  oW, oH: Integer;
+  oFS: Boolean;
   R: TRect;
+const
+  ENUM_CURRENT_SETTINGS = DWORD(-1);
 begin
+
+  EnumDisplaySettings(nil, ENUM_CURRENT_SETTINGS, OldDeviceMode);
+  oW := OldDeviceMode.dmPelsWidth;
+  oH := OldDeviceMode.dmPelsHeight;
+  oFS := SPFULLSCREEN;
 
   If FullScreen Then Begin
     with DeviceMode do begin
@@ -560,8 +569,11 @@ begin
       dmPelsHeight := Height;
       dmFields := DM_PELSWIDTH or DM_PELSHEIGHT;
     end;
-    Result := ChangeDisplaySettings(DeviceMode, 0) = DISP_CHANGE_SUCCESSFUL;
-    Main.BorderStyle := bsNone;
+    If (oFS <> FullScreen) or (Width <> oW) or (Height <> oH) Then Begin
+      Result := ChangeDisplaySettings(DeviceMode, 0) = DISP_CHANGE_SUCCESSFUL;
+      Main.BorderStyle := bsNone;
+    End Else
+      Result := True;
     SPFULLSCREEN := True;
   End Else Begin
     If SPFULLSCREEN Then Begin
@@ -573,9 +585,11 @@ begin
         dmPelsHeight := REALSCREENHEIGHT;
         dmFields := DM_PELSWIDTH or DM_PELSHEIGHT;
       End;
-      ChangeDisplaySettings(DeviceMode, 0);
+      If (oFS <> FullScreen) or (Width <> oW) or (Height <> oH) Then Begin
+        ChangeDisplaySettings(DeviceMode, 0);
+        Main.BorderStyle := bsSingle;
+      End;
       SPFULLSCREEN := False;
-      Main.BorderStyle := bsSingle;
     End;
     Result := True;
   End;

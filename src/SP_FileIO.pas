@@ -2463,7 +2463,7 @@ Begin
   If Not Saving And Not SP_FileExists(Filename) then Exit;
 
   Filename := SP_ConvertPathToAssigns(Filename);
-  If Lowercase(Copy(Filename, 1, 2)) = 's:' Then Exit;
+  If Lower(SP_Copy(Filename, 1, 2)) = 's:' Then Exit;
 
   // Check if the filename already exists in the recents list.
 

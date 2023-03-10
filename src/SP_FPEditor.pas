@@ -1210,7 +1210,7 @@ End;
 
 Procedure SP_ForceCompile;
 Var
-  Idx, cIdx: Integer;
+  Idx: Integer;
   s: aString;
   Error: TSP_ErrorCode;
 Begin
@@ -1220,7 +1220,6 @@ Begin
 
   if Assigned(Listing) then
     While Idx < Listing.Count Do Begin
-      cIdx := Idx;
       s := Listing[Idx];
       Inc(Idx);
       While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do Begin
@@ -7478,7 +7477,7 @@ Begin
         Dec(x, 8);
       End;
       T_SCALEY := 1;
-      SP_TextOut(FONTBANKID, 16, WinH - 22, #127' 2021 ZX Development Ltd.'{#13'        ZXDunny    Windows/Pandora/OSX'#13'        Piez       Linux'#13'        Chris      Pi'}, 232, 0, True);
+      SP_TextOut(FONTBANKID, 16, WinH - 22, #127' 2023 ZX Development Ltd.'{#13'        ZXDunny    Windows/Pandora/OSX'#13'        Piez       Linux'#13'        Chris      Pi'}, 232, 0, True);
       SP_InvalidateWholeDisplay;
       SP_NeedDisplayUpdate := True;
       SP_WaitForSync;

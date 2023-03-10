@@ -1247,7 +1247,7 @@ Var
   BankIdx, Idx, Bits, NewBits: Integer;
   Bank: pSP_Bank;
   Window: pSP_Window_Info;
-  oW, oH, oD: Integer; oFS: Boolean;
+  oW, oH: Integer; oFS: Boolean;
   OldMem: Array of Byte;
   dPtr: pLongWord;
   sPtr: pByte;
@@ -1269,7 +1269,6 @@ Begin
     Window := @Bank^.Info[0];
     oW := Window^.Width;
     oH := Window^.Height;
-    oD := Window^.bpp;
     oFS := SPFULLSCREEN;
 
     If W = -1 Then W := oW;
@@ -1338,7 +1337,7 @@ Begin
     SCREENBANK := -1;
     SP_SetDrawingWindow(Idx);
 
-    If (WindowID = 0) and ((WIndow^.Width <> oW) or (Window^.Height <> oH) or (FullSCreen <> oFS)) Then Begin
+    If (WindowID = 0) and ((Window^.Width <> oW) or (Window^.Height <> oH) or (FullSCreen <> oFS)) Then Begin
       OldMouse := MOUSEVISIBLE;
       MOUSEVISIBLE := False;
       SIZINGMAIN := True;

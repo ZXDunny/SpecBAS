@@ -448,11 +448,16 @@ End;
 
 Function SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
 Var
+  oW, oH: Integer;
+  oFS: Boolean;
   l, t, w, h: NativeInt;
   r: TRect;
 Begin
 
   Result := 0;
+  oW := SCALEWIDTH;
+  oH := SCALEHEIGHT;
+  oFS := SPFULLSCREEN;
 
   // Check for transition from window to fullscreen and vice-versa
 
@@ -479,7 +484,8 @@ Begin
   {$IFDEF OPENGL}
   GLInitDone := False; // trigger the OpenGL system to recreate itself with the new window/screen size
   {$ENDIF}
-  SetScreenResolution(sWidth, sHeight, FullScreen);
+  if (sWidth <> oW) or (sHeight <> oH) or (oFS <> FullScreen) Then
+    SetScreenResolution(sWidth, sHeight, FullScreen);
   w := sWidth;
   h := sHeight;
 

@@ -1348,9 +1348,10 @@ Begin
       Until Not SIZINGMAIN;
       SP_CLS(CPAPER);
       MOUSEVISIBLE := OldMouse;
-    End Else
+    End Else Begin
+      SP_CLS(CPAPER);
       DisplaySection.Leave;
-
+    End;
   End;
 
 End;

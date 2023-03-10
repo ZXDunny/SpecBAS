@@ -557,10 +557,16 @@ const
   ENUM_CURRENT_SETTINGS = DWORD(-1);
 begin
 
-  EnumDisplaySettings(nil, ENUM_CURRENT_SETTINGS, OldDeviceMode);
-  oW := OldDeviceMode.dmPelsWidth;
-  oH := OldDeviceMode.dmPelsHeight;
-  oFS := SPFULLSCREEN;
+  If SPFULLSCREEN Then Begin
+    EnumDisplaySettings(nil, ENUM_CURRENT_SETTINGS, OldDeviceMode);
+    oW := OldDeviceMode.dmPelsWidth;
+    oH := OldDeviceMode.dmPelsHeight;
+    oFS := True;
+  End Else Begin
+    oW := WINWIDTH;
+    oH := WINHEIGHT;
+    oFS := False;
+  End;
 
   If FullScreen Then Begin
     with DeviceMode do begin
@@ -570,7 +576,9 @@ begin
       dmFields := DM_PELSWIDTH or DM_PELSHEIGHT;
     end;
     If (oFS <> FullScreen) or (Width <> oW) or (Height <> oH) Then Begin
+
       Result := ChangeDisplaySettings(DeviceMode, 0) = DISP_CHANGE_SUCCESSFUL;
+
       Main.BorderStyle := bsNone;
     End Else
       Result := True;

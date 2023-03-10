@@ -568,6 +568,8 @@ begin
     oFS := False;
   End;
 
+  log('requested: '+inttostring(width)+'x'+inttostring(Height)+'-'+inttostring(ord(fullscreen))+' currently in '+inttostring(ow)+'x'+inttostring(oh)+'-'+inttostring(ord(ofs)));
+
   If FullScreen Then Begin
     with DeviceMode do begin
       dmSize := SizeOf(TDeviceMode);

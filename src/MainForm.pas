@@ -120,7 +120,7 @@ var
   LastMouseX, LastMouseY: Integer;
   {$IFDEF OPENGL}
     LastScaledMouseX, LastScaledMouseY: Integer;
-    GLInitDone: Boolean;
+    GLInitDone, ReScaleFlag: Boolean;
     PixArray, DispArray: Array of Byte;
     RC: HGLRC;
     DC: hDc;
@@ -186,6 +186,7 @@ Var
 Begin
 
   RenderCount := 0;
+  FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
@@ -252,7 +253,10 @@ Begin
 
   End;
 
-  Terminate;
+  wglMakeCurrent(0, 0);
+  wglDeleteContext(RC);
+  ReleaseDC(Main.Handle, DC);
+  DeleteDC (DC);
 
 End;
 
@@ -347,6 +351,11 @@ Begin
 
     If Not GLInitDone Then Begin
       InitGL;
+      ReScaleFlag := True;
+    End;
+
+    If ReScaleFlag Then Begin
+      ReScaleFlag := False;
       SetScaling(DISPLAYWIDTH, DISPLAYHEIGHT, Main.ClientWidth, Main.ClientHeight);
       Main.FormResize(Main);
     End;
@@ -481,11 +490,14 @@ Begin
   DISPLAYWIDTH := Width;
   DISPLAYHEIGHT := Height;
 
-  {$IFDEF OPENGL}
-  GLInitDone := False; // trigger the OpenGL system to recreate itself with the new window/screen size
-  {$ENDIF}
-  if (sWidth <> oW) or (sHeight <> oH) or (oFS <> FullScreen) Then
+  if (sWidth <> oW) or (sHeight <> oH) or (oFS <> FullScreen) Then Begin
+    {$IFDEF OPENGL}
+    GLInitDone := False; // trigger the OpenGL system to recreate itself with the new window/screen size
+    {$ENDIF}
     SetScreenResolution(sWidth, sHeight, FullScreen);
+  End Else
+    ReScaleFlag := True;
+
   w := sWidth;
   h := sHeight;
 
@@ -568,8 +580,6 @@ begin
     oFS := False;
   End;
 
-  log('requested: '+inttostring(width)+'x'+inttostring(Height)+'-'+inttostring(ord(fullscreen))+' currently in '+inttostring(ow)+'x'+inttostring(oh)+'-'+inttostring(ord(ofs)));
-
   If FullScreen Then Begin
     with DeviceMode do begin
       dmSize := SizeOf(TDeviceMode);
@@ -578,9 +588,7 @@ begin
       dmFields := DM_PELSWIDTH or DM_PELSHEIGHT;
     end;
     If (oFS <> FullScreen) or (Width <> oW) or (Height <> oH) Then Begin
-
       Result := ChangeDisplaySettings(DeviceMode, 0) = DISP_CHANGE_SUCCESSFUL;
-
       Main.BorderStyle := bsNone;
     End Else
       Result := True;
@@ -1403,9 +1411,8 @@ begin
   If RC <> 0 Then Begin
     wglDeleteContext(RC);
     ReleaseDC(Main.Handle, DC);
-  End;
-
-  InitOpenGL;
+  End Else
+    InitOpenGL;
 
   with pfd do begin
     nSize:= SizeOf( PIXELFORMATDESCRIPTOR );
@@ -1479,7 +1486,7 @@ begin
       SetLength(DispArray, ScaledWidth * 4 * ScaledHeight);
       DISPLAYPOINTER := @PixArray[0];
 
-      If GLInitDone Then Begin
+      If GLInitDone and Not ReScaleFlag Then Begin
 
         glClearColor(0, 0, 0, 0);
         glClearDepth(1);

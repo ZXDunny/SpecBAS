@@ -1337,7 +1337,7 @@ Begin
     SCREENBANK := -1;
     SP_SetDrawingWindow(Idx);
 
-    If (WindowID = 0) and ((Window^.Width <> oW) or (Window^.Height <> oH) or (FullSCreen <> oFS)) Then Begin
+    If WindowID = 0 Then Begin
       OldMouse := MOUSEVISIBLE;
       MOUSEVISIBLE := False;
       SIZINGMAIN := True;

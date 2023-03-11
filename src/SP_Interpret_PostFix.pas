@@ -12984,6 +12984,7 @@ Begin
 
   SP_GetWindowDetails(0, win, Info^.Error^);
 
+  Inc(SP_StackPtr);
   SP_StackPtr^.Val := 1;
   Inc(SP_StackPtr);
   SP_StackPtr^.Val := REALSCREENWIDTH;
@@ -13000,6 +13001,7 @@ End;
 Procedure SP_Interpret_SCR_WIN(Var Info: pSP_iInfo);
 Begin
 
+  Inc(SP_StackPtr);
   SP_StackPtr^.Val := 0;
   Inc(SP_StackPtr);
   SP_StackPtr^.Val := DISPLAYWIDTH;

@@ -1247,7 +1247,7 @@ Var
   BankIdx, Idx, Bits, NewBits: Integer;
   Bank: pSP_Bank;
   Window: pSP_Window_Info;
-  oW, oH: Integer; oFS: Boolean;
+  oW, oH: Integer;
   OldMem: Array of Byte;
   dPtr: pLongWord;
   sPtr: pByte;
@@ -1269,7 +1269,6 @@ Begin
     Window := @Bank^.Info[0];
     oW := Window^.Width;
     oH := Window^.Height;
-    oFS := SPFULLSCREEN;
 
     If W = -1 Then W := oW;
     If H = -1 Then H := oH;

@@ -1178,7 +1178,7 @@ var
   Line, NumBanks: Integer;
   Banks: Array of Integer;
   {$IFDEF DEBUG}
-  s: TFileStream;
+  //s: TFileStream;
   {$ENDIF}
 Begin
 
@@ -1220,12 +1220,12 @@ Begin
     payload.SetPayload(payLoadData[1], Length(PayLoadData));
     payLoad.Free;
     {$IFDEF DEBUG}
-    sFilename := Dir + 'payload.bin';
+{    sFilename := Dir + 'payload.bin';
     if FileExists(sFilename) then
       TFile.Delete(sFilename);
     s := TFileStream.Create(sFilename, fmCreate);
     s.Write(payLoadData[1], Length(payLoadData));
-    s.Free;
+    s.Free; }
     {$ENDIF}
   End;
 

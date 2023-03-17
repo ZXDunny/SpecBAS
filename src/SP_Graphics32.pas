@@ -303,6 +303,7 @@ Begin
           End;
       End;
       Inc(TopRect);
+      Dec(Idx); // skip this window, as we've now done it.
       Break;
     End;
     Dec(Idx);

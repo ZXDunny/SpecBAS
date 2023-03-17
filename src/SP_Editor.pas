@@ -74,11 +74,11 @@ Var
   tStr: aString;
   s: aString;
   i: Integer;
-  {$IFDEF DEBUG}
-  fs: TFileStream;
-  {$ELSE}
+//  {$IFDEF DEBUG}
+//  fs: TFileStream;
+//  {$ELSE}
   ps: Integer;
-  {$ENDIF}
+//  {$ENDIF}
 Label
   RunTimeExit;
 Begin
@@ -86,9 +86,9 @@ Begin
   Info.Error := @Error;
   pInfo := @Info;
 
-  {$IFDEF DEBUG}
-  PAYLOADPRESENT := FileExists(ExtractFilePath(EXENAME) + 'payload.bin');
-  {$ENDIF}
+//  {$IFDEF DEBUG}
+//  PAYLOADPRESENT := FileExists(ExtractFilePath(EXENAME) + 'payload.bin');
+//  {$ENDIF}
   If Not PAYLOADPRESENT Then begin
 
     SP_InitFPEditor;
@@ -192,19 +192,19 @@ Begin
 
     // run the payload
 
-    {$IFDEF DEBUG}
-    s := aString(ExtractFilePath(EXENAME) + 'payload.bin');
-    If FileExists(String(s)) Then Begin
-      fs := TFileStream.Create(String(s), fmOpenRead);
-      SetLength(s, fs.size);
-      fs.read(s[1], fs.Size);
-      fs.Free;
-    End;
-    {$ELSE}
+//    {$IFDEF DEBUG}
+//    s := aString(ExtractFilePath(EXENAME) + 'payload.bin');
+//    If FileExists(String(s)) Then Begin
+//      fs := TFileStream.Create(String(s), fmOpenRead);
+//      SetLength(s, fs.size);
+//      fs.read(s[1], fs.Size);
+//      fs.Free;
+//    End;
+//    {$ELSE}
     ps := PayLoad.PayloadSize;
     SetLength(s, ps);
     PayLoad.GetPayLoad(s[1]);
-    {$ENDIF}
+//    {$ENDIF}
     CurLine := UnPackPayload(s);
     CB_SETWINDOWCAPTION;
     For i := 0 To SP_Program_Count -1 do

@@ -1211,7 +1211,7 @@ End;
 Procedure SP_ForceCompile;
 Var
   Idx: Integer;
-  s: aString;
+  s, s2: aString;
   Error: TSP_ErrorCode;
 Begin
 
@@ -1223,7 +1223,11 @@ Begin
       s := Listing[Idx];
       Inc(Idx);
       While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do Begin
-        s := s + Listing[Idx];
+        s2 := Listing[Idx];
+        If (s2 <> '') And (s2[1] in ['A'..'Z', 'a'..'z']) And (s[Length(s)] in ['0'..'9']) Then
+          s := s + ' ' + s2
+        Else
+          s := s + s2;
         Inc(Idx);
       End;
       s := SP_TokeniseLine(s, False, True) + SP_TERMINAL_SEQUENCE;

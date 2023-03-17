@@ -6717,7 +6717,7 @@ Next_DIM:
           Exit;
         End;
       End Else Begin
-        NumIndices := 0;
+        NumIndices := 0; // Process indices - DIM a(4,2) for example
         While True Do Begin
           Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
           If Error.Code <> SP_ERR_OK Then
@@ -6742,6 +6742,7 @@ Next_DIM:
                 End;
             End;
         End;
+        // We can have an "=" here for a declaration of array contents.
       End;
   End Else Begin
     If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '=') Then Begin

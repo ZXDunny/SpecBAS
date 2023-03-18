@@ -892,8 +892,10 @@ Begin
               Error.Code := SP_ERR_SYNTAX_ERROR;
               Position := Token^.TokenPos;
               Exit;
-            End Else
-              Break;
+            End Else Begin
+              Inc(Idx, Token^.TokenLen);
+              Continue;
+            End;
 
           // If numindices (the longword pointer) is 0, then current stack item must be a string/strvar and the previous must be a strvar/numvar.
           // If numindices is >1, then the current stack item must be a numvar/strvar and not a string.
@@ -6402,7 +6404,7 @@ Next_Assign:
           SP_CHAR_MODVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_MOD + Copy(Tokens, Position, 999999);
           SP_CHAR_ANDVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '&' + Copy(Tokens, Position, 999999);
           SP_CHAR_ORVAR:  ArTokens := TempStr + aChar(SP_SYMBOL) + '|' + Copy(Tokens, Position, 999999);
-          SP_CHAR_NOTVAR:  ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_NOTVAR + Copy(Tokens, Position, 999999);
+          SP_CHAR_NOTVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_NOTVAR + Copy(Tokens, Position, 999999);
           SP_CHAR_XORVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_XOR + Copy(Tokens, Position, 999999);
         End;
         If ArTokens <> '' Then

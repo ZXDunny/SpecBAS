@@ -338,6 +338,7 @@ Procedure SP_Interpret_FN_MENUBOX_EX(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_FEXISTS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_FPATH(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_FNAME(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_REVS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_DEXISTS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_PYTH(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_LOGW(Var Info: pSP_iInfo);
@@ -5288,6 +5289,14 @@ Begin
 
 End;
 
+Procedure SP_Interpret_FN_REVS(Var Info: pSP_iInfo);
+Begin
+
+  UniqueString(SP_StackPtr^.Str);
+  RevString(SP_StackPtr^.Str);
+
+End;
+
 Procedure SP_Interpret_FN_NUBMODE(Var Info: pSP_iInfo);
 {$IFDEF PANDORA}
 Var
@@ -9691,7 +9700,7 @@ End;
 
 Procedure SP_Interpret_AUTODIM(Var Info: pSP_iInfo);
 Var
-  Idx, aIdx, ArrIdx, NumIndices, DLen, DIMBase, VarType: Integer;
+  Idx, aIdx, ArrIdx, NumIndices, Count, DLen, DIMBase, VarType: Integer;
   Indices, VarName, Key: aString;
 Begin
 
@@ -9718,21 +9727,21 @@ Begin
 
   Indices := '';
   NumIndices := Round(SP_StackPtr^.Val);
+  Count := 1;
   Dec(SP_StackPtr);
 
   For Idx := 1 To NumIndices Do Begin
     aIdx := Round(SP_StackPtr^.Val);
-    If aIdx > 0 Then
-      Indices := Indices + LongWordToString(Round(SP_StackPtr^.Val))
-    Else Begin
+    If aIdx > 0 Then Begin
+      Indices := Indices + LongWordToString(aIdx);
+      Count := Count * aIdx;
+    End Else Begin
       ERRStr := VarName;
       Info^.Error^.Code := SP_ERR_SUBSCRIPT_WRONG;
       Exit;
     End;
     Dec(SP_StackPtr);
   End;
-
-  If NumIndices = 1 Then NumIndices := aIdx;
 
   Case VarType of
     SP_NUMVAR:
@@ -9745,28 +9754,27 @@ Begin
       End;
   End;
 
-  If ((NativeUInt(SP_StackPtr) - NativeUInt(SP_StackStart)) Div SizeOf(SP_StackItem)) -1 = NumIndices -1 Then Begin
+  If ((NativeUInt(SP_StackPtr) - NativeUInt(SP_StackStart)) Div SizeOf(SP_StackItem)) -1 = Count -1 Then Begin
 
     // A one-dimensional auto-array
 
     Case VarType of
-      SP_NumVar: arrIdx := SP_FindNumArray(VarName) +1;
-      SP_StrVar: arrIdx := SP_FindStrArray(VarName) +1;
+      SP_NumVar: arrIdx := SP_FindNumArray(VarName);
+      SP_StrVar: arrIdx := SP_FindStrArray(VarName);
     Else
       arrIdx := 0;
     End;
 
     Key := '';
-    NumIndices := DIMBase;
+    Count := 0;
     While SP_StackPtr <> SP_StackStart Do Begin
 
-      aIdx := arrIdx;
       If VarType = SP_NUMVAR Then
-        SP_UpdateNumArray(aIdx, VarName, LongWordToString(NumIndices), Key, SP_StackPtr^.Val, Info^.Error^)
+        NumArrays[arrIdx].Values[Count]^.Value := SP_StackPtr^.Val
       Else
-        SP_UpdateStrArray(aIdx, VarName, LongWordToString(NumIndices), Key, SP_StackPtr^.Str, -1, -1, Info^.Error^);
+        StrArrays[arrIdx].Strings[Count]^.Value := SP_StackPtr^.Str;
 
-      Inc(NumIndices);
+      Inc(Count);
       Dec(SP_StackPtr);
 
     End;
@@ -26744,6 +26752,7 @@ Initialization
   InterpretProcs[SP_FN_FEXISTS] := @SP_Interpret_FN_FEXISTS;
   InterpretProcs[SP_FN_FPATH] := @SP_Interpret_FN_FPATH;
   InterpretProcs[SP_FN_FNAME] := @SP_Interpret_FN_FNAME;
+  InterpretProcs[SP_FN_REVS] := @SP_Interpret_FN_REVS;
   InterpretProcs[SP_FN_DEXISTS] := @SP_Interpret_FN_DEXISTS;
   InterpretProcs[SP_FN_PYTH] := @SP_Interpret_FN_PYTH;
   InterpretProcs[SP_FN_LOGW] := @SP_Interpret_FN_LOGW;

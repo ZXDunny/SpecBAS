@@ -1323,7 +1323,7 @@ Begin
             // Functions that take one String parameter and return a String:
 
             SP_FN_VALS, SP_FN_UPS, SP_FN_LOWS, SP_FN_TRIMS, SP_FN_LTRIMS, SP_FN_RTRIMS, SP_FN_TOKENS, SP_FN_GETOPTS, SP_FN_FPATH, SP_FN_TEXTURES,
-            SP_FN_FNAME:
+            SP_FN_FNAME, SP_FN_REVS:
               Begin
                 If (StackPtr < 0) Or (Stack[StackPtr] <> SP_STRING) Then Begin
                   Error.Code := SP_ERR_MISSING_STREXPR;
@@ -2941,7 +2941,7 @@ Begin
             SP_FN_GETOPT, SP_FN_GETOPTS, SP_FN_NUBMODE, SP_FN_NUBX, SP_FN_NUBY, SP_FN_FEXISTS, SP_FN_FPATH, SP_FN_FNAME, SP_FN_LTOPX,
             SP_FN_LTOPY, SP_FN_PTOLX, SP_FN_PTOLY, SP_FN_INV, SP_FN_SPFRAME, SP_FN_SPCOLL, SP_FN_TEXTURES, SP_FN_IVAL, SP_FN_MEMRD,
             SP_FN_DMEMRD, SP_FN_QMEMRD, SP_FN_FMEMRD, SP_FN_DATADDR, SP_FN_WINADDR, SP_FN_MILLISECONDS, SP_FN_PAR, SP_FN_SINH,
-            SP_FN_COSH, SP_FN_TANH, SP_FN_ASNH, SP_FN_ACSH, SP_FN_ATNH, SP_FN_PARAMS:
+            SP_FN_COSH, SP_FN_TANH, SP_FN_ASNH, SP_FN_ACSH, SP_FN_ATNH, SP_FN_PARAMS, SP_FN_REVS:
               Begin
                 Inc(Position, SizeOf(LongWord));
                 FnResult := SP_Convert_Expr(Tokens, Position, Error, 14);
@@ -6614,6 +6614,8 @@ Var
   DimVarName, VarName, BaseExpr, Expr, AutoExpr, LenExpr, SplitExpr, DIMString: aString;
   VarType, DimVarType: Byte;
   Done, AutoArray, IsDynamic, IsSplit, SplitNot: Boolean;
+  iArr, cArr: Array of Integer;
+  CurIndex, lArr: Integer;
 Label
   Test_Len, Next_DIM;
 Begin
@@ -6744,35 +6746,98 @@ Next_DIM:
                 End;
             End;
         End;
-        // We can have an "=" here for a declaration of array contents.
       End;
   End Else Begin
     If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '=') Then Begin
-      // Now gather values - comma separated numerics or strings depending on vartype
+      // Now gather values - comma separated numerics or strings depending on vartype.
+      // Brackets used to indicate more indices - such as ((1,2),(3,4)) will result in a (2,2) array
       Done := False;
       Inc(Position, 2);
-      While Not Done Do Begin
-        DIMString := SP_Convert_Expr(Tokens, Position, Error, -1) + DIMString;
-        If Error.Code <> SP_ERR_OK Then
-          Done := True
-        Else
-          If ((DimVarType = SP_NUMVAR) And (Error.ReturnType <> SP_VALUE)) or ((DimVarType = SP_STRVAR) And (Error.ReturnType <> SP_STRING)) Then Begin
-            Error.Code := SP_ERR_SYNTAX_ERROR;
-            Exit;
-          End;
-        Inc(NumIndices);
-        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then
-          Inc(Position, 2)
-        Else
-          Done := True;
-      End;
-      If NumIndices = 0 Then Begin
-        Error.Code := SP_ERR_SYNTAX_ERROR;
-        Exit;
-      End Else Begin
-        AutoArray := True;
-        AutoExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(1);
-        AutoExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(NumIndices) + AutoExpr;
+      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin // starts a multi-dim declaration
+        SetLength(iArr, 0);
+        SetLength(cArr, 0);
+        CurIndex := -1;
+        lArr := 0;
+        While Not Done Do Begin
+          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
+            Inc(Position, 2);
+            Inc(CurIndex);
+            If CurIndex >= lArr Then Begin
+              Inc(lArr);
+              SetLength(iArr, lArr);
+              SetLength(cArr, lArr);
+              iArr[lArr -1] := -1;
+              cArr[lArr -1] := 0;
+            End;
+          End Else
+            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ')') Then Begin
+              Inc(Position, 2);
+              Inc(cArr[CurIndex]);
+              If iArr[CurIndex] = -1 Then
+                iArr[CurIndex] := cArr[CurIndex]
+              Else
+                If iArr[CurIndex] <> cArr[CurIndex] Then Begin
+                  Error.Code := SP_ERR_SUBSCRIPT_WRONG;
+                  Exit;
+                End;
+              cArr[CurIndex] := 0;
+              Dec(CurIndex);
+              If CurIndex = -1 Then
+                Done := True;
+            End Else
+              If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+                Inc(Position, 2);
+                Inc(cArr[CurIndex]);
+              End Else Begin
+                DIMString := SP_Convert_Expr(Tokens, Position, Error, -1) + DIMString;
+                If Error.Code <> SP_ERR_OK Then
+                  Exit
+                Else
+                  If ((DimVarType = SP_NUMVAR) And (Error.ReturnType <> SP_VALUE)) or ((DimVarType = SP_STRVAR) And (Error.ReturnType <> SP_STRING)) Then Begin
+                    Error.Code := SP_ERR_SYNTAX_ERROR;
+                    Exit;
+                  End;
+                If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+                  Inc(Position, 2);
+                  if CurIndex = -1 Then CurIndex := 0;
+                  Inc(cArr[CurIndex]);
+                End;
+              End;
+        End;
+        // now put what we have into a form the interpreter can understand.
+        If Length(iArr) = 0 Then Begin
+          Error.Code := SP_ERR_SYNTAX_ERROR;
+          Exit;
+        End Else Begin
+          AutoArray := True;
+          AutoExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(Length(iArr));
+          For CurIndex := 0 To Length(iArr) -1 Do
+            AutoExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(iArr[CurIndex]) + AutoExpr;
+        End;
+      End Else Begin // fall back to the single-dimension legacy parsing.
+        While Not Done Do Begin
+          DIMString := SP_Convert_Expr(Tokens, Position, Error, -1) + DIMString;
+          If Error.Code <> SP_ERR_OK Then
+            Done := True
+          Else
+            If ((DimVarType = SP_NUMVAR) And (Error.ReturnType <> SP_VALUE)) or ((DimVarType = SP_STRVAR) And (Error.ReturnType <> SP_STRING)) Then Begin
+              Error.Code := SP_ERR_SYNTAX_ERROR;
+              Exit;
+            End;
+          Inc(NumIndices);
+          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then
+            Inc(Position, 2)
+          Else
+            Done := True;
+        End;
+        If NumIndices = 0 Then Begin
+          Error.Code := SP_ERR_SYNTAX_ERROR;
+          Exit;
+        End Else Begin
+          AutoArray := True;
+          AutoExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(1);
+          AutoExpr := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(NumIndices) + AutoExpr;
+        End;
       End;
     End Else Begin
       Error.Code := SP_ERR_MISSING_BRACKET;

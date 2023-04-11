@@ -6759,7 +6759,7 @@ Next_DIM:
         CurIndex := -1;
         lArr := 0;
         While Not Done Do Begin
-          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
+          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin // Open bracket advances to next dimension
             Inc(Position, 2);
             Inc(CurIndex);
             If CurIndex >= lArr Then Begin

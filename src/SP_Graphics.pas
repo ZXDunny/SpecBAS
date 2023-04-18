@@ -161,7 +161,6 @@ Var
   SetDR: Boolean = False;
   DPtrBackup: Pointer;
   MOUSEPALETTE: Array[0..255] of TP_Colour;
-  RenderCount: NativeInt;
 
   {$IFDEF FPC}
   DispRects: Array[0..65535] of TRct;
@@ -1973,7 +1972,8 @@ Procedure SP_Scroll(Dy: Integer);
 Var
   Dst: pLongWord;
   Src: pLongWord;
-  Amt, nDy, Paper: Integer;
+  Amt, nDy: Integer;
+  Paper: Longword;
 Begin
 
   If SCREENBPP = 8 Then Begin

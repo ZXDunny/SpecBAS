@@ -185,19 +185,11 @@ Var
   p: TPoint;
 Begin
 
-  RenderCount := 0;
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
+  Priority := tpIdle;
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
-
-  if CORECOUNT >= 4 then
-    Priority := tpTimeCritical
-  else
-    if CORECOUNT > 1 then
-      Priority := tpHigher
-    else
-      Priority := tpIdle;
 
   StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
@@ -212,6 +204,32 @@ Begin
       LastFrames := FRAMES;
 
       DisplaySection.Enter;
+
+      GetCursorPos(p);
+      p := Main.ScreenToClient(p);
+      {$IFDEF OpenGL}
+        MOUSEX := Integer(Round(p.X / ScaleMouseX));
+        MOUSEY := Integer(Round(p.Y / ScaleMouseY));
+      {$ELSE}
+        MOUSEX := p.X;
+        MOUSEY := p.Y;
+      {$ENDIF}
+      If Not PtInRect(Main.ClientRect, p) Then Begin
+        If MouseInForm Then Begin
+          MOUSEVISIBLE := False;
+          SP_InvalidateWholeDisplay;
+          SP_NeedDisplayUpdate := True;
+          MouseInForm := False;
+        End;
+      End Else Begin
+        If Not MouseInForm Then Begin
+          MOUSEVISIBLE := USERMOUSEVISIBLE or (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_ERROR]);
+          MouseInForm := True;
+          SP_InvalidateWholeDisplay;
+          SP_NeedDisplayUpdate := True;
+        End;
+      End;
+
       If SP_FrameUpdate Then Begin
         If UpdateDisplay Then Begin
           CB_Refresh_Display;
@@ -224,32 +242,7 @@ Begin
 
     End Else
 
-      TThread.Sleep(1);
-
-    GetCursorPos(p);
-    p := Main.ScreenToClient(p);
-    {$IFDEF OpenGL}
-      MOUSEX := Integer(Round(p.X / ScaleMouseX));
-      MOUSEY := Integer(Round(p.Y / ScaleMouseY));
-    {$ELSE}
-      MOUSEX := p.X;
-      MOUSEY := p.Y;
-    {$ENDIF}
-    If Not PtInRect(Main.ClientRect, p) Then Begin
-      If MouseInForm Then Begin
-        MOUSEVISIBLE := False;
-        SP_InvalidateWholeDisplay;
-        SP_NeedDisplayUpdate := True;
-        MouseInForm := False;
-      End;
-    End Else Begin
-      If Not MouseInForm Then Begin
-        MOUSEVISIBLE := USERMOUSEVISIBLE or (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_ERROR]);
-        MouseInForm := True;
-        SP_InvalidateWholeDisplay;
-        SP_NeedDisplayUpdate := True;
-      End;
-    End;
+      Sleep(0);
 
   End;
 
@@ -411,8 +404,6 @@ Begin
     InvalidateRect(Main.Handle, iRect, False);
     Main.Repaint;
   {$ENDIF}
-
-  Inc(RenderCount);
 
 End;
 

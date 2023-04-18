@@ -81,10 +81,10 @@ Type
 
   TSP_NUMARRAY = Record
     Name: aString;
-    Size, NumIndices, Base, LastSearchIdx: Integer;
+    Size, NumIndices, Base, LastSearchIdx: NativeInt;
     LastSearchTerm: aFloat;
     Values: Array of pSP_NumVarContent;
-    Indices: Array of Integer;
+    Indices: Array of NativeInt;
     Hashes: Array[0..255] of pHashEntry;
     DynArray: Boolean;
     DynHashes: Array of pHashEntry;
@@ -93,9 +93,9 @@ Type
 
   TSP_STRARRAY = Packed Record
     Name, LastSearchTerm: aString;
-    Size, NumIndices, Base, LastSearchIdx, DLen: Integer;
+    Size, NumIndices, Base, LastSearchIdx, DLen: NativeInt;
     Strings: Array of pSP_StrVarContent;
-    Indices: Array of Integer;
+    Indices: Array of NativeInt;
     Hashes: Array[0..255] of pHashEntry;
     DynArray: Boolean;
     DynHashes: Array of pHashEntry;
@@ -1019,7 +1019,7 @@ End;
 
 Function SP_CreateNumArray(const Name: aString; const Indices: aString; Base: Integer; Dyn: Boolean; Var Error: TSP_ErrorCode): Integer;
 Var
-  Idx, pIdx, IndexCount: Integer;
+  Idx, pIdx, IndexCount: NativeInt;
   LongWordPtr: pLongWord;
 Begin
 
@@ -1272,7 +1272,7 @@ End;
 
 Function SP_UpdateNumArray(Var Idx: Integer; const Name: aString; const Indices, Key: ansiString; Var Value: aFloat; Var Error: TSP_ErrorCode): Integer; inline;
 Var
-  Offset: Integer;
+  Offset: NativeInt;
   LastPtr, Ptr: pHashEntry;
 Begin
 

@@ -1224,7 +1224,7 @@ Begin
       Inc(Idx);
       While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do Begin
         s2 := Listing[Idx];
-        If (s2 <> '') And (s2[1] in ['A'..'Z', 'a'..'z']) And (s[Length(s)] in ['0'..'9']) Then
+        If (s2 <> '') And (((s2[1] in ['A'..'Z', 'a'..'z']) And (s[Length(s)] in ['0'..'9'])) or (Listing.Flags[Idx -1].ReturnType = spHardReturn)) Then
           s := s + ' ' + s2
         Else
           s := s + s2;
@@ -7764,7 +7764,6 @@ Var
   Str1, ValTokens: aString;
 Begin
 
-
   // Executes a line of BASIC as an expression. Calling functions can deal with the result and any errors.
 
   Position := 1;
@@ -7774,6 +7773,10 @@ Begin
     If Expr[1] <> #$F Then Begin
       Str1 := SP_TokeniseLine(Expr, True, False) + #255;
       ValTokens := SP_Convert_Expr(Str1, Position, Error, -1) + #255;
+      If (Position <> Length(Str1)) or ((Position < Length(Str1)) And (Str1[Position] <> #255)) Then Begin
+        Error.Code := SP_ERR_SYNTAX_ERROR;
+        Exit;
+      End;
       SP_RemoveBlocks(ValTokens);
       SP_TestConsts(ValTokens, 1, Error, False);
       SP_AddHandlers(ValTokens);
@@ -9745,7 +9748,7 @@ Begin
     End else
       Result.Hint := Result.Hint + ' ' + #16#2#0#0#0 + 'Not found';
   End Else
-    If SP_IsReserved(Upper(Result.Hint)) Then Begin
+    If (Error.Code = SP_ERR_SYNTAX_ERROR) or SP_IsReserved(Upper(Result.Hint)) Then Begin
       Result.Hint := '';
       Exit;
     End Else

@@ -32,7 +32,7 @@ uses
   SHFolder, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math,
   Dialogs, SP_SysVars, SP_Graphics, SP_Graphics32, SP_BankManager, SP_Util, SP_Main, SP_FileIO,
   ExtCtrls, SP_Input, MMSystem, SP_Errors, SP_Sound, Bass, SP_Tokenise, SP_Menu, RunTimeCompiler,
-  {$IFDEF OPENGL}dglOpenGL{$ENDIF}, SP_Components, SP_BaseComponentUnit, Clipbrd;
+  {$IFDEF OPENGL}dglOpenGL,{$ENDIF} SP_Components, SP_BaseComponentUnit, Clipbrd;
 
 Const
 
@@ -57,6 +57,7 @@ type
     procedure FormKeyPress(Sender: TObject; var Key: Char);
     procedure FormActivate(Sender: TObject);
     procedure FormDeactivate(Sender: TObject);
+    procedure FormCanResize(Sender: TObject; var NewWidth, NewHeight: Integer; var Resize: Boolean);
   private
     { Private declarations }
     Minimised: Boolean;
@@ -130,6 +131,7 @@ var
   ScaleMouseX, ScaleMouseY: aFloat;
   MouseInForm, IgnoreNextMenuChar, AltDown, FormActivated: Boolean;
   AltChars: aString;
+  MainCanResize: Boolean = True;
 
 {$IFDEF OPENGL}
 Const
@@ -152,6 +154,8 @@ Procedure TMain.OnResizeMain(Var Msg: TMessage);
 Var
   l, t, w, h, cw, ch: Integer;
 Begin
+
+  MainCanResize := False;
 
   cw := ClientWidth;
   ch := ClientHeight;
@@ -177,6 +181,8 @@ Begin
   Msg.Result := 0;
   SIZINGMAIN := False;
 
+  MainCanResize := True;
+
 End;
 
 Procedure TRefreshThread.Execute;
@@ -187,7 +193,7 @@ Begin
 
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
-  Priority := tpIdle;
+  Priority := tpNormal;
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
@@ -242,14 +248,16 @@ Begin
 
     End Else
 
-      Sleep(0);
+      Sleep(1);
 
   End;
 
+  {$IFDEF OpenGL}
   wglMakeCurrent(0, 0);
   wglDeleteContext(RC);
   ReleaseDC(Main.Handle, DC);
   DeleteDC (DC);
+  {$ENDIF}
 
 End;
 
@@ -487,7 +495,7 @@ Begin
     {$ENDIF}
     SetScreenResolution(sWidth, sHeight, FullScreen);
   End Else
-    ReScaleFlag := True;
+    {$IFDEF OpenGL}ReScaleFlag := True{$ENDIF};
 
   w := sWidth;
   h := sHeight;
@@ -631,7 +639,7 @@ Begin
   NameThreadForDebugging('Interpreter Thread');
 
   ThreadAlive := True;
-  Priority := tpHigher;
+  Priority := tpNormal;
   SP_MainLoop;
   ThreadAlive := False;
   Terminate;
@@ -908,6 +916,34 @@ end;
 Procedure TMain.FormActivate(Sender: TObject);
 begin
   FormActivated := True;
+end;
+
+procedure TMain.FormCanResize(Sender: TObject; var NewWidth, NewHeight: Integer; var Resize: Boolean);
+var
+  nw, nh{, sw, sh}: Integer;
+  {Error: TSP_ErrorCode;}
+begin
+
+  Exit; // Not yet
+
+  if WindowState = wsMinimized Then Begin
+    Resize := False;
+  End Else
+    If MainCanResize Then Begin
+      DisplaySection.Enter;
+      NewHeight := Round(NewWidth * (Height / Width));
+      nw := NewWidth - (Width - ClientWidth);
+      nh := NewHeight - (Height - ClientHeight);
+  {    sw := Ceil(nw * (DISPLAYWIDTH/SCALEWIDTH));
+      sh := Ceil(nh * (DISPLAYHEIGHT/SCALEHEIGHT));
+      SetScreen(sw, sh, nw, nh, SPFULLSCREEN);
+      SP_ResizeWindow(0, sw, sh, -1, SPFULLSCREEN, Error);}
+      SetScreen(DISPLAYWIDTH, DISPLAYHEIGHT, nw, nh, SPFULLSCREEN);
+      SP_InvalidateWholeDisplay;
+      SP_NeedDisplayUpdate := True;
+      DisplaySection.Leave;
+    End;
+
 end;
 
 Procedure TMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);

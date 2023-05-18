@@ -816,7 +816,7 @@ Const
      'nLTOPY ', 'nmSECS', 'oINV ', 'oPOLYTERM', 'oUNDER', 'nCOMPSIMPSON', 'nMUSICPOS', 'nMUSICLEN',
      'oBASE$', 'oIIF', 'oIIF$', 'nSEARCH', 'o MUL ', 'o DIV ', 'o ADD ', 'o SUB ', 'oGCD', 'oLCM', 'oDET',
      'oBIN ', 'nSPFRAME ', 'nSPCOLL ', 'nTEXTURE$ ', 'nINZONE', 'nMATCH', 'oDECIMAL', 'oUSING$', 'oJOIN$',
-     'oLBOUND', 'oUBOUND', 'oARSIZE', 'oMANDEL', 'oHEX', 'nSCREEN$', 'nDATE$ ', 'nTIME$ ', 'oREPLACE$',
+     'oLBOUND', 'oUBOUND', 'oARSIZE', 'oMANDEL', 'oHEX ', 'nSCREEN$', 'nDATE$ ', 'nTIME$ ', 'oREPLACE$',
      'oIVAL ', 'oREPMATCH$', 'nATTR ', 'nMIATTR', 'nLASTM', 'nLASTMI', 'nKEY$ ', 'nSPCLX ', 'nSPCLY ',
      'nDATADDR', 'nWINADDR', 'nMEMRD', 'nDMEMRD', 'nQMEMRD', 'nMEMRD$', 'nSTRADDR ', 'oCHOOSE', 'oCHOOSE$',
      'oTAU', 'nMILLISECONDS', 'oBINV', 'oBREV', 'oINTERP', 'oMIN$', 'oMAX$', 'nFMEMRD', 'nTXTw', 'nTXTh',
@@ -1608,18 +1608,20 @@ Begin
                   If KeyWord > -1 Then Begin
                     If KeyWord + SP_FUNCTION_BASE = SP_FN_HEX Then Begin
                       AddToResult(aChar(SP_FUNCTION) + LongWordToString(KeyWord + SP_FUNCTION_BASE));
+                      TempVal := Idx -2;
                       Inc(Idx);
                       SP_SkipSpaces(Line, Idx);
                       StoreText := '';
                       StoreLen := 0;
-                      While Line[Idx] in ['A'..'F', 'a'..'f', '0'..'9'] Do Begin
+                      While (Idx < Length(Line)) And (Line[Idx] in ['A'..'F', 'a'..'f', '0'..'9']) Do Begin
                         StoreText := StoreText + Line[Idx];
                         Inc(StoreLen);
                         Inc(Idx);
                       End;
-                      If StoreLen <> 0 Then
+                      If StoreLen <> 0 Then Begin
+                        TempVal := Idx + 2;
                         AddToResult(aChar(SP_NUMVAR) + LongWordToString(0) + LongWordToString(StoreLen) + StoreText);
-                      TempVal := Idx;
+                      End;
                       Dec(Idx, 3);
                     End Else
                       If KeyWord + SP_FUNCTION_BASE = SP_FN_AND Then

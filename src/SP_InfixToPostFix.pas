@@ -264,7 +264,7 @@ Procedure SP_Convert_ToPostFix(Var Tokens: aString; Var Position: Integer; Var E
 Var
   Token: pToken;
   i: Integer;
-  IsDirect, doJump: Boolean;
+  IsDirect, doJump, gotKeyword: Boolean;
   Converted, Statement_RPN, StList: aString;
   KeyWordID, OldKeyWordID, KeyWordPos, StatementListPos, Idx, Val, StListLen,
   Statement, NextStatement, stIdx, LineNum: LongWord;
@@ -288,6 +288,7 @@ Begin
   // Skip the line number, if there is one - if there isn't, then this is a direct command and so
   // needs to be made line 0.
 
+  GotKeyWord := False;
   If Ord(Tokens[Position]) = SP_LINE_NUM Then Begin
     LineNum := pLongWord(@Tokens[Position +1])^;
     If (LineNum < 1) or (LineNum > 999999) Then Begin
@@ -345,10 +346,16 @@ Begin
 
       Statement_RPN := '';
       Statement_RPN := SP_Convert_KeyWord(Tokens, Position, KeyWordID, Error, StList);
+      If Error.Code = SP_ERR_OK Then GotKeyWord := True;
 
       // Remove any optimisation blocking tokens from use of IIF/IIF$
 
-      If Error.Code <> SP_ERR_OK Then Begin Error.Position := Position; Exit; End;
+      If Error.Code <> SP_ERR_OK Then Begin
+        If GotKeyWord And (Error.Code = SP_ERR_INVALID_KEYWORD) Then
+          Error.Code := SP_ERR_SYNTAX_ERROR;
+        Error.Position := Position;
+        Exit;
+      End;
 
       // Now append the RPN's statement to the end of the statement.
 

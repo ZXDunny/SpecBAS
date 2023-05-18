@@ -3331,6 +3331,7 @@ Begin
       End;
       CURSORPOS := Max(1, EDITERRORPOS);
       DWSelP := CURSORPOS;
+      SP_EditorDisplayEditLine;
     End;
 
     SP_FPWaitForUserEvent(KeyInfo, LocalFlashState);

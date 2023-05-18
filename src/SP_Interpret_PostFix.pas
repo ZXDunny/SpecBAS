@@ -2571,7 +2571,11 @@ Begin
         ValueStr := SP_StackPtr^.Str;
     End;
     If Name = 'CLIP$' Then Begin
-      ClipBoard.AsText := String(ValueStr);
+      Try
+        ClipBoard.AsText := String(ValueStr);
+      Except
+        iInfo^.Error^.Code := SP_ERR_CLIPBOARD_ERROR;
+      End;
     End;
     Dec(SP_StackPtr);
   End;
@@ -6842,7 +6846,11 @@ Procedure SP_Interpret_FN_CLIPS(Var Info: pSP_iInfo);
 Begin
   Inc(SP_StackPtr);
   With SP_StackPtr^ Do Begin
-    Str := aString(ClipBoard.AsText);
+    Try
+      Str := aString(ClipBoard.AsText);
+    Except
+      Info^.Error^.Code := SP_ERR_CLIPBOARD_ERROR;
+    End;
     opType := SP_STRING;
   End;
 End;

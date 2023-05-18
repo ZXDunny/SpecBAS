@@ -987,6 +987,7 @@ Var
   MENUITEM_lineNum, MENUITEM_Statement, MENUITEM_St: Integer;
   OnActive: Word;
   LastRand: aFloat;
+  FN_Recursion_Count: LongWord;
 
 Const
 
@@ -17033,7 +17034,12 @@ Begin
 
       ValPosition := 1;
       ValTkn := @SP_FnList[Idx].Expr;
-      SP_InterpretCONTSafe(ValTkn, ValPosition, Info^.Error^);
+      Inc(FN_Recursion_Count);
+      If FN_Recursion_Count >= 1024 Then
+        Info^.Error^.Code := SP_ERR_OUT_OF_MEMORY
+      Else
+        SP_InterpretCONTSafe(ValTkn, ValPosition, Info^.Error^);
+      Dec(FN_Recursion_Count);
 
       // Now remove the variables
 

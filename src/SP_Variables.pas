@@ -2807,6 +2807,7 @@ Begin
   // Finally, insert breakpoint flags if necessary
 
   SP_PrepareBreakpoints(True);
+  FN_Recursion_Count := 0;
 
 End;
 

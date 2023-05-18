@@ -44,6 +44,7 @@ Type
   End;
 
 Function  SP_TokeniseLine(Line: aString; IsExpression, AddLineNum: Boolean): aString;
+Function  SP_IsHybridFn(const Idx: LongWord): Boolean;
 Function  SP_IsReserved(Const Line: aString): Boolean;
 Function  SP_IsConstant(Const Line: aString): Integer;
 Function  SP_IsKeyWord(Const Line: aString): Integer;
@@ -731,7 +732,6 @@ Const
   SP_KW_RECTANGLE_TO        = 4406;
   SP_KW_RECTFILL_TO         = 4407;
 
-
   // Names of the above meta-keywords - for use by the DEBUG command.
 
   SP_Keyword_Names: Array[0..356] of aString =
@@ -790,7 +790,7 @@ Const
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.
 
-  SP_FUNCTIONS_EXTRA: Array[0..272] of aString =
+  SP_FUNCTIONS_EXTRA: Array[0..273] of aString =
     ('nRND', 'nINKEY$', 'oPI', 'nVAL$ ', 'oCODE ', 'oVAL ', 'oLEN ', 'nSIN ', 'nCOS ',
      'nTAN ', 'nASN ', 'nACS ', 'nATN ', 'oLN ', 'oEXP ', 'oINT ', 'oSQR ', 'oSGN ', 'oABS ', 'n IN ',
      'nUSR ', 'oSTR$ ','oCHR$ ', 'nPEEK ', 'oNOT ', 'o OR ', 'o AND ', 'o MOD ', 'o XOR ', 'o SHL ',
@@ -821,7 +821,7 @@ Const
      'nDATADDR', 'nWINADDR', 'nMEMRD', 'nDMEMRD', 'nQMEMRD', 'nMEMRD$', 'nSTRADDR ', 'oCHOOSE', 'oCHOOSE$',
      'oTAU', 'nMILLISECONDS', 'oBINV', 'oBREV', 'oINTERP', 'oMIN$', 'oMAX$', 'nFMEMRD', 'nTXTw', 'nTXTh',
      'nNOISE', 'nOCTNOISE', 'oPAR ', 'oMAP', 'o EQV ', 'o IMP ', 'oSINH ', 'oCOSH ', 'oTANH ', 'oASNH ',
-     'oACSH ', 'oATNH ', 'oMID', 'nPARAM$', 'nSTK', 'nSTK$', 'oREV$ ');
+     'oACSH ', 'oATNH ', 'oMID', 'nPARAM$', 'nSTK', 'nSTK$', 'oREV$ ', 'nCLIP$');
 
   // Constants, like above, for identifying Functions in token form
 
@@ -1100,6 +1100,7 @@ Const
   SP_FN_STK                 = 2270;
   SP_FN_STKS                = 2271;
   SP_FN_REVS                = 2272;
+  SP_FN_CLIPS               = 2273;
 
   // Meta-functions
 
@@ -1196,6 +1197,7 @@ Const
   SP_RESTORECOLOURS         = 76;
   SP_NOTVAR                 = 77;
   SP_IJMP                   = 78;
+  SP_HYBRID_LET             = 79;
   SP_JUMP                   = 100;
   SP_RUN                    = 101;
   SP_NEW                    = -2;
@@ -1277,9 +1279,25 @@ Const
   SP_TRUE                   = 1;
   SP_FALSE                  = 0;
 
+  HybridFns: Array[0..0] of LongWord = (SP_FN_CLIPS);
+
 implementation
 
 Uses SP_Main, SP_Editor, SP_FileIO, SP_SysVars, {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF};
+
+Function SP_IsHybridFn(const Idx: LongWord): Boolean;
+Var
+  i: Integer;
+Begin
+  i := 0;
+  Result := False;
+  While i <= High(HybridFns) do
+    if HybridFns[i] = Idx Then Begin
+      Result := True;
+      Exit;
+    End Else
+      Inc(i);
+End;
 
 Function SP_TokeniseLine(Line: aString; IsExpression, AddLineNum: Boolean): aString;
 Var

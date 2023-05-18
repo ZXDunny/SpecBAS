@@ -2278,7 +2278,7 @@ Var
   Idx, Idx2, Idx3, Idx4, sIdx, pStatement,
   LabelPos, LabelLen, ProcIdx, LastStrAt, LastStrLen, DATALine, DATAStatement: Integer;
   Tokens, Name, s: aString;
-  Changed, Reference, NewStatement: Boolean;
+  Changed, Reference, NewStatement, IsVar: Boolean;
   TempLine, cLine: TSP_GOSUB_Item;
   xVar: pVarType;
   KeyWord, MaxLineNum, cKW, LastKW, CurLine: LongWord;
@@ -2576,12 +2576,24 @@ Begin
           SP_POINTER, SP_NUMVAR_LET_VALID, SP_STRVAR_LET_VALID, SP_INCVAR, SP_DECVAR, SP_MULVAR, SP_DIVVAR,
           SP_POWVAR, SP_MODVAR, SP_ANDVAR, SP_ORVAR, SP_NOTVAR, SP_XORVAR:
             Begin
-              If ClearVars Then Begin
-                pLongWord(@Tokens[Idx2])^ := 0;
-                Inc(Idx2, Tkn^.TokenLen);
-                Changed := True;
-              End Else
-                Inc(Idx2, Tkn^.TokenLen);
+              IsVar := True;
+              If Tkn^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then Begin
+                Name := StringFromPtrB(@Tokens[Idx2 + SizeOf(LongWord)], Tkn^.TokenLen - SizeOf(LongWord));
+                If Name[1] > #127 Then Begin
+                  // A high bit set on the first char of the var name indicates a hybrid function -
+                  // a function that can be written to. Convert to that token type now.
+                  Tkn^.Token := SP_HYBRID_LET;
+                  SP_AddHandlers(Tokens);
+                  Changed := True;
+                  IsVar := False;
+                End;
+              End;
+              If IsVar Then
+                If ClearVars Then Begin
+                  pLongWord(@Tokens[Idx2])^ := 0;
+                  Changed := True;
+                End;
+              Inc(Idx2, Tkn^.TokenLen);
             End;
           SP_KEYWORD:
             Begin

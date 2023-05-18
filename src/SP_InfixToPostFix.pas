@@ -312,9 +312,10 @@ Begin
     End;
 
     // Check for a Keyword... If none found and there's a variable to follow, then insert LET.
+    // Note that sometimes a function (such as CLIP$) can be assigned to, the LET will pick it up.
 
     KeyWordID := 0;
-    If Ord(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then
+    If (Ord(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR]) or (Ord(Tokens[Position]) = SP_FUNCTION) Then
       KeyWordID := SP_KW_IMPLICIT_LET
     Else
       If (Ord(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '?') Then Begin
@@ -1276,7 +1277,7 @@ Begin
 
             // Functions that take no parameters and return a String:
 
-            SP_FN_INKEYS, SP_FN_GETDIR, SP_FN_DIR, SP_FN_ERRORS, SP_FN_STKS:
+            SP_FN_INKEYS, SP_FN_GETDIR, SP_FN_DIR, SP_FN_ERRORS, SP_FN_STKS, SP_FN_CLIPS:
               Begin
                 Inc(StackPtr);
                 Stack[StackPtr] := SP_STRING;
@@ -2479,6 +2480,7 @@ Var
   VarType, SlicerFlags: Byte;
   VarPos, VarIdx, VarSize, Idx, Idx2, NumIndices: Integer;
   VarName, FnResult: aString;
+  IsHybridFn: Boolean;
   Token: Byte;
   TokenNameLen: Integer;
   TokenName: aString;
@@ -2488,27 +2490,53 @@ Begin
   // Var[(array/slicer)][.member]
 
   Result := '';
+  IsHybridFn := False;
+  VarPos := 0;
+  VarIdx := 0;
 
   If Not (Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR]) Then Begin
-    Error.Code := SP_ERR_MISSING_VARIABLE;
-    Exit;
+    If Byte(Tokens[Position]) <> SP_FUNCTION Then Begin
+      Error.Code := SP_ERR_MISSING_VARIABLE;
+      Exit;
+    End;
   End;
 
   VarType := Byte(Tokens[Position]);
-  Inc(Position);
-  VarPos := Position;
-  VarIdx := pLongWord(@Tokens[Position])^;
-  Inc(Position, SizeOf(LongWord));
-  VarSize := pLongWord(@Tokens[Position])^;
-  Inc(Position, SizeOf(LongWord));
-  VarName := LowerNoSpaces(Copy(Tokens, Position, VarSize));
-  Inc(Position, VarSize);
+  If VarType in [SP_NUMVAR, SP_STRVAR] Then Begin
+    Inc(Position);
+    VarPos := Position;
+    VarIdx := pLongWord(@Tokens[Position])^;
+    Inc(Position, SizeOf(LongWord));
+    VarSize := pLongWord(@Tokens[Position])^;
+    Inc(Position, SizeOf(LongWord));
+    VarName := LowerNoSpaces(Copy(Tokens, Position, VarSize));
+    Inc(Position, VarSize);
+  End Else
+    If VarType = SP_FUNCTION Then Begin
+      // If we have a function, get its name and convert to a var assign,
+      // and flag that we cannot use a slicer/struct/array here.
+      Inc(Position);
+      Idx := pLongWord(@Tokens[Position])^;
+      If SP_IsHybridFn(Idx) Then Begin
+        VarName := StripSpaces(Copy(SP_FUNCTIONS_EXTRA[Idx - SP_FUNCTION_BASE], 2));
+        Inc(Position, SizeOf(LongWord));
+        IsHybridFn := True;
+        If Copy(VarName, Length(VarName), 1) = '$' Then
+          VarType := SP_STRVAR
+        Else
+          VarType := SP_NUMVAR;
+        VarName := aChar(Ord(VarName[1]) + 128) + Copy(VarName, 2);
+      End Else Begin
+        Error.Code := SP_ERR_SYNTAX_ERROR;
+        Exit;
+      End;
+    End;
 
   // Test for an array here.
 
   NumIndices := 0;
   SlicerFlags := 0;
-  If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
+  If Not IsHybridFn And ((Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(')) Then Begin
     Inc(Position, 2);
     FnResult := SP_ExtractArray(Tokens, Position, True, Error); // Returns p-code! Beware!
     If FnResult = '' Then Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -2574,7 +2602,7 @@ Begin
         // it works and doesn't need to be fast.
 
         Token := Byte(Tokens[Position]);
-        If Token in [SP_STRUCT_MEMBER_N, SP_STRUCT_MEMBER_S] Then Begin
+        If Not IsHybridFn And (Token in [SP_STRUCT_MEMBER_N, SP_STRUCT_MEMBER_S]) Then Begin
           Inc(Position);
           TokenNameLen := pLongWord(@Tokens[Position])^;
           Inc(Position, SizeOf(LongWord));
@@ -2920,7 +2948,7 @@ Begin
             SP_FN_FONTHEIGHT, SP_FN_FONTMODE, SP_FN_FONTTRANSPARENT,SP_FN_MOUSEDX, SP_FN_MOUSEDY, SP_FN_HEADING, SP_FN_DRPOSX,
             SP_FN_DRPOSY, SP_FN_LASTK, SP_FN_FRAMES, SP_FN_TIME, SP_FN_MOUSEWHEEL, SP_FN_ERRORS, SP_FN_POPLINE, SP_FN_POPST,
             SP_FN_VOL, SP_FN_LOGW, SP_FN_LOGH, SP_FN_ORGX, SP_FN_ORGY, SP_FN_MSECS, SP_FN_MUSICPOS, SP_FN_MUSICLEN, SP_FN_LASTM,
-            SP_FN_LASTMI, SP_FN_TXTW, SP_FN_TXTH, SP_FN_STK, SP_FN_STKS:
+            SP_FN_LASTMI, SP_FN_TXTW, SP_FN_TXTH, SP_FN_STK, SP_FN_STKS, SP_FN_CLIPS:
               Begin
                 Inc(Position, SizeOf(LongWord));
                 FnResult := '';
@@ -6343,7 +6371,7 @@ Next_Assign:
 
   EquateType := #0;
   sPos := Position;
-  If Not (Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR]) Then Begin
+  If Not ((Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR]) or (Byte(Tokens[Position]) = SP_FUNCTION)) Then Begin
     Error.Code := SP_ERR_MISSING_VAR;
     Exit;
   End Else
@@ -6355,6 +6383,8 @@ Next_Assign:
     SetLength(VarExpr, Length(VarExpr) +1);
     SetLength(RTs, Length(VarExpr));
     VarExpr[Length(VarExpr) -1] := SP_Convert_Var_Assign(Tokens, Position, Error);
+    If VarType = SP_FUNCTION Then
+      VarType := Error.ReturnType; // Will always be strvar or numvar.
     If Error.Code <> SP_ERR_OK Then
       Exit
     Else
@@ -6366,6 +6396,7 @@ Next_Assign:
       End Else
         RT := Error.ReturnType;
     RTs[Length(RTs) -1] := RT;
+
     If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in ['=', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_XORVAR]) Then Begin
       EquateType := Tokens[Position +1];
       Done := True;

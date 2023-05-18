@@ -26,7 +26,7 @@ Unit SP_Interpret_PostFix;
 interface
 
 Uses Forms, {$IFNDEF FPC}IOUtils,{$ELSE}FileUtil,{$ENDIF} SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
-     SP_Input, SP_BankManager, SP_BankFiling, SP_Streams, SP_Sound, SP_Package, Math, Classes, SysUtils, SP_Math,
+     SP_Input, SP_BankManager, SP_BankFiling, SP_Streams, SP_Sound, SP_Package, Math, Classes, SysUtils, SP_Math, Clipbrd,
      {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_Strings, SP_Menu, SP_UITools, SP_AnsiStringlist, SP_Variables;
 
 Type
@@ -138,6 +138,7 @@ Procedure SP_Interpret_COMPILE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_UNHANDLED(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_STK(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_STKS(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_CLIPS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_SCREENS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_JOINS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_TEXTURES(Var Info: pSP_iInfo);
@@ -859,6 +860,7 @@ Procedure SP_Interpret_SP_IJMP(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_VALUE(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_NUMVAR_LET(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_STRVAR_LET(Var iInfo: pSP_iInfo);
+Procedure SP_Interpret_SP_HYBRID_LET(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_STRUCT_MEMBER_N(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_STRUCT_MEMBER_ASS(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_STRUCT_MEMBER_S(Var iInfo: pSP_iInfo);
@@ -2548,6 +2550,29 @@ Begin
       SP_UpdateStrVar(pLongWord(StrPtr)^,
                       StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                       SP_StackPtr^.Str, -1, -1, Error^, pLongWord(StrPtr));
+    Dec(SP_StackPtr);
+  End;
+
+End;
+
+Procedure SP_Interpret_SP_HYBRID_LET(Var iInfo: pSP_iInfo);
+Var
+  Name, ValueStr: aString;
+  ValueNum: aFloat;
+Begin
+
+  With iInfo^ Do Begin
+    Name := StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord));
+    Name[1] := aChar(Ord(Name[1]) - 128);
+    Case SP_StackPtr^.OpTYpe of
+      SP_VALUE:
+        ValueNum := SP_StackPtr^.Val;
+      SP_STRING:
+        ValueStr := SP_StackPtr^.Str;
+    End;
+    If Name = 'CLIP$' Then Begin
+      ClipBoard.AsText := String(ValueStr);
+    End;
     Dec(SP_StackPtr);
   End;
 
@@ -6810,6 +6835,15 @@ Begin
   With SP_StackPtr^ Do Begin
     Str := s;
     OpType := SP_STRING;
+  End;
+End;
+
+Procedure SP_Interpret_FN_CLIPS(Var Info: pSP_iInfo);
+Begin
+  Inc(SP_StackPtr);
+  With SP_StackPtr^ Do Begin
+    Str := aString(ClipBoard.AsText);
+    opType := SP_STRING;
   End;
 End;
 
@@ -21124,6 +21158,14 @@ Begin
           Inc(StrPtr, Token^.TokenLen);
         End;
 
+      SP_HYBRID_LET:
+        Begin
+          s := StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)) + SizeOf(LongWord), Token^.TokenLen - SizeOf(LongWord));
+          s[1] := aChar(Ord(s[1]) - 128);
+          nOutput := 'HYBRID LET [' + s + ']';
+          Inc(StrPtr, Token^.TokenLen);
+        End;
+
       SP_STRVAR_EVAL:
         Begin
           nOutput := 'STRVAR EVAL ['+StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)) + (SizeOf(LongWord) * 2), pLongWord(StrPtr + SizeOf(LongWord))^)+'$]';
@@ -26615,6 +26657,7 @@ Initialization
   InterpretProcs[SP_FN_RND] := @SP_Interpret_FN_RND;
   InterpretProcs[SP_FN_STK] := @SP_Interpret_FN_STK;
   InterpretProcs[SP_FN_STKS] := @SP_Interpret_FN_STKS;
+  InterpretProcs[SP_FN_CLIPS] := @SP_Interpret_FN_CLIPS;
   InterpretProcs[SP_FN_INKEYS] := @SP_Interpret_FN_INKEYS;
   InterpretProcs[SP_FN_KEY] := @SP_Interpret_FN_KEY;
   InterpretProcs[SP_FN_PI] := @SP_Interpret_FN_PI;
@@ -26848,6 +26891,7 @@ Initialization
   InterpretProcs[SP_VALUE] := @SP_Interpret_SP_VALUE;
   InterpretProcs[SP_NUMVAR_LET] := @SP_Interpret_SP_NUMVAR_LET;
   InterpretProcs[SP_STRVAR_LET] := @SP_Interpret_SP_STRVAR_LET;
+  InterpretProcs[SP_HYBRID_LET] := @SP_Interpret_SP_HYBRID_LET;
   InterpretProcs[SP_INCVAR] := @SP_Interpret_SP_INCVAR;
   InterpretProcs[SP_DECVAR] := @SP_Interpret_SP_DECVAR;
   InterpretProcs[SP_MULVAR] := @SP_Interpret_SP_MULVAR;

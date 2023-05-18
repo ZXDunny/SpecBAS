@@ -15652,7 +15652,7 @@ Begin
               Goto Expression;
         End;
 
-      SP_NUMVAR, SP_STRVAR:
+      SP_NUMVAR, SP_STRVAR, SP_FUNCTION:
         Begin
           If Expr <> '' Then Begin
             Result := Result + Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KW);
@@ -15660,6 +15660,8 @@ Begin
           End;
           VarType := Byte(Tokens[Position]);
           VarExpr := SP_Convert_Var_Assign(Tokens, Position, Error);
+          If VarType = SP_FUNCTION Then
+            VarType := Error.ReturnType;
           If Error.Code <> SP_ERR_OK Then Exit;
           RT := Error.ReturnType;
           Inc(VarCount);

@@ -13932,9 +13932,11 @@ Begin
 
     SP_FPNewProgram;
     SP_Program_Clear;
-    SP_Reset_Temp_Colours;
     CPAPER := 8;
     CINK := 0;
+    CBOLD := 0;
+    CITALIC := 0;
+    SP_Reset_Temp_Colours;
     SP_CLS(CPAPER);
     Error^.Line := -2;
     Error^.Statement := 0;

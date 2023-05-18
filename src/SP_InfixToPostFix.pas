@@ -315,7 +315,7 @@ Begin
     // Note that sometimes a function (such as CLIP$) can be assigned to, the LET will pick it up.
 
     KeyWordID := 0;
-    If (Ord(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR]) or (Ord(Tokens[Position]) = SP_FUNCTION) Then
+    If (Ord(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR]) or ((Ord(Tokens[Position]) = SP_FUNCTION) and SP_IsHybridFn(pLongWord(@Tokens[Position +1])^)) Then
       KeyWordID := SP_KW_IMPLICIT_LET
     Else
       If (Ord(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '?') Then Begin

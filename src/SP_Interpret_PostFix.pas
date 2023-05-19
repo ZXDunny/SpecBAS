@@ -5938,7 +5938,7 @@ End;
 
 Procedure SP_Interpret_FN_CLAMP(Var Info: pSP_iInfo);
 Var
-  Min, Max: aFloat;
+  Min, Max, t: aFloat;
 Begin
 
   Max := SP_StackPtr^.Val;
@@ -5946,6 +5946,10 @@ Begin
 
   Min := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+
+  If Max < Min Then Begin
+    t := Max; Max := Min; Min := t;
+  End;
 
   If SP_StackPtr^.Val < Min Then
     SP_StackPtr^.Val := Min
@@ -5957,7 +5961,7 @@ End;
 
 Procedure SP_Interpret_FN_INRANGE(Var Info: pSP_iInfo);
 Var
-  Min, Max: aFloat;
+  Min, Max, t: aFloat;
 Begin
 
   Max := SP_StackPtr^.Val;
@@ -5965,6 +5969,10 @@ Begin
 
   Min := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+
+  If Max < Min Then Begin
+    t := Max; Max := Min; Min := t;
+  End;
 
   If (SP_StackPtr^.Val >= Min) And (SP_StackPtr^.Val <= Max) Then
     SP_StackPtr^.Val := 1

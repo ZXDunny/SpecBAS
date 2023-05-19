@@ -727,7 +727,7 @@ Begin
   StrWanted := 0;
 
   iIdx := 0;
-  Idx := Position Mod Length(Mask);
+  Idx := (Position Mod Length(Mask)) +1;
 
   While True Do Begin
 

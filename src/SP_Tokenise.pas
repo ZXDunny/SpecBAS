@@ -1962,6 +1962,10 @@ Begin
         If Result And (Idx <= l) Then Begin
           If Line[Idx] in ['E','e'] Then Begin
             Inc(Idx);
+            If Not (Line[Idx] in ['-', '+', '0'..'9']) Then  Begin
+              Dec(Idx);
+              Exit;
+            End;
             Exponent := 0;
             NegExp := False;
             If Idx <= l Then

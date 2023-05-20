@@ -1442,10 +1442,15 @@ Begin
                     Inc(Idx);
                     If StoreText[Length(StoreText)] = '$' Then Break;
                   End;
-                  If Line[Idx -1] = '$' Then
-                    AddToResult(aChar(SP_STRUCT_MEMBER_S) + LongWordToString(Length(StoreText)) + StoreText)
-                  Else
-                    AddToResult(aChar(SP_STRUCT_MEMBER_N) + LongWordToString(Length(StoreText)) + StoreText);
+                  If Not SP_IsReserved(Upper(StoreText)) Then Begin
+                    If Line[Idx -1] = '$' Then
+                      AddToResult(aChar(SP_STRUCT_MEMBER_S) + LongWordToString(Length(StoreText)) + StoreText)
+                    Else
+                      AddToResult(aChar(SP_STRUCT_MEMBER_N) + LongWordToString(Length(StoreText)) + StoreText);
+                  End Else Begin
+                    AddToResult(aChar(SP_SYMBOL) + Line[StoreVal]);
+                    Idx := StoreVal +1;
+                  End;
                 End;
               End;
             End Else

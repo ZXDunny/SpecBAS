@@ -9599,7 +9599,7 @@ Begin
         // Look for default values now for struct members. Assign them to the first in the array,
         // and then copy that one item out to the rest of the string array values.
 
-        If StructName <> '' Then Begin
+        If (Info^.Error.Code = SP_ERR_OK) And (StructName <> '') Then Begin
           Key := '';
           Indices := '';
           For Idx := 1 To NumIndices Do

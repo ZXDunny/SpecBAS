@@ -1210,8 +1210,9 @@ End;
 
 Procedure SP_ForceCompile;
 Var
-  Idx: Integer;
   s, s2: aString;
+  Idx, i: Integer;
+  InString: Boolean;
   Error: TSP_ErrorCode;
 Begin
 
@@ -1222,12 +1223,15 @@ Begin
     While Idx < Listing.Count Do Begin
       s := Listing[Idx];
       Inc(Idx);
+      InString := False;
+      if s <> '' Then For i := 1 to Length(s) Do If s[i] = '"' Then InString := Not InString;
       While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do Begin
         s2 := Listing[Idx];
-        If (s2 <> '') And (((s2[1] in ['A'..'Z', 'a'..'z']) And (s[Length(s)] in ['0'..'9'])) or (Listing.Flags[Idx -1].ReturnType = spHardReturn)) Then
+        If (s2 <> '') And Not InString And (((s2[1] in ['A'..'Z', 'a'..'z']) And (Listing.Flags[Idx -1].ReturnType = spHardReturn) And (s[Length(s)] in ['0'..'9'])) or (Listing.Flags[Idx -1].ReturnType = spHardReturn)) Then
           s := s + ' ' + s2
         Else
           s := s + s2;
+        if s2 <> '' then For i := 1 to Length(s2) Do If s2[i] = '"' Then InString := Not InString;
         Inc(Idx);
       End;
       s := SP_TokeniseLine(s, False, True) + SP_TERMINAL_SEQUENCE;

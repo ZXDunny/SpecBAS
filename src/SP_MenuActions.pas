@@ -2,7 +2,7 @@ unit SP_MenuActions;
 
 interface
 
-Uses SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_LabelUnit, SP_Interpret_PostFix;
+Uses SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_TabBarUnit, SP_LabelUnit, SP_Interpret_PostFix;
 
 Type
 
@@ -57,12 +57,13 @@ Type
   End;
 
   Procedure SP_CreateEditorMenu;
+  Procedure SP_CreateEditorTabBar;
   Procedure UpdateStatusLabel;
 
 Var
 
   // Editor menu strip
-  FPMenu: SP_WindowMenu;
+  FPMenu: SP_WindowMenu; FPTabBar: SP_TabBar;
   FPFileMenu, FPRecentMenu, FPEditMenu, FPMarkerMenu, FPViewMenu, FPRunMenu, FPToolsMenu, FPHelpMenu,
   FPSetMarkerMenu, FPJumpMarkerMenu: SP_PopupMenu;
 
@@ -78,6 +79,17 @@ Uses SP_BankManager, SP_BankFiling, SP_Errors, SP_Graphics, SP_FileIO, SP_Input,
 Var
 
   SP_FindNextItem, SP_SwitchMenuItem, SP_DebugPanelItem, SP_FullScreenMenuItem, SP_GotoErrorItem: SP_MenuItem;
+
+Procedure SP_CreateEditorTabBar;
+Var
+  Win: pSP_Window_Info;
+  Error: TSP_ErrorCode;
+Begin
+  // MUST be called after the Editor menu has been created!
+  SP_GetWindowDetails(FPWindowID, Win, Error);
+  FPTabBar := SP_TabBar.Create(Win^.Component);
+  FPTabBar.Align := SP_AlignBottom;
+End;
 
 Procedure SP_CreateEditorMenu;
 Var

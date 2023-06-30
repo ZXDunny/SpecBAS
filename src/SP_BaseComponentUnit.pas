@@ -126,6 +126,7 @@ SP_BaseComponent = Class
     Dbl: Boolean;
     fCurFontID: Integer;
     fHint: aString;
+    fClientRect: TRect;
     User_OnMouseMove: aString;
     User_OnMouseDown: aString;
     User_OnMouseUp: aString;
@@ -163,6 +164,7 @@ SP_BaseComponent = Class
     Compiled_OnHide: aString;
     Compiled_OnResize: aString;
 
+    Aligning: Boolean;
     fProperties: Array of SP_Property;
 
     Procedure SetVisible(Value: Boolean);
@@ -190,6 +192,7 @@ SP_BaseComponent = Class
     Procedure SetOverrideScaling(b: Boolean);
     Procedure SetFont(ID: Integer);
     Function  GetHint: aString; Virtual;
+    Procedure AlignChildren;
 
     Procedure DoErase;
     Function  DecodeKey(Var Char: Byte): Byte;
@@ -456,81 +459,112 @@ End;
 
 Procedure SP_BaseComponent.SetAlign(newAlign: Integer);
 var
-  parentRect: TRect;
   cp: SP_BaseComponent;
   Win: pSP_Window_Info;
   Error: TSP_ErrorCode;
 begin
 
-  Lock;
-  fAlign := newAlign;
+  If fAlign <> newAlign Then Begin
 
-  If fParentType = spWindow Then Begin
+    Lock;
+    fAlign := newAlign;
 
-    SP_GetWindowDetails(fParentWindowID, Win, Error);
-    cp := Win^.Component;
+    If fParentType = spWindow Then Begin
 
-  End Else
+      SP_GetWindowDetails(fParentWindowID, Win, Error);
+      cp := Win^.Component;
 
-    cp := fParentControl;
+    End Else
 
-  parentRect := Rect(0, 0, cp.Width, cp.Height);
+      cp := fParentControl;
 
-  Case fAlign of
+    cp.AlignChildren;
 
-    SP_AlignNone:
-      Begin
-        fLeft := fSetLeft;
-        fTop := fSetTop;
-        fWidth := fSetWidth;
-        fHeight := fSetHeight;
-      End;
+    UnLock;
 
-    SP_AlignLeft:
-      Begin
-        fLeft := 0;
-        fTop := 0;
-        fWidth := fSetWidth;
-        fHeight := parentRect.Bottom;
-      End;
-
-    SP_AlignTop:
-      Begin
-        fLeft := 0;
-        Top := 0;
-        fWidth := parentRect.Right;
-        fHeight := fSetHeight;
-      End;
-
-    SP_AlignRight:
-      Begin
-        fLeft := parentRect.Right - fSetWidth;
-        fTop := 0;
-        fWidth := fSetWidth;
-        fHeight := parentRect.Bottom;
-      End;
-
-    SP_AlignBottom:
-      Begin
-        fLeft := 0;
-        fWidth := parentRect.Right;
-        fTop := parentRect.Bottom - fSetHeight;
-        fHeight := fSetHeight;
-      End;
-
-    SP_AlignAll:
-      Begin
-        fLeft := 0;
-        fTop := 0;
-        fWidth := ParentRect.Right;
-        fHeight := ParentRect.Bottom;
-      End;
-
-  end;
-
-  UnLock;
+  End;
 
 end;
+
+Procedure SP_BaseComponent.AlignChildren;
+Var
+  pRect: TRect;
+  Win: pSP_Window_Info;
+  Error: TSP_ErrorCode;
+  i, l, t, w, h: Integer;
+Begin
+
+  Aligning := True;
+  If fParentType = spWindow Then Begin
+    SP_GetWindowDetails(fParentWindowID, Win, Error);
+    pRect := Rect(0, 0, Win^.Width, Win^.Height);
+    If Win^.CaptionHeight > 0 Then
+      pRect := Rect(pRect.Left +1, pRect.Top + Win^.CaptionHeight, pRect.Width -2, pRect.Height -2);
+  End Else
+    pRect := Rect(0, 0, Width, Height);
+
+  For i := 0 To Length(fComponentList) -1 Do
+    With fComponentList[i] Do
+      If fVisible Then Begin
+        Aligning := True;
+        l := Left; t := Top; w := Width; h := Height;
+        Case fAlign of
+          SP_AlignNone:
+            Begin
+              L := fLeft;
+              T := fTop;
+              W := fWidth;
+              H := fHeight;
+            End;
+          SP_AlignLeft:
+            Begin
+              L := pRect.Left;
+              T := pRect.Top;
+              W := fWidth;
+              H := pRect.Bottom;
+              Inc(pRect.Left, fWidth);
+            End;
+          SP_AlignTop:
+            Begin
+              L := pRect.Left;
+              T := pRect.Top;
+              W := pRect.Right;
+              H := fHeight;
+              Inc(pRect.Top, fHeight);
+            End;
+          SP_AlignRight:
+            Begin
+              L := pRect.Right - fWidth;
+              T := pRect.Top;
+              W := fWidth;
+              H := pRect.Bottom;
+              Dec(pRect.Right, fWidth);
+            End;
+          SP_AlignBottom:
+            Begin
+              L := pRect.Left;
+              W := pRect.Right;
+              T := pRect.Bottom - fHeight;
+              H := fHeight;
+              Dec(pRect.Bottom, fHeight);
+            End;
+          SP_AlignAll:
+            Begin
+              L := pRect.Left;
+              T := pRect.Top;
+              W := pRect.Right;
+              H := pRect.Bottom;
+              pRect := Rect(fWidth, fHeight, 0, 0);
+            End;
+        End;
+        SetBounds(L, T, W, H);
+        Aligning := False;
+      End;
+
+  fClientRect := pRect;
+  Aligning := False;
+
+End;
 
 Function SP_BaseComponent.GetHint: aString;
 Begin
@@ -1137,6 +1171,7 @@ Var
   l: Integer;
 Begin
 
+  Aligning := False;
   RegisterProperties;
 
   ChangeFont;
@@ -1192,6 +1227,7 @@ Begin
   fNeedPaint := False;
   fCanFocus := True;
   fBorder := True;
+  fWidth := 16; fHeight:= 16;
   fMinWidth := 0;
   fMinHeight := 0;
   fMaxWidth := MAXINT;
@@ -1889,6 +1925,8 @@ begin
         c.Height := c.Height + HeightChange;
     End;
   End;
+
+  AlignChildren;
 
   If Assigned(fOnResize) Then
     fOnResize;

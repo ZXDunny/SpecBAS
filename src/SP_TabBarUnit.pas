@@ -26,9 +26,11 @@ SP_TabBar = Class(SP_BaseComponent)
     Procedure InsertTab(Index: Integer; s: aString);
     Procedure MoveTab(Index, Direction: Integer);
     Procedure SetShowTabs(b: Boolean);
+    Procedure SetTabPosition(p: SP_TabPosition);
 
     Property Tabs[Index: Integer]: aString read GetTab write SetTab;
     Property ShowTabs: Boolean read fShowTabs write SetShowTabs;
+    Property Position: SP_TabPosition read fPosition write SetTabPosition;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor Destroy; Override;
@@ -38,6 +40,8 @@ End;
 implementation
 
 // SP_TabBar
+
+Uses SP_Components;
 
 Constructor SP_TabBar.Create(Owner: SP_BaseComponent);
 Begin
@@ -61,7 +65,30 @@ Procedure SP_TabBar.Draw;
 Begin
 
   Fillrect(0, 0, Width -1, Height -1, fBackgroundClr);
+  if Align = sp_AlignTop then
+    DrawLine(0, fHeight -1, fWidth -1, fHeight -1, fBorderClr)
+  else
+    if Align = sp_AlignBottom then begin
+      DrawLine(0, 0, fWidth -1, 0, fBorderClr);
+      DrawLine(0, 2, fWidth -1, 2, SP_UIHalfLight);
+      DrawLine(0, 1, fWidth -1, 1, SP_UIShadow);
+    end;
 
+End;
+
+Procedure SP_TabBar.SetTabPosition(p: SP_TabPosition);
+Begin
+
+  Case p of
+    spTop:
+      Begin
+
+      End;
+    spBottom:
+      Begin
+
+      End;
+  End;
 
 End;
 

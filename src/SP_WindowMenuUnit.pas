@@ -73,6 +73,7 @@ Begin
   fPermanent := False;
   AddOverrideControl(Self);
   fAltDown := False;
+  Height := iFH + 8;
 
 End;
 
@@ -161,7 +162,7 @@ Begin
 
   End;
 
-  SetBounds(1, Win^.CaptionHeight, Win^.Width -2, iFH + 8);
+  Align := SP_AlignTop;
 
   Unlock;
 
@@ -176,6 +177,8 @@ Var
 Begin
 
   FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
+  DrawLine(0, fHeight -3, fWidth -1, fHeight -3, SP_UIHalfLight);
+  DrawLine(0, fHeight -2, fWidth -1, fHeight -2, SP_UIShadow);
   DrawLine(0, fHeight -1, fWidth -1, fHeight -1, fBorderClr);
 
   mp := Point(MOUSEX, MOUSEY);

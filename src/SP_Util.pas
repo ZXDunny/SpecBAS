@@ -130,6 +130,7 @@ Procedure RevString(var s: aString);
 
 Var
 
+  InterpreterThreadAlive, RefreshThreadAlive: Boolean;
   SP_NeedDisplayUpdate: Boolean = False;
   LogFile: TFileStream;
   LogFileAssigned: Boolean = False;

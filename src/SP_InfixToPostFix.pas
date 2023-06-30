@@ -104,7 +104,7 @@ Function  SP_Convert_LOAD(Var KeyWordID: LongWord; Var Tokens: aString; Var Posi
 Function  SP_Convert_MERGE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_INC(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_DEC(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
-Function  SP_Convert_SWAP(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_SWAP(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_PALETTE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_DO(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_LOOP(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -601,7 +601,7 @@ Begin
     SP_KW_MERGE: Result := Result + SP_Convert_MERGE(KeyWordID, Tokens, Position, Error);
     SP_KW_INC: Result := Result + SP_Convert_INC(KeyWordID, Tokens, Position, Error);
     SP_KW_DEC: Result := Result + SP_Convert_DEC(KeyWordID, Tokens, Position, Error);
-    SP_KW_SWAP: Result := Result + SP_Convert_SWAP(Tokens, Position, Error);
+    SP_KW_SWAP: Result := Result + SP_Convert_SWAP(KeyWordID, Tokens, Position, Error);
     SP_KW_PALETTE: Result := Result + SP_Convert_PALETTE(KeyWordID, Tokens, Position, Error);
     SP_KW_DO: Result := Result + SP_Convert_DO(KeyWordID, Tokens, Position, Error);
     SP_KW_LOOP: Result := Result + SP_Convert_LOOP(KeyWordID, Tokens, Position, Error);
@@ -6501,7 +6501,7 @@ Next_Assign:
     SP_STRVAR:
       Begin
 
-        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_STRUCT) Then Begin
+        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_STRUCT) and (Error.ReturnType in [SP_STRING, SP_STRVAR]) Then Begin
           Inc(Position, 1 + SizeOf(LongWord));
           If Byte(Tokens[Position]) = SP_NUMVAR Then Begin
             Inc(Position);
@@ -8718,56 +8718,39 @@ Begin
 
 End;
 
-Function  SP_Convert_SWAP(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_SWAP(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
-  VarType, VarPos, VarIdx, VarSize: LongWord;
-  VarName: aString;
+  VarExpr1, VarExpr2, Expr1, Expr2: aString;
+  ExprType1, ExprType2: Integer;
+  OldPos: Integer;
 Begin
-
-  // SWAP var1,var2
-
-  Result := '';
-  If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
-
-    VarType := Byte(Tokens[Position]);
-    Inc(Position);
-    VarPos := Position;
-    VarIdx := pLongWord(@Tokens[Position])^;
-    Inc(Position, SizeOf(LongWord));
-    VarSize := pLongWord(@Tokens[Position])^;
-    Inc(Position, SizeOf(LongWord));
-    VarName := LowerNoSpaces(Copy(Tokens, Position, VarSize));
-    Inc(Position, VarSize);
-
-    Result := CreateToken(VarType, VarPos, SizeOf(LongWord)+Length(VarName)) + LongWordToString(VarIdx) + VarName;
-
-    If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] = ',') Then Begin
-
+  OldPos := Position;
+  Expr1 := SP_Convert_Expr(Tokens, Position, Error, -1);
+  If Error.Code <> SP_ERR_OK Then
+    Exit
+  Else
+    ExprType1 := Error.ReturnType;
+  If (Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position+1] = ',') Then Begin
+    Inc(Position, 2);
+    Expr2 := SP_Convert_Expr(Tokens, Position, Error, -1);
+    If Error.Code <> SP_ERR_OK Then
+      Exit
+    Else
+      ExprType2 := Error.ReturnType;
+    If ExprType1 <> ExprType2 Then Begin
+      Error.Code := SP_ERR_MIXED_TYPES;
+      Exit;
+    End Else Begin
+      Position := OldPos;
+      VarExpr1 := SP_Convert_Var_Assign(Tokens, Position, Error);
+      If Not (pToken(@VarExpr1[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET]) Then
+        VarExpr1 := VarExpr1 + CreateToken(SP_KEYWORD, Position, SizeOf(LongWord)) + LongWordToString(SP_KW_LET);
       Inc(Position, 2);
-
-      If Byte(Tokens[Position]) = VarType Then Begin
-
-        VarType := Byte(Tokens[Position]);
-        Inc(Position);
-        VarPos := Position;
-        VarIdx := pLongWord(@Tokens[Position])^;
-        Inc(Position, SizeOf(LongWord));
-        VarSize := pLongWord(@Tokens[Position])^;
-        Inc(Position, SizeOf(LongWord));
-        VarName := LowerNoSpaces(Copy(Tokens, Position, VarSize));
-        Inc(Position, VarSize);
-
-        Result := Result + CreateToken(VarType, VarPos, SizeOf(LongWord)+Length(VarName)) + LongWordToString(VarIdx) + VarName;
-
-      End Else
-        Error.Code := SP_ERR_MIXED_TYPES;
-
-    End Else
-      Error.Code := SP_ERR_MISSING_COMMA;
-
-  End Else
-    Error.Code := SP_ERR_MISSING_VARIABLE;
-
+      VarExpr2 := SP_Convert_Var_Assign(Tokens, Position, Error);
+      Result := Expr1 + Expr2 + VarExpr1 + VarExpr2;
+      If pToken(@VarExpr1[2])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
+    End;
+  End;
 End;
 
 Function  SP_Convert_PALETTE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -8972,10 +8955,11 @@ End;
 
 Function SP_Convert_DO(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
+  KW: LongWord;
   Expr: aString;
 Begin
 
-  // DO [numexpr|WHILE numexpr]
+  // DO [numexpr|WHILE numexpr|UNTIL numexpr]
 
   // DO is a bit special, and in its DO WHILE form, needs to know where it's gonna jump to if the condition returns
   // false. Only problem is, that line might not be tokenised yet :(
@@ -8983,8 +8967,8 @@ Begin
   // So we stack a small string which will contain two values - line/statement - after interpretation.
 
   Result := '';
-
-  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_WHILE) Then Begin
+  KW := pLongWord(@Tokens[Position +1])^;
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And ((KW = SP_KW_WHILE) or (KW = SP_KW_UNTIL))Then Begin
 
     Inc(Position, 1 + SizeOf(LongWord));
 
@@ -8997,6 +8981,8 @@ Begin
         Exit;
       End;
     KeyWordID := SP_KW_WHILE;
+    If KW = SP_KW_UNTIL Then
+      Expr := Expr + CreateToken(SP_FUNCTION, Position, SizeOf(longWord)) + LongWordToString(SP_FN_NOT);
     Result := Expr + CreateToken(SP_POINTER, 0, SizeOf(LongWord)) + LongWordToString(0)+
                      CreateToken(SP_POINTER, 0, SizeOf(LongWord)) + LongWordToString(0)+
                      CreateToken(SP_POINTER, 0, SizeOf(LongWord)) + LongWordToString(0);
@@ -9024,17 +9010,19 @@ End;
 
 Function  SP_Convert_LOOP(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
+  KW: LongWord;
   Expr: aString;
 Begin
 
-  // LOOP [UNTIL numexpr]
+  // LOOP [UNTIL numexpr|WHILE numexpr]
 
   // Because LOOP only happens after a DO has been executed, it just unstacks the return address from the GOSUB stack.
   // Thus, no need for the shenanigans we see in the WHILE pre-processor.
 
   Result := '';
 
-  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_UNTIL) Then Begin
+  KW := pLongWord(@Tokens[Position +1])^;
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And ((KW = SP_KW_WHILE) or (KW = SP_KW_UNTIL))Then Begin
 
     Inc(Position, 1 + SizeOf(LongWord));
 
@@ -9048,6 +9036,8 @@ Begin
       End;
 
     KeyWordID := SP_KW_UNTIL;
+    If KW = SP_KW_WHILE Then
+      Expr := Expr + CreateToken(SP_FUNCTION, Position, SizeOf(longWord)) + LongWordToString(SP_FN_NOT);
     Result := Expr;
 
   End;

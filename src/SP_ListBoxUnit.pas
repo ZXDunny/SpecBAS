@@ -32,7 +32,6 @@ SP_ListBox = Class(SP_BaseComponent)
     fHScroll,
     fVScroll:       SP_ScrollBar;
     fClientRgn:     TRect;
-    fNeedPaint:     Boolean;
     fMultiSelect:   Boolean;
     fSelectedIdx:   Integer;
     fShowHeaders:   Boolean;

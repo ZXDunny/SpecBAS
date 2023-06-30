@@ -2328,8 +2328,8 @@ Begin
             SP_CHAR_NOT: NewWord := 'NOT ';
             SP_CHAR_EQV: NewWord := ' EQV ';
             SP_CHAR_IMP: NewWord := ' IMP ';
-            '&': NewWord := ' & ';
-            '|': NewWord := ' | ';
+            '&': NewWord := '&';
+            '|': NewWord := '|';
             '(':
               Begin
                 If Length(Result) > 0 Then Begin
@@ -3067,5 +3067,10 @@ Initialization
   End;
 
   SP_MakeKeywordLUT;
+
+Finalization
+
+  While InterpreterThreadAlive Do
+    CB_YIELD;
 
 end.

@@ -622,14 +622,16 @@ End;
 
 Procedure SP_WaitForSync;
 Begin
-  Repeat
-    CB_YIELD;
-  Until Not CauseUpdate;
-  SP_NeedDisplayUpdate := True;
-  CauseUpdate := True;
-  Repeat
-    CB_YIELD;
-  Until Not CauseUpdate;
+  If RefreshThreadAlive Then Begin
+    Repeat
+      CB_YIELD;
+    Until Not CauseUpdate or Not RefreshThreadAlive;
+    SP_NeedDisplayUpdate := True;
+    CauseUpdate := True;
+    Repeat
+      CB_YIELD;
+    Until Not CauseUpdate or Not RefreshThreadAlive;
+  End;
 End;
 
 Procedure SP_SetDirtyRect(x1, y1, x2, y2: Integer);

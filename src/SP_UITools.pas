@@ -349,7 +349,7 @@ Begin
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(w - (cw + Bw), h - (FH + 4) - Bh -1, cw, FH + 4);
+  caBtn.SetBounds(w - (cw + Bw) +1, h - (FH + 4) - Bh -1, cw, FH + 4);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
@@ -360,7 +360,7 @@ Begin
   okBtn.CentreCaption;
 
   FilenameEdt := SP_Edit.Create(Win^.Component);
-  FilenameEdt.SetBounds(pBtn.Left, okBtn.Top - (Fh + Bh), pBtn.Width + Bw + PathEdt.Width, Fh);
+  FilenameEdt.SetBounds(pBtn.Left, okBtn.Top - (Fh + 4 + Bh), pBtn.Width + Bw + PathEdt.Width, Fh);
   If SP_FileExists(Filename) Then
     FilenameEdt.Text := SP_ExtractFileName(Filename)
   Else

@@ -603,7 +603,7 @@ Function SP_Using(Mask: aString; Items: Array of TUsingItem; Var Position: Integ
 Var
   InsertCommas, AddDollar, AddPound, AddDecimal, GotField: Boolean;
   SpacingLeft, SpacingRight: aChar;
-  iIdx, Idx, NumPreDigits, NumPostDigits, AddSign, StrWanted: Integer;
+  iIdx, Idx, NumPreDigits, NumPostDigits, AddSign, StrWanted, l: Integer;
   TempStr: aString;
 
   Procedure ProcessField(Var Output: aString);
@@ -727,7 +727,11 @@ Begin
   StrWanted := 0;
 
   iIdx := 0;
-  Idx := (Position Mod Length(Mask)) +1;
+  l := Length(Mask);
+  if Position <= l Then
+    Idx := Position
+  else
+    Idx := ((Position - 1) Mod l) +1;
 
   While True Do Begin
 

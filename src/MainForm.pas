@@ -113,7 +113,6 @@ var
   Quitting: Boolean = False;
   InitTime: LongWord;
   ImgResource: Array of Byte;
-  ThreadAlive: Boolean = False;
   lastt, ft: Longword;
   TimerFreq, BaseTime: Int64;
   Bits: Pointer;
@@ -194,6 +193,7 @@ Begin
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
   Priority := tpNormal;
+  RefreshThreadAlive := True;
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
 
@@ -258,6 +258,8 @@ Begin
   ReleaseDC(Main.Handle, DC);
   DeleteDC (DC);
   {$ENDIF}
+
+  RefreshThreadAlive := False;
 
 End;
 
@@ -539,16 +541,6 @@ begin
     if Not Result then
       SP_PRINT(-1,0,0,-1,IntToString(hMod)+','+inttostring(width)+'x'+inttostring(height),0,8,error);
 
-{
-DISP_CHANGE_SUCCESSFUL
-DISP_CHANGE_BADDUALVIEW
-DISP_CHANGE_BADFLAGS
-DISP_CHANGE_BADMODE
-DISP_CHANGE_BADPARAM
-DISP_CHANGE_FAILED
-DISP_CHANGE_NOTUPDATED
-DISP_CHANGE_RESTART
-}
   End Else Begin
 
     hMod := Main.Height - Main.ClientHeight;
@@ -638,11 +630,10 @@ Begin
 
   NameThreadForDebugging('Interpreter Thread');
 
-  ThreadAlive := True;
+  InterpreterThreadAlive := True;
   Priority := tpNormal;
   SP_MainLoop;
-  ThreadAlive := False;
-  Terminate;
+  InterpreterThreadAlive := False;
 
 End;
 
@@ -717,7 +708,7 @@ begin
     End Else Begin
       Win := WindowAtPoint(X, Y, ID);
       If Assigned(Win) Then Begin
-        If Not (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT]) and (MODALWINDOW = -1) Then
+        If Not (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_EVALUATE]) and (MODALWINDOW = -1) Then
           SwitchFocusedWindow(ID); // The editor handles this.
         Win := ControlAtPoint(Win, X, Y);
         If Assigned(Win) Then Begin
@@ -950,13 +941,13 @@ Procedure TMain.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin
 
   PLAYSignalHalt(-1);
-  If Not QUITMSG Then
+  If Not QUITMSG Then Begin
     Quitting := True;
+    QUITMSG := True;
+  End;
 
-  QUITMSG := True;
-  Repeat
-    Sleep(1);
-  Until Not Drawing;
+  While InterpreterThreadAlive And RefreshThreadAlive Do
+    CB_YIELD;
 
 end;
 

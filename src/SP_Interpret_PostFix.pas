@@ -466,7 +466,6 @@ Procedure SP_Interpret_INC(Var Info: pSP_iInfo);
 Procedure SP_Interpret_INCRANGE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_DEC(Var Info: pSP_iInfo);
 Procedure SP_Interpret_DECRANGE(Var Info: pSP_iInfo);
-Procedure SP_Interpret_SWAP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PALETTE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PALETTE_HSV(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PALETTESHIFT(Var Info: pSP_iInfo);
@@ -3786,7 +3785,7 @@ Begin
 
   With Info Do Begin
 
-    While True Do Begin
+    While Not QUITMSG Do Begin
 
       Next_Statement:
 
@@ -7013,7 +7012,7 @@ Begin
   Dec(SP_StackPtr);
   S := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
-  SP_StackPtr^.Str := Copy(SP_StackPtr^.Str, S, L);
+  SP_StackPtr^.Str := SP_Copy(SP_StackPtr^.Str, S, L);
 End;
 
 Procedure SP_Interpret_FN_MID(Var Info: pSP_iInfo);
@@ -7460,8 +7459,6 @@ Begin
       Val := 0;
   End;
 End;
-
-
 
 Procedure SP_Interpret_FN_FRAC(Var Info: pSP_iInfo);
 Begin
@@ -12153,96 +12150,6 @@ Begin
 
 End;
 
-Procedure SP_Interpret_SWAP(Var Info: pSP_iInfo);
-Var
-  VarIdx1, VarIdx2: Integer;
-  Val1, Val2: aFloat;
-  Str1, Str2: aString;
-Begin
-
-  If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
-    With SP_StackPtr^ Do Begin
-      VarIdx1 := Round(Val);
-      If VarIdx1 = 0 Then Begin
-        VarIdx1 := SP_FindNumVar(Str);
-        If VarIdx1 = -1 Then Begin
-          Info^.Error^.Code := SP_ERR_MISSING_VAR;
-          Info^.Error^.Position := tPos;
-          Exit;
-        End Else Begin
-          If Not NumVars[VarIdx1]^.ProcVar Then
-            Ptr^ := VarIdx1 + 1;
-        End;
-      End Else
-        Dec(VarIdx1);
-      Val1 := NumVars[VarIdx1]^.ContentPtr^.Value;
-    End;
-    Dec(SP_StackPtr);
-    With SP_StackPtr^ Do Begin
-      VarIdx2 := Round(Val);
-      If VarIdx2 = 0 Then Begin
-        VarIdx2 := SP_FindNumVar(Str);
-        If VarIdx2 = -1 Then Begin
-          Info^.Error^.Code := SP_ERR_MISSING_VAR;
-          Info^.Error^.Position := tPos;
-          Exit;
-        End Else Begin
-          If Not NumVars[VarIdx2]^.ProcVar Then
-            Ptr^ := VarIdx2 + 1;
-        End;
-      End Else
-        Dec(VarIdx2);
-      Val2 := NumVars[VarIdx2]^.ContentPtr^.Value;
-    End;
-    Dec(SP_StackPtr);
-
-    NumVars[VarIdx1]^.ContentPtr^.Value := Val2;
-    NumVars[VarIdx2]^.ContentPtr^.Value := Val1;
-
-  End Else Begin
-
-    With SP_StackPtr^ Do Begin
-      VarIdx1 := Round(Val);
-      If VarIdx1 = 0 Then Begin
-        VarIdx1 := SP_FindStrVar(Str);
-        If VarIdx1 = -1 Then Begin
-          Info^.Error^.Code := SP_ERR_MISSING_VAR;
-          Info^.Error^.Position := tPos;
-          Exit;
-        End Else Begin
-          If Not StrVars[VarIdx1].ProcVar Then
-            Ptr^ := VarIdx1 + 1;
-        End;
-      End Else
-        Dec(VarIdx1);
-      Str1 := StrVars[VarIdx1]^.ContentPtr^.Value;
-    End;
-    Dec(SP_StackPtr);
-    With SP_StackPtr^ Do Begin
-      VarIdx2 := Round(Val);
-      If VarIdx2 = 0 Then Begin
-        VarIdx2 := SP_FindStrVar(Str);
-        If VarIdx2 = -1 Then Begin
-          Info^.Error^.Code := SP_ERR_MISSING_VAR;
-          Info^.Error^.Position := tPos;
-          Exit;
-        End Else Begin
-          If Not StrVars[VarIdx2].ProcVar Then
-            Ptr^ := VarIdx2 + 1;
-        End;
-      End Else
-        Dec(VarIdx2);
-      Str2 := StrVars[VarIdx2]^.ContentPtr^.Value;
-    End;
-    Dec(SP_StackPtr);
-
-    StrVars[VarIdx1]^.ContentPtr^.Value := Str2;
-    StrVars[VarIdx2]^.ContentPtr^.Value := Str1;
-
-  End;
-
-End;
-
 Procedure SP_Interpret_PALETTE(Var Info: pSP_iInfo);
 Var
   v: aFloat;
@@ -15780,6 +15687,9 @@ Begin
       LineItem.St := Error^.Statement + 1;
     End;
     SP_StackLine(LineItem.Line, LineItem.Statement, LineItem.St, SP_KW_GOSUB, Info^.Error^);
+
+    CONTLINE := Error^.Line;
+    CONTSTATEMENT := Error^.Statement +1;
 
     // Store the current COMMAND_TOKENS so that this is a true recursive system
     // Then just execute the string provided.
@@ -26209,7 +26119,6 @@ Initialization
   InterpretProcs[SP_KW_INCRANGE] := @SP_Interpret_INCRANGE;
   InterpretProcs[SP_KW_DEC] := @SP_Interpret_DEC;
   InterpretProcs[SP_KW_DECRANGE] := @SP_Interpret_DECRANGE;
-  InterpretProcs[SP_KW_SWAP] := @SP_Interpret_SWAP;
   InterpretProcs[SP_KW_PALETTE] := @SP_Interpret_PALETTE;
   InterpretProcs[SP_KW_PAL_HSV] := @SP_Interpret_PALETTE_HSV;
   InterpretProcs[SP_KW_PALSHIFT] := @SP_Interpret_PALETTESHIFT;

@@ -1107,6 +1107,7 @@ Begin
   Window^.bpp := Bpp;
   Window^.AlphaEnabled := Alpha = 1;
   Window^.FontTrans := False;
+  Window^.CaptionHeight := 0;
   If Assigned(Window^.Component) then
     Window^.Component.Free;
   Window^.Component := SP_BaseComponent.Create(Nil);

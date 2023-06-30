@@ -127,8 +127,7 @@ Procedure SP_FPCycleEditorWindows(HideMode: Integer);
 Procedure SP_AddFPScrollBars(AutoScroll: Boolean = True);
 Procedure SP_FPResizeWindow(NewH: Integer);
 Procedure SP_Decorate_Window(WindowID: Integer; Title: aString; Clear, SizeGrip, Focused: Boolean);
-Procedure SP_DrawStripe(Dst: pByte; Width, StripeWidth, StripeHeight: Integer; Focused: Boolean);
-Procedure SP_DrawBatteryStatus;
+Procedure SP_DrawStripe(Dst: pByte; Width, StripeWidth, StripeHeight, BatteryLevel: Integer; Focused: Boolean);
 Function  SP_SetFPEditorFont: Integer;
 Procedure SP_SwitchFocus(FocusMode: Integer);
 Procedure SP_FPNewProgram;
@@ -849,6 +848,37 @@ Begin
 
 End;
 
+Procedure SP_UpdateBatteryStatus;
+Var
+  Win: pSP_Window_Info;
+  Err: TSP_ErrorCode;
+  {$IFNDEF FPC}
+  SysPowerStatus: TSystemPowerStatus;
+  {$ENDIF}
+Begin
+
+  SP_GetWindowDetails(DWWindowID, Win, Err);
+  If Not Assigned(Win) Then Exit;
+
+  {$IFDEF PANDORA}
+  BATTLEVEL := StrToInt(ReadLinuxFile('/sys/class/power_supply/bq27500-0/capacity'));
+  {$ELSE}
+    {$IFNDEF FPC}
+      // Windows
+      GetSystemPowerStatus(SysPowerStatus);
+      Case SysPowerStatus.ACLineStatus of
+        1: BATTLEVEL := 100;
+        0: BATTLEVEL := SysPowerStatus.BatteryLifePercent;
+      end;
+    {$ELSE}
+      // put Darwin here
+    {$ENDIF}
+  {$ENDIF}
+
+  SP_DrawStripe(Win^.Surface, Win^.Width, FPFw, FPFh, BATTLEVEL, FocusedWindow = DWWindowID);
+
+End;
+
 Procedure SP_Decorate_Window(WindowID: Integer; Title: aString; Clear, SizeGrip, Focused: Boolean);
 Var
   Win: pSP_Window_Info;
@@ -890,8 +920,11 @@ Begin
   Else
     SP_TextOut(-1, FPFw Div 2, 1, EdSc + Title, capInactive, CapBack, True);
 
-  SP_DrawStripe(Win^.Surface, Win^.Width, FPFw, FPFh, Focused);
-  If WindowID = DWWindowID Then SP_DrawBatteryStatus;
+
+  If WindowID = DWWindowID Then
+    SP_UpdateBatteryStatus
+  else
+    SP_DrawStripe(Win^.Surface, Win^.Width, FPFw, FPFh, 100, Focused);
 
   If SizeGrip Then
     SP_TextOut(FONTBANKID, Win^.Width -(Fw + 6), Win^.Height - (Fh + 6), EdCSc + #250, gripClr, winBack, True);
@@ -902,9 +935,9 @@ Begin
 
 End;
 
-Procedure SP_DrawStripe(Dst: pByte; Width, StripeWidth, StripeHeight: Integer; Focused: Boolean);
+Procedure SP_DrawStripe(Dst: pByte; Width, StripeWidth, StripeHeight, BatteryLevel: Integer; Focused: Boolean);
 Var
-  X, Y, X2, i: Integer;
+  X, Y, X2, i, bw, sw: Integer;
   oPtr: pByte;
 Const
   ClrsFocused: Array[0..3] of Byte   = (2, 6, 4, 5);
@@ -913,88 +946,24 @@ Begin
 
   If Width < 160 Then Exit;
 
-  X := Width - ((StripeWidth * 4)) - StripeHeight;
+  sw := StripeWidth * 4;
+  X := Width - sw - StripeHeight;
   FPStripePos := X;
   oPtr := pByte(NativeUInt(Dst) + (Width * StripeHeight) + X);
+
+  bw := Round((BatteryLevel / 100) * (sw -2));
 
   For Y := StripeHeight DownTo 1 Do Begin
     For X2 := X to X + (StripeWidth * 4) -1 Do Begin
       i := (X2 - X) Div StripeWidth;
-      If Focused Then
-        oPtr^ := ClrsFocused[i] + (8 * Ord(i < 3))
-      Else
-        oPtr^ := ClrsUnFocused[i];
+      If ((Y = StripeHeight) or (Y = 1) or (X2 = X) or (X2 = X + SW -1)) or (X2 < bw + X + 1) Then
+        If Focused Then
+          oPtr^ := ClrsFocused[i] + (8 * Ord(i < 3))
+        Else
+          oPtr^ := ClrsUnFocused[i];
       inc(oPtr);
     End;
     Dec(oPtr, Width + (StripeWidth * 4) - (y and 1)); // change "(y and 1)" to "1" for 45 degree stripes
-  End;
-
-End;
-
-Procedure SP_DrawBatteryStatus;
-Var
-  Idx, X, Y, BattW, PixW, Font, Window: Integer;
-  PixPtr: pByte;
-  Win: pSP_Window_Info;
-  Err: TSP_ErrorCode;
-  {$IFNDEF FPC}
-  SysPowerStatus: TSystemPowerStatus;
-  {$ENDIF}
-Begin
-
-  {$IFDEF PANDORA}
-  BATTLEVEL := StrToInt(ReadLinuxFile('/sys/class/power_supply/bq27500-0/capacity'));
-  {$ELSE}
-    {$IFNDEF FPC}
-      // Windows
-      GetSystemPowerStatus(SysPowerStatus);
-      Case SysPowerStatus.ACLineStatus of
-        1: BATTLEVEL := 100;
-        0: BATTLEVEL := SysPowerStatus.BatteryLifePercent;
-      end;
-    {$ELSE}
-      // put Darwin here
-    {$ENDIF}
-  {$ENDIF}
-
-  // Draws the battery status in the current window. Assumes the current window is a "system" window, and has a stripe.
-  // First, find the stripe so we know what to do!
-
-  If DWWindowID > -1 Then Begin
-
-    Window := SCREENBANK;
-    Font := SP_SetFPEditorFont;
-
-    SP_GetWindowDetails(DWWindowID, Win, Err);
-    SP_SetDrawingWindow(DWWindowID);
-
-    T_INK := 0;
-    T_OVER := 0;
-
-    X := Win^.Width - FPFh - 3 + FPFw;
-    Y := 0;
-
-    // Now calculate how much we need to remove for the battery meter.
-    // There are four stripes.
-
-    BattW := Round((((FPFw * 4))) * ((100-BATTLEVEL)/100)) -3;
-    SP_DrawStripe(@SP_BankList[SP_FindBankID(SCREENBANK)]^.Memory[0], Win^.Width, FPFw, FPFh, FocusedWindow = fwDirect);
-
-    For Idx := 2 To FPFh -1 Do Begin
-      PixPtr := @SP_BankList[SP_FindBankID(SCREENBANK)]^.Memory[X + (Idx * Win^.Width) - Idx Div 2];
-      PixW := BattW;
-      While PixW > 0 Do Begin
-        PixPtr^ := 0;
-        Dec(PixW);
-        Dec(PixPtr);
-        Inc(y);
-      End;
-    End;
-
-    SP_SetDirtyRect(Win^.Left, Win^.Top, Win^.Left + Win^.Width, Win^.Top + Win^.Height);
-    SP_SetDrawingWindow(Window);
-    SP_SetSystemFont(Font, Err);
-
   End;
 
 End;
@@ -1059,21 +1028,17 @@ Begin
   SP_GetWindowDetails(FPWindowID, Win, Error);
   Win^.CaptionHeight := FPCaptionHeight;
   SP_CreateEditorMenu;
+  // SP_CreateEditorTabBar;
   fwEditor := FPWIndowID;
 
   // Dimensions. Client area is the inner part of the window excluding border ( 1 pixel ) and caption.
   // Page area is the area that the text is rendered to.
 
   FPCaptionHeight := FPFh + 2;
-  FPClientWidth := FPWindowWidth - 2;
-  FPClientHeight := FPWindowHeight - FPCaptionHeight - 1;
-  FPClientLeft := 1;
-  FPClientTop := FPCaptionHeight;
-
-  If Assigned(FPMenu) Then Begin
-    Dec(FPClientHeight, FPMenu.Height);
-    Inc(FPClientTop, FPMenu.Height);
-  End;
+  FPClientHeight := Win^.Component.fClientRect.Height;
+  FPClientWidth := Win^.Component.fClientRect.Width;
+  FPClientLeft := Win^.Component.fClientRect.Left;
+  FPClientTop := Win^.Component.fClientRect.Top;
 
   FPPaperLeft := BSize + FPClientLeft;
   FPPaperTop := BSize + FPClientTop;
@@ -2525,7 +2490,7 @@ Begin
 
     // Draw the Gutter
 
-    SP_FillRect(FPClientLeft, FPClientTop, FPPaperLeft + (FPFw * FPGutterWidth), FPClientHeight, gutterClr);
+    SP_FillRect(FPClientLeft, FPClientTop, FPPaperLeft + (FPFw * FPGutterWidth), FPClientHeight +1, gutterClr);
 
   End;
 
@@ -3285,7 +3250,7 @@ Begin
       Else
         If FocusedWindow = fwDirect Then
           SP_DisplayDWCursor;
-      SP_DrawBatteryStatus;
+      SP_UpdateBatteryStatus;
       LocalFlashState := FLASHSTATE;
     End;
 

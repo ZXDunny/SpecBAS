@@ -5961,6 +5961,8 @@ Begin
                 If Expr[Length(Expr)] <> ';' Then
                   Expr := CreateToken(SP_SYMBOL, 0, 1) + ';' + Expr;
             End;
+            if KeyWordID = SP_KW_ELSE Then
+              Goto Finalise;
             Result := Result + Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KID);
             Expr := '';
             KID := 0;
@@ -11471,7 +11473,7 @@ End;
 Function SP_Convert_WAIT(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Begin
 
-  // WAIT <numexpr|SCREEN [frames]|KEY|KEYDOWN>
+  // WAIT <numexpr|SCREEN [frames]|KEY|KEYDOWN|KEYUP>
 
   Result := '';
   If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_SCREEN) Then Begin
@@ -11489,10 +11491,14 @@ Begin
       If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_KEYDOWN) Then Begin
         Inc(Position, 1 + SizeOf(LongWord));
         KeyWordID := SP_KW_WAIT_KEY_PRESS;
-      End Else Begin
-        Result := SP_Convert_Expr(Tokens, Position, Error, -1);
-        If Error.Code <> SP_ERR_OK then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-      End;
+      End Else
+        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_KEYUP) Then Begin
+          Inc(Position, 1 + SizeOf(LongWord));
+          KeyWordID := SP_KW_WAIT_KEY_UP;
+        End Else Begin
+          Result := SP_Convert_Expr(Tokens, Position, Error, -1);
+          If Error.Code <> SP_ERR_OK then Exit Else If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
+        End;
   End;
 End;
 
@@ -14437,7 +14443,7 @@ Begin
 
                             // GRAPHIC SCROLL id,dx,dy
 
-                            If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_ROLL) Then Begin
+                            If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_SCROLL) Then Begin
 
                               Inc(Position, 1 + SizeOf(LongWord));
                               Result := SP_Convert_Expr(Tokens, Position, Error, -1); // ID

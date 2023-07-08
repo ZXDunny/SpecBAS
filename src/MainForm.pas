@@ -1054,7 +1054,6 @@ begin
       BUILDSTR := BUILDSTR + ']';
     {$ENDIF}
 
-
     // Set the HOME folder - if we're loading a parameter file, extract the
     // directory and set that as HOMEFOLDER
 

@@ -15353,6 +15353,16 @@ Begin
 
 End;
 
+Procedure SP_Interpret_WAIT_KEY_UP(Var Info: pSP_iInfo);
+Begin
+
+  // If a key is down then wait for it to go up
+
+  SP_ForceScreenUpdate;
+  While (Length(ActiveKeys) <> 0) And Not (BREAKSIGNAL or QUITMSG) Do SP_WaitForSync;
+
+End;
+
 Procedure SP_Interpret_BANK_NEW(Var Info: pSP_iInfo);
 Var
   Size: Integer;
@@ -26212,6 +26222,7 @@ Initialization
   InterpretProcs[SP_KW_WAIT] := @SP_Interpret_WAIT;
   InterpretProcs[SP_KW_WAIT_KEY] := @SP_Interpret_WAIT_KEY;
   InterpretProcs[SP_KW_WAIT_KEY_PRESS] := @SP_Interpret_WAIT_KEY_PRESS;
+  InterpretProcs[SP_KW_WAIT_KEY_UP] := @SP_Interpret_WAIT_KEY_UP;
   InterpretProcs[SP_KW_BANK] := @SP_Interpret_BANK_NEW;
   InterpretProcs[SP_KW_BANK_SIZE] := @SP_Interpret_BANK_SIZE;
   InterpretProcs[SP_KW_BANK_ERASE] := @SP_Interpret_BANK_ERASE;

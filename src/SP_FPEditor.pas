@@ -8227,9 +8227,9 @@ Begin
     While (Listing.Count > 0) And (LineNum = 0) Do Begin
       LineNum := SP_LineHasNumber(0);
       If LineNum <= 0 Then Begin
-        S := LongWordToString(Listing.Flags[0].ReturnType) +
-             LongWordToString(Length(Listing[0])) + Listing[0] +
-             LongWordToString(Length(SyntaxListing[0])) + SyntaxListing[0];
+        S := aChar(1) + LongWordToString(Listing.Flags[0].ReturnType) +
+                        LongWordToString(Length(Listing[0])) + Listing[0] +
+                        LongWordToString(Length(SyntaxListing[0])) + SyntaxListing[0];
         NewList.Add(s);
         SP_DeleteLine(0);
       End Else
@@ -8244,8 +8244,8 @@ Begin
 
       Idx := 0;
       While Idx < NewList.Count Do Begin
-        If (NewList[Idx][1 + (SizeOf(LongWord) * 2)] in ['0'..'9']) or (Idx = 0) Then Begin
-          nl := SP_GetLineNumberFromText(Copy(NewList[Idx], 9));
+        If (NewList[Idx][1] = #1) and (NewList[Idx][2 + (SizeOf(LongWord) * 2)] in ['0'..'9']) or (Idx = 0) Then Begin
+          nl := SP_GetLineNumberFromText(Copy(NewList[Idx], 10));
           If nl >= LineNum Then Break;
         End;
         Inc(Idx);
@@ -8258,6 +8258,10 @@ Begin
              LongWordToString(Length(Listing[nIdx])) + Listing[nIdx] +
              LongWordToString(Length(SyntaxListing[nIdx])) + SyntaxListing[nIdx] +
              LongWordToString(Listing.Flags[nIdx].Indent);
+        if nIdx = Extents.X then
+          s := aChar(1) + s
+        else
+          s := aChar(0) + s;
         If Idx = NewList.Count Then
           NewList.Add(s)
         Else
@@ -8273,7 +8277,7 @@ Begin
 
   For Idx := 0 To NewList.Count -1 Do Begin
 
-    s := NewList[Idx];
+    s := Copy(NewList[Idx], 2);
     rt := pLongWord(@s[1])^;
     s := Copy(s, 5);
 

@@ -732,10 +732,11 @@ Const
   SP_KW_RECTANGLE_TO        = 4406;
   SP_KW_RECTFILL_TO         = 4407;
   SP_KW_WAIT_KEY_UP         = 4408;
+  SP_KW_FOR_EACH_STRING     = 4409;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..357] of aString =
+  SP_Keyword_Names: Array[0..358] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -786,7 +787,7 @@ Const
      'GFX SCALE TO', 'SCREEN SAVE', 'GRAPHIC SAVE', 'WAIT KEY', 'WAIT KEY PRESS', 'PALETTE EGA', 'PALETTE CGA',
      'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP', 'PLAY STOP', 'MOUSE TO ', 'PALETTE APPLE LGR',
      'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN', 'A-RECTANGLE TO', 'A-RECTFILL TO', 'RECTANGLE TO',
-     'RECTFILL TO', 'WAIT KEY UP');
+     'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.

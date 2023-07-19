@@ -759,6 +759,7 @@ Procedure SP_Interpret_OUT_VAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_OUT_SCREEN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_OUT_STREAM(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FOR_EACH_RANGE(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FOR_EACH_STRING(Var Info: pSP_iInfo);
 Procedure SP_Interpret_WIN_MERGE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_WIN_MERGEALL(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CASE(Var Info: pSP_iInfo);
@@ -10163,7 +10164,7 @@ Begin
           VarIdx := SP_FindNumVar(Str);
           If VarIdx = -1 Then Begin
             Error.Code := SP_ERR_MISSING_VAR;
-            Error.Position := tPos;
+            Error.Position := Integer(tPos);
             Exit;
           End Else Begin
             If Not NumVars[VarIdx]^.ProcVar Then
@@ -10457,7 +10458,26 @@ Begin
 
             End Else
 
-              Error.Code := SP_ERR_NEXT_WITHOUT_FOR;
+              If VarType = SP_FOREACHSTRING Then Begin
+
+                Inc(EachIndex);
+
+                If EachIndex <= Length(EachTokens) Then Begin
+
+                  Value := aChar(EachTokens[EachIndex]);
+
+                  NXTLINE := LoopLine;
+                  NXTSTATEMENT := LoopStatement;
+                  Error.Statement := St;
+                  Error.ReturnType := SP_JUMP;
+
+                End Else
+
+                  Error.ReturnType := SP_STRING;
+
+              End Else
+
+                Error.Code := SP_ERR_NEXT_WITHOUT_FOR;
 
           End;
 
@@ -20664,6 +20684,43 @@ Begin
 
 End;
 
+Procedure SP_Interpret_FOR_EACH_STRING(Var Info: pSP_iInfo);
+Var
+  VarIdx: Integer;
+  VarName, StrContent: aString;
+  VarPtr: pLongWord;
+  LineItem: TSP_GOSUB_Item;
+  Step: aFloat;
+Begin
+
+  // Stack has variable, then array to use.
+
+  With SP_StackPtr^ Do Begin
+
+    VarIdx := Round(Val);
+    VarName := Str + '$';
+    VarPtr := Ptr;
+    With Info^ Do Begin
+      If Error^.Line >= 0 Then Begin
+        LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1);
+      End Else Begin
+        LineItem.Line := -2;
+        LineItem.Statement := SP_FindStatement(@COMMAND_TOKENS, Error^.Statement + 1);
+        LineItem.St := Error^.Statement + 1;
+      End;
+    End;
+
+  End;
+  Dec(SP_StackPtr);
+
+  StrContent := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+
+  Step := 1;
+  SP_UpdateFOREACHVar_Str(VarIdx, VarName, StrContent, Step, LineItem.Line, LineItem.Statement, LineItem.St, VarPtr, Info^.Error^);
+
+End;
+
 Procedure SP_Interpret_FOR_EACH_RANGE(Var Info: pSP_iInfo);
 Var
   VarIdx, NumRanges: Integer;
@@ -26430,6 +26487,7 @@ Initialization
   InterpretProcs[SP_KW_OUT_SCREEN] := @SP_Interpret_OUT_SCREEN;
   InterpretProcs[SP_KW_OUT_STREAM] := @SP_Interpret_OUT_STREAM;
   InterpretProcs[SP_KW_FOR_EACH_RANGE] := @SP_Interpret_FOR_EACH_RANGE;
+  InterpretProcs[SP_KW_FOR_EACH_STRING] := @SP_Interpret_FOR_EACH_STRING;
   InterpretProcs[SP_KW_WIN_MERGE] := @SP_Interpret_WIN_MERGE;
   InterpretProcs[SP_KW_WIN_MERGEALL] := @SP_Interpret_WIN_MERGEALL;
   InterpretProcs[SP_KW_CASE] := @SP_Interpret_CASE;

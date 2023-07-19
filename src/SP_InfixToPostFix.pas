@@ -7133,13 +7133,16 @@ End;
 Function SP_Convert_FOR(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
   VarExpr, ExprFrom, ExprTo, ExprStep, VarName, RangeExpr, TempExpr: aString;
-  VarPos, VarSize, EachType, NumRanges: Integer;
+  VarPos, VarSize, EachType, NumRanges, bkPos: Integer;
   VarType: aChar;
   Token: pToken;
+Label
+  IsExpr;
 Begin
 
   // FOR numvar = numexpr TO numexpr [STEP numexpr]
   // FOR EACH num/strvar IN {array()|[sequence]}
+  // FOR EACH strvar IN strexpr
 
   Result := '';
   EachType := -1;
@@ -7253,10 +7256,8 @@ Begin
         Inc(Position, 1 + SizeOf(LongWord));
 
         If Byte(Tokens[Position]) in [SP_NUMVAR, SP_STRVAR] Then Begin
-          If Byte(Tokens[Position]) <> Token^.Token Then Begin
-            Error.Code := SP_ERR_MIXED_TYPES;
-            Exit;
-          End;
+
+          bkPos := Position;
           VarPos := Position;
           VarType := Tokens[Position];
           Inc(Position, 1 + SizeOf(LongWord));
@@ -7266,10 +7267,16 @@ Begin
           Inc(Position, VarSize);
           If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') And
              (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] = ')') Then Begin
-             Result := CreateToken(Byte(VarType), VarPos, SizeOf(LongWord)+Length(VarName)) + LongWordToString(0) + VarName + VarExpr;
-             Inc(Position, 4);
-          End Else
-            Error.Code := SP_ERR_ARRAY_NOT_FOUND;
+            If Byte(Tokens[bkPos]) <> Token^.Token Then Begin
+              Error.Code := SP_ERR_MIXED_TYPES;
+              Exit;
+            End;
+            Result := CreateToken(Byte(VarType), VarPos, SizeOf(LongWord)+Length(VarName)) + LongWordToString(0) + VarName + VarExpr;
+            Inc(Position, 4);
+          End Else Begin
+            Position := bkPos;
+            Goto IsExpr;
+          End;
         End Else
           If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '[') Then Begin
             // Expecting a range here.
@@ -7356,8 +7363,21 @@ Begin
               KeyWordID := SP_KW_FOR_EACH_RANGE;
             End Else
               Error.Code := SP_ERR_SYNTAX_ERROR;
-          End Else
-            Error.Code := SP_ERR_MISSING_VARIABLE;
+          End Else Begin
+            IsExpr:
+            // This could be a string expression in the case of FOR n$ IN m$
+            TempExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+            If Error.ReturnType <> EachType Then Begin
+              Error.Code := SP_ERR_MIXED_TYPES;
+              Exit;
+            End Else
+              if Error.Code <> SP_ERR_OK Then
+                Exit
+              else Begin
+                Result := TempExpr + VarExpr;
+                KeyWordID := SP_KW_FOR_EACH_STRING;
+              End;
+          End;
 
       End Else
         Error.Code := SP_ERR_SYNTAX_ERROR;

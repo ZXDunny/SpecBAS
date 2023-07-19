@@ -246,6 +246,7 @@ Procedure SP_ClearStructs;
 
 Function  SP_UpdateFOREACHVar(Idx: Integer; const Name, ArrayName: aString; Var Step: aFloat; LoopLine, LoopStatement, St: Integer; Ptr: pLongWord; Var Error: TSP_ErrorCode): Integer;
 Function  SP_UpdateFOREACHRANGEVar(Idx: Integer; const Name, EachString: aString; Var NumRanges, LoopLine, LoopStatement, St: Integer; Ptr: pLongWord; Var Error: TSP_ErrorCode): Integer;
+Function  SP_UpdateFOREACHVar_Str(Idx: Integer; const Name, StrContent: aString; Var Step: aFloat; LoopLine, LoopStatement, St: Integer; Ptr: pLongWord; Var Error: TSP_ErrorCode): Integer;
 
 Procedure SP_SortNumArray(sIdx: Integer; Key, Ascending: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_SortStrArray(sIdx: Integer; Key, Ascending: Boolean; Var Error: TSP_ErrorCode);
@@ -284,6 +285,7 @@ Const
   SP_FOREACH = 3;
   SP_STRVAR = 4;
   SP_FOREACHRANGE = 5;
+  SP_FOREACHSTRING = 6;
 
 implementation
 
@@ -4819,6 +4821,38 @@ Begin
 
   While Length(Structures) > 0 Do
     SP_DeleteStruct(Structures[0].Name, Error);
+
+End;
+
+Function  SP_UpdateFOREACHVar_Str(Idx: Integer; const Name, StrContent: aString; Var Step: aFloat; LoopLine, LoopStatement, St: Integer; Ptr: pLongWord; Var Error: TSP_ErrorCode): Integer;
+Var
+  nName: aString;
+Begin
+
+  If Idx = 0 Then Begin
+    nName := Copy(Name, 1, Length(Name) -1);
+    Idx := SP_FindStrVar(nName);
+    If Idx = -1 Then Begin
+      Idx := SP_NewStrVar;
+      StrVars[Idx]^.Name := nName;
+      StrVars[Idx]^.ProcVar := SP_ProcStackPtr > -1;
+      StrVars[Idx]^.ContentPtr := @StrVars[Idx]^.Content;
+      If Not StrVars[Idx]^.ProcVar Then Ptr^ := Idx +1;
+    End;
+  End Else
+    Idx := Idx -1;
+
+  StrVars[Idx]^.ContentPtr^.EachIndex := 1;
+  StrVars[Idx]^.ContentPtr^.EachArrayIndex := 0;
+  StrVars[Idx]^.ContentPtr^.Step := Step;
+  StrVars[Idx]^.ContentPtr^.LoopLine := LoopLine;
+  StrVars[Idx]^.ContentPtr^.LoopStatement := LoopStatement;
+  StrVars[Idx]^.ContentPtr^.St := St;
+  StrVars[Idx]^.ContentPtr^.VarType := SP_FOREACHSTRING;
+  StrVars[Idx]^.ContentPtr^.EachTokens := StrContent;
+  StrVars[Idx]^.ContentPtr^.Value := StrContent[1];
+
+  Result := Idx;
 
 End;
 

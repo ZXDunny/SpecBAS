@@ -4850,7 +4850,10 @@ Begin
   StrVars[Idx]^.ContentPtr^.St := St;
   StrVars[Idx]^.ContentPtr^.VarType := SP_FOREACHSTRING;
   StrVars[Idx]^.ContentPtr^.EachTokens := StrContent;
-  StrVars[Idx]^.ContentPtr^.Value := StrContent[1];
+  If StrContent <> '' Then
+    StrVars[Idx]^.ContentPtr^.Value := StrContent[1]
+  Else
+    StrVars[Idx]^.ContentPtr^.Value := '';
 
   Result := Idx;
 
@@ -4910,8 +4913,18 @@ Begin
 
     End Else Begin
 
-      ERRStr := Arrayname + '$';
-      Error.Code := SP_ERR_ARRAY_NOT_FOUND;
+      nIdx := SP_FindStrVar(ArrayName);
+      If nIdx > -1 Then Begin
+
+        Result := SP_UpdateFOREACHVar_Str(Idx +1, nName, StrVars[nIdx]^.ContentPtr^.Value, Step, LoopLine, LoopStatement, St, Ptr, Error);
+        Exit;
+
+      End Else Begin
+
+        ERRStr := Arrayname + '$';
+        Error.Code := SP_ERR_ARRAY_NOT_FOUND;
+
+      End;
 
     End;
 

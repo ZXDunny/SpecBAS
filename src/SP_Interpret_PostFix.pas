@@ -10175,7 +10175,7 @@ Begin
 
         With NumVars[VarIdx]^.ContentPtr^ Do Begin
 
-          Case VarType Of
+          Case NumVars[VarIdx]^.Content.VarType Of
 
             SP_FOREACH:
               Begin

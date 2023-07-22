@@ -13314,11 +13314,29 @@ Procedure SP_Interpret_WIN_FRONT(Var Info: pSP_iInfo);
 Var
   WindowID: Integer;
   WindowIdx: Integer;
-  MinBank: Integer;
+  Idx: Integer;
   Bank: pSP_Bank;
 Begin
 
-  MinBank := 0;
+  // Bring a window to the front (make it the last bank in the banklist)
+
+  WindowID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  DisplaySection.Enter;
+
+  WindowIdx := SP_FindBankID(WindowID);
+  If WindowIdx > -1 Then Begin
+    Bank := SP_BankList[WindowIdx];
+    For Idx := WindowIdx to Length(SP_BankList) -2 do
+      SP_BankList[Idx] := SP_BankList[Idx +1];
+    SP_BankList[Length(SP_Banklist) -1] := Bank;
+  End Else
+    Info^.Error^.Code := SP_ERR_WINDOW_NOT_FOUND;
+
+  DisplaySection.Leave;
+
+{  MinBank := 0;
   While (MinBank < Length(SP_BankList)) And (SP_BankList[MinBank]^.Protection or SP_BankList[MinBank]^.System) Do
     Inc(MinBank);
 
@@ -13340,7 +13358,7 @@ Begin
     SP_NeedDisplayUpdate := True;
 
   End Else
-    Info^.Error^.Code := SP_ERR_WINDOW_NOT_FOUND;
+    Info^.Error^.Code := SP_ERR_WINDOW_NOT_FOUND;}
 
 End;
 

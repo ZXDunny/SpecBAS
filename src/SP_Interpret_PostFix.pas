@@ -10124,17 +10124,20 @@ Begin
       If ((Step > 0) And (StartFrom > EndAt)) or ((Step < 0) And (StartFrom < EndAt)) Then Begin
         i := 0;
         While i < SP_NextCount Do Begin
-          If SP_NextEntries[i].Line = LineItem.Line Then Begin
-            If SP_NextEntries[i].Statement > LineItem.St Then
-              Break;
-          End Else
-            If SP_NextEntries[i].Line > LineItem.Line Then
-              Break;
+          If SP_NextEntries[i].VarName = VarName then
+            If SP_NextEntries[i].Line = LineItem.Line Then Begin
+              If (SP_NextEntries[i].Statement > LineItem.St) or (SP_NextEntries[i].Statement = -1) Then
+                Break;
+            End Else
+              If SP_NextEntries[i].Line > LineItem.Line Then
+                Break;
           Inc(i);
         End;
         If i < SP_NextCount Then Begin
           NXTLINE := SP_NextEntries[i].Line;
           NXTSTATEMENT := SP_NextEntries[i].Statement;
+          If NXTStatement = -1 then
+            NXTLINE := -1;
           Error.Statement := LineItem.St;
           Error.ReturnType := SP_JUMP;
         End;

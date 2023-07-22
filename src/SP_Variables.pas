@@ -2802,6 +2802,8 @@ Begin
 
   For Idx := 0 To SP_NextCount -1 Do Begin
     TempLine := SP_ConvertLineStatement(SP_FindLine(SP_NextEntries[Idx].Line, False), SP_NextEntries[Idx].Statement);
+    If TempLine.Line = -1 Then // Off the end of the program?
+      TempLine.Line := SP_FindLine(SP_NextEntries[Idx].Line, False);
     SP_NextEntries[Idx].Line := TempLine.Line;
     SP_NextEntries[Idx].Statement := TempLine.Statement;
   End;

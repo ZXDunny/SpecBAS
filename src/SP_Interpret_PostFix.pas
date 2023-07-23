@@ -13331,12 +13331,22 @@ Begin
     For Idx := WindowIdx to Length(SP_BankList) -2 do
       SP_BankList[Idx] := SP_BankList[Idx +1];
     SP_BankList[Length(SP_Banklist) -1] := Bank;
+    SP_NeedDisplayUpdate := True;
   End Else
     Info^.Error^.Code := SP_ERR_WINDOW_NOT_FOUND;
 
   DisplaySection.Leave;
 
-{  MinBank := 0;
+End;
+
+Procedure SP_Interpret_WIN_BACK(Var Info: pSP_iInfo);
+Var
+  WindowID, MinBank: Integer;
+  WindowIdx: Integer;
+  Bank: pSP_Bank;
+Begin
+
+  MinBank := 0;
   While (MinBank < Length(SP_BankList)) And (SP_BankList[MinBank]^.Protection or SP_BankList[MinBank]^.System) Do
     Inc(MinBank);
 
@@ -13355,32 +13365,6 @@ Begin
     For WindowIdx := WindowIdx DownTo MinBank Do
       SP_BankList[WindowIdx] := SP_BankList[WindowIdx -1];
     SP_BankList[MinBank] := Bank;
-    SP_NeedDisplayUpdate := True;
-
-  End Else
-    Info^.Error^.Code := SP_ERR_WINDOW_NOT_FOUND;}
-
-End;
-
-Procedure SP_Interpret_WIN_BACK(Var Info: pSP_iInfo);
-Var
-  WindowID: Integer;
-  WindowIdx: Integer;
-  Bank: pSP_Bank;
-Begin
-
-  WindowID := Round(SP_StackPtr^.Val);
-  Dec(SP_StackPtr);
-
-  WindowIdx := SP_FindBankID(WindowID);
-  If WindowIdx > -1 Then Begin
-
-    Bank := SP_BankList[WindowIdx];
-    If WindowIdx <> Length(SP_BankList) -1 Then Begin
-      For WindowIdx := WindowIdx To Length(SP_BankList) -1 Do
-        SP_BankList[WindowIdx] := SP_BankList[WindowIdx +1];
-      SP_BankList[Length(SP_BankList) -1] := Bank;
-    End;
     SP_NeedDisplayUpdate := True;
 
   End Else

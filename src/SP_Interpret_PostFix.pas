@@ -9893,7 +9893,7 @@ RunIt :
   SetLength(SP_GOSUB_Stack, SP_GOSUB_STACKLEN);
   SP_GOSUB_STACKPTR := 0;
   IGNORE_ON_ERROR := False;
-  Info^.Error^.ReturnType := SP_RUN;
+  Info^.Error^.ReturnType := SP_NEW;
   BREAKSIGNAL := False;
   BPSIGNAL := False;
   If STEPMODE > 0 Then Begin
@@ -9903,6 +9903,7 @@ RunIt :
   tStr := '';
   SP_PreParse(True, True, Info^.Error^, tStr);
   SP_GetDebugStatus(dbgVariables or dbgWatches);
+  Info^.Error^.Code := SP_EXIT; // Preparse forces a compile, which will invalidate pointers to compiled code in the info^ record, so cause a bailout in the calling proc.
 
 End;
 
@@ -13891,7 +13892,7 @@ Begin
     MATHMODE := 0;
     FILECHANGED := False;
     SP_MakeSystemSounds;
-    Error.Code := SP_NEW;
+    Error.Code := SP_EXIT;
 
   End;
 
@@ -24343,6 +24344,11 @@ Var
   sp1: pSP_StackItem;
 Begin
 
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
   Angle := 0;
   NumParams := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
@@ -24377,6 +24383,11 @@ Var
   YPos, XPos, dXPos, dYPos, Angle: aFloat; NumParams: Integer;
   Sp1, Sp2: pSP_StackItem;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   Angle := 0;
   NumParams := Round(SP_StackPtr^.Val);
@@ -24428,6 +24439,11 @@ Var
   tBool: Boolean;
 Begin
 
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
   Dist := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
@@ -24455,6 +24471,11 @@ Var
   gBank: pSP_Bank;
   Graphic: pSP_Graphic_Info;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   tw := 0; th := 0;
 
@@ -24533,6 +24554,11 @@ Var
   Graphic: pSP_Graphic_Info;
 Begin
 
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
   tw := 0; th := 0;
   BankFill := False;
   If SP_StackPtr^.OpType = SP_VALUE Then Begin
@@ -24604,6 +24630,11 @@ End;
 Procedure SP_Interpret_AFILLTEX(Var Info: pSP_iInfo);
 Begin
 // alpha
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
 End;
 
 Procedure SP_Interpret_ARECTFILL(Var Info: pSP_iInfo);
@@ -24615,6 +24646,11 @@ Var
   gBank: pSP_Bank;
   Graphic: pSP_Graphic_Info;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   tw := 0; th := 0;
   BankFill := False;
@@ -24687,6 +24723,11 @@ Var
   Y1, H, X1, W, X2, Y2: aFloat;
 Begin
 
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
   H := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   W := SP_StackPtr^.Val;
@@ -24720,6 +24761,11 @@ Var
   gBank: pSP_Bank;
   Graphic: pSP_Graphic_Info;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   tw := 0; th := 0;
   BankFill := False;
@@ -24793,6 +24839,11 @@ Var
   Points: Array of TSP_Point;
   IsOpen: Boolean;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   IsOpen := SP_StackPtr^.Val = 1;
   Dec(SP_StackPtr);
@@ -24886,6 +24937,11 @@ Var
 Label
   DrawIt;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   tw := 0; th := 0;
   BankFill := False;
@@ -25003,6 +25059,11 @@ Var
   Radius1, Radius2: Integer;
 Begin
 
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
   If WINSCALE Then Begin
     R := SP_StackPtr^.Val;
     Radius1 := Round(R/WINSCALEX);
@@ -25034,6 +25095,11 @@ Var
   dX, dY: aFloat;
   Idx, iSize, vIdx, pIdx: Integer;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   VarName := Lower(SP_StackPtr^.Str);
   ERRStr := VarName;
@@ -25105,6 +25171,11 @@ Var
   Sp1: pSP_StackItem;
 Begin
 
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
   Angle := 0;
 
   NumParams := Round(SP_StackPtr^.Val);
@@ -25141,6 +25212,11 @@ Var
   RadiusX, RadiusY: Integer;
 Begin
 
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
   If WINSCALE Then Begin
     Ry := SP_StackPtr^.Val;
     Dec(SP_StackPtr);
@@ -25174,6 +25250,11 @@ Var
   N: Integer;
 Begin
 
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
   N := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
   Y2 := SP_StackPtr^.Val;
@@ -25202,6 +25283,11 @@ Var
   Y1, X1, X2, Y2, X3, Y3: aFloat;
   N: Integer;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   N := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
@@ -25236,6 +25322,11 @@ Var
   Ink: Byte;
 Begin
 
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
   dX := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
   dY := SP_StackPtr^.Val;
@@ -25259,6 +25350,11 @@ Procedure SP_Interpret_ARECTANGLE(Var Info: pSP_iInfo);
 Var
   Y1, Y2, X1, X2: aFloat;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   Y2 := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
@@ -25294,6 +25390,11 @@ Var
   dX, dY: aFloat;
   Idx, iSize, vIdx, pIdx: Integer;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   VarName := Lower(SP_StackPtr^.Str);
   ERRStr := VarName;
@@ -25349,10 +25450,10 @@ Var
   AddReturn: Boolean;
 Begin
 
-  // This is the first keyword to be interpreted, and is a template for how this will work for
-  // other keywords.
-
-  // Repeat: Unstack values and PRINT them, until there are no values left. That's it :)
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   PrItem := '';
   AddReturn := True;
@@ -25463,6 +25564,11 @@ Var
   Item: TUsingItem;
   AddReturn: Boolean;
 Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
 
   PrItem := '';
   AddReturn := True;

@@ -69,6 +69,7 @@ Procedure SP_RemoveFunctionMarkers(Var Tokens: aString);
 Procedure SP_RemoveBlocks(var s: aString);
 
 Procedure SP_AlphaCheck(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer);
+Function  SP_Convert_ENUM(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_PRINT(Var inKeyword: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode; Var KID: LongWord): aString;
 Function  SP_Convert_CLIP(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_ITALIC(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -577,6 +578,7 @@ Begin
     SP_KW_OVER: Result := Result + SP_Convert_OVER(Tokens, Position, Error);
     SP_KW_SCALE: Result := Result + SP_Convert_SCALE(KeywordID, Tokens, Position, Error);
     SP_KW_LET, SP_KW_IMPLICIT_LET: Result := Result + SP_Convert_LET(Tokens, KeyWordID, Position, Error);
+    SP_KW_ENUM: Result := Result + SP_Convert_ENUM(KeywordID, Tokens, Position, Error);
     SP_KW_CLS: Result := Result + SP_Convert_CLS(Tokens, Position, KeyWordID, Error);
     SP_KW_DIM: Result := Result + SP_Convert_DIM(KeyWordID, Tokens, Position, Error);
     SP_KW_RUN: Result := Result + SP_Convert_RUN(Tokens, Position, Error);
@@ -6345,6 +6347,63 @@ Begin
   Result := SP_Convert_Expr(Tokens, Position, Error, -1);
   If Error.Code <> SP_ERR_OK then Exit;
   If Error.ReturnType <> SP_VALUE Then Error.Code := SP_ERR_MISSING_NUMEXPR;
+
+End;
+
+Function  SP_Convert_ENUM(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Var
+  Done: Boolean;
+  VarExpr: aString;
+  VarType: Byte;
+  Count: Integer;
+Begin
+
+  // ENUM var[,var...] [BASE n]
+
+  Count := 1;
+  Result := '';
+  Done := False;
+  While Not Done Do Begin
+    VarType := Byte(Tokens[Position]);
+    VarExpr := SP_Convert_Var_Assign(Tokens, Position, Error);
+    If (Error.ReturnType = SP_ARRAY_ASSIGN) or (Error.ReturnType = SP_SLICE_ASSIGN) Then VarExpr := VarExpr + CreateToken(SP_KEYWORD, 0, SizeOf(LongWord)) + LongWordToString(SP_KW_LET);
+    VarExpr := CreateToken(SP_KEYWORD, 0, SizeOf(LongWord)) + LongWordToString(SP_KW_ENUM) + VarExpr;
+    Case VarType Of
+      SP_NUMVAR:
+        Begin
+          Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(Count) + VarExpr;
+        End;
+      SP_STRVAR:
+        Begin
+          Result := Result + CreateToken(SP_STRING, 0, 1) + aChar(Count) + VarExpr;
+        End;
+    Else
+      Begin
+        Error.Code := SP_ERR_SYNTAX_ERROR;
+        Exit;
+      End;
+    End;
+    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+      Inc(Position, 2);
+      Inc(Count);
+    End Else
+      Done := True;
+  End;
+
+  If (Byte(Tokens[Position]) = SP_KEYWORD) and (pLongWord(@Tokens[Position +1])^ = SP_KW_BASE) Then Begin
+    Inc(Position, 1 + SizeOf(LongWord));
+    Result := SP_Convert_Expr(Tokens, Position, Error, -1) + CreateToken(SP_KEYWORD, 0, SizeOf(LongWord)) + LongWordToString(SP_KW_ENUM_BASE) + Result;
+    If Error.Code <> SP_ERR_OK Then
+      Exit
+    Else
+      If Error.ReturnType <> SP_VALUE Then Begin
+        Error.Code := SP_ERR_SYNTAX_ERROR;
+        Exit;
+      End;
+  End Else
+    Result := CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(1) + CreateToken(SP_KEYWORD, 0, SizeOf(LongWord)) + LongWordToString(SP_KW_ENUM_BASE) + Result;
+
+  KeyWordID := 0;
 
 End;
 

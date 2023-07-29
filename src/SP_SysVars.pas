@@ -361,6 +361,8 @@ Var
   TEMPDIR:                  aString;      // the location of the TEMP directory in the host filesystem.
   ERRStr:                   aString;      // Extra info for errors - like variable name for example
 
+  ENUMBASE:                 aFloat;
+
   // Thread-specific sysvars
 
   MULTITHREAD:              Boolean;      // Is the interpreter multi-threaded? False for single-core devices.

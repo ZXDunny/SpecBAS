@@ -25,7 +25,7 @@ Unit SP_Interpret_PostFix;
 
 interface
 
-Uses Forms, {$IFNDEF FPC}IOUtils,{$ELSE}FileUtil,{$ENDIF} SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
+Uses System.SyncObjs, Forms, {$IFNDEF FPC}IOUtils,{$ELSE}FileUtil,{$ENDIF} SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
      SP_Input, SP_BankManager, SP_BankFiling, SP_Streams, SP_Sound, SP_Package, Math, Classes, SysUtils, SP_Math, Clipbrd,
      {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_Strings, SP_Menu, SP_UITools, SP_AnsiStringlist, SP_Variables;
 
@@ -425,6 +425,8 @@ Procedure SP_Interpret_OVER(Var Info: pSP_iInfo);
 Procedure SP_Interpret_TRANSPARENT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SCALE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_LET(Var Info: pSP_iInfo);
+Procedure SP_Interpret_ENUM(Var Info: pSP_iInfo);
+Procedure SP_Interpret_ENUM_BASE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CLS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_DIM(Var Info: pSP_iInfo);
 Procedure SP_Interpret_AUTODIM(Var Info: pSP_iInfo);
@@ -9485,6 +9487,25 @@ Begin
           End;
         End;
     End;
+
+End;
+
+Procedure SP_Interpret_ENUM(Var Info: pSP_iInfo);
+Begin
+
+  With SP_StackPtr^ Do Begin
+    Val := Val + ENUMBASE -1;
+    If Str <> '' Then
+      Str := aChar(Byte(Str[1]) + Round(ENUMBASE) -1);
+  End;
+
+End;
+
+Procedure SP_Interpret_ENUM_BASE(Var Info: pSP_iInfo);
+Begin
+
+  ENUMBASE := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
 
 End;
 
@@ -26262,6 +26283,8 @@ Initialization
   InterpretProcs[SP_KW_PR_ITALIC] := @SP_Interpret_PR_ITALIC;
   InterpretProcs[SP_KW_PR_BOLD] := @SP_Interpret_PR_BOLD;
   InterpretProcs[SP_KW_LET] := @SP_Interpret_LET;
+  InterpretProcs[SP_KW_ENUM_BASE] := @SP_Interpret_ENUM_BASE;
+  InterpretProcs[SP_KW_ENUM] := @SP_Interpret_ENUM;
   InterpretProcs[SP_KW_CLS] := @SP_Interpret_CLS;
   InterpretProcs[SP_KW_DIM] := @SP_Interpret_DIM;
   InterpretProcs[SP_KW_AUTODIM] := @SP_Interpret_AUTODIM;

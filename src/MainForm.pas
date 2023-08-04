@@ -244,6 +244,7 @@ Begin
         UPDATENOW := False;
         CauseUpdate := False;
       End;
+
       DisplaySection.Leave;
 
     End Else

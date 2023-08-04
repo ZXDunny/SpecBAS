@@ -8914,7 +8914,10 @@ Begin
       IF T_CENTRE Then
         T_CENTRETEXT := T_CENTRETEXT + aChar(16) + LongWordToString(Ink)
       Else Begin
-        T_INK := Ink;
+        If pSP_Window_Info(WINDOWPOINTER)^.bpp <> 32 Then
+          T_INK := Ink And 255
+        Else
+          T_INK := INK;
       End;
 
   End;
@@ -8937,7 +8940,10 @@ Begin
       IF T_CENTRE Then
         T_CENTRETEXT := T_CENTRETEXT + aChar(17) + LongWordToString(Paper)
       Else Begin
-        T_PAPER := Paper;
+        If pSP_Window_Info(WINDOWPOINTER)^.bpp <> 32 Then
+          T_PAPER := Paper And 255
+        Else
+          T_PAPER := Paper;
       End;
 
   End;

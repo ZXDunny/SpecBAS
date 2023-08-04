@@ -623,14 +623,15 @@ End;
 Procedure SP_WaitForSync;
 Begin
   If RefreshThreadAlive Then Begin
-    Repeat
-      CB_YIELD;
-    Until Not CauseUpdate or Not RefreshThreadAlive;
+    If CauseUpdate Then Begin
+      While CauseUpdate and RefreshThreadAlive Do
+        CB_YIELD;
+      Exit;
+    End;
     SP_NeedDisplayUpdate := True;
     CauseUpdate := True;
-    Repeat
+    While CauseUpdate and RefreshThreadAlive Do
       CB_YIELD;
-    Until Not CauseUpdate or Not RefreshThreadAlive;
   End;
 End;
 

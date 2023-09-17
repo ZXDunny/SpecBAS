@@ -42,6 +42,7 @@ Var
   Bp: pSP_BreakPointInfo;
   p: NativeUInt;
   key: SP_KeyInfo;
+  s: aString;
 Begin
 
   ControlMsgLock.Enter;
@@ -52,8 +53,10 @@ Begin
 
       clInterpretCommand:
         Begin
+          s := ControlMsgList[0].Data;
+          DeleteControlMsg(0);
           ControlMsgLock.Leave;
-          SP_FPExecuteEditLine(ControlMsgList[0].Data);
+          if s <> '' Then SP_FPExecuteEditLine(s);
           ControlMsgLock.Enter;
         End;
 
@@ -84,6 +87,7 @@ Begin
               SP_BufferKey(@Key, 1, KF_NOCLICK);
             End;
           End;
+          DeleteControlMsg(0);
         End;
 
       clBPEdit:
@@ -92,33 +96,37 @@ Begin
           p := pNativeUInt(@ControlMsgList[0].Data[SizeOf(LongWord) +1])^;
           BP := pSP_BreakPointInfo(pNativeUInt(p));
           StartBPEditOp(i, Bp);
+          DeleteControlMsg(0);
         End;
 
       clEditWatch:
         Begin
           i := pLongWord(@ControlMsgList[0].Data[1])^;
           StartWatchOp(i);
+          DeleteControlMsg(0);
         End;
 
       clGrabberMouseDown:
         Begin
           FPDebugLastMouseX := Integer(pLongWord(@ControlMsgList[0].Data[1])^);
           FPResizingDebugPanel := True;
+          DeleteControlMsg(0);
         End;
 
       clGrabberMouseMove:
         Begin
           If FPResizingDebugPanel Then
             SP_ResizeDebugPanel(Integer(pLongWord(@ControlMsgList[0].Data[1])^));
+          DeleteControlMsg(0);
         End;
 
       clGrabberMouseUp:
         Begin
           FPResizingDebugPanel := False;
+          DeleteControlMsg(0);
         End;
 
     End;
-    DeleteControlMsg(0);
 
   End;
 

@@ -441,6 +441,8 @@ Begin
   If INTSCALING And Not ((SCALEWIDTH/DISPLAYWIDTH = Floor(SCALEWIDTH/DISPLAYWIDTH)) And (SCALEHEIGHT/DISPLAYHEIGHT = Floor(SCALEHEIGHT/DISPLAYHEIGHT))) Then Begin
     DoScale := (sWidth/Width >= 1.5) or (sHeight/Height >= 1.5);
     ScaleFactor := Max(Round(sWidth/Width), Round(sHeight/Height));
+    If ScaleFactor = 0 Then
+      ScaleFactor := 1;
   End Else Begin
     DoScale := False;
     ScaleFactor := 1;

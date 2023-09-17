@@ -209,11 +209,11 @@ End;
 Procedure SP_ScrollBar.ScrollInView(p: Integer);
 Begin
 
-  If p < fTargetPos + (iFH * 3) Then
-    Pos := p - (iFH * 3)
+  If p < fTargetPos Then
+    Pos := p
   Else
-    If p > fTargetPos + fPageSize - (iFH * 5) Then
-      Pos := p - fPageSize + (iFH * 5);
+    If p > fTargetPos + fPageSize Then
+      Pos := p - fPageSize;
 
 End;
 

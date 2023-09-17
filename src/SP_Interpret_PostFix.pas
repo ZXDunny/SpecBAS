@@ -10762,10 +10762,16 @@ Begin
                     Inc(vIdx, iSize);
                     SP_ConvertToOrigin_d(dX, dY);
                     If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
-                    If SCREENBPP = 8 Then
-                      SP_DrawSolidEllipse(Round(dX), Round(dY), Radius, Radius)
-                    Else
-                      SP_DrawSolidEllipse32(Round(dX), Round(dY), Radius, Radius);
+                    If Radius < 1 Then Begin
+                      If SCREENBPP = 8 Then
+                        SP_SetPixel(dX, dY)
+                      Else
+                        SP_SetPixel32(dX, dY);
+                    End Else
+                      If SCREENBPP = 8 Then
+                        SP_DrawSolidEllipse(Round(dX), Round(dY), Radius, Radius)
+                      Else
+                        SP_DrawSolidEllipse32(Round(dX), Round(dY), Radius, Radius);
                   End;
                 End;
             End;
@@ -10799,6 +10805,7 @@ Begin
 
   SP_BankList[0]^.Changed := True;
   SP_NeedDisplayUpdate := True;
+  SKIPFIRSTPOINT := True;
 
 End;
 
@@ -10868,7 +10875,7 @@ Var
   cpm, npm, cmass, nmass, refrict: aFloat;
   cpx, cpy, npx, npy, cdx, cdy, ndx, ndy, cpr, npr: paFloat;
 Const
-  px = 0; py = 1; pr = 3; pm = 4; pdx = 5; pdy = 6;
+  px = 0; py = 1; pc = 2; pr = 3; pm = 4; pdx = 5; pdy = 6;
 Begin
 
   VarName := Lower(SP_StackPtr^.Str);
@@ -11039,6 +11046,7 @@ Begin
   End;
 
   SP_NeedDisplayUpdate := True;
+  SKIPFIRSTPOINT := True;
 
 End;
 
@@ -11081,6 +11089,7 @@ Begin
       SP_DrawSpeccyCurve32(XPos - DRPOSX, YPos - DRPOSY, Angle);
   End;
   SP_NeedDisplayUpdate := True;
+  SKIPFIRSTPOINT := True;
 
 End;
 
@@ -11123,6 +11132,7 @@ Begin
     dYPos := (SCREENHEIGHT - 1) - dYPos;
   End;
 
+  SKIPFIRSTPOINT := False;
   DRPOSX := dXPos;
   DRPOSY := dYPos;
 
@@ -11739,6 +11749,7 @@ Begin
   DRPOSX := X1;
   DRPOSY := Y1;
 
+  SKIPFIRSTPOINT := False;
   If SCREENBPP = 8 Then
     SP_DrawCurve(X1, Y1, X2, Y2, X3, Y3, N)
   Else
@@ -14799,6 +14810,7 @@ Begin
   IsOpen := SP_StackPtr^.Val = 1;
   Dec(SP_StackPtr);
 
+  SKIPFIRSTPOINT := False;
   VarName := Lower(SP_StackPtr^.Str);
   ERRStr := VarName;
   If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
@@ -15389,8 +15401,11 @@ Begin
   // Waits for a key. Returns as soon as a key is pressed.
 
   SP_ForceScreenUpdate;
-  While (Length(ActiveKeys) = 0) And Not QUITMSG Do
+  While (Length(ActiveKeys) = 0) And Not QUITMSG Do Begin
     SP_WaitForSync;
+    If (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL Then
+      Info^.Error^.ReturnType := SP_JUMP;
+  End;
 
 End;
 
@@ -15403,6 +15418,8 @@ Begin
   SP_ForceScreenUpdate;
   While (Length(ActiveKeys) <> 0) And Not (BREAKSIGNAL or QUITMSG) Do SP_WaitForSync;
   While (Length(ActiveKeys) = 0) And Not (BREAKSIGNAL or QUITMSG) Do SP_WaitForSync;
+  If (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL Then
+    Info^.Error^.ReturnType := SP_JUMP;
 
 End;
 
@@ -15412,7 +15429,11 @@ Begin
   // If a key is down then wait for it to go up
 
   SP_ForceScreenUpdate;
-  While (Length(ActiveKeys) <> 0) And Not (BREAKSIGNAL or QUITMSG) Do SP_WaitForSync;
+  While (Length(ActiveKeys) <> 0) And Not (BREAKSIGNAL or QUITMSG) Do Begin
+    SP_WaitForSync;
+    If (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL Then
+      Info^.Error^.ReturnType := SP_JUMP;
+  End;
 
 End;
 
@@ -15918,6 +15939,8 @@ Begin
   DRPOSX := dX;
   DRPOSY := dY;
 
+  SKIPFIRSTPOINT := False;
+
 End;
 
 Procedure SP_Interpret_MOVEXY(Var Info: pSP_iInfo);
@@ -15936,6 +15959,7 @@ Begin
   DRPOSY := DRPOSY + YPos;
 
   SP_NeedDisplayUpdate := True;
+  SKIPFIRSTPOINT := False;
 
 End;
 
@@ -15953,6 +15977,8 @@ Begin
 
   DRPOSX := dX;
   DRPOSY := dY;
+
+  SKIPFIRSTPOINT := False;
 
 End;
 
@@ -17018,7 +17044,7 @@ Begin
       ValPosition := 1;
       ValTkn := @SP_FnList[Idx].Expr;
       Inc(FN_Recursion_Count);
-      If FN_Recursion_Count >= 1024 Then
+      If FN_Recursion_Count >= MAXDEPTH Then
         Info^.Error^.Code := SP_ERR_OUT_OF_MEMORY
       Else
         SP_InterpretCONTSafe(ValTkn, ValPosition, Info^.Error^);
@@ -20524,6 +20550,7 @@ Begin
   INFORMAT := '';
   SCROLLCNT := 0;
   INPUTBACK := SP_GrabCurrentWindow;
+  SP_Reset_Temp_Colours;
   If SCREENBPP = 8 Then Begin
     INPUTCSR1 := SP_Get_Nearest_Colour($FF, $FF, $FF, -1);
     INPUTCSR2 := SP_Get_Nearest_Colour($0, $0, $FF, -1);
@@ -24872,6 +24899,7 @@ Begin
     Exit;
   End;
 
+  SKIPFIRSTPOINT := False;
   IsOpen := SP_StackPtr^.Val = 1;
   Dec(SP_StackPtr);
 

@@ -1721,6 +1721,7 @@ Begin
   PRPOSY := 0;
   DRPOSX := 0;
   DRPOSY := 0;
+  SKIPFIRSTPOINT := True;
   SCROLLCNT := 0;
   bOver := T_OVER;
   T_OVER := 0;
@@ -2517,6 +2518,7 @@ Begin
   Dy := DRPOSY;
   DRPOSX := X1;
   DRPOSY := Y1;
+  SKIPFIRSTPOINT := False;
   SP_DrawLine(X2 - X1, Y2 - Y1);
   DRPOSX := Dx;
   DRPOSY := Dy;
@@ -2532,6 +2534,7 @@ var
   DrX, DrY: aFloat;
   ink_long: LongWord;
   ink_64: NativeUInt;
+  flip: Boolean;
 begin
 
   If SCREENBPP = 8 Then Begin
@@ -2546,9 +2549,14 @@ begin
     DrX := x2;
     DrY := y2;
 
+    If (x1 < T_CLIPX1) or (y1 < T_CLIPY1) or (x1 >= T_CLIPX2) or (y1 >= T_CLIPY2) Then
+      SKIPFIRSTPOINT := False;
+
+    flip := False;
     If y2 < y1 then Begin
       y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
       x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
+      flip := True;
     End;
 
     If SP_LineClip(x1, y1, x3, y3, T_CLIPX1, T_CLIPY1, T_CLIPX2, T_CLIPY2) Then Begin
@@ -2576,79 +2584,19 @@ begin
 
       SP_BankList[0]^.Changed := True;
 
-      If dx = 0 then begin
-        If y1 > y3 Then Begin
-          y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
-        End;
-        Ptr := pByte(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + x1);
-        If T_OVER = 0 Then Begin
-          While y1 <> y3 do begin
-            Ptr^ := Ink;
-            Inc(y1);
-            Inc(Ptr, SCREENSTRIDE);
-          End;
-          Ptr^ := Ink;
-        End Else Begin
-          While y1 <> y3 do begin
-            SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
-            Inc(y1);
-            Inc(Ptr, SCREENSTRIDE);
-          End;
-          SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
-        End;
-        DRPOSX := DrX;
-        DRPOSY := DrY;
-        SP_BankList[0]^.Changed := True;
-        Exit;
-      End;
-
-      If dy = 0 then Begin
-        If x1 > x3 Then Begin
-          x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
-        End;
-        Ptr := pByte(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + x1);
-        If T_OVER = 0 Then Begin
-          ink_long := Ink + (Ink shl 8) + (Ink Shl 16) + (Ink shl 24);
-          w := (x3 - x1) +1;
-          {$IFDEF CPU64}
-          ink_64 := ink_Long + (NativeUInt(Ink_Long) Shl 32);
-          While w > SizeOf(NativeUint) Do Begin
-            pNativeUInt(Ptr)^ := ink_64;
-            Inc(pNativeUInt(Ptr));
-            Dec(w, SizeOf(NativeUInt));
-          End;
-          {$ENDIF}
-          While w > SizeOf(LongWord) do Begin
-            pLongWord(Ptr)^ := Ink_Long;
-            Inc(pLongWord(Ptr));
-            Dec(w, SizeOf(LongWord));
-          End;
-          While w > 0 do Begin
-            pByte(Ptr)^ := Ink;
-            Inc(pByte(Ptr));
-            Dec(w);
-          End;
-        End Else Begin
-          While x1 <> x3 do begin
-            SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
-            Inc(x1);
-            Inc(Ptr);
-          End;
-          SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
-        End;
-        DRPOSX := DrX;
-        DRPOSY := DrY;
-        SP_BankList[0]^.Changed := True;
-        Exit;
-      End;
-
       Ptr := pByte(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + x1);
       stsy := SCREENSTRIDE * sy;
 
       If T_OVER = 0 Then Begin
-        Ptr^ := Ink;
+       If Not SKIPFIRSTPOINT Then
+          Ptr^ := Ink
+        Else
+          If Flip Then
+            Ptr^ := Ink;
         If ax > ay Then Begin
           d := ay - (ax shr 1);
+          If SKIPFIRSTPOINT And flip Then
+            if x1 < x3 then Dec(x3) else inc(x3);
           while x1 <> x3 do begin
             if d > -1 then begin
               Inc(Ptr, stsy);
@@ -2661,7 +2609,9 @@ begin
           end;
         end else begin
           d := ax - (ay shr 1);
-          while y1 <> y3 do begin
+          If SKIPFIRSTPOINT And flip Then
+            Dec(y3);
+          while y1 < y3 do begin
             if d > -1 then begin
               Inc(Ptr, sx);
               Dec(d, ay);
@@ -2672,11 +2622,18 @@ begin
             Ptr^ := Ink;
           end;
         end;
-        Ptr^ := Ink;
+       If Not SKIPFIRSTPOINT and flip Then
+          Ptr^ := Ink;
       End Else Begin
-        SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
+        If Not SKIPFIRSTPOINT Then
+          SP_OverPixelPtrVal(Ptr, Ink, T_OVER)
+        Else
+          If Flip Then
+            SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
         If ax > ay Then Begin
           d := ay - (ax shr 1);
+          If SKIPFIRSTPOINT And flip Then
+            if x1 < x3 then Dec(x3) else inc(x3);
           while x1 <> x3 do begin
             if d > -1 then begin
               Inc(Ptr, stsy);
@@ -2689,7 +2646,8 @@ begin
           end;
         end else begin
           d := ax - (ay shr 1);
-          while y1 <> y3 do begin
+          If SKIPFIRSTPOINT And flip Then Dec(y3);
+          while y1 < y3 do begin
             if d > -1 then begin
               Inc(Ptr, sx);
               Dec(d, ay);
@@ -2700,7 +2658,8 @@ begin
             SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
           end;
         end;
-        SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
+        If Not SKIPFIRSTPOINT and flip Then
+          SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
       End;
 
       SP_BankList[0]^.Changed := True;
@@ -3237,7 +3196,7 @@ var
   Procedure DrawSpan(X1, X2, Y: Integer);
   Begin
     X1 := Max(T_CLIPX1, X1);
-    X2 := Min(T_CLIPX2, X2);
+    X2 := Min(T_CLIPX2 -1, X2);
     If X2 > X1 Then Begin
       DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
       If T_OVER = 0 Then Begin
@@ -3301,8 +3260,8 @@ begin
       if p < 0 then
         Inc(p, Ry2 + px)
       else begin
-        if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
-        if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
+        if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
+        if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
         lcypy := cypy;
         lcymy := cymy;
         Dec(y);
@@ -3314,8 +3273,8 @@ begin
       inc(cxpx);
       dec(cxmx);
     end;
-    if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
-    if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
+    if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
+    if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
 
     {$R-}
     p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
@@ -3334,8 +3293,8 @@ begin
        end;
        dec(cypy);
        inc(cymy);
-       if (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
-       if (y > 0) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
+       if (cypy >= T_CLIPY1) and (cypy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
+       if (y > 0) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
     end;
 
   End Else

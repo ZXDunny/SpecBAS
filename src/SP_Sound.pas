@@ -211,6 +211,8 @@ Begin
 
   If SoundEnabled Then Begin
 
+    OpenMIDI;
+
     BASS_SetConfig(BASS_CONFIG_DEV_DEFAULT, 1);
 
     {$IFDEF LINUX}
@@ -2044,9 +2046,10 @@ Begin
         Begin
           Inc(i);
           v := GetPLAYNumber;
-          If (v >= 0) And (v <= 65535) Then
-            CurEffectLen := Round((v/(1773500/256)) * 44100)
-          Else Begin
+          If (v >= 0) And (v <= 65535) Then Begin
+            if v = 0 then v := 1;
+            CurEffectLen := Round((v/(1773500/256)) * 44100);
+          End Else Begin
             If Assigned(Error) Then
               Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
             Exit;
@@ -2117,8 +2120,6 @@ Var
   ticks: aFloat;
 Begin
 
-  OpenMIDI;
-
   PLAYLock.Enter;
   Inc(CurSessionID);
   SessionID := CurSessionID;
@@ -2137,8 +2138,6 @@ Begin
 
   While PLAYSessionIsActive(SessionID) Do
     CB_YIELD;
-
-  CloseMIDI;
 
 End;
 

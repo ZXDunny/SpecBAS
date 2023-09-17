@@ -398,6 +398,7 @@ Var
   COUTEXPR:                 aString;
   CITALIC:                  Integer;
   CBOLD:                    Integer;
+  SKIPFIRSTPOINT:           Boolean;      // Flag that the current DRAW position has been PLOTted
   T_PAPER:                  LongWord;     // Temporary PAPER used by PRINT and INPUT colour items
   T_INK:                    LongWord;     // Temporary INK
   T_INVERSE:                Integer;      // Temporary INVERSE

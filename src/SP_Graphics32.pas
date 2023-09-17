@@ -1120,6 +1120,7 @@ var
   Ink: LongWord;
   stsy: Integer;
   DrX, DrY: aFloat;
+  flip: Boolean;
 begin
 
   x1 := Round(DRPOSX);
@@ -1129,7 +1130,12 @@ begin
   x3 := Round(x2);
   y3 := Round(y2);
 
+  If (x1 < T_CLIPX1) or (y1 < T_CLIPY1) or (x1 >= T_CLIPX2) or (y1 >= T_CLIPY2) Then
+    SKIPFIRSTPOINT := False;
+
+  flip := False;
   If y2 < y1 then Begin
+    flip := True;
     y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
     x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
   End;
@@ -1162,46 +1168,18 @@ begin
 
     SP_BankList[0]^.Changed := True;
 
-    If dx = 0 then begin
-      If y1 > y3 Then Begin
-        y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
-      End;
-      Ptr := pLongWord(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + (x1 * SizeOf(RGBA)));
-      While y1 <> y3 do begin
-        Ptr^ := Ink;
-        Inc(y1);
-        Inc(Ptr, SCREENWIDTH);
-      End;
-      Ptr^ := Ink;
-      DRPOSX := DrX;
-      DRPOSY := DrY;
-      SP_BankList[0]^.Changed := True;
-      Exit;
-    End;
-
-    If dy = 0 then Begin
-      If x1 > x3 Then Begin
-        x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
-      End;
-      Ptr := pLongWord(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + (x1 * SizeOf(RGBA)));
-      While x1 <> x3 do begin
-        Ptr^ := Ink;
-        Inc(x1);
-        Inc(Ptr);
-      End;
-      Ptr^ := Ink;
-      DRPOSX := DrX;
-      DRPOSY := DrY;
-      SP_BankList[0]^.Changed := True;
-      Exit;
-    End;
-
     Ptr := pLongWord(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + (x1 * SizeOf(RGBA)));
     stsy := SCREENWIDTH * sy;
 
-    Ptr^ := Ink;
+    If Not SKIPFIRSTPOINT Then
+      Ptr^ := Ink
+    Else
+      If Flip Then
+        Ptr^ := Ink;
     If ax > ay Then Begin
       d := ay - (ax shr 1);
+      If SKIPFIRSTPOINT And flip Then
+        if x1 < x3 then Dec(x3) else inc(x3);
       while x1 <> x3 do begin
         if d > -1 then begin
           Inc(Ptr, stsy);
@@ -1214,7 +1192,9 @@ begin
       end;
     end else begin
       d := ax - (ay shr 1);
-      while y1 <> y3 do begin
+      If SKIPFIRSTPOINT And flip Then
+        Dec(y3);
+      while y1 < y3 do begin
         if d > -1 then begin
           Inc(Ptr, sx);
           Dec(d, ay);
@@ -1225,7 +1205,8 @@ begin
         Ptr^ := Ink;
       end;
     end;
-    Ptr^ := Ink;
+    If Not SKIPFIRSTPOINT and flip Then
+      Ptr^ := Ink;
 
     SP_BankList[0]^.Changed := True;
 
@@ -1243,6 +1224,7 @@ var
   Ink: LongWord;
   stsy: Integer;
   DrX, DrY: aFloat;
+  flip: Boolean;
 begin
 
   x1 := Round(DRPOSX);
@@ -1252,7 +1234,12 @@ begin
   x3 := Round(x2);
   y3 := Round(y2);
 
+  If (x1 < T_CLIPX1) or (y1 < T_CLIPY1) or (x1 >= T_CLIPX2) or (y1 >= T_CLIPY2) Then
+    SKIPFIRSTPOINT := False;
+
+  flip := False;
   If y2 < y1 then Begin
+    flip := True;
     y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
     x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
   End;
@@ -1285,46 +1272,18 @@ begin
 
     SP_BankList[0]^.Changed := True;
 
-    If dx = 0 then begin
-      If y1 > y3 Then Begin
-        y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
-      End;
-      Ptr := pLongWord(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + (x1 * SizeOf(RGBA)));
-      While y1 <> y3 do begin
-        Ptr^ := SP_AlphaBlend(Ptr^, Ink);
-        Inc(y1);
-        Inc(Ptr, SCREENWIDTH);
-      End;
-      Ptr^ := SP_AlphaBlend(Ptr^, Ink);
-      DRPOSX := DrX;
-      DRPOSY := DrY;
-      SP_BankList[0]^.Changed := True;
-      Exit;
-    End;
-
-    If dy = 0 then Begin
-      If x1 > x3 Then Begin
-        x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
-      End;
-      Ptr := pLongWord(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + (x1 * SizeOf(RGBA)));
-      While x1 <> x3 do begin
-        Ptr^ := SP_AlphaBlend(Ptr^, Ink);
-        Inc(x1);
-        Inc(Ptr);
-      End;
-      Ptr^ := SP_AlphaBlend(Ptr^, Ink);
-      DRPOSX := DrX;
-      DRPOSY := DrY;
-      SP_BankList[0]^.Changed := True;
-      Exit;
-    End;
-
     Ptr := pLongWord(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + (x1 * SizeOf(RGBA)));
     stsy := SCREENWIDTH * sy;
 
-    Ptr^ := SP_AlphaBlend(Ptr^, Ink);
+    If Not SKIPFIRSTPOINT Then
+      Ptr^ := Ink
+    Else
+      If Flip Then
+        Ptr^ := SP_AlphaBlend(Ptr^, Ink);
     If ax > ay Then Begin
       d := ay - (ax shr 1);
+      If SKIPFIRSTPOINT And flip Then
+        if x1 < x3 then Dec(x3) else inc(x3);
       while x1 <> x3 do begin
         if d > -1 then begin
           Inc(Ptr, stsy);
@@ -1337,7 +1296,9 @@ begin
       end;
     end else begin
       d := ax - (ay shr 1);
-      while y1 <> y3 do begin
+      If SKIPFIRSTPOINT And flip Then
+        Dec(y3);
+      while y1 < y3 do begin
         if d > -1 then begin
           Inc(Ptr, sx);
           Dec(d, ay);
@@ -1348,6 +1309,8 @@ begin
         Ptr^ := SP_AlphaBlend(Ptr^, Ink);
       end;
     end;
+    If Not SKIPFIRSTPOINT and flip Then
+      Ptr^ := SP_AlphaBlend(Ptr^, Ink);
 
     SP_BankList[0]^.Changed := True;
 
@@ -1957,10 +1920,15 @@ Var
   Dst: pLongWord;
 Begin
 
+  If Y1 > Y2 Then Begin W := Y1; Y1 := Y2; Y2 := W; End;
+  If X1 > X2 Then Begin W := X1; X1 := X2; X2 := W; End;
+
   W := X2 - X1;
   Dst := pLongWord(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * Y1) + (X1 * SizeOf(RGBA)));
 
-  If Y1 >= T_CLIPY1 Then Begin
+  If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + X1, SCREENY + Y1, SCREENX + X2 +1, SCREENY + Y2 +1);
+
+  If (Y1 >= T_CLIPY1) And (Y1 < T_CLIPY2) Then Begin // top edge
     W2 := X1;
     While W2 <= X2 Do Begin
       If (W2 >= T_CLIPX1) And (W2 < T_CLIPX2) Then
@@ -1970,15 +1938,16 @@ Begin
     End;
   End Else
     Inc(Dst, (X2 - X1)+1);
+
   Inc(Dst, SCREENWIDTH - W -1);
-  Dec(Y2);
+  Inc(Y1);
 
   While Y1 < Y2 Do Begin
     If (Y1 >= T_CLIPY1) And (Y1 < T_CLIPY2) Then Begin
-      If (X1 >= T_CLIPX1) And (X1 < T_CLIPX2) Then
+      If (X1 >= T_CLIPX1) And (X1 < T_CLIPX2) Then // left edge
         SP_SetPixelPtr32(Dst);
       Inc(Dst, X2 - X1);
-      If (X2 >= T_CLIPX1) And (X2 < T_CLIPX2) Then
+      If (X2 >= T_CLIPX1) And (X2 < T_CLIPX2) Then // right edge
         SP_SetPixelPtr32(Dst);
     End Else
       Inc(Dst, X2 - X1);
@@ -1986,15 +1955,16 @@ Begin
     Inc(Y1);
   End;
 
-  If Y2 < T_CLIPY2 Then Begin
-    W2 := X1;
-    While W2 <= X2 Do Begin
-      If (W2 >= T_CLIPX1) And (W2 < T_CLIPX2) Then
-        SP_SetPixelPtr32(Dst);
-      Inc(Dst);
-      Inc(W2);
+  If Y1 <= Y2 Then
+    If (Y2 >= T_CLIPY1) And (Y2 < T_CLIPY2) Then Begin // bottom edge
+      W2 := X1;
+      While W2 <= X2 Do Begin
+        If (W2 >= T_CLIPX1) And (W2 < T_CLIPX2) Then
+          SP_SetPixelPtr32(Dst);
+        Inc(Dst);
+        Inc(W2);
+      End;
     End;
-  End;
 
 End;
 
@@ -2004,10 +1974,15 @@ Var
   Dst: pLongWord;
 Begin
 
+  If Y1 > Y2 Then Begin W := Y1; Y1 := Y2; Y2 := W; End;
+  If X1 > X2 Then Begin W := X1; X1 := X2; X2 := W; End;
+
   W := X2 - X1;
   Dst := pLongWord(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * Y1) + (X1 * SizeOf(RGBA)));
 
-  If Y1 >= T_CLIPY1 Then Begin
+  If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + X1, SCREENY + Y1, SCREENX + X2 +1, SCREENY + Y2 +1);
+
+  If (Y1 >= T_CLIPY1) And (Y1 < T_CLIPY2) Then Begin // top edge
     W2 := X1;
     While W2 <= X2 Do Begin
       If (W2 >= T_CLIPX1) And (W2 < T_CLIPX2) Then
@@ -2017,15 +1992,16 @@ Begin
     End;
   End Else
     Inc(Dst, (X2 - X1)+1);
+
   Inc(Dst, SCREENWIDTH - W -1);
-  Dec(Y2);
+  Inc(Y1);
 
   While Y1 < Y2 Do Begin
     If (Y1 >= T_CLIPY1) And (Y1 < T_CLIPY2) Then Begin
-      If (X1 >= T_CLIPX1) And (X1 < T_CLIPX2) Then
+      If (X1 >= T_CLIPX1) And (X1 < T_CLIPX2) Then // left edge
         SP_SetPixelPtr32Alpha(Dst);
       Inc(Dst, X2 - X1);
-      If (X2 >= T_CLIPX1) And (X2 < T_CLIPX2) Then
+      If (X2 >= T_CLIPX1) And (X2 < T_CLIPX2) Then // right edge
         SP_SetPixelPtr32Alpha(Dst);
     End Else
       Inc(Dst, X2 - X1);
@@ -2033,15 +2009,16 @@ Begin
     Inc(Y1);
   End;
 
-  If Y2 < T_CLIPY2 Then Begin
-    W2 := X1;
-    While W2 <= X2 Do Begin
-      If (W2 >= T_CLIPX1) And (W2 < T_CLIPX2) Then
-        SP_SetPixelPtr32Alpha(Dst);
-      Inc(Dst);
-      Inc(W2);
+  If Y1 <= Y2 Then
+    If (Y2 >= T_CLIPY1) And (Y2 < T_CLIPY2) Then Begin // bottom edge
+      W2 := X1;
+      While W2 <= X2 Do Begin
+        If (W2 >= T_CLIPX1) And (W2 < T_CLIPX2) Then
+          SP_SetPixelPtr32Alpha(Dst);
+        Inc(Dst);
+        Inc(W2);
+      End;
     End;
-  End;
 
 End;
 

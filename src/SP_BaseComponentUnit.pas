@@ -359,6 +359,8 @@ Const
   SP_AlignBottom = 4;
   SP_AlignAll    = 5;
 
+  SP_DBLCLICKTIME = 0.5; // in seconds
+
 implementation
 
 Uses
@@ -2150,9 +2152,9 @@ Begin
   Dbl := False;
   If Enabled Then Begin
     fCanClick := True;
-    If (Abs(fMouseClickPos.X - X) < 4) Then
-      If (Abs(fMouseClickPos.Y - Y) < 4) Then
-        If (FRAMES - fMouseClickTime < FPS/2) Then
+    If Abs(fMouseClickPos.X - X) < 4 Then
+      If Abs(fMouseClickPos.Y - Y) < 4 Then
+        If FRAMES - fMouseClickTime < FPS * SP_DBLCLICKTIME Then
           If (fMouseLastBtn = Btn) Then Begin
             DoubleClick(X, Y, Btn);
             dbl := True;

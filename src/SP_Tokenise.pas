@@ -794,7 +794,7 @@ Const
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.
 
-  SP_FUNCTIONS_EXTRA: Array[0..273] of aString =
+  SP_FUNCTIONS_EXTRA: Array[0..274] of aString =
     ('nRND', 'nINKEY$', 'oPI', 'nVAL$ ', 'oCODE ', 'oVAL ', 'oLEN ', 'nSIN ', 'nCOS ',
      'nTAN ', 'nASN ', 'nACS ', 'nATN ', 'oLN ', 'oEXP ', 'oINT ', 'oSQR ', 'oSGN ', 'oABS ', 'n IN ',
      'nUSR ', 'oSTR$ ','oCHR$ ', 'nPEEK ', 'oNOT ', 'o OR ', 'o AND ', 'o MOD ', 'o XOR ', 'o SHL ',
@@ -825,7 +825,7 @@ Const
      'nDATADDR', 'nWINADDR', 'nMEMRD', 'nDMEMRD', 'nQMEMRD', 'nMEMRD$', 'nSTRADDR ', 'oCHOOSE', 'oCHOOSE$',
      'oTAU', 'nMILLISECONDS', 'oBINV', 'oBREV', 'oINTERP', 'oMIN$', 'oMAX$', 'nFMEMRD', 'nTXTw', 'nTXTh',
      'nNOISE', 'nOCTNOISE', 'oPAR ', 'oMAP', 'o EQV ', 'o IMP ', 'oSINH ', 'oCOSH ', 'oTANH ', 'oASNH ',
-     'oACSH ', 'oATNH ', 'oMID', 'nPARAM$', 'nSTK', 'nSTK$', 'oREV$ ', 'nCLIP$');
+     'oACSH ', 'oATNH ', 'oMID', 'nPARAM$', 'nSTK', 'nSTK$', 'oREV$ ', 'nCLIP$', 'oINSTR');
 
   // Constants, like above, for identifying Functions in token form
 
@@ -1105,6 +1105,7 @@ Const
   SP_FN_STKS                = 2271;
   SP_FN_REVS                = 2272;
   SP_FN_CLIPS               = 2273;
+  SP_FN_INSTR               = 2274;
 
   // Meta-functions
 
@@ -3072,9 +3073,9 @@ Initialization
 
   SP_MakeKeywordLUT;
 
-Finalization
+{Finalization
 
   While InterpreterThreadAlive Do
-    CB_YIELD;
+    CB_YIELD; }
 
 end.

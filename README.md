@@ -42,6 +42,10 @@ more folders, and the important one is "s" where the file "startup-sequence" liv
 
 And you'll probably want demos.
 
-Unpack the Demos.zip file into your c:\users\<username>\specbas folder - this will create a folder in there called "demos". When SpecBAS starts, use LOAD "" to bring up a file requester and navigate in there to load one of the hundreds of demos in there. 
+Unpack the Demos.zip file from here:
+
+https://github.com/ZXDunny/SpecBAS-Demos/releases/tag/BASIC
+
+into your c:\users\<username>\specbas folder - this will create a folder in there called "demos". When SpecBAS starts, use LOAD "" to bring up a file requester and navigate in there to load one of the hundreds of demos in there. 
 
 Note that SpecBAS can only "see" your c:\users\<username>\specbas folder. It cannot make use of any other location on your hard drive - this is intentional and not subject to change. 

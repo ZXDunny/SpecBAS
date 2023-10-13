@@ -735,10 +735,14 @@ Const
   SP_KW_WAIT_KEY_UP         = 4408;
   SP_KW_FOR_EACH_STRING     = 4409;
   SP_KW_ENUM_BASE           = 4410;
+  SP_KW_ORG_DIM             = 4411;
+  SP_KW_DRAW_GW             = 4412;
+  SP_KW_WIN_ORG_DIM         = 4413;
+  SP_KW_GFX_ORG_DIM         = 4414;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..359] of aString =
+  SP_Keyword_Names: Array[0..363] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -789,7 +793,7 @@ Const
      'GFX SCALE TO', 'SCREEN SAVE', 'GRAPHIC SAVE', 'WAIT KEY', 'WAIT KEY PRESS', 'PALETTE EGA', 'PALETTE CGA',
      'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP', 'PLAY STOP', 'MOUSE TO ', 'PALETTE APPLE LGR',
      'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN', 'A-RECTANGLE TO', 'A-RECTFILL TO', 'RECTANGLE TO',
-     'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING', 'ENUM BASE');
+     'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING', 'ENUM BASE', 'ORG DIM', 'DRAW GML', 'WIN ORG DIM', 'GFX ORG DIM');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.
@@ -1110,8 +1114,8 @@ Const
   // Meta-functions
 
   SP_META_BASE = 3000;
-  SP_Function_Names: Array[0..6] of aString =
-   ('nSEARCH_NEXT', 'nSP_MENUBOX_EX', 'oSP_iRGBtoHSV', 'oSP_iHSVtoRGB', 'nSP_iRGBf', 'nSP_iRGBn', 'nSP_POSN');
+  SP_Function_Names: Array[0..7] of aString =
+   ('nSEARCH_NEXT', 'nSP_MENUBOX_EX', 'oSP_iRGBtoHSV', 'oSP_iHSVtoRGB', 'nSP_iRGBf', 'nSP_iRGBn', 'nSP_POSN', 'nSP_INSTRN');
 
   SP_FN_SEARCH_NEXT         = 3000;
   SP_FN_MENUBOX_EX          = 3001;
@@ -1120,6 +1124,7 @@ Const
   SP_FN_iRGBf               = 3004;
   SP_FN_iRGBn               = 3005;
   SP_FN_POSN                = 3006;
+  SP_FN_INSTRN              = 3007;
 
   // List of token types.
 

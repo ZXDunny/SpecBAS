@@ -272,6 +272,8 @@ Procedure SP_Interpret_FN_ODD(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_EVEN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_POS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_POSN(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_INSTR(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_INSTRN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_TRUNC(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_RED(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_GREEN(Var Info: pSP_iInfo);
@@ -750,6 +752,9 @@ Procedure SP_Interpret_ORIGIN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ORIGIN_FLIP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ORG_OFF(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ORG_NO_EXT(Var Info: pSP_iInfo);
+Procedure SP_Interpret_ORG_DIM(Var Info: pSP_iInfo);
+Procedure SP_Interpret_WIN_ORG_DIM(Var Info: pSP_iInfo);
+Procedure SP_Interpret_GFX_ORG_DIM(Var Info: pSP_iInfo);
 Procedure SP_Interpret_WIN_CLIP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_GFX_CLIP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_WIN_CLIP_OFF(Var Info: pSP_iInfo);
@@ -7583,6 +7588,29 @@ Begin
   SP_StackPtr^.OpType := SP_VALUE;
 End;
 
+Procedure SP_Interpret_FN_INSTR(Var Info: pSP_iInfo);
+Begin
+  Str1 := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+  Str2 := SP_StackPtr^.Str;
+  SP_StackPtr^.Val := Pos(Str1, Str2);
+  SP_StackPtr^.OpType := SP_VALUE;
+End;
+
+Procedure SP_Interpret_FN_INSTRN(Var Info: pSP_iInfo);
+Var
+  Ps, Pn: Integer;
+Begin
+  Ps := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  Str1 := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+  Str2 := SP_StackPtr^.Str;
+  Pn := Pos(Str1, Str2, Ps);
+  If Pn > 0 then SP_StackPtr^.Val := Pn + Ps -1 Else SP_StackPtr^.Val := 0;
+  SP_StackPtr^.OpType := SP_VALUE;
+End;
+
 Procedure SP_Interpret_FN_TRUNC(Var Info: pSP_iInfo);
 Begin
   SP_StackPtr^.Val := Trunc(SP_StackPtr^.Val);
@@ -7886,11 +7914,11 @@ Procedure SP_Interpret_FN_RGBtoINT(Var Info: pSP_iInfo);
 Var
   R, G, B: aFloat;
 Begin
-  B := SP_StackPtr^.Val;
+  B := Min(255, Max(0, SP_StackPtr^.Val));
   Dec(SP_StackPtr);
-  G := SP_StackPtr^.Val;
+  G := Min(255, Max(0, SP_StackPtr^.Val));
   Dec(SP_StackPtr);
-  R := SP_StackPtr^.Val;
+  R := Min(255, Max(0, SP_StackPtr^.Val));
   SP_StackPtr^.Val := (Round(R) Shl 16) + (Round(G) Shl 8) + Round(B);
 End;
 
@@ -11152,6 +11180,14 @@ Begin
 
 End;
 
+Procedure SP_Interpret_DRAW_GW(Var Info: pSP_iInfo);
+Begin
+
+  SP_DRAWGW(SP_StackPtr^.Str, Info^.Error^);
+  Dec(SP_StackPtr);
+
+End;
+
 Procedure SP_Interpret_MULTIDRAW(Var Info: pSP_iInfo);
 Var
   VarName: aString;
@@ -11417,11 +11453,12 @@ Begin
     Radius2 := Radius1;
   End;
 
-  if Aspect <> 1 then
-    if Aspect < 1 then
-      Radius2 := Radius2 * Aspect
-    else
-      Radius1 := Radius1 / Aspect;
+  if CIRCLEASPECT then
+    if Aspect <> 1 then
+      if Aspect < 1 then
+        Radius2 := Radius2 * Aspect
+      else
+        Radius1 := Radius1 / Aspect;
 
   Dec(SP_StackPtr);
 
@@ -11495,11 +11532,12 @@ Begin
     Radius2 := Radius1;
   End;
 
-  if Aspect <> 1 then
-    if Aspect < 1 then
-      Radius2 := Radius2 * Aspect
-    else
-      Radius1 := Radius1 / Aspect;
+  if CIRCLEASPECT then
+    if Aspect <> 1 then
+      if Aspect < 1 then
+        Radius2 := Radius2 * Aspect
+      else
+        Radius1 := Radius1 / Aspect;
 
   Dec(SP_StackPtr);
 
@@ -11763,7 +11801,7 @@ Procedure SP_Interpret_RANDOMIZE(Var Info: pSP_iInfo);
 Begin
 
   If SP_StackPtr <> SP_StackStart Then Begin
-    RandSeed := Round(SP_StackPtr^.Val);
+    RandSeed := Integer(Round(SP_StackPtr^.Val));
     Dec(SP_StackPtr);
   End Else
     Randomize;
@@ -13900,6 +13938,8 @@ Begin
     SP_Interpret_PAL_DEFAULT(Info);
     CSCALEX := 1;
     CSCALEY := 1;
+    GWScaleFactor := 1;
+
     MATHMODE := 0;
     SP_SetFPS(DEFAULTFPS);
 
@@ -14321,7 +14361,8 @@ Begin
   Else
     Ink := T_PAPER;
 
-  SP_FloodFill(SCREENPOINTER, Round(dX), Round(dY), SCREENSTRIDE, SCREENHEIGHT, Ink);
+  If (dx >= T_CLIPX1) And (dy >= T_CLIPY1) And (dx < T_CLIPX2) And (dy < T_CLIPY2) Then
+    SP_FloodFill(SCREENPOINTER, Round(dX), Round(dY), SCREENSTRIDE, SCREENHEIGHT, Ink);
 
   If SCREENVISIBLE Then SP_SetDirtyRect(0, 0, DISPLAYWIDTH, DISPLAYHEIGHT);
   SP_NeedDisplayUpdate := True;
@@ -22684,6 +22725,77 @@ Begin
 
 End;
 
+Procedure SP_Interpret_ORG_DIM(Var Info: pSP_iInfo);
+Var
+  Flip: Boolean;
+  x1,y1,w,h: aFloat;
+Begin
+
+  x1 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  y1 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  w := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  h := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  Flip := SP_StackPtr^.Val <> 0;
+  Dec(SP_StackPtr);
+
+  If SCREENBANK >= 0 Then
+    SP_SetWindowOrigin(SCREENBANK, x1, y1, x1+w, y1+h, Flip, Info^.Error^)
+  Else
+    SP_SetGraphicOrigin(-SCREENBANK, x1, y1, x1+w, y1+h, Info^.Error^);
+
+End;
+
+Procedure SP_Interpret_WIN_ORG_DIM(Var Info: pSP_iInfo);
+Var
+  WinID: Integer;
+  Flip: Boolean;
+  x1, y1, w, h: aFloat;
+Begin
+
+  WinID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  x1 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  y1 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  w := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  h := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  Flip := SP_StackPtr^.Val <> 0;
+  Dec(SP_StackPtr);
+
+  SP_SetWindowOrigin(WinID, x1, y1, x1 + w, y1 + h, Flip, Info^.Error^);
+
+End;
+
+Procedure SP_Interpret_GFX_ORG_DIM(Var Info: pSP_iInfo);
+Var
+  GfxID: Integer;
+  x1, y1, w, h: aFloat;
+Begin
+
+  GfxID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  x1 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  y1 := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  w := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  h := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+
+  SP_SetGraphicOrigin(GfxID, x1, y1, x1 + w, y1 + h, Info^.Error^);
+
+End;
+
 Procedure SP_Interpret_WIN_ORG_FLIP(Var Info: pSP_iInfo);
 Var
   WinID: Integer;
@@ -26632,6 +26744,8 @@ Initialization
   InterpretProcs[SP_KW_GFX_ORG_NO_EXT] := @SP_Interpret_GFX_ORG_NO_EXT;
   InterpretProcs[SP_KW_WIN_ORG_OFF] := @SP_Interpret_WIN_ORG_OFF;
   InterpretProcs[SP_KW_GFX_ORG_OFF] := @SP_Interpret_GFX_ORG_OFF;
+  InterpretProcs[SP_KW_GFX_ORG_DIM] := @SP_Interpret_GFX_ORG_DIM;
+  InterpretProcs[SP_KW_WIN_ORG_DIM] := @SP_Interpret_WIN_ORG_DIM;
   InterpretProcs[SP_KW_PR_CLIP] := @SP_Interpret_PR_CLIP;
   InterpretProcs[SP_KW_PR_CLIP_OFF] := @SP_Interpret_PR_CLIP_OFF;
   InterpretProcs[SP_KW_CLIP] := @SP_Interpret_CLIP;
@@ -26639,6 +26753,7 @@ Initialization
   InterpretProcs[SP_KW_ORIGIN] := @SP_Interpret_ORIGIN;
   InterpretProcs[SP_KW_ORG_OFF] := @SP_Interpret_ORG_OFF;
   InterpretProcs[SP_KW_ORG_NO_EXT] := @SP_Interpret_ORG_NO_EXT;
+  InterpretProcs[SP_KW_ORG_DIM] := @SP_Interpret_ORG_DIM;
   InterpretProcs[SP_KW_WIN_CLIP] := @SP_Interpret_WIN_CLIP;
   InterpretProcs[SP_KW_GFX_CLIP] := @SP_Interpret_GFX_CLIP;
   InterpretProcs[SP_KW_WIN_CLIP_OFF] := @SP_Interpret_WIN_CLIP_OFF;
@@ -26765,6 +26880,7 @@ Initialization
   InterpretProcs[SP_KW_SCREEN_SAVE] := @SP_Interpret_SCREEN_SAVE;
   InterpretProcs[SP_KW_GRAPHIC_SAVE] := @SP_Interpret_GRAPHIC_SAVE;
   InterpretProcs[SP_KW_COMPILE] := @SP_Interpret_COMPILE;
+  InterpretProcs[SP_KW_DRAW_GW] := @SP_Interpret_DRAW_GW;
 
   // Functions
 
@@ -27013,6 +27129,8 @@ Initialization
   InterpretProcs[SP_FN_REPLACES] := @SP_Interpret_FN_REPLACES;
   InterpretProcs[SP_FN_REPLACEMATCHS] := @SP_Interpret_FN_REPLACEMATCHS;
   InterpretProcs[SP_FN_POSN] := @SP_Interpret_FN_POSN;
+  InterpretProcs[SP_FN_INSTR] := @SP_Interpret_FN_INSTR;
+  InterpretProcs[SP_FN_INSTRN] := @SP_Interpret_FN_INSTRN;
   InterpretProcs[SP_FN_IVAL] := @SP_Interpret_FN_IVAL;
   InterpretProcs[SP_FN_MIATTR] := @SP_Interpret_FN_MIATTR;
   InterpretProcs[SP_FN_LASTM] := @SP_Interpret_FN_LASTM;

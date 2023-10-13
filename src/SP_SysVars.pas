@@ -85,6 +85,7 @@ Var
   BATTLEVEL:                Integer;      // Pandora battery level
   DRAWINGSPRITES:           Boolean;      // Are we drawing sprites?
   BLOCKSPRITES:             Boolean;      // Temporarily stop sprite updates
+  CIRCLEASPECT:             Boolean;      // Are circles aspect correct regardless of display aspect?
 
   DISPLAYPOINTER:           Pointer;      // A pointer to the display - the one external to SpecOS.
   DISPLAYWIDTH:             Integer;      // The current display surface width
@@ -1574,7 +1575,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..244] of TSysVar =
+  SysVars: Array[0..245] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
@@ -1823,7 +1824,8 @@ Const
    (Name: 'LASTINKEYFRAME'; svType: svLongWord; Size: 4; Data: @LASTINKEYFRAME),
    (Name: 'GAPSIZE'; svType: svInteger; Size: 4; Data: @BSIZE),
    (Name: 'NATWIDTH'; svType: svLongWord; Size: 4; Data: @REALSCREENWIDTH),
-   (Name: 'NATHEIGHT'; svType: svLongWord; Size: 4; Data: @REALSCREENHEIGHT));
+   (Name: 'NATHEIGHT'; svType: svLongWord; Size: 4; Data: @REALSCREENHEIGHT),
+   (Name: 'CIRCLEASPECT'; svType: svBoolean; Size: 1; Data: @CIRCLEASPECT));
 
 
   Function  SP_GetSysVarN(ID: aString; Var Error: TSP_ErrorCode): aFloat;
@@ -2007,5 +2009,6 @@ End;
 Initialization
 
   MODALWINDOW := -1;
+  CIRCLEASPECT := False;
 
 end.

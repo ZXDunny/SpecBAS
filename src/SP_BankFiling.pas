@@ -67,7 +67,7 @@ Type
     heading, orgx, orgy, orgw, orgh, winscalex, winscaley, scalex, scaley: aFloat;
     clipx1, clipy1, clipx2, clipy2: Integer; winscale, winorigin, flip: Boolean;
     Visible, AlphaEnabled, FontTrans, System: Boolean;
-    pr_posx, pr_posy, dr_posx, dr_posy: aFloat;
+    pr_posx, pr_posy, dr_posx, dr_posy, GWScale: aFloat;
     Component: SP_BaseComponent;
     Transparent: Word;
     Offset, Ink, Paper: LongWord;
@@ -622,6 +622,7 @@ Begin
                 Window^.PR_PosY := INIReadFloat(INI, 'Info', 'PR_PosY', 0);
                 Window^.DR_PosX := INIReadFloat(INI, 'Info', 'DR_PosX', 0);
                 Window^.DR_PosY := INIReadFloat(INI, 'Info', 'DR_PosY', 0);
+                Window^.GWScale := INIReadFloat(INI, 'Info', 'GWScale', 1);
                 Window^.ScrollCnt := INIReadInt(INI, 'Info', 'ScrollCnt', 0);
                 Window^.Bpp := INIReadInt(INI, 'Info', 'Bpp', 8);
                 Window^.Heading := INIReadFloat(INI, 'Info', 'Heading', 0);
@@ -984,6 +985,7 @@ Begin
             INIWriteFloat(INI, 'Info', 'PR_PosY', Window^.pr_posy);
             INIWriteFloat(INI, 'Info', 'DR_PosX', Window^.dr_posx);
             INIWriteFloat(INI, 'Info', 'DR_PosY', Window^.dr_posy);
+            INIWriteFloat(INI, 'Info', 'GWScale', Window^.GWScale);
             INIWriteInt(INI, 'Info', 'ScrollCnt', Window^.scrollcnt);
             INIWriteInt(INI, 'Info', 'Bpp', Window^.bpp);
             INIWriteFloat(INI, 'Info', 'Heading', Window^.heading);

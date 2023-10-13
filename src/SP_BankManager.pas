@@ -1088,6 +1088,7 @@ Begin
   Window^.pr_posy := 0;
   Window^.dr_posx := 0;
   Window^.dr_posy := 0;
+  Window^.GWScale := 1;
   Window^.heading := 0;
   Window^.Scrollcnt := 0;
   Window^.orgx := 0;

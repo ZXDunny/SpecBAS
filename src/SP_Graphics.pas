@@ -107,6 +107,7 @@ Procedure SP_VScroll(Dst: pByte; Width, Height, Amount: Integer; Wrap: Boolean);
 Procedure SP_HScroll(Dst: pByte; Width, Height, Bpp, Amount: Integer; Wrap: Boolean);
 Procedure SP_FloodFill(Dst: pByte; dX, dY, dW, dH: LongWord; Clr: Byte);
 Procedure SP_TextureFill(Dst: pByte; dX, dY, dW, dH: LongWord; const Texture: aString; tW, tH: LongWord);
+Procedure SP_GWFloodFill(Dst: pByte; dX, dY, dW, dH: LongWord; Clr, BClr: Byte);
 Procedure SP_DrawRectangle(X1, Y1, X2, Y2: Integer);
 Procedure SP_DrawTexRectangle(X1, Y1, X2, Y2: Integer; const TextureStr: aString; tW, tH: LongWord);
 Procedure SP_DrawSolidRectangle(X1, Y1, X2, Y2: Integer);
@@ -148,6 +149,7 @@ Procedure SP_OverPixelPtrVal(c1: pByte; c2: Byte; Over: Integer); inline;
 Procedure SP_OverPixelPtrl(Var c1, c2: pLongWord; Over: Integer); inline;
 
 Procedure SP_DefaultFill(Var Str: aString; Clr: Byte); Inline;
+Procedure SP_DRAWGW(Const str: aString; Var Error: TSP_ErrorCode);
 
 Var
 
@@ -177,6 +179,7 @@ Var
   gBuffLen: Integer;
   Sp_BackBuffer: Array of Byte;
   BBuffLen: Integer;
+  GWScaleFactor: aFloat = 1;
 
 Const
 
@@ -606,7 +609,7 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components, SP_ToolTipWindow;
+Uses SP_Main, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components, SP_ToolTipWindow, SP_Variables;
 
 Procedure SP_ForceScreenUpdate;
 Var
@@ -891,6 +894,7 @@ Begin
         Window^.pr_posy := PRPOSY;
         Window^.dr_posx := DRPOSX;
         Window^.dr_posy := DRPOSY;
+        Window^.GWScale := GWScaleFactor;
         Window^.heading := DRHEADING;
         Window^.scrollcnt := SCROLLCNT;
         Window^.orgx := SORGX;
@@ -923,6 +927,7 @@ Begin
         Window^.pr_posy := PRPOSY;
         Window^.dr_posx := DRPOSX;
         Window^.dr_posy := DRPOSY;
+        Window^.GWScale := GWScaleFactor;
         Window^.heading := DRHEADING;
         Window^.scrollcnt := SCROLLCNT;
         Window^.scalex := CSCALEX;
@@ -988,6 +993,7 @@ Begin
       PRPOSY := Window^.pr_posy;
       DRPOSX := Window^.dr_posx;
       DRPOSY := Window^.dr_posy;
+      GWScaleFactor := Window^.GWScale;
       DRHEADING := Window^.heading;
       SCROLLCNT := Window^.scrollcnt;
       SORGX := Window^.orgx;
@@ -1039,6 +1045,7 @@ Begin
         PRPOSY := Window^.pr_posy;
         DRPOSX := Window^.dr_posx;
         DRPOSY := Window^.dr_posy;
+        GWScaleFactor := Window^.GWScale;
         DRHEADING := Window^.heading;
         SCROLLCNT := Window^.scrollcnt;
         SORGX := Window^.orgx;
@@ -2527,13 +2534,11 @@ ENd;
 
 Procedure SP_DrawLine(X2, Y2: aFloat);
 var
-  x1, y1, x3, y3, d, ax, ay, sx, sy, dx, dy, w: Integer;
+  x1, y1, x3, y3, d, ax, ay, sx, sy, dx, dy: Integer;
   Ptr: pByte;
   Ink: Byte;
   stsy: Integer;
   DrX, DrY: aFloat;
-  ink_long: LongWord;
-  ink_64: NativeUInt;
   flip: Boolean;
 begin
 
@@ -2845,7 +2850,7 @@ Begin
   If (Round(Sin(Angle/2)*10000000) = 0) or (Z < 1) Then
     SP_DrawLine(X, Y)
   Else Begin
-    NumArcs := Min(4*Round(Round(Abs(Angle*Sqrt(Z))+0.5)/8)+4, 252);
+    NumArcs := Min(4 * Round(Round(Abs(Angle * Sqrt(Z)) + 0.5) / 1) +4, 252);
     W := Sin(Angle/(2*NumArcs))/Sin(Angle/2);
 
     M0 := DRPOSY;
@@ -3883,7 +3888,10 @@ Begin
       If Bits32 Then
         Result := LongWordToString(Round(Width * Integer(FONTWIDTH) * T_SCALEX)) + LongWordToString(Round(Height * Integer(FONTHEIGHT) * T_SCALEY)) + #255 + #32 + Surface
       Else
-        Result := LongWordToString(Round(Width * Integer(FONTWIDTH) * T_SCALEX)) + LongWordToString(Round(Height * Integer(FONTHEIGHT) * T_SCALEY)) + #255 + #255 + Surface;
+        If T_TRANSPARENT Then
+          Result := LongWordToString(Round(Width * Integer(FONTWIDTH) * T_SCALEX)) + LongWordToString(Round(Height * Integer(FONTHEIGHT) * T_SCALEY)) + aChar(T_PAPER) + #0 + Surface
+        Else
+          Result := LongWordToString(Round(Width * Integer(FONTWIDTH) * T_SCALEX)) + LongWordToString(Round(Height * Integer(FONTHEIGHT) * T_SCALEY)) + #255 + #255 + Surface;
     End Else
       Result := '';
 
@@ -4261,6 +4269,82 @@ Begin
           Inc(X);
         End;
 
+      End;
+
+    End;
+
+  End;
+
+  SP_BankList[0]^.Changed := True;
+
+End;
+
+Procedure SP_GWFloodFill(Dst: pByte; dX, dY, dW, dH: LongWord; Clr, BClr: Byte); // BClr is the boundary colour.
+Var
+  o, qStart, qCount: LongWord;
+  n, w, e, EdgeW, EdgeE, Up, Down, Top, Bottom: pByte;
+Begin
+
+  If Length(FillQueue) <> dW * dH Then
+    SetLength(FillQueue, dW * dH);
+
+  qStart := 0;
+  qCount := 1;
+
+  If (dX >= dW) or (dY >= dH) Then Exit;
+  Top := Dst + (Integer(Dw) * Max(1, T_CLIPY1));
+  Bottom := Dst + ((T_CLIPY2 - 1) * integer(dW));
+  n := Dst + (dW * dY) + dX;
+  FillQueue[0] := n;
+
+  If BClr = Clr Then Exit;
+
+  While qCount > 0 Do Begin
+
+    n := FillQueue[qStart];
+    o := LongWord(n - Dst);
+    Inc(qStart);
+    Dec(qCount);
+
+    If (n^ <> BClr) And (n^ <> Clr) Then Begin
+
+      w := n; e := n +1;
+      EdgeW := pByte(NativeUInt(Dst) + (o - (o mod dW)) -1);
+      EdgeE := EdgeW + T_CLIPX2 + 1;
+      Inc(EdgeW, T_CLIPX1);
+
+      While (w^ <> BClr) And (w^ <> Clr) And (w > EdgeW) Do Begin
+        w^ := Clr;
+        Up := pByte(w - dW);
+        Down := pByte(w + dW);
+        If w >= Top Then
+          If (Up^ <> BClr) And (Up^ <> Clr) Then Begin
+            FillQueue[qStart+qCount] := Up;
+            Inc(qCount);
+          End;
+        If w < Bottom Then
+          If (Down^ <> BClr) And (Down^ <> Clr) Then Begin
+            FillQueue[qStart+qCount] := Down;
+            Inc(qCount);
+          End;
+        Dec(w);
+      End;
+
+      While (e^ <> BClr) And (e^ <> Clr) And (e < EdgeE) Do Begin
+        e^ := Clr;
+        Up := pByte(e - dW);
+        Down := pByte(e + dW);
+        If e >= Top Then
+          If (Up^ <> BClr) And (Up^ <> Clr) Then Begin
+            FillQueue[qStart+qCount] := Up;
+            Inc(qCount);
+          End;
+        If e < Bottom Then
+          If (Down^ <> BClr) And (Down^ <> Clr) Then Begin
+            FillQueue[qStart+qCount] := Down;
+            Inc(qCount);
+          End;
+        Inc(e);
       End;
 
     End;
@@ -7260,6 +7344,294 @@ Begin
     Inc(dPtr, SizeOf(LongWord));
   End;
   {$ENDIF}
+
+End;
+
+Procedure SP_DRAWGW(Const str: aString; Var Error: TSP_ErrorCode);
+Var
+  DoPlot, Return, RelativeX, RelativeY: Boolean;
+  LastNum, Xc, Yc: aFloat;
+  LastString, Commands: aString;
+  Len: NativeUInt;
+  Idx: Integer;
+  Ch: Byte;
+  p: pByte;
+
+  Procedure Draw(Dir: aFloat);
+  Var
+    Dist, Hdg, dX, dY, oDx, oDy: aFloat;
+  Begin
+    Dist := GWScaleFactor * LastNum;
+    Hdg := DRHEADING;
+    SP_AngleToRad(Hdg);
+    Hdg := Hdg + Dir;
+
+    dX := Dist * Cos(Hdg);
+    dY := Dist * Sin(Hdg);
+    SP_ConvertToOrigin_d(dX, dY);
+    odX := DRPOSX;
+    odY := DRPOSY;
+    If WINFLIPPED Then dY := -dY;
+    If DoPlot Then
+      SP_DrawLine(dX, dY)
+    Else Begin
+      DRPOSX := DRPOSX + dX;
+      DRPOSY := DRPOSY + dY;
+    End;
+    If Return Then Begin
+      DRPOSX := odX;
+      DRPOSY := odY;
+    End;
+    DoPlot := True;
+    Return := False;
+    SP_NeedDisplayUpdate := True;
+  End;
+
+  Procedure DrawCoords;
+  Var
+    oDx, oDy, dDx, dDy: aFloat;
+  Begin
+    odX := DRPOSX;
+    odY := DRPOSY;
+    SP_ConvertToOrigin_d(Xc, Yc);
+    If RelativeX Then dDx := odX + Xc Else dDx := Xc;
+    If RelativeY Then dDy := ody + Yc Else dDy := Yc;
+    If WINFLIPPED Then Yc := (SCREENHEIGHT - 1) - Yc;
+    If DoPlot Then
+      SP_DrawLineTo(Round(oDx), Round(oDy), Round(dDx), Round(dDy), T_INK);
+    If Return Then Begin
+      DRPOSX := odX;
+      DRPOSY := odY;
+    End Else Begin
+      DRPOSX := dDx;
+      DRPOSY := dDY;
+    End;
+    DoPlot := True;
+    Return := False;
+    RelativeX := False;
+    RelativeY := False;
+    SP_NeedDisplayUpdate := True;
+  End;
+
+  Procedure Paint;
+  Begin
+    SP_GWFloodFill(SCREENPOINTER, Round(DRPOSX), Round(DRPOSY), SCREENSTRIDE, SCREENHEIGHT, Round(Xc), Round(Yc));
+    DoPlot := True;
+    Return := False;
+    SP_NeedDisplayUpdate := True;
+  End;
+
+  Procedure GetVarName(IsString: Boolean);
+  Begin
+    LastString := '';
+    While (NativeUInt(p) < Len) And (p^ in [Ord('A')..Ord('Z'), Ord('a')..Ord('z'), Ord('_'), Ord(' ')]) Do Begin
+      LastString := LastString + aChar(p^);
+      Inc(p);
+    End;
+    While (NativeUInt(p) < Len) And (p^ in [Ord('A')..Ord('Z'), Ord('a')..Ord('z'), Ord('_'), Ord('0')..Ord('9'), Ord(' ')]) Do Begin
+      LastString := LastString + aChar(p^);
+      Inc(p);
+    End;
+    If IsString And (p^ = Ord('$')) Then Begin LastString := LastString + '$'; Inc(p); End;
+  End;
+
+  Procedure GetNumber;
+  Var
+    Dv: aFloat;
+    Dc: Integer;
+    Neg: Boolean;
+  Begin
+    Neg := False;
+    LastNum := 0;
+    If (NativeUInt(p) < Len) And (p^ = Ord('=')) Then Begin
+      Inc(p);
+      GetVarName(False);
+      Dc := SP_FindNumVar(Lower(LastString));
+      If Dc > -1 Then Begin
+        LastNum := NumVars[Dc]^.ContentPtr^.Value;
+      End Else Begin
+        Error.Code := SP_ERR_MISSING_VAR;
+      End;
+    End Else Begin
+      While (NativeUInt(p) < Len) And (p^ in [Ord('+'), Ord('-')]) Do Begin
+        If p^ = Ord('-') Then
+          Neg := Not Neg;
+        Inc(p);
+      End;
+      While (NativeUInt(p) < Len) And (p^ in [Ord('0')..Ord('9')]) Do Begin
+        LastNum := (LastNum * 10) + p^ - 48;
+        Inc(p);
+      End;
+      If NativeUint(p) < Len Then Begin
+        If p^ = Ord('.') Then Begin
+          Inc(p);
+          Dv := 0; Dc := 10;
+          While (NativeUint(p) < Len) And (p^ in [Ord('0')..Ord('9')]) Do Begin
+            Dv := ((p^ - 48) / Dc) + Dv;
+            Dc := Dc * 10;
+            Inc(p);
+          End;
+          If Dv <> 0 Then
+            LastNum := LastNum + Dv;
+        End;
+      End;
+      if Neg Then LastNum := -LastNum;
+    End;
+  End;
+
+  Procedure Pyth;
+  Begin
+    LastNum := Sqrt(LastNum*LastNum+LastNum*LastNum);
+  End;
+
+Begin
+
+  DoPlot := True;
+  Return := False;
+
+  Commands := StripSpaces(Str);
+  p := pByte(pNativeUInt(@Commands)^);
+  Len := NativeUint(p) + Length(Commands);
+
+  While NativeUInt(p) < Len Do Begin
+    Ch := p^;
+    If Ch in [97..122] Then
+      Ch := Ch - 32;
+    Case Ch of
+      Ord('U'): // Up
+        Begin
+          Inc(p);
+          GetNumber;
+          Draw(-Pi/2);
+        End;
+      Ord('D'): // Down
+        Begin
+          Inc(p);
+          GetNumber;
+          Draw(Pi/2);
+        End;
+      Ord('L'): // Left
+        Begin
+          Inc(p);
+          GetNumber;
+          Draw(Pi);
+        End;
+      Ord('R'): // Right
+        Begin
+          Inc(p);
+          GetNumber;
+          Draw(0);
+        End;
+      Ord('E'): // Up+Right
+        Begin
+          Inc(p);
+          GetNumber;
+          Pyth;
+          Draw(-Pi/4);
+        End;
+      Ord('F'): // Down+Right
+        Begin
+          Inc(p);
+          GetNumber;
+          Pyth;
+          Draw(Pi/4);
+        End;
+      Ord('G'): // Down+Left
+        Begin
+          Inc(p);
+          GetNumber;
+          Pyth;
+          Draw(-Pi*1.25);
+        End;
+      Ord('H'): // Up+Left
+        Begin
+          Inc(p);
+          GetNumber;
+          Pyth;
+          Draw(Pi*1.25);
+        End;
+      Ord('M'): // Move
+        Begin
+          Inc(p);
+          RelativeX := p^ in [Ord('-'), Ord('+')];
+          GetNumber;
+          Xc := LastNum;
+          If p^ <> Ord(',') Then Exit Else Inc(p);
+          RelativeY := p^ in [Ord('-'), Ord('+')];
+          GetNumber;
+          Yc := LastNum;
+          If RelativeX Then Xc := Xc * GWScaleFactor;
+          If RelativeY Then Yc := Yc * GWScaleFactor;
+          DrawCoords;
+        End;
+      Ord('B'): // Don't plot pixels
+        Begin
+          Inc(p);
+          DoPlot := False;
+        End;
+      Ord('N'): // Return to start after draw
+        Begin
+          Inc(p);
+          Return := True;
+        End;
+      Ord('A'): // Set Angle, 0 to 3 for each quadrant
+        Begin
+          Inc(p);
+          GetNumber;
+          DRHEADING := -LastNum * (Pi / 2);
+        End;
+      Ord('T'): // Set an angle in degrees (0 to 359)
+        Begin
+          Inc(p);
+          If p^ in [Ord('A'), Ord('a')] Then Inc(p);
+          GetNumber;
+          DRHEADING := -DegToRad(LastNum);
+          SP_RadToAngle(DRHEADING);
+        End;
+      Ord('C'): // Set Colour (INK)
+        Begin
+          Inc(p);
+          GetNumber;
+          CINK := Round(LastNum); // Persist between DRAW statements
+          T_INK := CINK;
+        End;
+      Ord('S'): // Set Scaling. Divide by 4.
+        Begin
+          Inc(p);
+          GetNumber;
+          GWScaleFactor := LastNum / 4;
+        End;
+      Ord('P'): // Paint fill colour,boundary colour
+        Begin
+          Inc(p);
+          GetNumber;
+          Xc := LastNum;
+          If p^ <> Ord(',') Then Exit Else Inc(p);
+          GetNumber;
+          Yc := LastNum;
+          Paint;
+        End;
+      Ord('X'): // Execute string variable
+        Begin
+          Inc(p);
+          GetVarName(True);
+          If (LastString <> '') And (LastString[Length(LastString)] = '$') Then Begin
+            Idx := SP_FindStrVar(Lower(Copy(LastString, 1, Length(LastString) -1)));
+            If Idx > -1 Then Begin
+              LastString := StrVars[Idx]^.ContentPtr^.Value;
+              SP_DRAWGW(LastString, Error);
+            End Else Begin
+              Error.Code := SP_ERR_MISSING_VAR;
+            End;
+          End Else
+            Error.Code := SP_ERR_MISSING_VAR;
+        End;
+    Else // Skip garbage chars and whitespace
+      Inc(p);
+    End;
+    If Error.Code <> SP_ERR_OK Then
+      Exit;
+  End;
 
 End;
 

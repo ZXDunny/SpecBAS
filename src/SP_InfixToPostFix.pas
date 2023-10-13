@@ -569,7 +569,7 @@ Begin
 
     SP_KW_TEXT, SP_KW_PRINT: Result := Result + SP_Convert_PRINT(KeyWordID, Tokens, Position, Error, KeyWordID);
     SP_KW_INK: Result := Result + SP_Convert_INK(Tokens, Position, Error);
-    SP_KW_TRANSPARENT: Result := Result + SP_Convert_TRANSPARENT(Tokens, Position, Error);
+    SP_KW_TRANSPARENT, SP_KW_TRANS: Result := Result + SP_Convert_TRANSPARENT(Tokens, Position, Error);
     SP_KW_CLIP: Result := Result + SP_Convert_CLIP(KeyWordID, Tokens, Position, Error);
     SP_KW_PAPER: Result := Result + SP_Convert_PAPER(Tokens, Position, Error);
     SP_KW_INVERSE: Result := Result + SP_Convert_INVERSE(Tokens, Position, Error);
@@ -3554,7 +3554,7 @@ Begin
 
             // Two strings, with optional third numeric
 
-            SP_FN_POS:
+            SP_FN_POS, SP_FN_INSTR:
               Begin
                 Inc(Position, SizeOf(LongWord));
                 If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
@@ -3594,7 +3594,10 @@ Begin
                         If Error.Code <> SP_ERR_OK Then Exit;
                         If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ')') Then Begin
                           Inc(Position, 2);
-                          FunctionID := SP_FN_POSN;
+                          Case FunctionID Of
+                            SP_FN_POS: FunctionID := SP_FN_POSN;
+                            SP_FN_INSTR: FunctionID := SP_FN_INSTRN;
+                          End;
                         End Else Begin
                           Error.Code := SP_ERR_MISSING_BRACKET;
                           Exit;
@@ -7754,8 +7757,10 @@ Begin
     If Ord(Tokens[Position]) = SP_KEYWORD Then Begin
       If (pLongWord(@Tokens[Position +1])^ = SP_KW_INK) or (pLongWord(@Tokens[Position +1])^ = SP_KW_OVER) or
          (pLongWord(@Tokens[Position +1])^ = SP_KW_PAPER) or (pLongWord(@Tokens[Position +1])^ = SP_KW_INVERSE) or
-         (pLongWord(@Tokens[Position +1])^ = SP_KW_CLIP) Then Begin
+         (pLongWord(@Tokens[Position +1])^ = SP_KW_CLIP) or (pLongWord(@Tokens[Position +1])^ = SP_KW_TRANS) or
+         (pLongWord(@Tokens[Position +1])^ = SP_KW_TRANSPARENT) Then Begin
         KeyWordID := pLongWord(@Tokens[Position +1])^;
+        If KeyWordID = SP_KW_TRANS Then KeyWordID := SP_KW_TRANSPARENT;
         InkPos := Position;
         Inc(Position, 1+SizeOf(LongWord));
         Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
@@ -7803,6 +7808,8 @@ Begin
               KeyWordID := SP_KW_PR_OVER;
             SP_KW_CLIP:
               KeyWordID := SP_KW_PR_CLIP;
+            SP_KW_TRANS:
+              KeyWordID := SP_KW_PR_TRANSPARENT;
           End;
           Result := Result + Expr + CreateToken(SP_KEYWORD, InkPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
         End Else Begin
@@ -8073,6 +8080,7 @@ Begin
   // DRAW [INK|OVER numexpr;] [TO] Array()
   // DRAW [INK|OVER numexpr;] x1,y1 TO x2,y2
   // DRAW [INK|OVER numexpr;] x1,y1,x2,y2[,a]
+  // DRAW [INK|OVER numexpr;] strexpr$
 
   Result := '';
   AllResult := '';
@@ -8116,11 +8124,18 @@ Begin
     End;
   End Else Begin
     NotVar:
-    Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // x
+    Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // x or styexpr
     If Error.Code <> SP_ERR_OK Then Exit;
     If Error.ReturnType <> SP_VALUE Then Begin
-      Error.Code := SP_ERR_MISSING_NUMEXPR;
-      Exit;
+      If (Error.ReturnType = SP_STRING) And ((KeyWordID = SP_KW_DRAW) or (KeyWordID = SP_KW_ADRAW)) Then
+      Begin
+        Result := Result + Expr;
+        KeyWordID := SP_KW_DRAW_GW;
+        Exit;
+      End Else Begin
+        Error.Code := SP_ERR_MISSING_NUMEXPR;
+        Exit;
+      End;
     End;
     If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
       Inc(Position, 2);
@@ -9619,7 +9634,7 @@ Begin
   //         SCROLL n,x,y|
   //         ROLL n,x,y|
   //         COPY [GRAPHIC]numexpr,x1,y1,x2,y2 TO numexpr,x3,y3]
-  //         ORIGIN numexpr,x1,y1[ TO x2,y2][FLIP]|OFF
+  //         ORIGIN numexpr,x1,y1[,w,h| TO x2,y2][FLIP]|OFF
   //         ORIGIN FLIP
   //         CLIP id,x1,y1 TO x2,y2|OFF
   //         TRANSPARENT id{,t|OFF}
@@ -10148,8 +10163,29 @@ Begin
             Exit;
           End;
         End Else Begin
-          // no x2,y2 specified - specify ?? for them instead.
-          KeyWordID := SP_KW_WIN_ORG_NO_EXT;
+          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+            Inc(Position, 2);
+            Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // W
+            If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+              Error.Code := SP_ERR_MISSING_NUMEXPR;
+              Exit;
+            End;
+            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+              Inc(Position, 2);
+              Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // H
+              If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+                Error.Code := SP_ERR_MISSING_NUMEXPR;
+                Exit;
+              End;
+              KeyWordID := SP_KW_WIN_ORG_DIM;
+            End Else Begin
+              Error.Code := SP_ERR_MISSING_COMMA;
+              Exit;
+            End;
+          End Else Begin
+            // no x2,y2 specified - specify ?? for them instead.
+            KeyWordID := SP_KW_WIN_ORG_NO_EXT;
+          End;
         End;
         If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_FLIP) Then Begin
           Inc(Position, SizeOf(LongWord) +1);
@@ -10172,7 +10208,7 @@ Begin
 
   If Error.Code <> SP_ERR_OK Then Exit;
 
-  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TRANSPARENT) Then Begin
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And ((pLongWord(@Tokens[Position +1])^ = SP_KW_TRANSPARENT) or (pLongWord(@Tokens[Position +1])^ = SP_KW_TRANSPARENT)) Then Begin
     Inc(Position, 1 + SizeOf(LongWord));
     Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Index
     If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
@@ -14601,8 +14637,29 @@ Begin
                                         Exit;
                                       End;
                                     End Else Begin
-                                      // no x2,y2 specified - specify 0 for them instead.
-                                      KeyWordID := SP_KW_GFX_ORG_NO_EXT;
+                                      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+                                        Inc(Position, 2);
+                                        Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // W
+                                        If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+                                          Error.Code := SP_ERR_MISSING_NUMEXPR;
+                                          Exit;
+                                        End;
+                                        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+                                          Inc(Position, 2);
+                                          Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // H
+                                          If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+                                            Error.Code := SP_ERR_MISSING_NUMEXPR;
+                                            Exit;
+                                          End;
+                                          KeyWordID := SP_KW_GFX_ORG_DIM;
+                                        End Else Begin
+                                          Error.Code := SP_ERR_MISSING_COMMA;
+                                          Exit;
+                                        End;
+                                      End Else Begin
+                                        // no x2,y2 specified - specify 0 for them instead.
+                                        KeyWordID := SP_KW_GFX_ORG_NO_EXT;
+                                      End;
                                     End;
                                     Result := Expr;
                                     Exit;
@@ -16860,7 +16917,7 @@ Var
   Expr, FlipExpr: aString;
 Begin
 
-  // ORIGIN x1,y1[ TO x2,y2][FLIP]
+  // ORIGIN [OFF|x1,y1[,w,h| TO x2,y2][FLIP]]
   // ORIGIN FLIP
 
   Expr := '';
@@ -16909,6 +16966,26 @@ Begin
             Exit;
           End;
         End Else Begin
+          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+            Inc(Position, 2);
+            Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // W
+            If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+              Error.Code := SP_ERR_MISSING_NUMEXPR;
+              Exit;
+            End;
+            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+              Inc(Position, 2);
+              Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // H
+              If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+                Error.Code := SP_ERR_MISSING_NUMEXPR;
+                Exit;
+              End;
+              KeyWordID := SP_KW_ORG_DIM;
+            End Else Begin
+              Error.Code := SP_ERR_MISSING_COMMA;
+              Exit;
+            End;
+          End;
           // no x2,y2 specified - specify ?? for them instead.
           KeyWordID := SP_KW_ORG_NO_EXT;
         End;

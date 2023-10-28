@@ -254,6 +254,8 @@ Begin
 
   While Not Finished Do Begin
 
+    If SP_NeedDisplayUpdate Then SP_ForceScreenUpdate;
+
     If Changed Then Begin
 
       EL_Text := INPUTLINE;
@@ -266,7 +268,6 @@ Begin
         EL_Text := EL_Text + ' ';
 
       X := PRPOSX; Y := PRPOSY;
-      SCROLLCNT := 0;
       SP_PutCurrentWindow(TempStr);
       If SCREENBPP = 8 Then
         Scrolls := SP_PRINT(-1, Round(X), Round(Y), CURSORPOS, EL_Text, T_INK, T_PAPER, Error)
@@ -282,7 +283,6 @@ Begin
       End;
       SP_SetDirtyRect(0, 0, DISPLAYWIDTH, DISPLAYHEIGHT);
       PRPOSX := X; PRPOSY := Y;
-
     End;
 
     If LocalFlashState <> FLASHSTATE Then Begin
@@ -305,7 +305,7 @@ Begin
     KeyInfo := SP_GetNextKey(FRAMES);
     Changed := Assigned(KeyInfo);
     If Not Changed Then
-      SP_WaitForSync
+      SP_WaitForSync // Also YIELD cpu time
     Else
       If KeyInfo.KeyCode in [K_RETURN, K_ESCAPE] Then Begin
         SYSTEMSTATE := SS_IDLE;
@@ -313,12 +313,12 @@ Begin
           Result := True
         Else Begin
           INPUTLINE := '';
+          BREAKSIGNAL := True;
           Result := False;
         End;
         Break;
       End Else
         SP_PerformInput(KeyInfo^);
-
   End;
 
   SP_PutCurrentWindow(TempStr);
@@ -335,6 +335,11 @@ Begin
       Scrolls := SP_PRINT32(-1, Round(X), Round(Y), CURSORPOS, EL_Text, T_INK, T_PAPER, Error);
   End;
   SP_SetDirtyRect(0, 0, DISPLAYWIDTH, DISPLAYHEIGHT);
+  SP_ForceScreenUpdate;
+
+  While (Length(ActiveKeys) <> 0) And Not (BREAKSIGNAL or QUITMSG) Do
+    SP_WaitForSync;
+
   PRPOSX := X; PRPOSY := Y;
   TempStr := '';
 
@@ -442,6 +447,7 @@ Begin
       K_ESCAPE:
         Begin
           INPUTLINE := '';
+          BREAKSIGNAL := True;
         End;
 
     End;

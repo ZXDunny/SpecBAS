@@ -3696,11 +3696,12 @@ Begin
       If Tkn^.Token = SP_TERMINAL Then
         Break
       Else Begin
-        If Idx <= Length(Tokens) Then Begin
-          StrPtr := @Tokens[Idx];
-          SP_SetHandler(Tkn, StrPtr);
-          Inc(Idx, Tkn^.TokenLen);
-        End;
+        If Idx <= Length(Tokens)Then
+          StrPtr := @Tokens[Idx]
+        Else
+          StrPtr := nil;
+        SP_SetHandler(Tkn, StrPtr);
+        Inc(Idx, Tkn^.TokenLen);
       End;
 
     End;
@@ -12925,9 +12926,12 @@ End;
 Procedure SP_Interpret_RESTORE(Var Info: pSP_iInfo);
 Var
   Line, LineNum, Position: Integer;
+  LineItem: TSP_GOSUB_Item;
   nLabel: TSP_Label;
   Tokens: aString;
   Token: pToken;
+Label
+  Finish;
 Begin
 
   // There may be a line number on the stack - so go get it. We also might be called
@@ -12974,6 +12978,19 @@ Begin
   If Info^.Error^.Code = SP_ERR_NO_ERROR Then
     Info^.Error^.Code := SP_ERR_OK;
 
+  // This can be called by ON RESTORE so just to be safe, we stack the next statement.
+
+  With Info^ Do Begin
+    If Error^.Line >= 0 Then
+      LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1)
+    Else Begin
+      LineItem.Line := -2;
+      LineItem.Statement := SP_FindStatement(@COMMAND_TOKENS, Error^.Statement + 1);
+      LineItem.St := Error^.Statement + 1;
+    End;
+    SP_StackLine(LineItem.Line, LineItem.Statement, LineItem.St, SP_KW_GOSUB, Info^.Error^);
+  End;
+
   // Now find the first instance of SP_SKIP_DATA, as the only thing that uses it
   // is DATA.
 
@@ -12992,7 +13009,7 @@ Begin
           Inc(Position, Token^.TokenLen);
           SP_DATA_Line.Statement := Position;
           SP_DATA_Tokens := @SP_Program[SP_DATA_Line.Line];
-          Exit;
+          Goto Finish;
         End;
         If Token^.Token = SP_SYMBOL Then
           If (Tokens[Position + 1] = ':') or (Tokens[Position + 1] = SP_CHAR_SEMICOLON) or (Tokens[Position + 1] = ';') Then
@@ -13013,6 +13030,19 @@ Begin
   SP_DATA_Line.Line := -1;
   SP_DATA_Line.Statement := -1;
   SP_DATA_Line.St := -1;
+
+  Finish:
+
+  // Now execute a RETURN to get back to where we were.
+
+  NXTLINE := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].Line;
+  NXTSTATEMENT := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].Statement;
+  Info^.Error^.Statement := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].St;
+  If SP_GOSUB_Stack[Length(SP_GOSUB_Stack) -1].Source = SP_KW_ERROR Then IGNORE_ON_ERROR := False;
+  Dec(SP_GOSUB_STACKPTR);
+  If NXTSTATEMENT = -1 Then NXTLINE := -1;
+
+  Info^.Error^.ReturnType := SP_JUMP;
 
 End;
 
@@ -20586,10 +20616,9 @@ End;
 Procedure SP_Interpret_INIT_INPUT(Var Info: pSP_iInfo);
 Begin
 
-  // Set the input format to nothing, so no mask. Set colours of cursor, and finally set position to bottom-left of the screen.
+  // Set the input format to nothing, so no mask. Set colours of cursor, and finally set position to bottom-left of the screen, infinite scroll.
 
   INFORMAT := '';
-  SCROLLCNT := 0;
   INPUTBACK := SP_GrabCurrentWindow;
   SP_Reset_Temp_Colours;
   If SCREENBPP = 8 Then Begin
@@ -20605,6 +20634,7 @@ Begin
   INPUTERROR_RPT := False;
   PRPOSX := 0;
   PRPOSY := SCREENHEIGHT - FONTHEIGHT * T_SCALEY;
+  SCROLLCNT := MAXINT;
 
 End;
 
@@ -20744,6 +20774,7 @@ Begin
   SP_PutCurrentWindow(INPUTBACK);
   PRPOSX := INPUTPOSX;
   PRPOSY := INPUTPOSY;
+  SCROLLCNT := 0;
 
 End;
 

@@ -10510,7 +10510,7 @@ Var
   n, i, j, KW, ot: Integer;
 Begin
 
-  // ON <[numexpr|EVERY numexpr] statement[:statement...]]|OFF|numexpr GOTO numexpr,numexpr...[ELSE statement...]>
+  // ON <[numexpr|EVERY numexpr] statement[:statement...]]|OFF|numexpr [GOTO|RESTORE|GOSUB] numexpr,numexpr...[ELSE statement...]> // Also EXECUTE
   // ON EVERY numexpr statement[:statement...]
   // ON EVERY OFF
   // ON numexpr
@@ -10651,7 +10651,7 @@ Begin
 
     OffFlag := False;
     KW := pLongWord(@Tokens[Position +1])^;
-    If (Byte(Tokens[Position]) = SP_KEYWORD) And ((KW = SP_KW_GO) or (KW = SP_KW_EXECUTE)) And GotCondition Then Begin
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And ((KW = SP_KW_GO) or (KW = SP_KW_EXECUTE) or (KW = SP_KW_RESTORE)) And GotCondition Then Begin
       Inc(Position, 1 + SizeOf(LongWord));
 
       If KW = SP_KW_GO Then Begin // Sort out which one we're gonna get
@@ -10669,6 +10669,7 @@ Begin
       If KW >= 0 Then Begin
         Case KW Of
           Ord(SP_CHAR_SUB): Begin KW := SP_KW_GOSUB;    ot := SP_VALUE; End;
+             SP_KW_RESTORE: Begin KW := SP_KW_RESTORE;  ot := SP_VALUE; End;
                   SP_KW_TO: Begin KW := SP_KW_GOTO;     ot := SP_VALUE; End;
              SP_KW_EXECUTE: Begin KW := SP_KW_EXECUTE;  ot := SP_STRING; End;
         Else
@@ -10679,8 +10680,8 @@ Begin
         End;
         Condition := Copy(Condition, SizeOf(TToken) +1);
         // Followed by at least one numexpr, subsequent exprs separated by commas.
-        // Store as a expression, then SP_IJMP followed by count (n) and n * longwords pointing at the expressions, then the expressions themselves.
-        // Expressions followed by an SP_JUMP opcode with a displacement to the GOTO/GOSUB/EXECUTE keyword token.
+        // Store as an expression, then SP_IJMP followed by count (n) and n * longwords pointing at the expressions, then the expressions themselves.
+        // Expressions followed by the GOTO/GOSUB/RESTORE/EXECUTE keyword token.
         SetLength(Exprs, 0);
         n := 0;
         Repeat
@@ -10721,7 +10722,6 @@ Begin
         End Else
           GotoExpr := LongWordToString(0) + GotoExpr;
         GotoExpr := LongWordToString(n) + GotoExpr; // Number of expressions
-
 
         Result := Condition + CreateToken(SP_IJMP, 0, Length(GotoExpr)) + GotoExpr;
 

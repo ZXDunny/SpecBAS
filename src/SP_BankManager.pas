@@ -114,7 +114,7 @@ Type
   Function  SP_GetBankSize(ID: Integer): Integer;
 
   Function  SP_Font_Bank_Create(FontType, Width, Height, Transparent: Integer): Integer;
-  Function  SP_Font_Bank_SetChar(ID: Integer; Character: Integer; Data: pByte): Integer;
+  Function  SP_Font_Bank_SetChar(ID: Integer; Character: Integer; Data: pByte; Invert: Boolean = False): Integer;
   Procedure SP_SetSystemFont(BankID: Integer; Error: TSP_ErrorCode);
   Function  SP_SetSpeccyStyleChar(ID, Character: Integer; Data: pByte): Integer;
 
@@ -955,10 +955,10 @@ Begin
 
 End;
 
-Function SP_Font_Bank_SetChar(ID: Integer; Character: Integer; Data: pByte): Integer;
+Function SP_Font_Bank_SetChar(ID: Integer; Character: Integer; Data: pByte; Invert: Boolean = False): Integer;
 Var
   Bank: pSP_Bank;
-  CharSize: Integer;
+  CharSize, i: Integer;
   FontBank: pSP_Font_Info;
 Begin
 
@@ -979,7 +979,11 @@ Begin
           CharSize := FontBank^.Width * FontBank^.Height * SizeOf(LongWord)
         Else
           CharSize := FontBank^.Width * FontBank^.Height;
+        i := FontBank^.Font_Info[Character].Data;
         CopyMem(@Bank^.Memory[FontBank^.Font_Info[Character].Data], Data, CharSize);
+        If Invert And (FontBank^.FontType = SP_FONT_TYPE_MONO) Then
+          For i := i To i + CharSize -1 Do
+            Bank^.Memory[i] := 1 - Bank^.Memory[i];
         Bank^.Changed := True;
       End Else Begin
         Result := SP_ERR_BANK_INVALID_FORMAT;

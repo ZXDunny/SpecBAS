@@ -755,7 +755,7 @@ Begin
 
   For Idx := 0 To 95 Do Begin
     SP_Font_Bank_SetChar(ID, Idx + 32, @DefaultFont[Idx * 64]);
-    SP_Font_Bank_SetChar(ID, Idx + 32 + 128, @DefaultFont[Idx * 64]);
+    SP_Font_Bank_SetChar(ID, Idx + 32 + 128, @DefaultFont[Idx * 64], True);
   End;
 
   // UDGs - block graphic characters on 1-8, and shift 1-8

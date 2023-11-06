@@ -51,6 +51,7 @@ Type
   TCB_ReleaseSticks = Procedure;
   TCB_MouseMove = Procedure(ToX, ToY: integer);
   TCB_CAPTIONPROC = Procedure;
+  TCB_GeneralProc = Procedure;
 
 Function  SP_FrameUpdate: Boolean;
 Procedure DoAutoSave(SaveOLD: Boolean = False);
@@ -81,6 +82,7 @@ Var
   CB_InitSticks: TCB_InitSticks;
   CB_ReleaseSticks: TCB_ReleaseSticks;
   CB_MouseMove: TCB_MouseMove;
+  CB_PauseDisplay, CB_ResumeDisplay: TCB_GeneralProc;
   SP_GOSUB_Stack: Array of TSP_GOSUB_Item;
   SP_GOSUB_StackPtr,
   SP_GOSUB_StackLen,

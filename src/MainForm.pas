@@ -76,6 +76,9 @@ type
   End;
 
   TRefreshThread = Class(TThread)
+    LockValue: Integer;
+    Lock: TInterlocked;
+    ShouldPause, IsPaused: Boolean;
     Procedure Execute; Override;
   End;
 
@@ -86,6 +89,8 @@ type
   Function  SetScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
   Function  TestScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
   Procedure SetScaling(Width, Height, sWidth, sHeight: Integer);
+  Procedure PauseDisplay;
+  Procedure ResumeDisplay;
   Procedure Refresh_Display;
   Function  UpdateDisplay: Boolean;
 
@@ -184,15 +189,44 @@ Begin
 
 End;
 
+Procedure PauseDisplay; // Used to halt the refresh thread when working on window banks or sprites.
+Begin
+
+  If SP_Interpreter_Ready And RefreshThreadAlive Then Begin
+    If Not RefreshTimer.IsPaused Then Begin
+      RefreshTimer.ShouldPause := True;
+      Repeat
+        CB_YIELD;
+      Until RefreshTimer.IsPaused;
+    End;
+  End;
+
+End;
+
+Procedure ResumeDisplay;
+Begin
+
+  If SP_Interpreter_Ready And RefreshThreadAlive Then Begin
+    RefreshTimer.ShouldPause := False;
+    Repeat
+      CB_YIELD;
+    Until Not RefreshTimer.IsPaused;
+  End;
+
+End;
+
 Procedure TRefreshThread.Execute;
 Var
   StartTime, LastFrames: NativeUint;
   p: TPoint;
 Begin
 
+  LockValue := 0;
+  lock := TInterlocked.Create;
+
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
-  Priority := tpNormal;
+  Priority := tpTimeCritical;
   RefreshThreadAlive := True;
 
   While Not SP_Interpreter_Ready Do CB_YIELD;
@@ -200,16 +234,22 @@ Begin
   StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
 
-  While Not QUITMSG Do Begin
+  While Not (QUITMSG Or Terminated) Do Begin
 
-    FRAMES := Trunc((CB_GETTICKS - StartTime)/FRAME_MS);
+    If ShouldPause Then Begin
+      IsPaused := True;
+      Repeat
+        CB_YIELD;
+      Until Not ShouldPause;
+      IsPaused := False;
+    End;
+
+    FRAMES := Trunc((CB_GETTICKS - StartTime) / FRAME_MS);
     If FRAMES <> LastFrames Then Begin
 
       FrameElapsed := True;
       Inc(AutoFrameCount);
       LastFrames := FRAMES;
-
-      DisplaySection.Enter;
 
       GetCursorPos(p);
       p := Main.ScreenToClient(p);
@@ -237,15 +277,15 @@ Begin
       End;
 
       If SP_FrameUpdate Then Begin
+        DisplaySection.Enter;
         If UpdateDisplay Then Begin
           CB_Refresh_Display;
           SP_NeedDisplayUpdate := False;
         End;
+        DisplaySection.Leave;
         UPDATENOW := False;
         CauseUpdate := False;
       End;
-
-      DisplaySection.Leave;
 
     End Else
 
@@ -261,6 +301,7 @@ Begin
   {$ENDIF}
 
   RefreshThreadAlive := False;
+  Lock.Free;
 
 End;
 
@@ -423,7 +464,7 @@ Var
   t: Int64;
 Begin
   QueryPerformanceCounter(t);
-  Result := t/TimerFreq * 1000;
+  Result := (t - BaseTime) / TimerFreq * 1000;
 End;
 
 Function GetTimerFrequency: aFloat;
@@ -466,6 +507,8 @@ Var
   l, t, w, h: NativeInt;
   r: TRect;
 Begin
+
+  CB_PauseDisplay;
 
   Result := 0;
   oW := SCALEWIDTH;
@@ -1120,6 +1163,8 @@ begin
   CB_Messages := MsgProc;
   CB_MouseMove := MouseMoveTo;
   CB_SETWINDOWCAPTION := SetWindowCaption;
+  CB_PauseDisplay := PauseDisplay;
+  CB_ResumeDisplay := ResumeDisplay;
 
   SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
   SetBounds((REALSCREENWIDTH - Width) Div 2, (REALSCREENHEIGHT - Height) Div 2, Width, Height);
@@ -1569,6 +1614,7 @@ begin
   End;
 
   DPtrBackup := DISPLAYPOINTER;
+  CB_ResumeDisplay;
 
 end;
 

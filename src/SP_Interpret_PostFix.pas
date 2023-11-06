@@ -15655,11 +15655,27 @@ End;
 Procedure SP_Interpret_STREAM_READLN(Var Info: pSP_iInfo);
 Var
   StreamID: Integer;
+  SepChar: aString;
 Begin
+
+  If SP_StackPtr^.OpType = SP_Value Then Begin
+    If SP_StackPtr^.Val = -1 Then
+      SepChar := ''
+    Else
+      SepChar := aChar(Trunc(SP_StackPtr^.Val) And $FF);
+  End Else
+    If SP_StackPtr^.Str = '' Then
+      SepChar := #0
+    Else
+      SepChar := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
 
   StreamID := Round(SP_StackPtr^.Val);
   With SP_StackPtr^ Do Begin
-    Str := SP_StreamReadline(StreamID, Info^.Error^);
+    if SepChar = '' Then
+      Str := SP_StreamReadline(StreamID, Info^.Error^)
+    Else
+      Str := SP_StreamReadlineChar(StreamID, SepChar[1], Info^.Error^);
     OpType := SP_STRING;
   End;
 
@@ -20907,9 +20923,11 @@ End;
 Procedure SP_Interpret_MOUSE_HIDE(Var Info: pSP_iInfo);
 Begin
 
+  DisplaySection.Enter;
   SP_RestoreMouseRegion;
   MOUSEVISIBLE := False;
   USERMOUSEVISIBLE := MOUSEVISIBLE;
+  DisplaySection.Leave;
 
 End;
 
@@ -20918,6 +20936,7 @@ Var
   ID, X, Y: Integer;
 Begin
 
+  DisplaySection.Enter;
   SP_RestoreMouseRegion;
 
   X := 0; Y := 0;
@@ -20930,6 +20949,7 @@ Begin
     Dec(SP_StackPtr);
   End;
   SP_MousePointerFromGraphic(ID, X, Y, Info^.Error^);
+  DisplaySection.Leave;
 
 End;
 
@@ -20939,6 +20959,7 @@ Var
   Gfx: aString;
 Begin
 
+  DisplaySection.Enter;
   SP_RestoreMouseRegion;
 
   X := 0; Y := 0;
@@ -20952,14 +20973,17 @@ Begin
   End;
   SP_MousePointerFromString(Gfx, X, Y);
   Dec(SP_StackPtr);
+  DisplaySection.Leave;
 
 End;
 
 Procedure SP_Interpret_MOUSE_DEFAULT(Var Info: pSP_iInfo);
 Begin
 
+  DisplaySection.Enter;
   SP_RestoreMouseRegion;
   SP_MousePointerFromDefault;
+  DisplaySection.Leave;
   //SP_StackPtr := SP_StackStart;
 
 End;

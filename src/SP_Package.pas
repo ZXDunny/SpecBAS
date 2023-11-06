@@ -83,7 +83,8 @@ Type
   Function  SP_GetNextChunk: Integer;
   Function  SP_WriteToPackageFile(Filename: aString; BuffPtr: pByte; Size: LongWord; var Error: TSP_ErrorCode): LongWord;
   Function  SP_ReadFromPackageFile(Filename: aString; BuffPtr: pByte; Size: LongWord; var Error: TSP_ErrorCode): LongWord;
-  Function SP_ReadLnFromPackageFile(Filename: aString; var Error: TSP_ErrorCode): aString;
+  Function  SP_ReadLnFromPackageFile(Filename: aString; var Error: TSP_ErrorCode): aString;
+  Function  SP_ReadLnCharFromPackageFile(Filename: aString; SepChar: aChar; var Error: TSP_ErrorCode): aString;
   Function  SP_SeekToPackageFile(Filename: aString; SeekPos: LongWord; var Error: TSP_ErrorCode): LongWord;
   Function  SP_GetSeekPosFromPackageFile(Filename: aString; var Error: TSP_ErrorCode): LongWord;
   Function  SP_GetSizeFromPackageFile(Filename: aString; var Error: TSP_ErrorCode): LongWord;
@@ -594,6 +595,11 @@ Begin
 End;
 
 Function SP_ReadLnFromPackageFile(Filename: aString; var Error: TSP_ErrorCode): aString;
+Begin
+  // TO DO
+End;
+
+Function SP_ReadLnCharFromPackageFile(Filename: aString; SepChar: aChar; var Error: TSP_ErrorCode): aString;
 Begin
   // TO DO
 End;

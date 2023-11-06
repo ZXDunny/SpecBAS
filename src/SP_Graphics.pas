@@ -1124,7 +1124,6 @@ Begin
   // will set up the actual display image. Finally, set Window 0 to the correct size, and update all the pointers to
   // the other windows to reflect the change in size of window 0.
 
-  DisplaySection.Enter;
   SCREENCHANGE := True;
   OldMouse := MOUSEVISIBLE;
   MOUSEVISIBLE := False;
@@ -1145,7 +1144,6 @@ Begin
 
   MOUSEVISIBLE := OldMouse;
   SCREENCHANGE := False;
-  DisplaySection.Leave;
 
 End;
 
@@ -1272,8 +1270,9 @@ Begin
   BankIdx := SP_FindBankID(WindowID);
   If BankIdx > -1 Then Begin
 
+    CB_PauseDisplay;
+
     Bank := SP_BankList[BankIdx];
-    DisplaySection.Enter;
 
     Window := @Bank^.Info[0];
     oW := Window^.Width;
@@ -1286,7 +1285,6 @@ Begin
     If Depth <> -1 Then Begin
       If Not (Depth in [8, 32]) Then Begin
         Error.Code := SP_ERR_INVALID_DEPTH;
-        DisplaySection.Leave;
         Exit;
       End Else
         NewBits := Depth Div 8;
@@ -1350,7 +1348,6 @@ Begin
       MOUSEVISIBLE := False;
       SIZINGMAIN := True;
       CB_SetScreenRes(Window^.Width, Window^.Height, SCALEWIDTH, SCALEHEIGHT, FullScreen);
-      DisplaySection.Leave;
       Repeat
         CB_YIELD;
       Until Not SIZINGMAIN;
@@ -1358,8 +1355,10 @@ Begin
       MOUSEVISIBLE := OldMouse;
     End Else Begin
       SP_CLS(CPAPER);
-      DisplaySection.Leave;
     End;
+
+    CB_ResumeDisplay;
+
   End;
 
 End;
@@ -6962,8 +6961,6 @@ Var
   Bank: pSP_Bank;
 Begin
 
-  DisplaySection.Enter;
-
   Idx := SP_FindBankID(BankID);
   If Idx > -1 Then Begin
     Bank := SP_BankList[Idx];
@@ -6985,8 +6982,6 @@ Begin
 
     Error.Code := SP_ERR_BANK_NOT_FOUND;
 
-  DisplaySection.Leave;
-
 End;
 
 Procedure SP_MousePointerFromString(Graphic: aString; HotX, HotY: Integer);
@@ -6994,8 +6989,6 @@ Var
   Valid: Boolean;
   tW, tH: Integer;
 Begin
-
-  DisplaySection.Enter;
 
   Valid := False;
   If Graphic = '' Then
@@ -7021,8 +7014,6 @@ Begin
 
   For tw := 0 To 255 Do MOUSEPALETTE[tw] := DefaultPalette[tw];
 
-  DisplaySection.Leave;
-
 End;
 
 Procedure SP_SaveMouseRegion;
@@ -7031,7 +7022,6 @@ Var
   Error: TSP_ErrorCode;
 Begin
 
-  DisplaySection.Enter;
   If Not SCREENCHANGE And (DISPLAYPOINTER <> nil) And (MOUSEW > 0) Then Begin
 
     MOUSEIMAGE := '';
@@ -7051,7 +7041,6 @@ Begin
     End;
 
   End;
-  DisplaySection.Leave;
 
 End;
 
@@ -7061,7 +7050,6 @@ Var
   Error: TSP_ErrorCode;
 Begin
 
-  DisplaySection.Enter;
   If Not SCREENCHANGE And (DISPLAYPOINTER <> Nil) And (MOUSEIMAGE <> '') Then Begin
     cX1 := 0; cy1 := 0; cx2 := DISPLAYWIDTH; cy2 := DISPLAYHEIGHT;
     SP_PutRegion_NO_OVER32To32(DISPLAYPOINTER, MOUSESTOREX, MOUSESTOREY, DISPLAYSTRIDE, DISPLAYHEIGHT, @MOUSEIMAGE[1], Length(MOUSEIMAGE), cX1, cY1, cX2, cY2, Error);
@@ -7076,7 +7064,6 @@ Begin
     {$ENDIF}
     MOUSEIMAGE := '';
   End;
-  DisplaySection.Leave;
 
 End;
 

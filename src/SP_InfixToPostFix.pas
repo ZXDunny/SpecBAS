@@ -11619,11 +11619,11 @@ End;
 
 Function SP_Convert_STREAM(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
-  VarResult, Expr: aString;
+  VarResult, Expr, SepExpr: aString;
   KeyWordPos: LongWord;
 Begin
 
-  // STREAM [NEW numvar,[BankID|Filename$]|READ id,strvar,count|READ LINE id,strvar|WRITE id,strexpr|SEEK id,Position|CLOSE id]
+  // STREAM [NEW numvar,[BankID|Filename$]|READ id,strvar,count|READ LINE id,strvar[,{sep$|sep}]|WRITE id,strexpr|SEEK id,Position|CLOSE id]
 
   Result := '';
 
@@ -11674,7 +11674,15 @@ Begin
           VarResult := SP_Convert_Var_Assign(Tokens, Position, Error); // Destination string variable
           If Error.Code <> SP_ERR_OK Then Exit;
           KeyWordPos := Position -1;
-          Result := Result + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_STREAM_READLN)+ VarResult;
+
+          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+            Inc(Position, 2);
+            SepExpr := SP_Convert_Expr(Tokens, Position, Error, -1); // optional stop byte or char
+            If Error.Code <> SP_ERR_OK Then Exit;
+          End Else
+            SepExpr := CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(-1);
+
+          Result := Result + SepExpr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_STREAM_READLN) + VarResult;
           If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
           Exit;
 

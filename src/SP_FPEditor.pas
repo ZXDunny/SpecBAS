@@ -6705,6 +6705,7 @@ Begin
                       EDITLINE := 'CONTINUE';
                     s2 := EDITLINE;
                     SP_FPExecuteEditLine(EDITLINE);
+                    SP_ClearAllKeys;
                     if QUITMSG then Exit;
                     If EDITLINE = s2 Then
                       EDITLINE := s;

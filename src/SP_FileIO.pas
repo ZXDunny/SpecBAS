@@ -51,6 +51,7 @@ Function  SP_FileSize(ID: Integer; Var Error: TSP_ErrorCode): Integer;
 Function  SP_FilePosition(ID: Integer; Var Error: TSP_ErrorCode): Integer;
 Function  SP_FileRead(ID: Integer; Buffer: Pointer; Count: Integer; Var Error: TSP_ErrorCode): Integer;
 Function  SP_FileReadLn(ID: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_FileReadLnChar(ID: Integer; SepChar: aChar; Var Error: TSP_ErrorCode): aString;
 Function  SP_FileWrite(ID: Integer; Buffer: Pointer; Count: Integer; Var Error: TSP_ErrorCode): Integer;
 Function  SP_FileReWrite(ID: Integer; Var Error: TSP_ErrorCode): Integer;
 Procedure SP_FileClose(ID: Integer; Var Error: TSP_ErrorCode);
@@ -679,6 +680,57 @@ Begin
                 if ReadByte <> 10 then
                   Stream.Seek(-1, soFromCurrent);
               End;
+            End;
+          End;
+        End Else Begin
+          Result := '';
+          Exit;
+        End;
+  End Else
+    Error.Code := SP_ERR_FILE_NOT_OPEN;
+
+End;
+
+Function SP_FileReadLnChar(ID: Integer; SepChar: aChar; Var Error: TSP_ErrorCode): aString;
+Var
+  Done: Boolean;
+  Idx, l, i, cl, iPos: Integer;
+  Buffer: Array of Byte;
+Begin
+
+  Result := '';
+  Idx := SP_FileFindID(ID);
+  If Idx > -1 Then Begin
+    If SP_FileList[Idx]^.PackageFile Then
+      Result := SP_ReadLnCharFromPackageFile(SP_FileList[Idx]^.Filename, SepChar, Error)
+    Else
+      With SP_FileList[Idx]^ Do
+        If Stream <> nil Then Begin
+          cl := 0;
+          iPos := Stream.Position;
+          SetLength(Buffer, 1024);
+          Done := False;
+          While Not Done Do Begin
+            l := Stream.Read(Buffer[cl], 1024);
+            if (l = 0) and (cl = 0) then Exit;
+            i := cl;
+            While i < l + cl Do Begin
+              if Buffer[i] = Ord(SepChar) Then Begin
+                Done := True;
+                Break;
+              End Else
+                inc(i);
+            End;
+            If Not Done Then Begin
+              Inc(cl, l);
+              SetLength(Buffer, cl + 1025);
+            End Else Begin
+              if i > 0 Then Begin
+                SetLength(Result, i);
+                CopyMem(@Result[1], @Buffer[0], i);
+              End Else
+                Result := '';
+              Stream.Seek(iPos + i +1, soFromBeginning);
             End;
           End;
         End Else Begin

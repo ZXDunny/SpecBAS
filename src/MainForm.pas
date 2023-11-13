@@ -76,9 +76,8 @@ type
   End;
 
   TRefreshThread = Class(TThread)
-    LockValue: Integer;
-    Lock: TInterlocked;
     ShouldPause, IsPaused: Boolean;
+    Procedure HandleMouse;
     Procedure Execute; Override;
   End;
 
@@ -215,21 +214,45 @@ Begin
 
 End;
 
+Procedure TRefreshThread.HandleMouse;
+Var
+  p: TPoint;
+Begin
+  GetCursorPos(p);
+  p := Main.ScreenToClient(p);
+  {$IFDEF OpenGL}
+    MOUSEX := Integer(Round(p.X / ScaleMouseX));
+    MOUSEY := Integer(Round(p.Y / ScaleMouseY));
+  {$ELSE}
+    MOUSEX := p.X;
+    MOUSEY := p.Y;
+  {$ENDIF}
+  If Not PtInRect(Main.ClientRect, p) Then Begin
+    If MouseInForm Then Begin
+      MOUSEVISIBLE := False;
+      SP_InvalidateWholeDisplay;
+      SP_NeedDisplayUpdate := True;
+      MouseInForm := False;
+    End;
+  End Else Begin
+    If Not MouseInForm Then Begin
+      MOUSEVISIBLE := USERMOUSEVISIBLE or (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_ERROR]);
+      MouseInForm := True;
+      SP_InvalidateWholeDisplay;
+      SP_NeedDisplayUpdate := True;
+    End;
+  End;
+End;
+
 Procedure TRefreshThread.Execute;
 Var
   StartTime, LastFrames: NativeUint;
-  p: TPoint;
 Begin
-
-  LockValue := 0;
-  lock := TInterlocked.Create;
 
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
-  Priority := tpTimeCritical;
+  Priority := tpNormal;
   RefreshThreadAlive := True;
-
-  While Not SP_Interpreter_Ready Do CB_YIELD;
 
   StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
@@ -251,30 +274,7 @@ Begin
       Inc(AutoFrameCount);
       LastFrames := FRAMES;
 
-      GetCursorPos(p);
-      p := Main.ScreenToClient(p);
-      {$IFDEF OpenGL}
-        MOUSEX := Integer(Round(p.X / ScaleMouseX));
-        MOUSEY := Integer(Round(p.Y / ScaleMouseY));
-      {$ELSE}
-        MOUSEX := p.X;
-        MOUSEY := p.Y;
-      {$ENDIF}
-      If Not PtInRect(Main.ClientRect, p) Then Begin
-        If MouseInForm Then Begin
-          MOUSEVISIBLE := False;
-          SP_InvalidateWholeDisplay;
-          SP_NeedDisplayUpdate := True;
-          MouseInForm := False;
-        End;
-      End Else Begin
-        If Not MouseInForm Then Begin
-          MOUSEVISIBLE := USERMOUSEVISIBLE or (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_ERROR]);
-          MouseInForm := True;
-          SP_InvalidateWholeDisplay;
-          SP_NeedDisplayUpdate := True;
-        End;
-      End;
+      HandleMouse;
 
       If SP_FrameUpdate Then Begin
         DisplaySection.Enter;
@@ -301,7 +301,6 @@ Begin
   {$ENDIF}
 
   RefreshThreadAlive := False;
-  Lock.Free;
 
 End;
 
@@ -1166,6 +1165,9 @@ begin
   CB_PauseDisplay := PauseDisplay;
   CB_ResumeDisplay := ResumeDisplay;
 
+  // Start graphics server
+
+  SP_SetFPS(60);
   SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
   SetBounds((REALSCREENWIDTH - Width) Div 2, (REALSCREENHEIGHT - Height) Div 2, Width, Height);
   RefreshTimer := TRefreshThread.Create(False);

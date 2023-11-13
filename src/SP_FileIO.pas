@@ -672,13 +672,15 @@ Begin
               Inc(cl, l);
               SetLength(Buffer, cl + 1025);
             End Else Begin
-              SetLength(Result, i);
-              CopyMem(@Result[1], @Buffer[0], i);
-              Stream.Seek(iPos + i +1, soFromBeginning);
-              if Buffer[i] <> 10 then Begin // Handle CRLF
-                Stream.Read(readByte, 1);
-                if ReadByte <> 10 then
-                  Stream.Seek(-1, soFromCurrent);
+              if i > 0 Then Begin
+                SetLength(Result, i);
+                CopyMem(@Result[1], @Buffer[0], i);
+                Stream.Seek(iPos + i +1, soFromBeginning);
+                if Buffer[i] <> 10 then Begin // Handle CRLF
+                  Stream.Read(readByte, 1);
+                  if ReadByte <> 10 then
+                    Stream.Seek(-1, soFromCurrent);
+                End;
               End;
             End;
           End;

@@ -167,7 +167,7 @@ SP_BaseComponent = Class
     Aligning: Boolean;
     fProperties: Array of SP_Property;
 
-    Procedure SetVisible(Value: Boolean);
+    Procedure SetVisible(Value: Boolean); Virtual;
     Procedure SetTransparent(Value: Boolean);
     Procedure SetWidth(w: Integer);
     Procedure SetHeight(h: Integer);

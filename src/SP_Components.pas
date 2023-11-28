@@ -69,6 +69,7 @@ Function  ControlKeyEvent(aStr: aString; Key: Integer; Down, IsKey: Boolean): Bo
 
 Function  WindowAtPoint(Var x, y, ID: Integer): Pointer;
 Function  ControlAtPoint(Window: Pointer; Var x, y: Integer): pSP_BaseComponent;
+Function  TestForWindowMenu(Win: Pointer; Var Shift: TShiftState): Boolean;
 
 Procedure DoTimerEvents;
 Function  AddTimer(Sender: TObject; Interval: Integer; ObjProc: SP_TimerProc; DoNow: Boolean): pSP_TimerEvent;
@@ -424,6 +425,67 @@ Begin
 End;
 
 // Helper procs for mouse work
+
+Function TestForWindowMenu(Win: Pointer; Var Shift: TShiftState): Boolean;
+Var
+  i: Integer;
+  cp: pSP_BaseComponent;
+
+  Function CheckForMenu(Var c: pSP_BaseComponent): pSP_BaseComponent;
+  Var
+    i: Integer;
+    ct: pSP_BaseComponent;
+  Begin
+    i := 0;
+    Result := nil;
+    While i < c^.ControlCount Do Begin
+      ct := @c^.fComponentList[i];
+      If Assigned(ct) then Begin
+        If (ct^ Is SP_WindowMenu) And Not SP_WindowMenu(ct^).Permanent Then
+          Result := ct
+        Else
+          If ct^.ControlCount > 0 Then
+            Result := CheckForMenu(ct);
+        If Assigned(Result) Then
+          Exit
+        Else
+          Inc(i);
+      End Else
+        Inc(i);
+    End;
+  End;
+
+Begin
+
+  // if the right mouse button is down and this window has a non-permanent WindowMenu, show it now.
+
+  Result := False;
+  If Assigned(Win) Then Begin
+    With pSP_Window_Info(Win)^ Do
+      If Component.ControlCount > 0 Then Begin
+        cp := @Component;
+        cp := CheckForMenu(cp);
+        If Assigned(cp) Then With pSP_WindowMenu(cp)^ Do Begin
+          if ssRight in Shift Then Begin
+            Visible := True;
+            cp^.SetFocus(True);
+          End Else
+            If Not ((ssLeft in Shift) or (ssMiddle in Shift)) Then
+              Visible := False;
+        End;
+      End;
+  End Else Begin
+    i := Length(SP_BankList) -1;
+    While i >= 0 Do Begin
+      If (Length(SP_BankList[i]^.Info) > 0) and (SP_BankList[i]^.DataType = SP_WINDOW_BANK) Then Begin
+        Win := @SP_BankList[i]^.Info[0];
+        Result := Result Or TestForWindowMenu(Win, Shift);
+      End;
+      Dec(i);
+    End;
+  End;
+
+End;
 
 Function WindowAtPoint(Var x, y, ID: Integer): Pointer;
 Var

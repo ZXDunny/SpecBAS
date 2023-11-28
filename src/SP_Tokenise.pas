@@ -822,7 +822,7 @@ Const
      'nGETOPT ', 'nGETOPT$ ', 'nNUBMODE ', 'nNUBX ', 'nNUBY ', 'nFILEEXISTS ', 'oFPATH ', 'oFNAME ',
      'nDIREXISTS ', 'oPYTH', 'nLOGW', 'nLOGH', 'nORGX', 'nORGY', 'nPTOLX ', 'nPTOLY ', 'nLTOPX ',
      'nLTOPY ', 'nmSECS', 'oINV ', 'oPOLYTERM', 'oUNDER', 'nCOMPSIMPSON', 'nMUSICPOS', 'nMUSICLEN',
-     'oBASE$', 'oIIF', 'oIIF$', 'nSEARCH', 'o MUL ', 'o DIV ', 'o ADD ', 'o SUB ', 'oGCD', 'oLCM', 'oDET',
+     'oBASE$', 'nIIF', 'nIIF$', 'nSEARCH', 'o MUL ', 'o DIV ', 'o ADD ', 'o SUB ', 'oGCD', 'oLCM', 'oDET',
      'oBIN ', 'nSPFRAME ', 'nSPCOLL ', 'nTEXTURE$ ', 'nINZONE', 'nMATCH', 'oDECIMAL', 'oUSING$', 'oJOIN$',
      'oLBOUND', 'oUBOUND', 'oARSIZE', 'oMANDEL', 'oHEX ', 'nSCREEN$', 'nDATE$ ', 'nTIME$ ', 'oREPLACE$',
      'oIVAL ', 'oREPMATCH$', 'nATTR ', 'nMIATTR', 'nLASTM', 'nLASTMI', 'nKEY$ ', 'nSPCLX ', 'nSPCLY ',

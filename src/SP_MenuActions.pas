@@ -264,6 +264,8 @@ Begin
   FPDirectStatusLabel.TextAlign := 0;
   FPDirectStatusLabel.TextJustify := 1;
 
+  FPMenu.Permanent := True;
+
 End;
 
 Procedure UpdateStatusLabel;

@@ -5838,6 +5838,8 @@ Begin
                 // state information, such as RND or INKEY$) can be Optimised. We know if it can be optimised, from the
                 // Flags array we built earlier.
 
+                // N.B., IIF cannot be optimised this way as the function appears before the t/f expressions and will crash when evaluating at this stage.
+
                 Idx := 1;
                 While Not Replaced And (Idx <= Length(TypeString)) Do Begin
                   If TypeString[Idx] = aChar(SP_FUNCTION) Then Begin
@@ -11344,6 +11346,7 @@ Begin
         End Else
           Error.Code := SP_ERR_MISSING_COMMA;
       End Else
+
         Error.Code := SP_ERR_MISSING_COMMA;
     End Else
       Error.Code := SP_ERR_MISSING_VARIABLE;

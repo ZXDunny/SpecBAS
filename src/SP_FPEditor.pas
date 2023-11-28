@@ -4262,26 +4262,30 @@ Begin
   If FocusedWindow = fwEditor Then Begin
     s := Listing[Listing.FPCLine];
     // Find the start of the word:
-    While (Listing.FPCPos > 1) And (s[Listing.FPCPos] in Seps) Do Listing.FPCPos := Listing.FPCPos -1;
-    While (Listing.FPCPos > 1) And Not (s[Listing.FPCPos] in Seps) Do Listing.FPCPos := Listing.FPCPos -1;
-    If (Listing.FPCPos < Length(s)) And (s[Listing.FPCPos] in Seps) Then Listing.FPCPos := Listing.FPCPos +1;
-    // Find the end of the Word:
-    Listing.FPSelLine := Listing.FPCLine;
-    Listing.FPSelPos := Listing.FPCPos;
-    While (Listing.FPSelPos < Length(s)) And Not (s[Listing.FPSelPos] in Seps) Do Inc(Listing.FPSelPos);
-    t := Listing.FPSelPos; Listing.FPSelPos := Listing.FPCPos; Listing.FPCPos := t;
-    SP_CursorPosChanged;
-    If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
+    If Listing.FPCPos <= Length(s) Then Begin
+      While (Listing.FPCPos > 1) And (s[Listing.FPCPos] in Seps) Do Listing.FPCPos := Listing.FPCPos -1;
+      While (Listing.FPCPos > 1) And Not (s[Listing.FPCPos] in Seps) Do Listing.FPCPos := Listing.FPCPos -1;
+      If (Listing.FPCPos < Length(s)) And (s[Listing.FPCPos] in Seps) Then Listing.FPCPos := Listing.FPCPos +1;
+      // Find the end of the Word:
+      Listing.FPSelLine := Listing.FPCLine;
+      Listing.FPSelPos := Listing.FPCPos;
+      While (Listing.FPSelPos < Length(s)) And Not (s[Listing.FPSelPos] in Seps) Do Inc(Listing.FPSelPos);
+      t := Listing.FPSelPos; Listing.FPSelPos := Listing.FPCPos; Listing.FPCPos := t;
+      SP_CursorPosChanged;
+      If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
+    End;
   End Else
     If FocusedWindow = fwDirect Then Begin
-      While (CURSORPOS > 1) And (EDITLINE[CURSORPOS] in Seps) Do Dec(CURSORPOS);
-      While (CURSORPOS > 1) And Not (EDITLINE[CURSORPOS] in Seps) Do Dec(CURSORPOS);
-      If (CURSORPOS < Length(EDITLINE)) and (EDITLINE[CURSORPOS] in Seps) Then Inc(CURSORPOS);
-      // Find the end of the Word:
-      DWSelP := CURSORPOS;
-      While (DWSelP < Length(EDITLINE)) And Not (EDITLINE[DWSelP] in Seps) Do Inc(DWSelP);
-      t := DWSelP; DWSelP := CURSORPOS; CURSORPOS := t;
-      SP_EditorDisplayEditLine;
+      If CURSORPOS <= Length(EDITLINE) Then Begin
+        While (CURSORPOS > 1) And (EDITLINE[CURSORPOS] in Seps) Do Dec(CURSORPOS);
+        While (CURSORPOS > 1) And Not (EDITLINE[CURSORPOS] in Seps) Do Dec(CURSORPOS);
+        If (CURSORPOS < Length(EDITLINE)) and (EDITLINE[CURSORPOS] in Seps) Then Inc(CURSORPOS);
+        // Find the end of the Word:
+        DWSelP := CURSORPOS;
+        While (DWSelP < Length(EDITLINE)) And Not (EDITLINE[DWSelP] in Seps) Do Inc(DWSelP);
+        t := DWSelP; DWSelP := CURSORPOS; CURSORPOS := t;
+        SP_EditorDisplayEditLine;
+      End;
     End;
 
 End;

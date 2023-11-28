@@ -246,16 +246,17 @@ End;
 
 Procedure TRefreshThread.Execute;
 Var
-  StartTime, LastFrames: NativeUint;
+  LastFrames: NativeUint;
+  StartTime: aFloat;
 Begin
 
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
-  Priority := tpNormal;
+  Priority := tpIdle;
   RefreshThreadAlive := True;
 
-  StartTime := Round(CB_GETTICKS);
   LastFrames := 0;
+  StartTime := CB_GetTicks;
 
   While Not (QUITMSG Or Terminated) Do Begin
 
@@ -448,8 +449,6 @@ Begin
     glGetIntegerv(GL_UNPACK_ROW_LENGTH, @tmp);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     SwapBuffers(DC);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, tmp); //DISPLAYWIDTH);
-    glFinish;
 
   {$ELSE}
     InvalidateRect(Main.Handle, iRect, False);
@@ -753,20 +752,22 @@ begin
     End Else Begin
       Win := WindowAtPoint(X, Y, ID);
       If Assigned(Win) Then Begin
-        If Not (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_EVALUATE]) and (MODALWINDOW = -1) Then
-          SwitchFocusedWindow(ID); // The editor handles this.
-        Win := ControlAtPoint(Win, X, Y);
-        If Assigned(Win) Then Begin
-          CaptureControl := pSP_BaseComponent(Win)^;
-          If CaptureControl.CanFocus Then
-            CaptureControl.SetFocus(True);
-          SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
-          Handled := True;
-        End Else Begin
-          If Assigned(CaptureControl) Then
+        If not TestForWindowMenu(Win, Shift) Then Begin
+          If Not (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_EVALUATE]) and (MODALWINDOW = -1) Then
+            SwitchFocusedWindow(ID); // The editor handles this.
+          Win := ControlAtPoint(Win, X, Y);
+          If Assigned(Win) Then Begin
+            CaptureControl := pSP_BaseComponent(Win)^;
+            If CaptureControl.CanFocus Then
+              CaptureControl.SetFocus(True);
             SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
-          If Assigned(FocusedControl) And (MODALWINDOW = -1) Then
-            FocusedControl.SetFocus(False);
+            Handled := True;
+          End Else Begin
+            If Assigned(CaptureControl) Then
+              SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
+            If Assigned(FocusedControl) And (MODALWINDOW = -1) Then
+              FocusedControl.SetFocus(False);
+          End;
         End;
       End;
     End;
@@ -918,7 +919,7 @@ begin
 
     // Now check for controls under the mouse
 
-    Handled := False;
+    Handled := TestForWindowMenu(Nil, Shift);
     If Assigned(CaptureControl) Then Begin
       p := CaptureControl.ScreenToClient(Point(x, y));
       CaptureControl.MouseUp(p.x, p.y, Btn);
@@ -1484,9 +1485,7 @@ begin
   with pfd do begin
     nSize:= SizeOf( PIXELFORMATDESCRIPTOR );
     nVersion:= 1;
-    dwFlags:= PFD_DRAW_TO_WINDOW
-      or PFD_SUPPORT_OPENGL
-      or PFD_DOUBLEBUFFER;
+    dwFlags:= PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL or PFD_DOUBLEBUFFER;
     iPixelType:= PFD_TYPE_RGBA;
     cColorBits:= 32;
     cRedBits:= 0;
@@ -1501,7 +1500,7 @@ begin
     cAccumGreenBits:= 0;
     cAccumBlueBits:= 0;
     cAccumAlphaBits:= 0;
-    cDepthBits:= 16;
+    cDepthBits:= 0;
     cStencilBits:= 0;
     cAuxBuffers:= 0;
     iLayerType:= PFD_MAIN_PLANE;
@@ -1517,6 +1516,8 @@ begin
   RC := wglCreateContext(DC);
   ActivateRenderingContext(DC, RC);
   wglMakeCurrent(DC, RC);
+  wglSwapIntervalEXT(0);
+
 
   GLInitDone := True;
 

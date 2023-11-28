@@ -169,6 +169,7 @@ Begin
 
   Inherited Create(Owner);
 
+  fTransparentClr := 3;
   PrevFocusedControl := FocusedControl;
   fParentMenu := SP_PopupMenu(ParentMenu);
   fTransparent := False;
@@ -247,7 +248,7 @@ End;
 
 Procedure SP_PopUpMenu.CalculateSizes;
 Var
-  x, y, w, h, mw, mx, i, l, t: Integer;
+  x, y, w, h, mw, mx, i, l, t, bs: Integer;
   SubsPresent: Boolean;
   Win: pSP_Window_Info;
   r: TRect;
@@ -311,10 +312,12 @@ Begin
     fItems[i].Extents := r;
   End;
 
+  bs := Ord(fBorder);
+
   l := Left;
   t := Top;
-  w := mw + mx + iFW + (Ord(SubsPresent)*iFW) + Ord(fBorder);
-  h := y + 2 + Ord(fBorder);
+  w := mw + mx + iFW + (Ord(SubsPresent)*iFW) + bs;
+  h := y + 2 + bs;
 
   Win := GetWindowDetails;
   If l + w > Win^.Width - BSize Then l := Win^.Width - w - BSize;
@@ -343,6 +346,8 @@ Begin
   if fBorder Then Begin
     DrawRect(0, 0, fWidth -1, fHeight -1, fBorderClr);
     DrawRect(0, 0, fWidth -2, fHeight -2, fBorderClr);
+    SetPixel(fWidth -1, 0, 3);
+    SetPixel(0, fHeight -1, 3);
   End;
 
   mp := Point(MOUSEX, MOUSEY);
@@ -711,6 +716,7 @@ Begin
     With SP_WindowMenu(mnu.fParentMenu) Do Begin
       CancelSelection;
       fActivated := False;
+      If Not Permanent Then Visible := False;
     End;
 
   SetFocus(False);
@@ -721,6 +727,7 @@ Procedure SP_PopUpMenu.MouseUp(X, Y, Btn: Integer);
 Var
   i: Integer;
   item: Integer;
+  mnu: SP_PopUpMenu;
 Begin
 
   // Complete the menu item click if we're still on the same menu item.
@@ -738,8 +745,14 @@ Begin
     End Else
       If ((Item <> -1) and (fItems[Item].Caption <> '-')) or (Item = -1) Then
         CloseAll;
-  End Else
+  End Else Begin
     fIgnoreMouseUp := False;
+    // Are we part of a WindowMenu that's set to non-permanent? If so, and Btn=0 then close the menu.
+    mnu := Self;
+    While Assigned(mnu.fParentMenu) And Not (SP_BaseComponent(mnu.fParentMenu) is SP_WindowMenu) Do mnu := SP_PopupMenu(mnu.fParentMenu);
+    If (SP_BaseComponent(mnu.fParentMenu) is SP_WindowMenu) And (Not SP_WindowMenu(mnu.fParentMenu).Permanent) And (Btn = 0) Then
+      SP_WindowMenu(mnu).Visible := False;
+  End;
 
 End;
 

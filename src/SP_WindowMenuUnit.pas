@@ -25,6 +25,7 @@ SP_WindowMenu = Class(SP_BaseComponent)
     Procedure SetDisabledFontClr(c: Byte); Override;
     Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetPermanent(b: Boolean);
+    Procedure SetVisible(Value: Boolean); Override;
     Procedure MouseDown(X, Y, Btn: Integer); Override;
     Procedure MouseMove(X, Y, Btn: Integer); Override;
     Procedure MouseExit; Override;
@@ -54,6 +55,8 @@ SP_WindowMenu = Class(SP_BaseComponent)
 
 End;
 
+pSP_WindowMenu = ^SP_WindowMenu;
+
 implementation
 
 Uses Classes, SysUtils, Types, Math, SP_Input, SP_BankFiling, SP_Errors, SP_BankManager, SP_Graphics, SP_Components, SP_Sound;
@@ -70,7 +73,7 @@ Begin
   fActivated := False;
   fTransparent := False;
   fHighlightClr := 5;
-  fPermanent := False;
+  fPermanent := True;
   AddOverrideControl(Self);
   fAltDown := False;
   Height := iFH + 8;
@@ -89,6 +92,19 @@ Begin
 
 End;
 
+Procedure SP_WindowMenu.SetVisible(Value: Boolean);
+Var
+  i: integer;
+Begin
+
+  For i := 0 To Length(fItems) -1 Do
+    if Assigned(fItems[i].SubMenu) And fItems[i].SubMenu.Visible Then
+      fItems[i].SubMenu.Close;
+
+  Inherited;
+
+End;
+
 Function SP_WindowMenu.GetCount: Integer;
 begin
 
@@ -101,6 +117,15 @@ Begin
 
   If fPermanent <> b Then Begin
     fPermanent := b;
+    Visible := fPermanent;
+    fAutoOpen := not fPermanent;
+    If fPermanent Then Begin
+      fParentControl.fClientRect.Height := fParentControl.fClientRect.Height - Height;
+      fParentControl.fCLientRect.Top := fParentControl.fClientRect.Top + Height;
+    End Else Begin
+      fParentControl.fClientRect.Height := fParentControl.fClientRect.Height + Height;
+      fParentControl.fCLientRect.Top := fParentControl.fClientRect.Top - Height;
+    End;
     Paint;
   End;
 
@@ -215,7 +240,7 @@ Procedure SP_WindowMenu.SelectItem(i: Integer; ShowSubMenu: Boolean);
 Var
   p: TPoint;
 Begin
-  If fSelected <> i Then
+  If (fSelected <> i) and (fSelected <> -1) Then
     CancelSelection;
   fItems[i].Selected := True;
   fSelected := i;
@@ -289,7 +314,7 @@ Begin
     i := ItemAtPos(X, Y);
     If i >= 0 Then Begin
       Lock;
-      SelectItem(i, fActivated);
+      SelectItem(i, fActivated or not fPermanent);
       Unlock;
       Paint;
     End Else

@@ -91,6 +91,7 @@ Function  dLongWord(Addr: Pointer): LongWord; inline;
 Function  NativeUIntToString(Value: NativeUInt): aString; Inline;
 Function  LongWordToString(Value: LongWord): aString; inline;
 Function  WordToString(Value: Word): aString; inline;
+Function  ByteToString(Value: Byte): aString; Inline;
 Function  IntegerToString(Value: Integer): aString; Inline;
 Procedure SP_SkipSpaces(Var Line: aString; Var Position: Integer); inline;
 Function  GetYear(T: aFloat): Integer; inline;
@@ -1217,6 +1218,14 @@ Begin
 
   SetLength(Result, SizeOf(Word));
   pWord(pNativeUInt(@Result)^)^ := Value;
+
+End;
+
+Function ByteToString(Value: Byte): aString; Inline;
+Begin
+
+  SetLength(Result, SizeOf(Byte));
+  pByte(pNativeUInt(@Result)^)^ := Value;
 
 End;
 

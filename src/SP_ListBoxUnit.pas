@@ -897,6 +897,7 @@ begin
   Inherited;
 
   If fMouseMode = mmHeaderDrag Then Begin
+    Inc(X, fHScroll.Pos);
     Inc(fHeaders[fHeaderGrab].Width, X - fLastMouseX);
     If fHeaders[fHeaderGrab].Width >= BSize Then Begin
       fLastMouseX := X;
@@ -940,7 +941,7 @@ Begin
         If Y < iFH then Begin
           i := 0; oj := 0;
           j := fHeaders[i].Width;
-          While X >= j Do Begin
+          While (X >= j) And (i < Length(fHeaders) -1) Do Begin
             Inc(i);
             oj := j;
             Inc(j, fHeaders[i].Width);

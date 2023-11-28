@@ -2263,7 +2263,7 @@ Begin
 
   SP_DATA_Line.Line := -1;
 
-  SP_Interpret_RESTORE(pInfo);
+  SP_Interpret_DO_RESTORE(pInfo);
 
 End;
 

@@ -38,10 +38,8 @@ Type
   TStringlist = TAnsiStringlist;
   pNativeUInt = ^NativeUInt;
   {$ELSE}
-
   aString = AnsiString;
   aChar = AnsiChar;
-
   TStringlist = TAnsiStringList;
   {$ENDIF}
 
@@ -120,6 +118,7 @@ Function  Copy(Const Str: aString; Start: Integer): aString; Overload;
 {$ENDIF}
 Function  ValidRect(r: TRect): Boolean;
 Function  SP_ModCalc(v1, v2: aFloat): aFloat;
+Function  SP_FModCalc(v1, v2: aFloat): aFloat;
 Function  SP_PartialMatch(const s1, s2: aString): Boolean; inline;
 Function  SP_PartialMatchPtrs(ps, pd: pByte; l: Integer): Boolean;
 Function  aFloatToStr(Value: aFloat): aString; inline;
@@ -1535,6 +1534,21 @@ Begin
   Result := (r.Top < r.Bottom) And (r.Left < r.Right);
 End;
 
+Function SP_FModCalc(v1, v2: aFloat): aFloat;
+Var
+  v: aFloat;
+Begin
+
+  If v1 > 0 Then
+    Result := fmod(v1, v2)
+  Else Begin
+    v := Abs(v2);
+    v1 := v1 + ((Abs(v1)/v)*v) + v;
+    Result := fMod(v1, v);
+  End;
+
+End;
+
 Function SP_ModCalc(v1, v2: aFloat): aFloat;
 var
   v: Integer;
@@ -1549,6 +1563,7 @@ Begin
   End;
 
 End;
+
 
 Function SP_PartialMatch(const s1, s2: aString): Boolean;
 Var

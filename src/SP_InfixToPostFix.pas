@@ -69,6 +69,7 @@ Procedure SP_RemoveFunctionMarkers(Var Tokens: aString);
 Procedure SP_RemoveBlocks(var s: aString);
 
 Procedure SP_AlphaCheck(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer);
+Function  SP_Convert_ERROR(Var Tokens: aString; Var KeyWordID: LongWord; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_ENUM(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_PRINT(Var inKeyword: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode; Var KID: LongWord): aString;
 Function  SP_Convert_CLIP(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -220,7 +221,7 @@ Var
 
 implementation
 
-Uses SP_Interpret_PostFix, {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF};
+Uses SP_Interpret_PostFix, {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_AnsiStringlist;
 
 Function CreateToken(tType: Byte; tVarious, tLength: LongWord): aString;
 Begin
@@ -567,6 +568,7 @@ Begin
 
   Case KeyWordID of
 
+    SP_KW_ERROR: Result := Result + SP_Convert_ERROR(Tokens, KeyWordID, Position, Error);
     SP_KW_TEXT, SP_KW_PRINT: Result := Result + SP_Convert_PRINT(KeyWordID, Tokens, Position, Error, KeyWordID);
     SP_KW_INK: Result := Result + SP_Convert_INK(Tokens, Position, Error);
     SP_KW_TRANSPARENT, SP_KW_TRANS: Result := Result + SP_Convert_TRANSPARENT(Tokens, Position, Error);
@@ -739,7 +741,7 @@ Begin
       Result := 13;
     SP_CHAR_UNARYM, SP_CHAR_UNARYP, SP_CHAR_BITWISE_NOT, '!':
       Result := 12;
-    '*', '/', SP_CHAR_MOD, SP_CHAR_MUL, SP_CHAR_DIV:
+    '*', '/', SP_CHAR_MOD, SP_CHAR_FMOD, SP_CHAR_MUL, SP_CHAR_DIV:
       Result := 11;
     '+', '-', SP_CHAR_NUM_PLUS, SP_CHAR_STR_PLUS, SP_CHAR_ADD, SP_CHAR_SUB:
       Result := 10;
@@ -1120,7 +1122,7 @@ Begin
                   Exit;
                 End;
               End;
-            '-', '/', '^', SP_CHAR_DIV, SP_CHAR_SUB, SP_CHAR_OR, SP_CHAR_MOD, SP_CHAR_XOR, SP_CHAR_SHL, SP_CHAR_SHR, '|', '&', SP_CHAR_EQV, SP_CHAR_IMP:
+            '-', '/', '^', SP_CHAR_DIV, SP_CHAR_SUB, SP_CHAR_OR, SP_CHAR_MOD, SP_CHAR_FMOD, SP_CHAR_XOR, SP_CHAR_SHL, SP_CHAR_SHR, '|', '&', SP_CHAR_EQV, SP_CHAR_IMP:
               Begin
                 If StackPtr > 0 Then Begin
                   If (Stack[StackPtr] = SP_VALUE) and (Stack[StackPtr -1] = SP_VALUE) Then Begin
@@ -1857,6 +1859,37 @@ Begin
                 End;
               End;
 
+            SP_FN_CHOOSE:
+              Begin
+                If StackPtr >= 0 Then Begin
+                  If Stack[StackPtr] <> SP_VALUE Then Begin
+                    Error.Code := SP_ERR_MISSING_NUMEXPR;
+                    Position := Token^.TokenPos;
+                    Exit;
+                  End;
+                End Else Begin
+                  Position := Token^.TokenPos;
+                  Error.Code := SP_ERR_SYNTAX_ERROR;
+                  Exit;
+                End;
+              End;
+
+            SP_FN_CHOOSES:
+              Begin
+                If StackPtr >= 0 Then Begin
+                  If Stack[StackPtr] <> SP_VALUE Then Begin
+                    Error.Code := SP_ERR_MISSING_NUMEXPR;
+                    Position := Token^.TokenPos;
+                    Exit;
+                  End;
+                  Stack[StackPtr] := SP_STRING;
+                End Else Begin
+                  Position := Token^.TokenPos;
+                  Error.Code := SP_ERR_SYNTAX_ERROR;
+                  Exit;
+                End;
+              End;
+
             SP_FN_JOINS:
               Begin
 
@@ -2137,16 +2170,6 @@ Begin
                   Error.Code := SP_ERR_SYNTAX_ERROR;
                   Exit;
                 End;
-
-              End;
-
-            SP_FN_CHOOSE:
-              Begin
-
-              End;
-
-            SP_FN_CHOOSES:
-              Begin
 
               End;
 
@@ -2721,6 +2744,102 @@ Var
   Tkn: pToken;
 Label
   Finish;
+
+  Function SP_ProcessExprList(iType: Integer; var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+  Var
+    cExpr, tExpr, eExpr, gExpr, s: aString;
+    Vals: Array of Integer;
+    Table: TAnsiStringlist;
+    Done, HasELSE: Boolean;
+    n, i, j, l: Integer;
+  Begin
+    // Takes a list of expressions and an ELSE expression, and creates a jump table.
+    // first expression is the index, then each expression that follows corresponds to that index. 1-based as per.
+    // final expression can be ELSE expr, which is used for any value that doesn't fit the limits of the table.
+
+    Result := '';
+    Done := False;
+    HasELSE := False;
+    Table := TAnsiStringlist.Create;
+    cExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+
+    If Error.Code = SP_ERR_OK Then Begin
+      While not Done Do Begin
+        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+          Inc(Position, 2);
+          tExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+          If Error.Code = SP_ERR_OK Then Begin
+            If Error.ReturnType <> iType Then Begin
+              Error.Code := SP_ERR_SYNTAX_ERROR;
+              Done := True;
+            End Else
+              Table.Add(tExpr + CreateToken(SP_JUMP, 0, SizeOf(LongWord)) + LongWordToString(0));
+          End Else
+            Done := True;
+        End Else Begin
+          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_ELSE) Then Begin
+            Inc(Position, 1 + SizeOf(longWord));
+            eExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+            If Error.Code = SP_ERR_OK Then Begin
+              If Error.ReturnType <> iType Then Begin
+                Error.Code := SP_ERR_SYNTAX_ERROR;
+                Done := True;
+              End Else
+                HasELSE := True;
+            End Else
+              Done := True;
+          End Else
+            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ')') Then Begin
+
+              Inc(Position, 2);
+
+              // All done, let's make a custom expression!
+              // SP_IJMP, Count, else-skip, Skip0, Skip1, Skip2, Skip3, expr0, expr1, expr2, expr3 ... else-expr
+              // each expr (except the last) will have a SP_JUMP after it to skip other expressions.
+
+              If Not HasElse Then
+                eExpr := CreateToken(SP_CAUSEERROR, 0, SizeOf(LongWord)) + LongWordToString(SP_ERR_SUBSCRIPT_WRONG);
+              SP_AddHandlers(eExpr);
+
+              n := Table.Count;
+              SetLength(vals, n);
+              For i := 0 To n -1 Do Begin
+                vals[i] := (n - i) * SizeOf(LongWord); // Remaining Table to jump past
+                if i > 0 then
+                  for j := 0 to i-1 do
+                    Inc(vals[i], Length(Table[j])); // Length of each expression to jump past.
+              End;
+
+              // Got the lengths, now build the result string.
+              // Update the jumps at the end of each string to get past all the remaining strings.
+              gExpr := '';
+              For i := 0 to n -1 Do
+                gExpr := gExpr + LongWordToString(vals[i]); // Jump table
+
+              For i := 0 to n -1 Do Begin
+                l := Length(eExpr);
+                For j := i +1 to n -1 Do
+                  l := l + Length(Table[j]);
+                pLongWord(@Table[i][Length(Table[i]) -(SizeOf(LongWord) -1)])^ := l;
+                s := Table[i];
+                SP_AddHandlers(s);
+                gExpr := gExpr + s;
+              End;
+
+              // Number of expressions, else-skip, jump table, expressions, else-expr
+              gExpr := LongWordToString(n) + LongWordToString(SizeOf(longWord) + Length(gExpr)) + gExpr + eExpr;
+              Result := cExpr + CreateToken(SP_IJMP, 0, Length(gExpr)) + gExpr + CreateToken(SP_BLOCK_OPT, 0, 0);
+              Done := True;
+
+            End Else Begin
+              Error.Code := SP_ERR_SYNTAX_ERROR;
+              Done := True;
+            End;
+        End;
+      End;
+    End;
+    Table.Free;
+  End;
 
   Function SP_CreateFromStack(min, Max: Integer; Var c: Integer): aString;
   var
@@ -4755,12 +4874,26 @@ Begin
 
             SP_FN_CHOOSE:
               Begin
-
+                // numexpr, numexpr [,numexpr...] [ ELSE numexpr]
+                FnResult := '';
+                Inc(Position, SizeOf(LongWord));
+                If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
+                  Inc(Position, 2);
+                  FnResult := SP_ProcessExprList(SP_VALUE, Tokens, Position, Error);
+                End Else
+                  Error.Code := SP_ERR_SYNTAX_ERROR;
               End;
 
             SP_FN_CHOOSES:
               Begin
-
+                // strexpr, strexpr$ [,strexpr$...] [ ELSE strexpr$]
+                FnResult := '';
+                Inc(Position, SizeOf(LongWord));
+                If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
+                  Inc(Position, 2);
+                  FnResult := SP_ProcessExprList(SP_STRING, Tokens, Position, Error);
+                End Else
+                  Error.Code := SP_ERR_SYNTAX_ERROR;
               End;
 
             SP_FN_MAP:
@@ -4887,11 +5020,13 @@ Begin
 
             // And finally add the Function itself.
 
-            Inc(SP_OperandPtr);
-            With SP_OperandStack[SP_OperandPtr] Do Begin
-              StrPos := Position -1;
-              OpType := SP_FUNCTION;
-              Content := LongWordToString(FunctionID);
+            If FunctionID >= 0 Then Begin
+              Inc(SP_OperandPtr);
+              With SP_OperandStack[SP_OperandPtr] Do Begin
+                StrPos := Position -1;
+                OpType := SP_FUNCTION;
+                Content := LongWordToString(FunctionID);
+              End;
             End;
             ExpectOperand := False;
           End;
@@ -4956,7 +5091,7 @@ Begin
 
             '!', '+', '-', '/', '*', '^', '<', '>', '=', SP_CHAR_SHL, SP_CHAR_ADD, SP_CHAR_SUB,
             SP_CHAR_GTE, SP_CHAR_LTE, SP_CHAR_DNE, '&', '|', SP_CHAR_SHR, SP_CHAR_STR_PLUS,
-            SP_CHAR_AND, SP_CHAR_OR, SP_CHAR_MOD, SP_CHAR_XOR, SP_CHAR_NUM_PLUS, SP_CHAR_NUM_EQU,
+            SP_CHAR_AND, SP_CHAR_OR, SP_CHAR_MOD, SP_CHAR_FMOD, SP_CHAR_XOR, SP_CHAR_NUM_PLUS, SP_CHAR_NUM_EQU,
             SP_CHAR_STR_EQU, SP_CHAR_NUM_LES, SP_CHAR_STR_LES, SP_CHAR_NUM_LTE, SP_CHAR_STR_LTE,
             SP_CHAR_NUM_DNE, SP_CHAR_STR_DNE, SP_CHAR_NUM_GTE, SP_CHAR_STR_GTE, SP_CHAR_NUM_GTR,
             SP_CHAR_STR_GTR, SP_CHAR_NUM_AND, SP_CHAR_STR_AND, SP_CHAR_MUL, SP_CHAR_DIV, SP_CHAR_INCVAR,
@@ -5923,6 +6058,39 @@ End;
 // ***********************************
 // * Start of the keyword processing *
 // ***********************************
+
+Function  SP_Convert_ERROR(Var Tokens: aString; Var KeyWordID: LongWord; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Var
+  Expr: aString;
+Begin
+
+  // ERROR err-num,{1|0}
+
+  Result := '';
+
+  Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+  If Error.Code <> SP_ERR_OK Then Exit;
+  If Error.ReturnType <> SP_VALUE Then Begin
+    Error.Code := SP_ERR_MISSING_NUMEXPR;
+    Exit;
+  End;
+  If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+    Inc(Position, 2);
+    Result := Result + Expr;
+    Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+    If Error.Code <> SP_ERR_OK Then Exit;
+    If Error.ReturnType <> SP_VALUE Then Begin
+      Error.Code := SP_ERR_MISSING_NUMEXPR;
+      Exit;
+    End;
+    Result := Expr + Result;
+    Exit;
+  End Else Begin
+    Error.Code := SP_ERR_ILLEGAL_CHAR;
+    Exit;
+  End;
+
+End;
 
 Function  SP_Convert_PRINT(Var inKeyword: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode; Var KID: LongWord): aString;
 Var

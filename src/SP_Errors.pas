@@ -208,8 +208,9 @@ Const
   SP_ERR_INVALID_PROPERTY_VALUE = 161;
   SP_ERR_TOO_MANY_BRACKETS = 162;
   SP_ERR_CLIPBOARD_ERROR = 163;
+  SP_ERR_INVALID_ERRNUM = 164;
 
-  MAXERROR = 163;
+  MAXERROR = 164;
 
   // Runtime error codes.
 
@@ -384,9 +385,16 @@ Const
      'Invalid property',
      'Invalid property value',
      'Too many brackets',
-     'Clipboard error');
+     'Clipboard error',
+     'Invalid error number');
+
+Var
+
+  ei: Integer;
+  ErrorEnabled: Array[0..MAXERROR] of Boolean;
 
   Function ProcessErrorMessage(s: aString): aString;
+  Procedure ResetErrorFlags;
 
 implementation
 
@@ -402,12 +410,26 @@ Begin
     If Copy(s, i +2, 2) = '()' Then Begin
       s := Copy(s, 1, i +1) + Copy(s, i +4);
       If ERRStr <> '' Then
-        ERRStr := ERRStr + '()';
+        ERRStr := ERRStr + '()'
+      Else
+        ERRStr := 'expression';
     End;
     Result := Copy(s, 1, i -1) + ERRStr + Copy(s, i +2)
   End Else
     Result := s;
 
 End;
+
+Procedure ResetErrorFlags;
+Var
+  i: Integer;
+Begin
+  For i := 0 To High(ErrorEnabled) do
+    ErrorEnabled[i] := True;
+End;
+
+Initialization
+
+  ResetErrorFlags;
 
 end.

@@ -25,7 +25,7 @@ Unit SP_Interpret_PostFix;
 
 interface
 
-Uses System.SyncObjs, Forms, {$IFNDEF FPC}IOUtils,{$ELSE}FileUtil,{$ENDIF} SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
+Uses SyncObjs, Forms, {$IFNDEF FPC}IOUtils,{$ELSE}FileUtil,{$ENDIF} SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
      SP_Input, SP_BankManager, SP_BankFiling, SP_Streams, SP_Sound, SP_Package, Math, Classes, SysUtils, SP_Math, Clipbrd,
      {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_Strings, SP_Menu, SP_UITools, SP_AnsiStringlist, SP_Variables;
 
@@ -402,6 +402,7 @@ Procedure SP_Interpret_FN_PAR(Var Info: pSP_iInfo);
 Procedure SP_FlushCentreBuffer(Var Info: pSP_iInfo);
 Procedure SP_FlushOUTBuffer(Var Info: pSP_iInfo);
 
+Procedure SP_Interpret_ERROR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PRINT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_TEXT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PR_AT(Var Info: pSP_iInfo);
@@ -865,6 +866,7 @@ Procedure SP_Interpret_SP_DATA_ITEM(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_LABEL(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_DISPLACEMENT(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_IJMP(Var iInfo: pSP_iInfo);
+Procedure SP_Interpret_SP_CAUSEERROR(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_VALUE(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_NUMVAR_LET(Var iInfo: pSP_iInfo);
 Procedure SP_Interpret_SP_STRVAR_LET(Var iInfo: pSP_iInfo);
@@ -928,6 +930,7 @@ Procedure SP_Interpret_SP_CHAR_OR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_EQV(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_IMP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_MOD(Var Info: pSP_iInfo);
+Procedure SP_Interpret_SP_CHAR_FMOD(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_XOR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_SHL(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_SHR(Var Info: pSP_iInfo);
@@ -1526,7 +1529,13 @@ Begin
     SP_CHAR_MUL:
       SP_StackPtr^.Val := Round(Val1) * Round(Val2);
     SP_CHAR_DIV:
-      If Round(Val2) <> 0 Then SP_StackPtr^.Val := Round(Val1) Div Round(Val2) Else Error.Code := SP_ERR_DIV_BY_ZERO;
+      If Round(Val2) <> 0 Then
+        SP_StackPtr^.Val := Round(Val1) Div Round(Val2)
+      Else
+        if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+          Error.Code := SP_ERR_DIV_BY_ZERO
+        Else
+          SP_StackPtr^.Val := 0;
     SP_CHAR_SUB:
       SP_StackPtr^.Val := Round(Val1) - Round(Val2);
     '-':
@@ -1534,7 +1543,13 @@ Begin
     '*':
       SP_StackPtr^.Val := Val1 * Val2;
     '/':
-      If Val2 <> 0 Then SP_StackPtr^.Val := Val1 / Val2 Else Error.Code := SP_ERR_DIV_BY_ZERO;
+      If Val2 <> 0 Then
+        SP_StackPtr^.Val := Val1 / Val2
+      Else
+        if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+          Error.Code := SP_ERR_DIV_BY_ZERO
+        Else
+          SP_StackPtr^.Val := 0;
     '^':
       SP_StackPtr^.Val := SP_Power(Val1, Val2);
     SP_CHAR_NUM_EQU, '=':
@@ -1564,7 +1579,18 @@ Begin
       If Round(Val2) <> 0 Then
         SP_StackPtr^.Val := SP_ModCalc(Val1, Val2)
       Else
-        Error.Code := SP_ERR_DIV_BY_ZERO;
+        if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+          Error.Code := SP_ERR_DIV_BY_ZERO
+        Else
+          SP_StackPtr^.Val := 0;
+    SP_CHAR_FMOD:
+      If Val2 <> 0 Then
+        SP_StackPtr^.Val := SP_FModCalc(Val1, Val2)
+      Else
+        if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+          Error.Code := SP_ERR_DIV_BY_ZERO
+        Else
+          SP_StackPtr^.Val := 0;
     SP_CHAR_XOR:
       SP_StackPtr^.Val := Round(Val1) Xor Round(Val2);
     SP_CHAR_SHL:
@@ -2303,6 +2329,13 @@ Begin
 
 End;
 
+Procedure SP_Interpret_SP_CAUSEERROR(Var iInfo: pSP_iInfo);
+Begin
+  ERRStr := '';
+  With iInfo^ Do
+    Error^.Code := pLongWord(StrPtr)^;
+End;
+
 Procedure SP_Interpret_SP_DISPLACEMENT(Var iInfo: pSP_iInfo);
 Begin
 
@@ -2888,7 +2921,10 @@ Begin
   If Val <> 0 Then
     SP_StackPtr^.Val := Round(SP_StackPtr^.Val) Div Val
   Else
-    Info^.Error.Code := SP_ERR_DIV_BY_ZERO;
+    if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+      Info^.Error^.Code := SP_ERR_DIV_BY_ZERO
+    Else
+      SP_StackPtr^.Val := 0;
 End;
 
 Procedure SP_Interpret_SP_CHAR_ADD(Var Info: pSP_iInfo);
@@ -3156,7 +3192,26 @@ Begin
   if Val2 <> 0 Then
     SP_StackPtr^.Val := SP_ModCalc(Val1, Val2)
   Else
-    Info^.Error^.Code := SP_ERR_DIV_BY_ZERO;
+    if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+      Info^.Error^.Code := SP_ERR_DIV_BY_ZERO
+    Else
+      SP_StackPtr^.Val := 0;
+End;
+
+Procedure SP_Interpret_SP_CHAR_FMOD(Var Info: pSP_iInfo);
+Var
+  Val1, Val2: aFloat;
+Begin
+  Dec(SP_StackPtr);
+  Val1 := SP_StackPtr^.Val;
+  Val2 := pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val;
+  if Val2 <> 0 Then
+    SP_StackPtr^.Val := SP_FModCalc(Val1, Val2)
+  Else
+    if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+      Info^.Error^.Code := SP_ERR_DIV_BY_ZERO
+    Else
+      SP_StackPtr^.Val := 0;
 End;
 
 Procedure SP_Interpret_SP_CHAR_XOR(Var Info: pSP_iInfo);
@@ -3203,9 +3258,12 @@ End;
 Procedure SP_Interpret_SP_CHAR_DIVIDE(Var Info: pSP_iInfo);
 Begin
   Dec(SP_StackPtr);
-  If pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val = 0 Then
-    Info^.Error^.Code := SP_ERR_DIV_BY_ZERO
-  Else
+  If pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val = 0 Then Begin
+    if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+      Info^.Error^.Code := SP_ERR_DIV_BY_ZERO
+    Else
+      SP_StackPtr^.Val := 0;
+  End Else
     SP_StackPtr^.Val := SP_StackPtr^.Val / pSP_StackItem(NativeUInt(SP_StackPtr) + SizeOf(SP_StackItem))^.Val;
 End;
 
@@ -3408,11 +3466,18 @@ Begin
   Dec(SP_StackPtr);
 
   If SP_StackPtr^.OpType = SP_NUM_ARRAY_PTR Then Begin
-    If n = 0 Then Begin
-      Info^.Error^.Code := SP_ERR_DIV_BY_ZERO;
-      Exit;
-    End;
     vl := Round(SP_StackPtr^.Val);
+    If n = 0 Then Begin
+      if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then Begin
+        Info^.Error^.Code := SP_ERR_DIV_BY_ZERO;
+        Exit;
+      End Else Begin
+        pSP_NumVarContent(vl)^.Value := 0;
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := pSP_NumVarContent(vl)^.Value;
+        Exit;
+      End;
+    End;
     pSP_NumVarContent(vl)^.Value := pSP_NumVarContent(vl)^.Value / n;
     SP_StackPtr^.OpType := SP_VALUE;
     SP_StackPtr^.Val := pSP_NumVarContent(vl)^.Value;
@@ -3481,11 +3546,18 @@ Begin
   Dec(SP_StackPtr);
 
   If SP_StackPtr^.OpType = SP_NUM_ARRAY_PTR Then Begin
-    If n = 0 Then Begin
-      Info^.Error^.Code := SP_ERR_DIV_BY_ZERO;
-      Exit;
-    End;
     vl := Round(SP_StackPtr^.Val);
+    If n = 0 Then Begin
+      if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then Begin
+        Info^.Error^.Code := SP_ERR_DIV_BY_ZERO;
+        Exit;
+      End Else Begin
+        pSP_NumVarContent(vl)^.Value := 0;
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := pSP_NumVarContent(vl)^.Value;
+        Exit;
+      End;
+    End;
     val := Round(pSP_NumVarContent(vl)^.Value);
     pSP_NumVarContent(vl)^.Value := SP_ModCalc(Val, n);
     SP_StackPtr^.OpType := SP_VALUE;
@@ -3722,7 +3794,6 @@ Function CheckForONERROR(Var Error: TSP_ERRORCODE): Boolean;
 Var
   LineItem: TSP_GOSUB_Item;
 Begin
-
   Result := False;
   If ERROR_LineNum <> -1 Then Begin
     If (Error.Code <> SP_ERR_OK) And Not IGNORE_ON_ERROR Then Begin
@@ -3741,7 +3812,6 @@ Begin
       Result := True;
     End;
   End;
-
 End;
 
 Procedure SP_InterpretCONTSafe(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
@@ -3870,57 +3940,14 @@ Begin
 
         Inc(StrPtr, SizeOf(TToken));
 
-        Case Token^.Token Of
-          SP_NUMVAR_EVAL:
-            Begin
-              Idx := pLongWord(StrPtr)^;
-              If Idx <> 0 Then Begin
-                Dec(Idx);
-              End Else Begin
-                Idx := SP_FindNumVar(StringFromPtrB(pByte(NativeUInt(StrPtr) + (SizeOf(LongWord) * 2)), pLongWord(StrPtr + SizeOf(LongWord))^));
-                If Idx <> -1 Then Begin
-                  If Not NumVars[Idx]^.ProcVar Then
-                    pLongWord(StrPtr)^ := Idx + 1;
-                End Else Begin
-                  Error.Code := SP_ERR_MISSING_VAR;
-                  Error.Position := Token^.TokenPos;
-                  Break;
-                End;
-              End;
-              Inc(SP_StackPtr);
-              With SP_StackPtr^ Do Begin
-                OpType := SP_VALUE;
-                Val := NumVars[Idx]^.ContentPtr^.Value;
-              End;
-            End;
-          SP_NUMVAR_LET:
-            Begin
-              If pLongWord(StrPtr)^ <> 0 Then
-                SP_UpdateNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
-              Else
-                SP_UpdateNumVar(pLongWord(StrPtr)^,
-                                StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
-                                SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
-              Dec(SP_StackPtr);
-            End;
-          SP_KEYWORD:
-            Begin
-              Error^.Position := Token^.TokenLen + 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart));
-              Error^.Statement := Token^.TokenPos; // TokenPos is STATEMENT NUMBER! IMPORTANT!
-              INPUTERROR := False;
-              TSP_InterpretProc(Token^.Handler)(pInfo);
-            End;
-          SP_VALUE:
-            Begin
-              Inc(SP_StackPtr);
-              With SP_StackPtr^ Do Begin
-                OpType := SP_VALUE;
-                Val := paFloat(StrPtr)^;
-              End;
-            End;
-        Else
-          TSP_InterpretProc(Token^.Handler)(pInfo);
+        If Token^.Token = SP_KEYWORD Then Begin
+          Error^.Position := Token^.TokenLen + 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart));
+          Error^.Statement := Token^.TokenPos; // TokenPos is STATEMENT NUMBER! IMPORTANT!
+          INPUTERROR := False;
         End;
+        TSP_InterpretProc(Token^.Handler)(pInfo);
+
+        Inc(StrPtr, Token^.TokenLen);
 
         If (Error.ReturnType >= SP_JUMP) or (Error.Code <> SP_ERR_OK) Then Begin
           // A jump or an error (or a user BREAK event) has occurred.
@@ -3933,8 +3960,6 @@ Begin
             End;
           Break;
         End;
-
-        Inc(StrPtr, Token^.TokenLen);
 
       End Else Begin
 
@@ -4051,9 +4076,13 @@ Begin
         DoPeriodicalEvents(Error^);
         Goto Next_Statement;
       End;
-      If Error^.Code = SP_ERR_OK Then Begin
-        Error^.ReturnType := 0;
-      End;
+      If Error^.Code = SP_ERR_OK Then
+        Error^.ReturnType := 0
+      Else
+        If Not ErrorEnabled[Error^.Code] Then Begin
+          Error.Code := SP_ERR_OK;
+          Goto Next_Statement;
+        End;
       Exit;
     End Else Begin
       DoPeriodicalEvents(Error^);
@@ -5114,7 +5143,10 @@ Begin
   If SP_StackPtr^.Val <> 0 Then Begin
     SP_StackPtr^.Val := 1/SP_StackPtr^.Val;
   End Else Begin
-    Info^.Error^.Code := SP_ERR_DIV_BY_ZERO;
+    if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+      Info^.Error^.Code := SP_ERR_DIV_BY_ZERO
+    Else
+      SP_StackPtr^.Val := 0;
   End;
 
 End;
@@ -8070,7 +8102,7 @@ Begin
             SP_TestConsts(Str, 1, Info^.Error^, False);
             SP_AddHandlers(Str);
           End Else
-            SP_AddHandlers(Str);
+            Error^.Code := nError.Code;
         End Else Begin
           Str := SP_Convert_Expr(Str, nError.Position, nError, -1) + #255;
           SP_RemoveBlocks(Str);
@@ -8275,12 +8307,12 @@ End;
 
 Procedure SP_Interpret_FN_CHOOSE(Var Info: pSP_iInfo);
 Begin
-
+  // Nothing doing. The SP_IJMP will take care of this _and_ of SP_FN_CHOOSES.
 End;
 
 Procedure SP_Interpret_FN_CHOOSES(Var Info: pSP_iInfo);
 Begin
-
+  // As above.
 End;
 
 Procedure SP_Interpret_FN_INTERP(Var Info: pSP_iInfo);
@@ -8697,6 +8729,26 @@ Begin
     OUTBUFFER := '';
 
   End;
+
+End;
+
+Procedure SP_Interpret_ERROR(Var Info: pSP_iInfo);
+Var
+  ErrNum: Integer;
+Begin
+
+  // Enable or disable errors
+
+  ErrNum := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  If Not (ErrNum in [0, 16]) Then
+    ErrorEnabled[ErrNum] := SP_StackPtr^.Val <> 0
+  Else Begin
+    ErrorEnabled[SP_ERR_INVALID_ERRNUM] := True;
+    Info^.Error^.Code := SP_ERR_INVALID_ERRNUM;
+  End;
+  Dec(SP_StackPtr);
 
 End;
 
@@ -21153,6 +21205,12 @@ Begin
           Inc(StrPtr, Token^.TokenLen);
         End;
 
+      SP_CAUSEERROR:
+        Begin
+          nOutput := 'ERROR ['+ ErrorMessages[pLongWord(StrPtr)^] + ']';
+          Inc(StrPtr, Token^.TokenLen);
+        End;
+
       SP_LABEL:
         Begin
           nOutput := 'LABEL ['+ StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)), Token^.TokenLen) + ']';
@@ -21554,6 +21612,10 @@ Begin
             SP_CHAR_MOD:
               Begin
                 nOutput := 'OPERATOR [MOD]';
+              End;
+            SP_CHAR_FMOD:
+              Begin
+                nOutput := 'OPERATOR [FMOD]';
               End;
             SP_CHAR_XOR:
               Begin
@@ -26462,6 +26524,7 @@ Initialization
 
   // KeyWords
 
+  InterpretProcs[SP_KW_ERROR] := @SP_Interpret_ERROR;
   InterpretProcs[SP_KW_UNDIM] := @SP_Interpret_UNDIM;
   InterpretProcs[SP_KW_IF] := @SP_Interpret_IF;
   InterpretProcs[SP_KW_ELSE] := @SP_Interpret_ELSE;
@@ -27235,6 +27298,7 @@ Initialization
   InterpretProcs[SP_DATA_ITEM] := @SP_Interpret_SP_DATA_ITEM;
   InterpretProcs[SP_LABEL] := @SP_Interpret_SP_LABEL;
   InterpretProcs[SP_DISPLACEMENT] := @SP_Interpret_SP_DISPLACEMENT;
+  InterpretProcs[SP_CAUSEERROR] := @SP_Interpret_SP_CAUSEERROR;
   InterpretProcs[SP_IJMP] := @SP_Interpret_SP_IJMP;
   InterpretProcs[SP_VALUE] := @SP_Interpret_SP_VALUE;
   InterpretProcs[SP_NUMVAR_LET] := @SP_Interpret_SP_NUMVAR_LET;
@@ -27313,6 +27377,7 @@ Initialization
   InterpretProcs[6000 + Ord(SP_CHAR_EQV)] := @SP_Interpret_SP_CHAR_EQV;
   InterpretProcs[6000 + Ord(SP_CHAR_IMP)] := @SP_Interpret_SP_CHAR_IMP;
   InterpretProcs[6000 + Ord(SP_CHAR_MOD)] := @SP_Interpret_SP_CHAR_MOD;
+  InterpretProcs[6000 + Ord(SP_CHAR_FMOD)] := @SP_Interpret_SP_CHAR_FMOD;
   InterpretProcs[6000 + Ord(SP_CHAR_XOR)] := @SP_Interpret_SP_CHAR_XOR;
   InterpretProcs[6000 + Ord(SP_CHAR_SHL)] := @SP_Interpret_SP_CHAR_SHL;
   InterpretProcs[6000 + Ord(SP_CHAR_SHR)] := @SP_Interpret_SP_CHAR_SHR;

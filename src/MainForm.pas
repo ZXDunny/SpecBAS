@@ -462,7 +462,7 @@ Var
   t: Int64;
 Begin
   QueryPerformanceCounter(t);
-  Result := (t - BaseTime) / TimerFreq * 1000;
+  Result := (t - BaseTime) / TimerFreq;
 End;
 
 Function GetTimerFrequency: aFloat;
@@ -1077,6 +1077,7 @@ begin
 
   QueryPerformanceFrequency(TimerFreq);
   QueryPerformanceCounter(BaseTime);
+  TimerFreq := Round(TimerFreq / 1000);
 
   InitTime := Round(GetTicks);
 

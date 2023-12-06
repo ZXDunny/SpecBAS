@@ -798,7 +798,7 @@ Const
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.
 
-  SP_FUNCTIONS_EXTRA: Array[0..274] of aString =
+  SP_FUNCTIONS_EXTRA: Array[0..275] of aString =
     ('nRND', 'nINKEY$', 'oPI', 'nVAL$ ', 'oCODE ', 'oVAL ', 'oLEN ', 'nSIN ', 'nCOS ',
      'nTAN ', 'nASN ', 'nACS ', 'nATN ', 'oLN ', 'oEXP ', 'oINT ', 'oSQR ', 'oSGN ', 'oABS ', 'n IN ',
      'nUSR ', 'oSTR$ ','oCHR$ ', 'nPEEK ', 'oNOT ', 'o OR ', 'o AND ', 'o MOD ', 'o XOR ', 'o SHL ',
@@ -829,7 +829,7 @@ Const
      'nDATADDR', 'nWINADDR', 'nMEMRD', 'nDMEMRD', 'nQMEMRD', 'nMEMRD$', 'nSTRADDR ', 'oCHOOSE', 'oCHOOSE$',
      'oTAU', 'nMILLISECONDS', 'oBINV', 'oBREV', 'oINTERP', 'oMIN$', 'oMAX$', 'nFMEMRD', 'nTXTw', 'nTXTh',
      'nNOISE', 'nOCTNOISE', 'oPAR ', 'oMAP', 'o EQV ', 'o IMP ', 'oSINH ', 'oCOSH ', 'oTANH ', 'oASNH ',
-     'oACSH ', 'oATNH ', 'oMID', 'nPARAM$', 'nSTK', 'nSTK$', 'oREV$ ', 'nCLIP$', 'oINSTR');
+     'oACSH ', 'oATNH ', 'oMID', 'nPARAM$', 'nSTK', 'nSTK$', 'oREV$ ', 'nCLIP$', 'oINSTR', 'oFMOD');
 
   // Constants, like above, for identifying Functions in token form
 
@@ -1110,6 +1110,7 @@ Const
   SP_FN_REVS                = 2272;
   SP_FN_CLIPS               = 2273;
   SP_FN_INSTR               = 2274;
+  SP_FN_FMOD                = 2275;
 
   // Meta-functions
 
@@ -1208,6 +1209,7 @@ Const
   SP_NOTVAR                 = 77;
   SP_IJMP                   = 78;
   SP_HYBRID_LET             = 79;
+  SP_CAUSEERROR             = 80;
   SP_JUMP                   = 100;
   SP_RUN                    = 101;
   SP_NEW                    = -2;
@@ -1268,6 +1270,7 @@ Const
   SP_CHAR_IMP               = #207;
   SP_CHAR_SEMICOLON         = #206;
   SP_CHAR_NOTVAR            = #205;
+  SP_CHAR_FMOD              = #204;
 
   SP_CHAR_PLUS              = '+';
   SP_CHAR_MINUS             = '-';
@@ -1678,7 +1681,10 @@ Begin
                                               If KeyWord + SP_FUNCTION_BASE = SP_FN_IMP Then
                                                 AddToResult(aChar(SP_SYMBOL) + SP_CHAR_IMP)
                                               Else
-                                                AddToResult(aChar(SP_FUNCTION) + LongWordToString(KeyWord + SP_FUNCTION_BASE));
+                                                If KeyWord + SP_FUNCTION_BASE = SP_FN_FMOD Then
+                                                  AddToResult(aChar(SP_SYMBOL) + SP_CHAR_FMOD)
+                                                Else
+                                                  AddToResult(aChar(SP_FUNCTION) + LongWordToString(KeyWord + SP_FUNCTION_BASE));
                     Idx := TempVal + Length(SP_FUNCTIONS[KeyWord]);
                   End Else Begin
                     If StoreText[Length(StoreText)] = '$' Then
@@ -2318,6 +2324,7 @@ Begin
             SP_CHAR_AND: NewWord := ' AND ';
             SP_CHAR_OR:  NewWord := ' OR ';
             SP_CHAR_MOD: NewWord := ' MOD ';
+            SP_CHAR_FMOD: NewWord := ' FMOD ';
             SP_CHAR_XOR: NewWord := ' XOR ';
             SP_CHAR_SHL: NewWord := ' SHL ';
             SP_CHAR_SHR: NewWord := ' SHR ';

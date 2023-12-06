@@ -621,7 +621,11 @@ Begin
   If Value <> 0 Then
     NumVars[Idx]^.ContentPtr^.Value := NumVars[Idx]^.ContentPtr^.Value / Value
   Else
-    Error.Code := SP_ERR_DIV_BY_ZERO;
+    if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+      Error.Code := SP_ERR_DIV_BY_ZERO
+    Else
+      NumVars[Idx]^.ContentPtr^.Value := 0;
+
   Result := Idx;
 
 End;
@@ -632,7 +636,10 @@ Begin
   If Value <> 0 Then
     NumVars[Idx -1]^.ContentPtr^.Value := NumVars[Idx -1]^.ContentPtr^.Value / Value
   Else
-    Error.Code := SP_ERR_DIV_BY_ZERO;
+    if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+      Error.Code := SP_ERR_DIV_BY_ZERO
+    Else
+      NumVars[Idx -1]^.ContentPtr^.Value := 0;
 
 End;
 
@@ -681,7 +688,11 @@ Begin
   If Value <> 0 Then
     NumVars[Idx]^.ContentPtr^.Value := SP_ModCalc(Round(NumVars[Idx]^.ContentPtr^.Value), Value)
   Else
-    Error.Code := SP_ERR_DIV_BY_ZERO;
+    if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+      Error.Code := SP_ERR_DIV_BY_ZERO
+    Else
+      NumVars[Idx]^.ContentPtr^.Value := 0;
+
   Result := Idx;
 
 End;
@@ -692,7 +703,10 @@ Begin
   If Value <> 0 Then
     NumVars[Idx -1]^.ContentPtr^.Value := SP_ModCalc(Round(NumVars[Idx -1]^.ContentPtr^.Value), Value)
   Else
-    Error.Code := SP_ERR_DIV_BY_ZERO;
+    if ErrorEnabled[SP_ERR_DIV_BY_ZERO] Then
+      Error.Code := SP_ERR_DIV_BY_ZERO
+    Else
+      NumVars[Idx -1]^.ContentPtr^.Value := 0;
 
 End;
 
@@ -2767,6 +2781,7 @@ Begin
     SP_ClearEvery;
     SP_ResetConditionalBreakPoints;
     EveryEnabled := True;
+    ResetErrorFlags;
     ERROR_LineNum := -1;
     MOUSEDOWN_LineNum := -1;
     MOUSEUP_LineNum := -1;

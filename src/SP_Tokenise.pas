@@ -739,10 +739,11 @@ Const
   SP_KW_DRAW_GW             = 4412;
   SP_KW_WIN_ORG_DIM         = 4413;
   SP_KW_GFX_ORG_DIM         = 4414;
+  SP_KW_STREAM_READFILE     = 4415;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..363] of aString =
+  SP_Keyword_Names: Array[0..364] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -793,7 +794,8 @@ Const
      'GFX SCALE TO', 'SCREEN SAVE', 'GRAPHIC SAVE', 'WAIT KEY', 'WAIT KEY PRESS', 'PALETTE EGA', 'PALETTE CGA',
      'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP', 'PLAY STOP', 'MOUSE TO ', 'PALETTE APPLE LGR',
      'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN', 'A-RECTANGLE TO', 'A-RECTFILL TO', 'RECTANGLE TO',
-     'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING', 'ENUM BASE', 'ORG DIM', 'DRAW GML', 'WIN ORG DIM', 'GFX ORG DIM');
+     'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING', 'ENUM BASE', 'ORG DIM', 'DRAW GML', 'WIN ORG DIM', 'GFX ORG DIM',
+     'STREAM READ FILE');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.
@@ -1210,6 +1212,8 @@ Const
   SP_IJMP                   = 78;
   SP_HYBRID_LET             = 79;
   SP_CAUSEERROR             = 80;
+  SP_SHLVAR                 = 81;
+  SP_SHRVAR                 = 82;
   SP_JUMP                   = 100;
   SP_RUN                    = 101;
   SP_NEW                    = -2;
@@ -1271,6 +1275,8 @@ Const
   SP_CHAR_SEMICOLON         = #206;
   SP_CHAR_NOTVAR            = #205;
   SP_CHAR_FMOD              = #204;
+  SP_CHAR_SHLVAR            = #203;
+  SP_CHAR_SHRVAR            = #202;
 
   SP_CHAR_PLUS              = '+';
   SP_CHAR_MINUS             = '-';
@@ -1733,8 +1739,16 @@ Begin
                     If (pByte(NativeUInt(rPtr) -2)^ = SP_SYMBOL) And (Line[Idx] = '=') Then Begin
                       rEnd := pByte(NativeUInt(rPtr) -1);
                       Case aChar(rEnd^) of
-                        '>': rEnd^ := Ord(SP_CHAR_GTE);
-                        '<': rEnd^ := Ord(SP_CHAR_LTE);
+                        '>': If aChar(pbyte(rEnd-2)^) = '>' Then Begin
+                                Dec(rEnd, 2); Dec(rPtr, 2);
+                                rEnd^ := Ord(SP_CHAR_SHRVAR);
+                             End Else
+                                rEnd^ := Ord(SP_CHAR_GTE);
+                        '<': If aChar(pbyte(rEnd-2)^) = '<' Then Begin
+                                Dec(rEnd, 2); Dec(rPtr, 2);
+                                rEnd^ := Ord(SP_CHAR_SHLVAR);
+                             End Else
+                                rEnd^ := Ord(SP_CHAR_LTE);
                         '+': rEnd^ := Ord(SP_CHAR_INCVAR);
                         '-': rEnd^ := Ord(SP_CHAR_DECVAR);
                         '*': rEnd^ := Ord(SP_CHAR_MULVAR);
@@ -1983,7 +1997,7 @@ Begin
         If Result And (Idx <= l) Then Begin
           If Line[Idx] in ['E','e'] Then Begin
             Inc(Idx);
-            If Not (Line[Idx] in ['-', '+', '0'..'9']) Then  Begin
+            If (Idx > l) Or Not (Line[Idx] in ['-', '+', '0'..'9']) Then  Begin
               Dec(Idx);
               Exit;
             End;
@@ -2342,6 +2356,8 @@ Begin
             SP_CHAR_ORVAR:  NewWord := '|=';
             SP_CHAR_NOTVAR: NewWord := '!=';
             SP_CHAR_XORVAR: NewWord := '~=';
+            SP_CHAR_SHLVAR: NewWord := '<<=';
+            SP_CHAR_SHRVAR: NewWord := '>>=';
             SP_CHAR_NOT: NewWord := 'NOT ';
             SP_CHAR_EQV: NewWord := ' EQV ';
             SP_CHAR_IMP: NewWord := ' IMP ';

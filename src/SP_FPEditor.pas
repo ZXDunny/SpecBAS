@@ -2982,7 +2982,7 @@ Begin
           Inc(Idx);
         End;
       End;
-      While (s[Idx] < ' ') and (s[Idx] <> #5) Do Begin
+      While (Idx <= Length(s)) And (s[Idx] < ' ') and (s[Idx] <> #5) Do Begin
         If s[Idx] = #26 Then Begin
           If Ord(s[Idx +1]) <> 8 Then
             CURSORITALIC := Ord(s[Idx +1])
@@ -2992,8 +2992,14 @@ Begin
               CURSORBOLD := Ord(s[Idx +1]);
         Inc(Idx, 5);
       End;
-      If s[Idx] = #5 Then Inc(Idx);
-      CURSORCHAR := Ord(s[Idx]);
+      If Idx <= Length(s) then Begin
+        If s[Idx] = #5 Then Inc(Idx);
+        If Idx <= Length(s) then
+          CURSORCHAR := Ord(s[Idx])
+        Else
+          CURSORCHAR := 32;
+      End Else
+        CURSORCHAR := 32;
     End Else
       CURSORCHAR := 32;
   End;

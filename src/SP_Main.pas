@@ -273,7 +273,7 @@ Var
 Begin
 
   Result := False;
-  If SCREENBANK < 0 Then Exit; // Don't do this is the surface is a graphic.
+  If SCREENBANK < 0 Then Exit; // Don't do this if the surface is a graphic.
 
   Dec(SCROLLCNT);
   Result := True;

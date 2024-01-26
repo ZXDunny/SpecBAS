@@ -668,6 +668,7 @@ Begin
               End Else
                 inc(i);
             End;
+            If Stream.Position >= Stream.Size Then Done := True;
             If Not Done Then Begin
               Inc(cl, l);
               SetLength(Buffer, cl + 1025);
@@ -681,7 +682,14 @@ Begin
                   if ReadByte <> 10 then
                     Stream.Seek(-1, soFromCurrent);
                 End;
-              End;
+              End Else
+                If i = 0 Then Begin
+                  If Buffer[i] = 13 Then
+                    Inc(i);
+                  If Buffer[i] = 10 Then
+                    Inc(i);
+                  Stream.Seek(iPos + i, soFromBeginning);
+                End;
             End;
           End;
         End Else Begin

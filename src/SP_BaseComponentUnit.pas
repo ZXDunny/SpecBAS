@@ -1101,6 +1101,8 @@ Begin
     FillRect(x1, y1, x2, y2, SP_UIBtnBack);
   DrawLine(x1, y1, x2 -1, y1, SP_UIHighlight);
   DrawLine(x1, y1 +1, x1, y2 -1, SP_UIHighlight);
+  If not Focused Then
+    DrawRect(x1 +1,y1 +1, x2, y2, SP_UIHalfLight);
   SetPixel(x1, y2, SP_UIHalfLight);
   SetPixel(x2, y1, SP_UIHalfLight);
   DrawLine(x2, y1 +1, x2, y2, SP_UIShadow);
@@ -1490,45 +1492,46 @@ Var
   ParentCanFocus: Boolean;
 Begin
 
-  If b Then Begin
+  If Enabled Then
+    If b Then Begin
 
-    ParentCanFocus := True;
-    c := Self;
-    While Assigned(c.fParentControl) And (c.fParentControl.WindowID = -1) Do Begin
-      c := c.fParentControl;
-      ParentCanFocus := ParentCanFocus And c.CanFocus;
-    End;
+      ParentCanFocus := True;
+      c := Self;
+      While Assigned(c.fParentControl) And (c.fParentControl.WindowID = -1) Do Begin
+        c := c.fParentControl;
+        ParentCanFocus := ParentCanFocus And c.CanFocus;
+      End;
 
-    If (b And not CanFocus) or Not ParentCanFocus Then Exit;
+      If (b And not CanFocus) or Not ParentCanFocus Then Exit;
 
-    If fEnabled Then Begin
-      c := FocusedControl;
-      fPrevFocus := c;
-      If Assigned(FocusedControl) And (FocusedControl <> Self) And b Then
-        FocusedControl.SetFocus(False);
-      If b Then
-        FocusedControl := Self
-      Else
-        FocusedControl := nil;
-      If (fFocused <> b) or (c <> FocusedControl) then Begin
+      If fEnabled Then Begin
+        c := FocusedControl;
+        fPrevFocus := c;
+        If Assigned(FocusedControl) And (FocusedControl <> Self) And b Then
+          FocusedControl.SetFocus(False);
+        If b Then
+          FocusedControl := Self
+        Else
+          FocusedControl := nil;
+        If (fFocused <> b) or (c <> FocusedControl) then Begin
+          fFocused := b;
+          Paint;
+        End;
+        If b And Assigned(fOnFocus) then
+          fOnFocus(Self, b);
+      End;
+
+    End Else Begin
+
+      If fFocused <> b then Begin
         fFocused := b;
         Paint;
+        If b And Assigned(fOnFocus) then
+          fOnFocus(Self, b);
+        FocusedControl := nil;
       End;
-      If b And Assigned(fOnFocus) then
-        fOnFocus(Self, b);
+
     End;
-
-  End Else Begin
-
-    If fFocused <> b then Begin
-      fFocused := b;
-      Paint;
-      If b And Assigned(fOnFocus) then
-        fOnFocus(Self, b);
-      FocusedControl := nil;
-    End;
-
-  End;
 
 End;
 

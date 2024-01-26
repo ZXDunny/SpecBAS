@@ -80,6 +80,7 @@ Const
 
   SP_UIHighlight                  = 250;
   SP_UIHalfLight                  = 245;
+  SP_UI_HalfShadow                = 234;
   SP_UIShadow                     = 240;
   SP_UIBtnBack                    = 242;
   SP_UIBtnBackFocus               = 248;

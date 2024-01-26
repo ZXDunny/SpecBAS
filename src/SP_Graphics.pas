@@ -114,8 +114,8 @@ Procedure SP_DrawSolidRectangle(X1, Y1, X2, Y2: Integer);
 Procedure SP_PolygonFill(Var Points: Array of TSP_Point; const TextureStr: aString; tW, tH: LongWord);
 Procedure SP_PolygonSolidFill(Var Points: Array of TSP_Point);
 Procedure SP_CopyRect(SrcPtr: pByte; SrcW, SrcH, SrcRx, SrcRy, SrcRw, SrcRh: Integer; DstPtr: pByte; DstW, DstH, DstX, DstY, DcW, DcH, cx1, cy1, cx2, cy2: Integer; Var Error: TSP_ErrorCode);
-Procedure SP_SavePalette(const Filename: aString; Var Error: TSP_ErrorCode);
-Procedure SP_LoadPalette(const Filename: aString; Var Error: TSP_ErrorCode);
+Procedure SP_SavePalette(const Filename: aString; Offset, Num: Integer; Var Error: TSP_ErrorCode);
+Procedure SP_LoadPalette(const Filename: aString; Offset: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_RotateSize(Src: pByte; sW, sH: Integer; Dst: pByte; dX, dY, dW, dH: Integer; Trans: Word; Rot, Scale: aFloat; cX1, cY1, cX2, cY2: Integer);
 Procedure SP_RotateSizeXY(Src: pByte; sW, sH: Integer; Dst: pByte; dX, dY, dW, dH: Integer; Trans: Word; Rot, ScaleX, ScaleY: aFloat; cX1, cY1, cX2, cY2: Integer);
 Function  SP_WindowVisible(WindowID: Integer; var Error: TSP_ErrorCode): Boolean;
@@ -4861,17 +4861,22 @@ Begin
 
 End;
 
-Procedure SP_SavePalette(const Filename: aString; Var Error: TSP_ErrorCode);
+Procedure SP_SavePalette(const Filename: aString; Offset, Num: Integer; Var Error: TSP_ErrorCode);
 Var
   FileID: Integer;
 Const
   BankIDStr: aString = 'ZXPALETTE';
 Begin
 
+  If (Offset < 0) or (Offset > 255) or (Num < 1) or (Num > 256) or (Offset + Num -1 > 256) Then Begin
+    Error.Code := SP_ERR_Integer_Out_Of_Range;
+    Exit;
+  End;
+
   FileID := SP_FileOpen(Filename, True, Error);
   If FileID > -1 Then Begin
     SP_FileWrite(FileID, @BankIDStr[1], Length(BankIDStr), Error);
-    SP_FileWrite(FileID, @pSP_Window_Info(WINDOWPOINTER)^.Palette[0], SizeOf(TP_Colour) * 256, Error);
+    SP_FileWrite(FileID, @pSP_Window_Info(WINDOWPOINTER)^.Palette[Offset], SizeOf(TP_Colour) * Num, Error);
     SP_FileClose(FileID, Error);
   End Else Begin
     ERRStr := Filename;
@@ -4880,9 +4885,9 @@ Begin
 
 End;
 
-Procedure SP_LoadPalette(const Filename: aString; Var Error: TSP_ErrorCode);
+Procedure SP_LoadPalette(const Filename: aString; Offset: Integer; Var Error: TSP_ErrorCode);
 Var
-  Idx, FileID: Integer;
+  Idx, FileID, Num: Integer;
   tBuf: aString;
   Magic: Array of Byte;
 Begin
@@ -4891,26 +4896,20 @@ Begin
   FileID := SP_FileOpen(Filename, False, Error);
 
   If FileID > -1 Then Begin
-
     tBuf := '';
     SetLength(Magic, 9);
     SP_FileRead(FileID, @Magic[0], 9, Error);
     For Idx := 0 To 8 Do tBuf := tBuf + aChar(Magic[Idx]);
     If tBuf = 'ZXPALETTE' Then Begin
-
-      SP_FileRead(FileID, @pSP_Window_Info(WINDOWPOINTER)^.Palette[0], 256 * SizeOf(TP_Colour), Error);
+      Num := Max((SP_FileSize(FileID, Error) - 9) Div SizeOf(TP_Colour), 256 - Offset);
+      SP_FileRead(FileID, @pSP_Window_Info(WINDOWPOINTER)^.Palette[Offset], Num * SizeOf(TP_Colour), Error);
       SP_FileClose(FileID, Error);
       SP_SetPalette(0, pSP_Window_Info(WINDOWPOINTER)^.Palette);
-
     End Else Begin
-
       Error.Code := SP_ERR_NOT_PALETTE_FILE;
       SP_FileClose(FileID, Error);
-
     End;
-
   End Else
-
     Error.Code := SP_ERR_FILE_MISSING;
 
 End;

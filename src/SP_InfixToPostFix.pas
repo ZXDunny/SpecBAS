@@ -1009,7 +1009,7 @@ Begin
                 If StackPtr >= 0 Then
                   Stack[StackPtr] := SP_VALUE;
               End;
-            SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR:
+            SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_SHLVAR, SP_CHAR_SHRVAR:
               Begin
                 Dec(StackPtr);
                 If (StackPtr >= 0) And (Stack[StackPtr] = SP_NUMVAR) Then
@@ -2367,7 +2367,7 @@ Begin
       If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ')') Then Begin
         IsArray := True;
         PosBeforeSlice := Length(Result);
-        If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR]) Then
+        If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_SHLVAR, SP_CHAR_SHRVAR]) Then
           Result := Result + FnResult + CreateToken(SP_NUM_ARRAY_PTR, Position, SizeOf(LongWord)) + LongWordToString(0)
         Else
           Result := Result + FnResult + CreateToken(SP_ARRAY, Position, SizeOf(LongWord)) + LongWordToString(0);
@@ -2410,7 +2410,7 @@ Begin
           IsArray := True;
           PosBeforeSlice := Length(Result);
           If FirstRun Then Begin
-            If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR]) Then
+            If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_SHLVAR, SP_CHAR_SHRVAR]) Then
               Result := Result + FnResult + CreateToken(SP_NUM_ARRAY_PTR, Position, SizeOf(LongWord)) + LongWordToString(NumIndices)
             Else
               Result := Result + FnResult + CreateToken(SP_ARRAY, Position, SizeOf(LongWord)) + LongWordToString(NumIndices);
@@ -2434,7 +2434,7 @@ Begin
           // or a close-bracket. First, we need to stack any array parameters we may have found.
           If NumIndices > 0 Then Begin
             If Not Preserve Then
-              If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR]) Then
+              If (Byte(Tokens[Position +2]) = SP_SYMBOL) And (Tokens[Position +3] in [SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_SHLVAR, SP_CHAR_SHRVAR]) Then
                 Result := Result + FnResult + CreateToken(SP_NUM_ARRAY_PTR, Position, SizeOf(LongWord)) + LongWordToString(NumIndices)
               Else
                 Result := Result + CreateToken(SP_ARRAY, Position, SizeOf(LongWord)) + LongWordToString(NumIndices);
@@ -2570,9 +2570,14 @@ Begin
   SlicerFlags := 0;
   If Not IsHybridFn And ((Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(')) Then Begin
     Inc(Position, 2);
-    FnResult := SP_ExtractArray(Tokens, Position, True, Error); // Returns p-code! Beware!
-    If FnResult = '' Then Error.Code := SP_ERR_MISSING_NUMEXPR;
-    If Error.Code <> SP_ERR_OK Then Exit;
+    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ')') Then Begin
+      FnResult := '';
+      Error.Code := SP_ERR_MISSING_NUMEXPR; // An empty array descriptor - such as a$() - returns an error but a valid result. See STREAM READ LINE.
+    End Else Begin
+      FnResult := SP_ExtractArray(Tokens, Position, True, Error); // Returns p-code! Beware!
+      If FnResult = '' Then Error.Code := SP_ERR_MISSING_NUMEXPR;
+      If Error.Code <> SP_ERR_OK Then Exit;
+    End;
 
     // Remove the last token (should be SP_ARRAY, SP_SLICER or SP_SLICE_ARRAY) from the pre-processed result,
     // but store the info for later.
@@ -2978,7 +2983,7 @@ Begin
             Name := LowerNoSpaces(Copy(Tokens, Position, NameLen));
             Content := LongWordToString(Length(Name)) + Name;
             Inc(Position, NameLen);
-            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in ['(', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR]) Then Begin
+            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in ['(', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_SHLVAR, SP_CHAR_SHRVAR]) Then Begin
               If Tokens[Position +1] = '(' Then
                 Content := LongWordToString(0) + Content;
               OpType := SP_NUMVAR
@@ -5096,7 +5101,7 @@ Begin
             SP_CHAR_NUM_DNE, SP_CHAR_STR_DNE, SP_CHAR_NUM_GTE, SP_CHAR_STR_GTE, SP_CHAR_NUM_GTR,
             SP_CHAR_STR_GTR, SP_CHAR_NUM_AND, SP_CHAR_STR_AND, SP_CHAR_MUL, SP_CHAR_DIV, SP_CHAR_INCVAR,
             SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR,
-            SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOT, SP_CHAR_NOTVAR, SP_CHAR_EQV, SP_CHAR_IMP:
+            SP_CHAR_XORVAR, SP_CHAR_ORVAR, SP_CHAR_NOT, SP_CHAR_NOTVAR, SP_CHAR_EQV, SP_CHAR_IMP, SP_CHAR_SHLVAR, SP_CHAR_SHRVAR:
               Begin
 
                 // Operators - basically, pop old operators off the stack until the priority of the current
@@ -6638,7 +6643,7 @@ Next_Assign:
         RT := Error.ReturnType;
     RTs[Length(RTs) -1] := RT;
 
-    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in ['=', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_XORVAR]) Then Begin
+    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in ['=', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_XORVAR, SP_CHAR_SHLVAR, SP_CHAR_SHRVAR]) Then Begin
       EquateType := Tokens[Position +1];
       Done := True;
     End Else
@@ -6654,7 +6659,7 @@ Next_Assign:
 
   KeyWordID := SP_KW_LET;
 
-  If Not ((Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] in ['=', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_XORVAR])) Then Begin
+  If Not ((Byte(Tokens[Position]) = SP_SYMBOL) and (Tokens[Position +1] in ['=', SP_CHAR_INCVAR, SP_CHAR_DECVAR, SP_CHAR_MULVAR, SP_CHAR_DIVVAR, SP_CHAR_POWVAR, SP_CHAR_MODVAR, SP_CHAR_ANDVAR, SP_CHAR_ORVAR, SP_CHAR_NOTVAR, SP_CHAR_XORVAR, SP_CHAR_SHLVAR, SP_CHAR_SHRVAR])) Then Begin
     Error.Code := SP_ERR_MISSING_EQU;
     Exit;
   End Else
@@ -6678,6 +6683,8 @@ Next_Assign:
           SP_CHAR_ORVAR:  ArTokens := TempStr + aChar(SP_SYMBOL) + '|' + Copy(Tokens, Position, 999999);
           SP_CHAR_NOTVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_NOTVAR + Copy(Tokens, Position, 999999);
           SP_CHAR_XORVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_XOR + Copy(Tokens, Position, 999999);
+          SP_CHAR_SHLVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_SHL + Copy(Tokens, Position, 999999);
+          SP_CHAR_SHRVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_SHR + Copy(Tokens, Position, 999999);
         End;
         If ArTokens <> '' Then
           arExpr := SP_Convert_Expr(arTokens, Idx, Error, -1);
@@ -6715,6 +6722,11 @@ Next_Assign:
                 pToken(@VarExpr[Idx][1])^.Token := SP_NOTVAR;
               SP_CHAR_XORVAR:
                 pToken(@VarExpr[Idx][1])^.Token := SP_XORVAR;
+              SP_CHAR_SHLVAR:
+                pToken(@VarExpr[Idx][1])^.Token := SP_SHLVAR;
+              SP_CHAR_SHRVAR:
+                pToken(@VarExpr[Idx][1])^.Token := SP_SHRVAR;
+
             End;
             Result := Result + Expr + VarExpr[Idx];
           End Else
@@ -8669,10 +8681,10 @@ End;
 Function SP_Convert_SAVE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
   VarType, VarPos, VarIdx, VarSize: Integer;
-  VarName: aString;
+  VarName, Expr: aString;
 Begin
 
-  // SAVE strexpr [[ASCII] LINE numexpr|BANK numexpr [DATA]|PALETTE|DATA var/array|SCREEN$|GRAPHIC numexpr]
+  // SAVE strexpr [[ASCII] LINE numexpr|BANK numexpr [DATA]|PALETTE[start TO finish|start,count]|DATA var/array|SCREEN$|GRAPHIC numexpr]
 
   Result := SP_Convert_Expr(Tokens, Position, Error, -1);
 
@@ -8728,6 +8740,36 @@ Begin
             If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_PALETTE) Then Begin
               KeyWordID := SP_KW_PAL_SAVE;
               Inc(Position, SizeOf(LongWord) +1);
+              Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+              If Error.Code <> SP_ERR_OK Then
+                Exit
+              Else
+                If Expr <> '' Then Begin
+                  If Error.ReturnType <> SP_VALUE Then Begin
+                    Error.Code := SP_ERR_MISSING_NUMEXPR;
+                    Exit;
+                  End Else
+                    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+                      Inc(Position, 2);
+                      Expr := Expr + SP_Convert_Expr(Tokens, Position, Error, -1);
+                      If Error.ReturnType <> SP_VALUE Then
+                        Error.Code := SP_ERR_MISSING_NUMEXPR;
+                      Result := Result + Expr;
+                      Exit;
+                    End Else
+                      If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+                        Inc(Position, 1 + SizeOf(LongWord));
+                        Expr := Expr + SP_Convert_Expr(Tokens, Position, Error, -1) + CreateToken(SP_SPECIAL_SYMBOL, Position, 1) + SP_CHAR_UNARYM;
+                        If Error.ReturnType <> SP_VALUE Then
+                          Error.Code := SP_ERR_MISSING_NUMEXPR;
+                        Result := Result + Expr;
+                        Exit;
+                      End Else Begin
+                        Error.Code := SP_ERR_SYNTAX_ERROR;
+                        Exit;
+                      End;
+                End Else
+                  Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0) + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(256);
             End Else
               If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_DATA) Then Begin
                 KeyWordID := SP_KW_DATA_SAVE;
@@ -8781,7 +8823,7 @@ Var
   VarName, VarResult: aString;
 Begin
 
-  // LOAD strexpr [BANK [{NEW numvar|n}]|PALETTE|DATA [var[()]]
+  // LOAD strexpr [BANK [{NEW numvar|n}]|PALETTE [offset]|DATA [var[()]]
 
   Result := SP_Convert_Expr(Tokens, Position, Error, -1);
   If Error.Code = SP_ERR_OK Then
@@ -8821,6 +8863,20 @@ Begin
     If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_PALETTE) Then Begin
       KeyWordID := SP_KW_PAL_LOAD;
       Inc(Position, SizeOf(LongWord) +1);
+      Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+      If Error.Code <> SP_ERR_OK Then
+        Exit
+      Else
+        If Expr <> '' Then Begin
+          If Error.ReturnType <> SP_VALUE Then Begin
+            Error.Code := SP_ERR_MISSING_NUMEXPR;
+            Exit;
+          End Else Begin
+            Result := Result + Expr;
+            Exit;
+          End;
+        End Else
+          Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
     End Else
       If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_DATA) Then Begin
         KeyWordID := SP_KW_DATA_LOAD;
@@ -11791,7 +11847,8 @@ End;
 Function SP_Convert_STREAM(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
   VarResult, Expr, SepExpr: aString;
-  KeyWordPos: LongWord;
+  KeyWordPos, pSave: LongWord;
+  arFlag: Boolean;
 Begin
 
   // STREAM [NEW numvar,[BankID|Filename$]|READ id,strvar,count|READ LINE id,strvar[,{sep$|sep}]|WRITE id,strexpr|SEEK id,Position|CLOSE id]
@@ -11842,8 +11899,33 @@ Begin
 
         If Byte(Tokens[Position]) = SP_STRVAR Then Begin
 
-          VarResult := SP_Convert_Var_Assign(Tokens, Position, Error); // Destination string variable
-          If Error.Code <> SP_ERR_OK Then Exit;
+          arFlag := False;
+          VarResult := SP_Convert_Var_Assign(Tokens, Position, Error); // Destination string variable (optionally an array)
+          If Error.Code = SP_ERR_MISSING_NUMEXPR Then Begin
+            pSave := Position;
+            Dec(Position, 2);
+            If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
+              Inc(Position, 2);
+              If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ')') Then Begin
+                Inc(Position, 2);
+                If Error.ReturnType <> SP_STRVAR Then Begin
+                  Error.Code := SP_ERR_SYNTAX_ERROR;
+                  Exit;
+                End Else
+                  Error.Code := SP_ERR_OK;
+                arFlag := True;
+              End Else Begin
+                Position := pSave;
+                Exit;
+              End;
+            End Else Begin
+              Position := pSave;
+              Exit;
+            End;
+          End Else
+            If Error.Code <> SP_ERR_OK Then
+              Exit;
+
           KeyWordPos := Position -1;
 
           If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
@@ -11853,8 +11935,14 @@ Begin
           End Else
             SepExpr := CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(-1);
 
-          Result := Result + SepExpr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_STREAM_READLN) + VarResult;
-          If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
+          If not arFlag Then Begin
+            Result := Result + SepExpr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_STREAM_READLN) + VarResult;
+            If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
+          End Else Begin
+            KeyWordID := 0;
+            pToken(@VarResult[1])^.Token := SP_STRVAR;
+            Result := Result + SepExpr + VarResult + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_STREAM_READFILE);
+          End;
           Exit;
 
         End Else

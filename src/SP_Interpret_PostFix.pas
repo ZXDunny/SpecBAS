@@ -577,6 +577,7 @@ Procedure SP_Interpret_BANK_COPY(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_NEW(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_READ(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_READLN(Var Info: pSP_iInfo);
+Procedure SP_Interpret_STREAM_READFILE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_WRITE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_SEEK(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STREAM_CLOSE(Var Info: pSP_iInfo);
@@ -897,6 +898,8 @@ Procedure SP_Interpret_SP_ANDVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_XORVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_ORVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_NOTVAR(Var Info: pSP_iInfo);
+Procedure SP_Interpret_SP_SHLVAR(Var Info: pSP_iInfo);
+Procedure SP_Interpret_SP_SHRVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_INT_PLUS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_NUM_PLUS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_STR_PLUS(Var Info: pSP_iInfo);
@@ -957,6 +960,8 @@ Procedure SP_Interpret_SP_CHAR_ANDVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_XORVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_ORVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_CHAR_NOTVAR(Var Info: pSP_iInfo);
+Procedure SP_Interpret_SP_CHAR_SHLVAR(Var Info: pSP_iInfo);
+Procedure SP_Interpret_SP_CHAR_SHRVAR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SP_RESTORECOLOURS(Var Info: pSP_iInfo);
 
 Var
@@ -2582,6 +2587,36 @@ Begin
 
 End;
 
+Procedure SP_Interpret_SP_SHLVAR(Var Info: pSP_iInfo);
+Begin
+
+  With Info^ Do Begin
+    If pLongWord(StrPtr)^ <> 0 Then
+      SP_ShlNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
+    Else
+      SP_ShlNumVar(pLongWord(StrPtr)^,
+                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
+    Dec(SP_StackPtr);
+  End;
+
+End;
+
+Procedure SP_Interpret_SP_SHRVAR(Var Info: pSP_iInfo);
+Begin
+
+  With Info^ Do Begin
+    If pLongWord(StrPtr)^ <> 0 Then
+      SP_ShrNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
+    Else
+      SP_ShrNumVar(pLongWord(StrPtr)^,
+                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
+    Dec(SP_StackPtr);
+  End;
+
+End;
+
 Procedure SP_Interpret_SP_STRVAR_LET(Var iInfo: pSP_iInfo);
 Begin
 
@@ -3713,6 +3748,76 @@ Begin
         Idx := SP_NotNumVar(Ptr^, Str, n, Error^, Ptr);
       End Else Begin
         SP_NotNumVarIndex(Ptr^, n);
+        Dec(Idx);
+      End;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
+    End;
+
+  End;
+
+End;
+
+Procedure SP_Interpret_SP_CHAR_SHLVAR(Var Info: pSP_iInfo);
+Var
+  vl: NativeUInt;
+  Idx: Integer;
+  n: aFloat;
+Begin
+
+  n := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+
+  If SP_StackPtr^.OpType = SP_NUM_ARRAY_PTR Then Begin
+    vl := Round(SP_StackPtr^.Val);
+    pSP_NumVarContent(vl)^.Value := Round(pSP_NumVarContent(vl)^.Value) Shl Round(n);
+    SP_StackPtr^.OpType := SP_VALUE;
+    SP_StackPtr^.Val := pSP_NumVarContent(vl)^.Value;
+  End Else Begin
+
+    With Info^, SP_StackPtr^ Do Begin
+      Idx := Trunc(Val);
+      If Idx = 0 Then Begin
+        Idx := SP_ShlNumVar(Idx, Str, n, Error^, Ptr);
+      End Else Begin
+        SP_ShlNumVarIndex(Idx, n);
+        Dec(Idx);
+      End;
+      If Idx >= 0 Then Begin
+        SP_StackPtr^.OpType := SP_VALUE;
+        SP_StackPtr^.Val := NumVars[Idx]^.ContentPtr^.Value;
+      End;
+    End;
+
+  End;
+
+End;
+
+Procedure SP_Interpret_SP_CHAR_SHRVAR(Var Info: pSP_iInfo);
+Var
+  vl: NativeUInt;
+  Idx: Integer;
+  n: aFloat;
+Begin
+
+  n := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+
+  If SP_StackPtr^.OpType = SP_NUM_ARRAY_PTR Then Begin
+    vl := Round(SP_StackPtr^.Val);
+    pSP_NumVarContent(vl)^.Value := Round(pSP_NumVarContent(vl)^.Value) Shr Round(n);
+    SP_StackPtr^.OpType := SP_VALUE;
+    SP_StackPtr^.Val := pSP_NumVarContent(vl)^.Value;
+  End Else Begin
+
+    With Info^, SP_StackPtr^ Do Begin
+      Idx := Trunc(Val);
+      If Idx = 0 Then Begin
+        Idx := SP_ShrNumVar(Idx, Str, n, Error^, Ptr);
+      End Else Begin
+        SP_ShrNumVarIndex(Idx, n);
         Dec(Idx);
       End;
       If Idx >= 0 Then Begin
@@ -15514,7 +15619,7 @@ Begin
       CurrentTicks := Round(CB_GetTicks);
       TargetTicks := CurrentTicks + Delay;
       Repeat
-        CB_YIELD;
+        if Delay >= 10 then CB_YIELD;
       Until (CB_GetTicks >= TargetTicks) or (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL or QUITMSG;
     End;
 
@@ -15738,6 +15843,49 @@ Begin
 
 End;
 
+Procedure SP_Interpret_STREAM_READFILE(Var Info: pSP_iInfo);
+Var
+  StreamID, l, idx: Integer;
+  SepChar, VarName: aString;
+  tempList: TAnsiStringlist;
+Begin
+
+  VarName := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+
+  If SP_StackPtr^.OpType = SP_Value Then Begin
+    If SP_StackPtr^.Val = -1 Then
+      SepChar := ''
+    Else
+      SepChar := aChar(Trunc(SP_StackPtr^.Val) And $FF);
+  End Else
+    If SP_StackPtr^.Str = '' Then
+      SepChar := #0
+    Else
+      SepChar := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+
+  StreamID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  l := SP_StreamLen(StreamID, Info^.Error^);
+  If Info^.Error^.Code = SP_ERR_OK Then Begin
+    tempList := TAnsiStringlist.Create;
+    While (SP_StreamPos(StreamID, Info^.Error^) < l) And (Info^.Error^.Code = SP_ERR_OK) Do
+      if SepChar = '' Then
+        tempList.Add(SP_StreamReadline(StreamID, Info^.Error^))
+      Else
+        tempList.Add(SP_StreamReadlineChar(StreamID, SepChar[1], Info^.Error^));
+    If Info^.Error^.Code = SP_ERR_OK Then Begin
+      idx := SP_CreateStrArray(VarName, LongWordToString(tempList.Count), 0, '', BASE, False, Info^.Error^);
+      For l := 0 To tempList.Count -1 Do
+        SP_UpdateStrArray(idx +1, VarName, LongWordToString(LongWord(l) + BASE), '', tempList[l], -1, -1, Info^.Error^);
+    End;
+    tempList.Free;
+  End;
+
+End;
+
 Procedure SP_Interpret_STREAM_WRITE(Var Info: pSP_iInfo);
 Var StreamID: Integer;
 Begin
@@ -15870,24 +16018,35 @@ End;
 Procedure SP_Interpret_PAL_LOAD(Var Info: pSP_iInfo);
 Var
   Filename: aString;
+  Offset: Integer;
 Begin
+
+  Offset := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
 
   Filename := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
 
-  SP_LoadPalette(Filename, Info^.Error^);
+  SP_LoadPalette(Filename, Offset, Info^.Error^);
 
 End;
 
 Procedure SP_Interpret_PAL_SAVE(Var Info: pSP_iInfo);
 Var
   Filename: aString;
+  num, offset: Integer;
 Begin
+
+  num := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  Offset := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
 
   Filename := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
 
-  SP_SavePalette(Filename, Info^.Error^);
+  SP_SavePalette(Filename, Offset, Num, Info^.Error^);
 
 End;
 
@@ -21066,6 +21225,7 @@ Var
   nOutput, PosStr, s: aString;
   StrPtr, StrStart: pByte;
   Token, nToken: pToken;
+  i: LongWord;
 Begin
 
   Result := '';
@@ -21107,6 +21267,18 @@ Begin
       SP_INCVAR:
         Begin
           nOutput := 'INC VAR ['+StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)) + SizeOf(LongWord), Token^.TokenLen - SizeOf(LongWord))+']';
+          Inc(StrPtr, Token^.TokenLen);
+        End;
+
+      SP_SHLVAR:
+        Begin
+          nOutput := 'SHL VAR ['+StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)) + SizeOf(LongWord), Token^.TokenLen - SizeOf(LongWord))+']';
+          Inc(StrPtr, Token^.TokenLen);
+        End;
+
+      SP_SHRVAR:
+        Begin
+          nOutput := 'SHR VAR ['+StringCopy(@Tokens, 1 + (NativeUInt(StrPtr) - NativeUInt(StrStart)) + SizeOf(LongWord), Token^.TokenLen - SizeOf(LongWord))+']';
           Inc(StrPtr, Token^.TokenLen);
         End;
 
@@ -21689,6 +21861,14 @@ Begin
               Begin
                 nOutput := 'OPERATOR [NOT and Assign]';
               End;
+            SP_CHAR_SHLVAR:
+              Begin
+                nOutput := 'OPERATOR [SHL and Assign]';
+              End;
+            SP_CHAR_SHRVAR:
+              Begin
+                nOutput := 'OPERATOR [SHR and Assign]';
+              End;
           Else
             nOutput := aString('SYMBOL [')+aChar(StrPtr^)+aString(']');
           End;
@@ -21718,7 +21898,11 @@ Begin
 
       SP_FUNCTION:
         Begin
-          nOutput := 'FUNCTION ['+SP_Functions[pLongWord(StrPtr)^ - 2000]+']';
+          i := pLongWord(StrPtr)^;
+          If i >= SP_META_BASE Then
+            nOutput := 'FUNCTION ['+SP_Function_Names[i - 3000]+']'
+          Else
+            nOutput := 'FUNCTION ['+SP_Functions[i - 2000]+']';
           Inc(StrPtr, Token^.TokenLen);
         End;
 
@@ -26690,6 +26874,7 @@ Initialization
   InterpretProcs[SP_KW_STREAM_NEW] := @SP_Interpret_STREAM_NEW;
   InterpretProcs[SP_KW_STREAM_READ] := @SP_Interpret_STREAM_READ;
   InterpretProcs[SP_KW_STREAM_READLN] := @SP_Interpret_STREAM_READLN;
+  InterpretProcs[SP_KW_STREAM_READFILE] := @SP_Interpret_STREAM_READFILE;
   InterpretProcs[SP_KW_STREAM_WRITE] := @SP_Interpret_STREAM_WRITE;
   InterpretProcs[SP_KW_STREAM_SEEK] := @SP_Interpret_STREAM_SEEK;
   InterpretProcs[SP_KW_STREAM_CLOSE] := @SP_Interpret_STREAM_CLOSE;
@@ -27314,6 +27499,8 @@ Initialization
   InterpretProcs[SP_ORVAR] := @SP_Interpret_SP_ORVAR;
   InterpretProcs[SP_NOTVAR] := @SP_Interpret_SP_NOTVAR;
   InterpretProcs[SP_XORVAR] := @SP_Interpret_SP_XORVAR;
+  InterpretProcs[SP_SHLVAR] := @SP_Interpret_SP_SHLVAR;
+  InterpretProcs[SP_SHRVAR] := @SP_Interpret_SP_SHRVAR;
   InterpretProcs[SP_STRUCT_MEMBER_N] := @SP_Interpret_SP_STRUCT_MEMBER_N;
   InterpretProcs[SP_STRUCT_MEMBER_ASS] := @SP_Interpret_SP_STRUCT_MEMBER_ASS;
   InterpretProcs[SP_STRUCT_MEMBER_S] := @SP_Interpret_SP_STRUCT_MEMBER_S;
@@ -27404,6 +27591,8 @@ Initialization
   InterpretProcs[6000 + Ord(SP_CHAR_XORVAR)] := @SP_Interpret_SP_CHAR_XORVAR;
   InterpretProcs[6000 + Ord(SP_CHAR_ORVAR)] := @SP_Interpret_SP_CHAR_ORVAR;
   InterpretProcs[6000 + Ord(SP_CHAR_NOTVAR)] := @SP_Interpret_SP_CHAR_NOTVAR;
+  InterpretProcs[6000 + Ord(SP_CHAR_SHLVAR)] := @SP_Interpret_SP_CHAR_SHLVAR;
+  InterpretProcs[6000 + Ord(SP_CHAR_SHRVAR)] := @SP_Interpret_SP_CHAR_SHRVAR;
   InterpretProcs[6000 + Ord(SP_CHAR_NOT)] := @SP_Interpret_FN_NOT; // NOT is an operator of very low priority in Sinclair BASIC
 
   Il := 0;

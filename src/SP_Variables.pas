@@ -177,6 +177,10 @@ Function  SP_NotNumVar(Idx: Integer; const Name: aString; Var Value: aFloat; Var
 Procedure SP_NotNumVarIndex(Idx: Integer; Var Value: aFloat); inline;
 Function  SP_XorNumVar(Idx: Integer; const Name: aString; Var Value: aFloat; Var Error: TSP_ErrorCode; Ptr: pLongWord): Integer;
 Procedure SP_XorNumVarIndex(Idx: Integer; Var Value: aFloat); inline;
+Function  SP_ShlNumVar(Idx: Integer; const Name: aString; Var Value: aFloat; Var Error: TSP_ErrorCode; Ptr: pLongWord): Integer;
+Procedure SP_ShlNumVarIndex(Idx: Integer; Var Value: aFloat); inline;
+Function  SP_ShrNumVar(Idx: Integer; const Name: aString; Var Value: aFloat; Var Error: TSP_ErrorCode; Ptr: pLongWord): Integer;
+Procedure SP_ShrNumVarIndex(Idx: Integer; Var Value: aFloat); inline;
 
 Function  SP_UpdateFORVar(Idx: Integer; const Name: aString; Var Value, EndAt, Step: aFloat; LoopLine, LoopStatement, St: Integer; Ptr: pLongWord; Var Error: TSP_ErrorCode): Integer;
 Function  SP_NewStrVar: Integer;
@@ -821,6 +825,60 @@ Procedure SP_XorNumVarIndex(Idx: Integer; Var Value: aFloat); inline;
 Begin
 
   NumVars[Idx -1]^.ContentPtr^.Value := Round(NumVars[Idx -1]^.ContentPtr^.Value) Xor Round(Value);
+
+End;
+
+Function  SP_ShlNumVar(Idx: Integer; const Name: aString; Var Value: aFloat; Var Error: TSP_ErrorCode; Ptr: pLongWord): Integer;
+Begin
+
+  If Idx = 0 Then Begin
+    Idx := SP_FindNumVar(Name);
+    If Idx = -1 Then Begin
+      ERRStr := Name;
+      Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
+      Exit;
+    End;
+    If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;
+  End Else
+    Dec(Idx);
+
+  NumVars[Idx]^.ContentPtr^.Value := Round(NumVars[Idx]^.ContentPtr^.Value) Shl Round(Value);
+  Result := Idx;
+
+End;
+
+Procedure SP_ShlNumVarIndex(Idx: Integer; Var Value: aFloat); inline;
+Begin
+
+  NumVars[Idx -1]^.ContentPtr^.Value := Round(NumVars[Idx -1]^.ContentPtr^.Value) Shl Round(Value);
+
+End;
+
+Function  SP_ShrNumVar(Idx: Integer; const Name: aString; Var Value: aFloat; Var Error: TSP_ErrorCode; Ptr: pLongWord): Integer;
+Begin
+
+  If Idx = 0 Then Begin
+    Idx := SP_FindNumVar(Name);
+    If Idx = -1 Then Begin
+      ERRStr := Name;
+      Error.Code := SP_ERR_MISSING_VAR;
+      Result := -1;
+      Exit;
+    End;
+    If Not NumVars[idx]^.ProcVar Then Ptr^ := Idx +1;
+  End Else
+    Dec(Idx);
+
+  NumVars[Idx]^.ContentPtr^.Value := Round(NumVars[Idx]^.ContentPtr^.Value) Shr Round(Value);
+  Result := Idx;
+
+End;
+
+Procedure SP_ShrNumVarIndex(Idx: Integer; Var Value: aFloat); inline;
+Begin
+
+  NumVars[Idx -1]^.ContentPtr^.Value := Round(NumVars[Idx -1]^.ContentPtr^.Value) Shr Round(Value);
 
 End;
 
@@ -2590,7 +2648,7 @@ Begin
             End;
           SP_NUMVAR_LET, SP_STRVARPTR, SP_STRVAR_LET, SP_STRVAR_EVAL, SP_NUMVAR_EVAL,
           SP_POINTER, SP_NUMVAR_LET_VALID, SP_STRVAR_LET_VALID, SP_INCVAR, SP_DECVAR, SP_MULVAR, SP_DIVVAR,
-          SP_POWVAR, SP_MODVAR, SP_ANDVAR, SP_ORVAR, SP_NOTVAR, SP_XORVAR:
+          SP_POWVAR, SP_MODVAR, SP_ANDVAR, SP_ORVAR, SP_NOTVAR, SP_XORVAR, SP_SHLVAR, SP_SHRVAR:
             Begin
               IsVar := True;
               If Tkn^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then Begin
@@ -3176,7 +3234,7 @@ Begin
           End;
 
         SP_STRVAR_LET, SP_NUMVAR_LET, SP_STRVAR_LET_VALID, SP_NUMVAR_LET_VALID, SP_INCVAR, SP_DECVAR, SP_MULVAR, SP_DIVVAR,
-        SP_POWVAR, SP_MODVAR, SP_ANDVAR, SP_ORVAR, SP_NOTVAR, SP_XORVAR:
+        SP_POWVAR, SP_MODVAR, SP_ANDVAR, SP_ORVAR, SP_NOTVAR, SP_XORVAR, SP_SHLVAR, SP_SHRVAR:
           Begin
 
             // Check if we're trying to assign to a constant - that's a no-no.
@@ -3522,7 +3580,7 @@ Begin
             End;
           SP_NUMVAR_LET, SP_STRVARPTR, SP_STRVAR_LET, SP_STRVAR_EVAL, SP_NUMVAR_EVAL,
           SP_POINTER, SP_NUMVAR_LET_VALID, SP_STRVAR_LET_VALID, SP_INCVAR, SP_DECVAR, SP_MULVAR, SP_DIVVAR,
-          SP_POWVAR, SP_MODVAR, SP_ANDVAR, SP_ORVAR, SP_NOTVAR, SP_XORVAR, SP_NUMVARSQ:
+          SP_POWVAR, SP_MODVAR, SP_ANDVAR, SP_ORVAR, SP_NOTVAR, SP_XORVAR, SP_NUMVARSQ, SP_SHLVAR, SP_SHRVAR:
             Begin
               pLongWord(@Tokens[Idx2])^ := 0;
               Inc(Idx2, Tkn^.TokenLen);

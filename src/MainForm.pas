@@ -124,7 +124,7 @@ var
   LastMouseX, LastMouseY: Integer;
   {$IFDEF OPENGL}
     LastScaledMouseX, LastScaledMouseY: Integer;
-    GLInitDone, ReScaleFlag: Boolean;
+    DisplayFlip, GLInitDone, ReScaleFlag: Boolean;
     PixArray, DispArray: Array of Byte;
     RC: HGLRC;
     DC: hDc;
@@ -247,12 +247,12 @@ End;
 Procedure TRefreshThread.Execute;
 Var
   LastFrames: NativeUint;
-  StartTime: aFloat;
+  StartTime, CurTime: aFloat;
 Begin
 
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
-  Priority := tpIdle;
+  Priority := tpHighest;
   RefreshThreadAlive := True;
 
   LastFrames := 0;
@@ -268,7 +268,8 @@ Begin
       IsPaused := False;
     End;
 
-    FRAMES := Trunc((CB_GETTICKS - StartTime) / FRAME_MS);
+    CurTime := CB_GETTICKS;
+    FRAMES := Trunc((CurTime - StartTime) / FRAME_MS);
     If FRAMES <> LastFrames Then Begin
 
       FrameElapsed := True;
@@ -757,11 +758,13 @@ begin
             SwitchFocusedWindow(ID); // The editor handles this.
           Win := ControlAtPoint(Win, X, Y);
           If Assigned(Win) Then Begin
-            CaptureControl := pSP_BaseComponent(Win)^;
-            If CaptureControl.CanFocus Then
-              CaptureControl.SetFocus(True);
-            SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
-            Handled := True;
+            if pSP_BaseComponent(Win)^.Enabled Then Begin
+              CaptureControl := pSP_BaseComponent(Win)^;
+              If CaptureControl.CanFocus Then
+                CaptureControl.SetFocus(True);
+              SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
+              Handled := True;
+            End;
           End Else Begin
             If Assigned(CaptureControl) Then
               SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
@@ -851,7 +854,7 @@ begin
           p := CaptureControl.ScreenToClient(Point(x, y));
           CaptureControl.PreMouseMove(p.x, p.y, Btn);
         End Else Begin
-          If Assigned(Win) Then Begin
+          If Assigned(Win) And pSP_BaseComponent(Win)^.Enabled Then Begin
             If MouseControl <> pSP_BaseComponent(Win)^ Then Begin
               MouseControl := pSP_BaseComponent(Win)^;
               p := MouseControl.ScreenToClient(Point(tX, tY));
@@ -930,7 +933,7 @@ begin
       Win := WindowAtPoint(X, Y, ID);
       If Assigned(Win) Then Begin
         Win := ControlAtPoint(Win, X, Y);
-        If Assigned(Win) Then Begin
+        If Assigned(Win) And pSP_BaseComponent(Win)^.Enabled Then Begin
           pSP_BaseComponent(Win)^.MouseUp(X, Y, Btn);
           Handled := True;
         End;
@@ -1047,20 +1050,28 @@ begin
   PayLoad := TPayLoad.Create(EXENAME);
   PAYLOADPRESENT := PayLoad.HasPayLoad;
 
+  {$IFDEF OPENGL}
+  DisplayFlip := False;
+  {$ENDIF}
   If Not PAYLOADPRESENT Then Begin
     PCOUNT := -1;
     PARAMS := TStringList.Create;
     For Idx := 0 To ParamCount Do Begin
       s := ParamStr(Idx);
-      if Copy(s, 1, 1) <> '-' then Begin
-        if FileExists(s) then Begin
+      {$IFDEF OPENGL}
+      If s = 'flip' then
+        DisplayFlip := True
+      Else
+      {$ENDIF}
+        if Copy(s, 1, 1) <> '-' then Begin
+          if FileExists(s) then Begin
+            PARAMS.Add(aString(s));
+            Inc(PCOUNT);
+          End;
+        End Else Begin
           PARAMS.Add(aString(s));
           Inc(PCOUNT);
         End;
-      End Else Begin
-        PARAMS.Add(aString(s));
-        Inc(PCOUNT);
-      End;
     End;
 
     dir := GetCurrentDir;
@@ -1565,7 +1576,11 @@ begin
         glMatrixMode(GL_PROJECTION);
         glLoadIdentity;
 
-        glOrtho(0, ScaleWidth, ScaleHeight, 0, 1, -1);
+
+        If DisplayFlip Then
+          glOrtho(ScaleWidth, 0, 0, ScaleHeight, 1, -1)
+        Else
+          glOrtho(0, ScaleWidth, ScaleHeight, 0, 1, -1);
 
         glMatrixMode(GL_MODELVIEW);
         glEnable(GL_TEXTURE_2D);

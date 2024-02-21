@@ -1815,7 +1815,7 @@ Begin
           i := 1;
           j := 1;
           Paper := -1;
-          While j < FPBracket1Pos Do Begin
+          While (i < Length(SynLine)) And (j < FPBracket1Pos) Do Begin
             c := SynLine[i];
             If (c < ' ') and (c <> #5) Then Begin
               If c = #17 Then
@@ -1838,7 +1838,7 @@ Begin
           If bp2 > 0 Then Begin
             m := Length(t) + Length(BraceHltClr);
             Inc(i, m +1);
-            While j < bp2 Do Begin
+            While (i < Length(SynLine)) And (j < bp2) Do Begin
               c := SynLine[i];
               If (c < ' ') and (c <> #5) Then Begin
                 If SynLine[i] = #17 Then
@@ -5871,6 +5871,9 @@ Var
   Err: TSP_ErrorCode;
 Begin
 
+  CB_PauseDisplay;
+  DisplaySection.Enter;
+
   NewH := Max(NewH, 0);
 
   WindowID := SCREENBANK;
@@ -5902,6 +5905,9 @@ Begin
   SP_DisplayFPListing(-1);
 
   SP_SetDrawingWindow(WindowID);
+
+  DisplaySection.Leave;
+  CB_ResumeDisplay;
 
 End;
 
@@ -6166,7 +6172,7 @@ Begin
     Else
       k := rs;
     If i = FinishL Then
-      e := FinishP
+      e := Min(FinishP, l)
     Else
       e := l;
     rs := 1;
@@ -7214,7 +7220,7 @@ Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1);
 Var
   Err: TSP_ErrorCode;
   ErrWin: pSP_Window_Info;
-  ErrorText, Text, Title, StripeText: aString;
+  ErrorText, Text, Title, StripeText, tempText: aString;
   ErrorFPS, t2, EMove, ETop, TargetTicks: aFloat;
   ERRORWINDOW, WinW, WinH, WinX, WinY, MaxW, Lines, Cnt, Idx, MaxLen,
   Font, Window, ofs, x, sz: Integer;
@@ -7266,13 +7272,20 @@ Begin
         Error.Line := pLongWord(@SP_Program[Error.Line][2])^;
     End Else
       Error.Line := SP_GetLineNumberFromText(Listing[LineNum]);
+    tempText := ErrorMessages[Error.Code];
+    If ErrStr <> '' Then
+      If ErrStr[1] = '!' Then Begin
+        ErrStr := Copy(ErrStr, 2);
+        If Copy(tempText, Length(tempText) -1, 2) = '()' Then
+          tempText := Copy(tempText, 1, Length(tempText) -2);
+      End;
     If Error.Code = 51 Then Begin
       If SP_KeyWordID < 4000 Then
-        Text := IntToString(Error.Code)+' '+ProcessErrorMessage(ErrorMessages[Error.Code]) + SP_KEYWORDS[SP_KeyWordID - SP_KeyWord_Base] + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement)
+        Text := IntToString(Error.Code)+' '+ProcessErrorMessage(tempText) + SP_KEYWORDS[SP_KeyWordID - SP_KeyWord_Base] + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement)
       Else
-        Text := IntToString(Error.Code)+' '+ProcessErrorMessage(ErrorMessages[Error.Code]) + IntToString(SP_KeyWordID) + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement);
+        Text := IntToString(Error.Code)+' '+ProcessErrorMessage(tempText) + IntToString(SP_KeyWordID) + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement);
     End Else
-      Text := IntToString(Error.Code)+' '+ProcessErrorMessage(ErrorMessages[Error.Code]) + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement);
+      Text := IntToString(Error.Code)+' '+ProcessErrorMessage(tempText) + ', ' + IntToString(Error.Line)+':'+IntToString(Error.Statement);
   End Else Begin
     Text := #32#32#32#32#32#32#32#32#32#32#32#32#32#32#32#32#32#32#32#138#13+
             #32#32#139#131#131#131#133#131#131#131#138#139#131#131#135#133#131#131#131#130#139#131#131#135#129#131#131#131#138#139#131#131#131#13+
@@ -8317,7 +8330,7 @@ Procedure SP_FPRenumberListing(Start, Finish, Line, Step: Integer; Var Error: TS
 Type
   TLineRec = Record Org, New, Flag, Indent: Integer; End;
 Var
-  Idx, sIdx, fIdx, nIdx, LineNum, curLineNum, kw, f, i: Integer;
+  Idx, sIdx, fIdx, nIdx, LineNum, curLineNum, kw, f, i, l: Integer;
   NewList, OutList: TStringlist;
   ChangeList: Array of TLineRec;
   InString, InREM: Boolean;
@@ -8411,7 +8424,8 @@ Begin
     kw := pLongWord(@s[1])^; // Length
     e := Copy(s, kw + 5);
     s := Copy(s, 5, kw);
-    While s[nIdx] in ['0'..'9'] Do Inc(nIdx);
+    l := Length(s);
+    While (nIdx < l) and (s[nIdx] in ['0'..'9']) Do Inc(nIdx);
     ChangeList[Idx].Org := StringToLong(Copy(s, 1, nIdx -1));
     ChangeList[Idx].New := CurLineNum;
     ChangeList[Idx].Flag := f;

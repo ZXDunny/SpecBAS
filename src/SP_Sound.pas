@@ -2099,7 +2099,6 @@ Begin
           v := GetPLAYNumber;
           SendMIDIBytes([v And $FF]);
         End;
-
     Else
       Begin
         // Error - Invalid Note Name

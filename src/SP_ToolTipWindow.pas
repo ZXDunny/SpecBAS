@@ -14,10 +14,10 @@ Type
   SP_Hint = Record
     Hint: aString;
     HotRect: TRect;
-    x, y: Integer;
+    x, y, w, h: Integer;
   End;
 
-Procedure OpenTipWindow(Hint: SP_Hint);
+Procedure OpenTipWindow(Var Hint: SP_Hint);
 Procedure CheckForTip(X, Y: Integer);
 Procedure CloseTipWindow;
 
@@ -32,6 +32,7 @@ Var
   TipDelay: NativeUInt;
   TipEvent: pSP_TimerEvent;
   TipBkClr, TipOutline: Integer;
+  Hint: SP_Hint;
 
 implementation
 
@@ -146,7 +147,7 @@ Begin
 
 End;
 
-Procedure OpenTipWindow(Hint: SP_Hint);
+Procedure OpenTipWindow(Var Hint: SP_Hint);
 Var
   Str: aString;
   Error: TSP_ErrorCode;
@@ -175,6 +176,7 @@ Begin
       If IntersectRect(Hint.HotRect, Rect(Hint.x, Hint.y, Hint.x+hw, Hint.y+hh)) Then
         Hint.y := Max(FPFh, Hint.HotRect.Top - (hh + (FPFh Div 4)));
     End;
+    Hint.w := hw; Hint.h := hh;
     DefaultWindow := FocusedWindow;
     TipWindowID := SP_Add_Window(hint.x, hint.y, hw, hh, $FFFF, 8, 0, Error);
     SP_SetPalette(0, DefaultPalette);
@@ -203,6 +205,8 @@ Begin
   If TipWindowID >= 0 Then Begin
     ID := TipWindowID;
     TipWindowID := -1;
+    SP_SetDirtyRect(Hint.x, Hint.y, Hint.x + Hint.w, Hint.y + Hint.h);
+    SP_NeedDisplayUpdate := True;
     SP_DeleteWindow(ID, Error);
   End;
 End;
@@ -213,7 +217,6 @@ Var
   win: pSP_Window_Info;
   Ctrl: pSP_BaseComponent;
   p1, p2: TPoint;
-  Hint: SP_Hint;
 Begin
   // First check if we're on a control, and if so get its hint.
   ctrl := nil;

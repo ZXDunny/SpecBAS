@@ -115,16 +115,17 @@ Begin
 End;
 
 Function SP_FrameUpdate: Boolean;
+Var
+  OldFlashState: Integer;
 Begin
 
   // Changes the FLASH sysvar once every 16 frames.
 
-  If FRAMES Mod FLASHINTERVAL = 0 Then Begin
-    FLASHSTATE := 1 - FLASHSTATE;
-    If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_INPUT] Then
-      SP_NeedDisplayUpdate := True;
-  End;
-
+  SP_NeedDisplayUpdate := (SCMINX < SCMAXX) or SP_NeedDisplayUpdate;
+  OldFlashState := FLASHSTATE;
+  FLASHSTATE := Ord((FRAMES Mod (FLASHINTERVAL * 2)) > FLASHINTERVAL);
+  If (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_INPUT]) And (OldFlashState <> FLASHSTATE) Then
+    SP_NeedDisplayUpdate := True;
   Result := (NUMSPRITES > 0) or SP_NeedDisplayUpdate;
 
 End;

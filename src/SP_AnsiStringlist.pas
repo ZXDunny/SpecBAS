@@ -1058,6 +1058,8 @@ Var
   Error: TSP_ErrorCode;
 Begin
 
+  FileSection.Enter;
+
   If SP_FileExists(Filename) Then
     SP_DeleteFile(Filename, Error);
 
@@ -1070,6 +1072,8 @@ Begin
   End Else
     SP_FileWrite(FileID, nil, 0, Error);
   SP_FileClose(FileID, Error);
+
+  FileSection.Leave;
 
 End;
 

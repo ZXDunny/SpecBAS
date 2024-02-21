@@ -30,7 +30,8 @@ uses
   {$ENDIF }
   Forms,
   MainForm in 'MainForm.pas' {Main},
-  SP_MIDI in 'SP_MIDI.pas';
+  SP_MIDI in 'SP_MIDI.pas',
+  SP_Display in 'SP_Display.pas';
 
 {$R *.res}
 begin

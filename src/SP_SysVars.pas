@@ -55,6 +55,8 @@ Var
   SCREENCHANGE:             Boolean;      // Screen resolution changing?
   SPFULLSCREEN:             Boolean;      // True if we're in Fullscreen mode.
   SCRUPDATENOW:             Boolean;
+  LASTFRAMETIME:            aFloat;       // How long the previous frame took to render
+  VSYNCENABLED:             Boolean;      // Is System VSync enabled or available?
   DRAWING:                  Boolean;
   SIZINGMAIN:               Boolean;      // True while waiting for the UI thread to resize the main window
   SCMINX, SCMINY,
@@ -1575,7 +1577,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..245] of TSysVar =
+  SysVars: Array[0..247] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
@@ -1754,6 +1756,7 @@ Const
    (Name: 'CBRIGHTCYAN'; svType: svLongWord; Size: 4; Data: @CBRIGHTCYAN),
    (Name: 'CBRIGHTYELLOW'; svType: svLongWord; Size: 4; Data: @CBRIGHTYELLOW),
    (Name: 'CBRIGHTWHITE'; svType: svLongWord; Size: 4; Data: @CBRIGHTWHITE),
+   (Name: 'LASTFRAMETIME'; svType: svaFloat; Size: 8; Data: @LASTFRAMETIME),
    (Name: 'FDIST'; svType: svaFloat; Size: 8; Data: @FDIST),
    (Name: 'SORGX'; svType: svaFloat; Size: 8; Data: @SORGX),
    (Name: 'SORGY'; svType: svaFloat; Size: 8; Data: @SORGY),
@@ -1774,6 +1777,7 @@ Const
    (Name: 'MENUSEP'; svType: svLongWord; Size: 4; Data: @MENUSEP),
    (Name: 'MENUSHOWING'; svType: svBoolean; Size: 1; Data: @MENUSHOWING),
    (Name: 'INTSCALING'; svType: svBoolean; size: 1; Data: @INTSCALING),
+   (Name: 'VSYNCENABLED'; svType: svBoolean; size: 1; Data: @VSYNCENABLED),
    (Name: 'CLICKVOL'; svType: svaFloat; Size: 8; Data: @CLICKVOL),
    (Name: 'AUTOSAVETIME'; svType: svLongWord; Size: 4; Data: @AUTOSAVETIME),
 

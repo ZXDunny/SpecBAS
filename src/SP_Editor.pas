@@ -186,7 +186,6 @@ Begin
     LASTERRORSTATEMENT := -1;
 
     SP_FPEditorLoop;
-    SP_SaveRecentFiles;
 
   End Else Begin
 

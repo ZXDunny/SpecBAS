@@ -1885,6 +1885,7 @@ Begin
     Inc(SP_StackPtr);
     With SP_StackPtr^ Do Begin
       OpType := SP_STRING;
+      ERRStr := '!string expression';
       Str := StringFromPtr(StrPtr, Token^.TokenLen);
     End;
   End;
@@ -2098,8 +2099,8 @@ Begin
       // Could either be a string (or string array evaluation) or a stringvar/array with attached struct member, which will be along next.
       // If it's a structure with a member, then place the stringvarptr result on the stack ready for the member. If not, place the string
       // value.
-      Idx := Round(SP_StackPtr^.Val);
-      If (Idx = 0) And (SP_StackPtr^.OpType <> SP_STRING) Then Begin
+
+      If (SP_StackPtr^.OpType <> SP_STRING) And (Round(SP_StackPtr^.Val) = 0) Then Begin
         // A Slicer attached to an array assign will have no name length, so test for that now
         If (Length(SP_StackPtr^.Str) - SizeOf(LongWord)) <> pInteger(@SP_StackPtr^.Str[1])^ Then
           Idx := SP_FindStrArray(SP_StackPtr^.Str)
@@ -2169,7 +2170,8 @@ Begin
                 Str := '';
             End;
           End;
-        End Else
+        End Else Begin
+          Idx := Round(SP_StackPtr^.Val);
           If pByte(StrPtr+Token^.TokenLen)^ in [SP_STRUCT_MEMBER_N, SP_STRUCT_MEMBER_S] Then Begin
             With SP_StackPtr^ Do Begin
               OpType := SP_STRVARPTR;
@@ -2193,6 +2195,7 @@ Begin
               Str := SP_QueryStrArray(Idx, gbIndices, gbKey, Error^);
             End;
           End;
+        End;
       End;
     End;
   End;
@@ -11183,10 +11186,15 @@ Begin
   Delay := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  Repeat
-    SP_ForceScreenUpdate;
-    if Delay > 1 then Dec(Delay);
-  Until (Delay = 1) or (Length(ActiveKeys) <> 0);
+  If Delay > 0 Then Begin
+    Delay := FRAMES + Delay;
+    Repeat
+      CB_YIELD;
+    Until (FRAMES = Delay) or (Length(ActiveKeys) <> 0);
+  End Else
+    Repeat
+      CB_YIELD;
+    Until Length(ActiveKeys) <> 0;
 
   If KEYSTATE[K_ESCAPE] = 1 Then BreakSignal := True;
 
@@ -15600,22 +15608,19 @@ Begin
   If Delay < 0 Then Begin // WAIT SCREEN n
     // Force a display update, then wait for it - and then wait for any remaining time
     // necessary to complete the desired period.
+    TargetTicks := CB_GETTICKS - Delay;
     OldScreenLock := SCREENLOCK;
     SCREENLOCK := False;
     CauseUpdate := True;
     SP_NeedDisplayUpdate := False;
-    CurrentTicks := CB_GetTicks;
-    TargetTicks := CurrentTicks - Delay;
     SP_ForceScreenUpdate;
-    Repeat
+    While (CB_GETTICKS < TargetTicks) And (KEYSTATE[K_ESCAPE] = 0) And Not (BREAKSIGNAL Or QUITMSG) Do
       CB_YIELD;
-      CurrentTicks := CB_GetTicks;
-    Until (CurrentTicks >= TargetTicks) or (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL or QUITMSG;
     SCREENLOCK := OldScreenLock;
   End Else
-    If Delay = 0 Then Begin // WAIT SCREEN - forces a display update
-      SP_ForceScreenUpdate;
-    End Else Begin // WAIT n
+    If Delay = 0 Then // WAIT SCREEN - forces a display update
+      SP_ForceScreenUpdate
+    Else Begin // WAIT n
       CurrentTicks := Round(CB_GetTicks);
       TargetTicks := CurrentTicks + Delay;
       Repeat

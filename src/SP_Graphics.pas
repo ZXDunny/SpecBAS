@@ -617,20 +617,13 @@ Var
 Begin
   OldScreenLock := SCREENLOCK;
   SCREENLOCK := False;
-  SP_NeedDisplayUpdate := True;
   SP_WaitForSync;
   SCREENLOCK := OldScreenLock;
 End;
 
-
 Procedure SP_WaitForSync;
 Begin
   If RefreshThreadAlive Then Begin
-    If CauseUpdate Then Begin
-      While CauseUpdate and RefreshThreadAlive Do
-        CB_YIELD;
-      Exit;
-    End;
     SP_NeedDisplayUpdate := True;
     CauseUpdate := True;
     While CauseUpdate and RefreshThreadAlive Do
@@ -741,7 +734,7 @@ Procedure SP_CreateSystemUDGs(ID: Integer);
 Var
   BlockIDX, Offset, Idx: Integer;
 Const
-  BlockChars = '12345678!"£$%^&*';
+  BlockChars = '12345678!"'#96'$%^&*';
   BlockOffsets: Array[0..15] of Integer = ( 1,  2,  3,  4,  5, 6, 7, 0,
                                            14, 13, 12, 11, 10, 9, 8, 15);
 Begin
@@ -1244,10 +1237,6 @@ Begin
     Result := Window^.Height;
 
 End;
-
-// This rather large and unwieldy procedure resizes a window and updates all the window pointers to
-// match the new positions of the windows that are listed after it in the screen bank. This could probably be
-// alleviated by making each window a separate bank, which I may leave for another time :)
 
 Procedure SP_ResizeWindow(WindowID, W, H, Depth: Integer; FullScreen: Boolean; Var Error: TSP_ErrorCode);
 Var
@@ -3316,6 +3305,9 @@ Var
   p: pByte;
 Begin
 
+  DRPOSX := X2;
+  DRPOSY := Y2;
+
   If X1 > X2 Then Begin T := X1; X1 := X2; X2 := T; End;
   If Y1 > Y2 Then Begin T := Y1; Y1 := Y2; Y2 := T; End;
 
@@ -3376,8 +3368,6 @@ Begin
     SP_DrawRectangle32(X1, Y1, X2, Y2);
 
   SP_BankList[0]^.Changed := True;
-  DRPOSX := X2;
-  DRPOSY := Y2;
 
 End;
 
@@ -3391,6 +3381,8 @@ Var
 Begin
 
   tClr := 0;
+  DRPOSX := X2;
+  DRPOSY := Y2;
 
   If X1 > X2 Then Begin T := X1; X1 := X2; X2 := T; End;
   If Y1 > Y2 Then Begin T := Y1; Y1 := Y2; Y2 := T; End;
@@ -3450,8 +3442,6 @@ Begin
   End;
 
   SP_BankList[0]^.Changed := True;
-  DRPOSX := X2;
-  DRPOSY := Y2;
 
 End;
 
@@ -3460,6 +3450,9 @@ Var
   T, W: Integer;
   Dst: pByte;
 Begin
+
+  DRPOSX := X2;
+  DRPOSY := Y2;
 
   If X1 > X2 Then Begin T := X1; X1 := X2; X2 := T; End;
   If Y1 > Y2 Then Begin T := Y1; Y1 := Y2; Y2 := T; End;
@@ -3508,8 +3501,6 @@ Begin
     SP_DrawSolidRectangle32(X1, Y1, X2, Y2);
 
   SP_BankList[0]^.Changed := True;
-  DRPOSX := X2;
-  DRPOSY := Y2;
 
 End;
 

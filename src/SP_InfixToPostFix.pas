@@ -12758,7 +12758,7 @@ Function  SP_Convert_PROC(Var Tokens: aString; Var Position: Integer; Var Error:
 Var
   Name, Expr, VarList: aString;
   Idx: Integer;
-  NamePos, NameLen, NumParams: LongWord;
+  NamePos, NameLen, NumParams: Integer;
   ProcType: Byte;
   Symbol: aChar;
   Token: pToken;
@@ -12884,7 +12884,7 @@ Begin
 
         End Else Begin
 
-          If (VarList <> '') And (VarList[NumParams +1] = '!') Then Begin
+          If (VarList <> '') And (NumParams < Length(VarList)) And (VarList[NumParams +1] = '!') Then Begin
 
             // This is a variable to be passed by reference, but as defined by the DEF PROC, not the user.
             // Handle as above.

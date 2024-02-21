@@ -365,7 +365,7 @@ Begin
     FilenameEdt.Text := SP_ExtractFileName(Filename)
   Else
     FilenameEdt.Text := '';
-  okBtn.Enabled := SP_FileExists(Filename) or (ToolMode = 2);
+  okBtn.Enabled := SP_FileExists(Filename) or ((ToolMode = 2) And (FilenameEdt.Text <> ''));
 
   FilesList := SP_FileListBox.Create(Win^.Component);
   FilesList.SetBounds(FilenameEdt.Left, pBtn.Top + pBtn.Height + Bh, FilenameEdt.Width, FilenameEdt.Top - PathEdt.Top - FileNameEdt.Height - (Bh * 2));
@@ -576,8 +576,10 @@ Begin
 
   SP_GetSelectionInfo(Sel);
   inSelChk.Enabled := Sel.Active;
+  inSelChk.Checked := Sel.Active;
+
   If Not FindMode Then Begin
-    okBtn.Enabled := (searchEdt.Text <> '') And (replaceEdt.Text <> '');
+    okBtn.Enabled := searchEdt.Text <> '';
     AllBtn.Enabled := okBtn.Enabled;
   End Else
     okBtn.Enabled := searchEdt.Text <> '';
@@ -622,7 +624,7 @@ Begin
   If FindMode Then
     OkBtn.Enabled := b And (SearchEdt.Text <> '')
   Else Begin
-    OkBtn.Enabled := b And (SearchEdt.Text <> '') And (ReplaceEdt.Text <> '');
+    OkBtn.Enabled := b And (SearchEdt.Text <> '');
     allBtn.Enabled := OkBtn.Enabled;
   End;
 

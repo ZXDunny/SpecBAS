@@ -164,7 +164,6 @@ End;
 
 Procedure TRefreshThread.Execute;
 Var
-  DC: hDc;
   LastFrames: NativeUint;
   StartTime, CurTime, LastTime, NowTime: aFloat;
 Begin
@@ -173,12 +172,6 @@ Begin
   NameThreadForDebugging('Refresh Thread');
   Priority := tpNormal;
   RefreshThreadAlive := True;
-
-  DC := 0;
-    If Not GLInitDone Then Begin
-    InitGL;
-    ReScaleFlag := True;
-  End;
 
   LastFrames := 0;
   StartTime := CB_GetTicks;
@@ -222,7 +215,7 @@ Begin
     End;
 
     Sleep(1);
-    glFinish;
+    If GLInitDone Then glFinish;
 
   End;
 

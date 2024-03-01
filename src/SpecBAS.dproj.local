@@ -15,8 +15,8 @@
     <Transaction>2023/01/04 15:32:11.000.216,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_SyncObjs.pas</Transaction>
     <Transaction>2023/02/07 13:12:26.000.371,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2023/02/07 13:12:40.000.258,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_MIDI.pas</Transaction>
-    <Transaction>2024/02/20 13:42:01.313,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2024/02/20 13:50:50.249,D:\Projects\SpecBAS\src\SP_Display.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2024/02/20 13:42:01.000.313,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2024/02/20 13:50:50.000.249,D:\Projects\SpecBAS\src\SP_Display.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
   </Transactions>
 	<ProjectSortOrder AutoSort="0" SortType="0">
     <File Path="MainForm.pas"/>

@@ -624,7 +624,6 @@ End;
 Procedure SP_WaitForSync;
 Begin
   If RefreshThreadAlive Then Begin
-    SP_NeedDisplayUpdate := True;
     CauseUpdate := True;
     While CauseUpdate and RefreshThreadAlive Do
       CB_YIELD;

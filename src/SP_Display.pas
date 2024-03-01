@@ -174,7 +174,7 @@ Begin
   RefreshThreadAlive := True;
 
   LastFrames := 0;
-  StartTime := CB_GetTicks;
+  StartTime := 0;
   LastTime := StartTime;
 
   While Not (QUITMSG Or Terminated) Do Begin
@@ -190,7 +190,7 @@ Begin
     CurTime := CB_GETTICKS;
     FRAMES := Trunc((CurTime - StartTime) / FRAME_MS);
 
-    If VSYNCENABLED Or ((FRAMES <> LastFrames) And Not VSYNCENABLED) Then Begin
+    If Frames <> LastFrames Then begin
 
       FrameElapsed := True;
       Inc(AutoFrameCount);
@@ -202,6 +202,7 @@ Begin
         DisplaySection.Enter;
         If UpdateDisplay Then Begin
           CB_Refresh_Display;
+          If StartTime = 0 Then StartTime := CB_GetTicks;
           NowTime := CB_GetTicks;
           LASTFRAMETIME := NowTime - LastTime;
           AvgFrameTime := (AvgFrameTime + LastFrameTime)/2;
@@ -215,7 +216,6 @@ Begin
     End;
 
     Sleep(1);
-    If GLInitDone Then glFinish;
 
   End;
 
@@ -374,6 +374,7 @@ Begin
 
     glGetIntegerv(GL_UNPACK_ROW_LENGTH, @tmp);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+
     SwapBuffers(DC);
 
   {$ELSE}

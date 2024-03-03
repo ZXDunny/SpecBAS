@@ -13219,9 +13219,11 @@ End;
 Procedure SP_Interpret_SCR_LOCK(Var Info: pSP_iInfo);
 Begin
 
-  SP_NeedDisplayUpdate := True;
-  SP_WaitForSync;
-  SCREENLOCK := True;
+  If Not SCREENLOCK Then Begin
+    SP_NeedDisplayUpdate := True;
+    SP_WaitForSync;
+    SCREENLOCK := True;
+  End;
 
 End;
 

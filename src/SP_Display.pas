@@ -165,17 +165,17 @@ End;
 Procedure TRefreshThread.Execute;
 Var
   LastFrames: NativeUint;
-  StartTime, CurTime, LastTime, NowTime: aFloat;
+  StartTime, CurTime, LastTime, SleepTime: aFloat;
 Begin
 
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
-  Priority := tpNormal;
+  Priority := tpHigher;
   RefreshThreadAlive := True;
 
   LastFrames := 0;
   StartTime := 0;
-  LastTime := StartTime;
+  LastTime := 0;
 
   While Not (QUITMSG Or Terminated) Do Begin
 
@@ -190,7 +190,7 @@ Begin
     CurTime := CB_GETTICKS;
     FRAMES := Trunc((CurTime - StartTime) / FRAME_MS);
 
-    If Frames <> LastFrames Then begin
+    If FRAMES <> LastFrames Then begin
 
       FrameElapsed := True;
       Inc(AutoFrameCount);
@@ -202,11 +202,11 @@ Begin
         DisplaySection.Enter;
         If UpdateDisplay Then Begin
           CB_Refresh_Display;
-          If StartTime = 0 Then StartTime := CB_GetTicks;
-          NowTime := CB_GetTicks;
-          LASTFRAMETIME := NowTime - LastTime;
-          AvgFrameTime := (AvgFrameTime + LastFrameTime)/2;
-          LastTime := NowTime;
+          If StartTime = 0 Then
+            StartTime := CB_GETTICKS;
+          LASTFRAMETIME := CurTime - LastTime;
+          AvgFrameTime := (AvgFrameTime + LASTFRAMETIME)/2;
+          LastTime := CurTime;
         End;
         DisplaySection.Leave;
         UPDATENOW := False;
@@ -215,7 +215,9 @@ Begin
 
     End;
 
-    Sleep(1);
+    SleepTime := (((FRAMES + 1) * FRAME_MS) + StartTime) - CB_GETTICKS;
+    If SleepTime >= 1 Then
+      Sleep(Trunc(SleepTime));
 
   End;
 
@@ -376,6 +378,7 @@ Begin
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 
     SwapBuffers(DC);
+    glFinish;
 
   {$ELSE}
     InvalidateRect(Main.Handle, iRect, False);

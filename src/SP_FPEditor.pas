@@ -1815,7 +1815,7 @@ Begin
           i := 1;
           j := 1;
           Paper := -1;
-          While (i < Length(SynLine)) And (j < FPBracket1Pos) Do Begin
+          While (i <= Length(SynLine)) And (j < FPBracket1Pos) Do Begin
             c := SynLine[i];
             If (c < ' ') and (c <> #5) Then Begin
               If c = #17 Then
@@ -1838,7 +1838,7 @@ Begin
           If bp2 > 0 Then Begin
             m := Length(t) + Length(BraceHltClr);
             Inc(i, m +1);
-            While (i < Length(SynLine)) And (j < bp2) Do Begin
+            While (i <= Length(SynLine)) And (j < bp2) Do Begin
               c := SynLine[i];
               If (c < ' ') and (c <> #5) Then Begin
                 If SynLine[i] = #17 Then

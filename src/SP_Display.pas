@@ -30,7 +30,7 @@ Type
 Var
 
   ScrWidth, ScrHeight, OrgWidth, OrgHeight: Integer;
-  GLX, GLY, GLW, GLH, GLMX, GLMY, GLMW, GLMH: Integer;
+  GLX, GLY, GLW, GLH, GLMX, GLMY, GLMW, GLMH, GLFX, GLFY, GLFW, GLFH: Integer;
   iRect: TRect;
   RefreshTimer: TRefreshThread;
   {$IFDEF OPENGL}
@@ -232,6 +232,37 @@ Begin
 
 End;
 
+Procedure RestoreFPSRegion;
+Var
+  CX1, CY1, CX2, CY2: Integer;
+  Error: TSP_ErrorCode;
+Begin
+  cX1 := 0; cy1 := 0; cx2 := DISPLAYWIDTH; cy2 := DISPLAYHEIGHT;
+  SP_PutRegion_NO_OVER32To32(DISPLAYPOINTER, FPSLEFT, FPSTOP, DISPLAYSTRIDE, DISPLAYHEIGHT, @FPSIMAGE[1], Length(FPSIMAGE), cX1, cY1, cX2, cY2, Error);
+  FPSIMAGE := '';
+End;
+
+Procedure DrawFPS;
+Var
+  Error: TSP_ErrorCode;
+Begin
+
+  SP_GetRegion32(DISPLAYPOINTER, DISPLAYSTRIDE, DISPLAYHEIGHT, FPSIMAGE, FPSLEFT, FPSTOP, FPSWIDTH, FPSHEIGHT, Error);
+  SP_RawTextOut(SYSFONT, DISPLAYPOINTER, DISPLAYSTRIDE Shr 2, DISPLAYHEIGHT, FPSLEFT, FPSTOP, FPSSTRING, $8000C000, 0, 2, 2, True, True);
+
+End;
+
+Procedure PrepFPSVars;
+Begin
+  If FPSIMAGE <> '' Then RestoreFPSRegion;
+  GLFW := (Length(FPSSTRING) * 8 * FPSSCALE);
+  GLFX := DISPLAYWIDTH - (GLFW + 8);
+  GLFY := 8;
+  GLFH := 8 * FPSSCALE;
+  FPSTOP := GLFY; FPSLEFT := GLFX;
+  FPSWIDTH := GLFW; FPSHEIGHT := GLFH;
+End;
+
 Function UpdateDisplay: Boolean;
 Var
   X1, Y1, X2, Y2, Mx1, Mx2, My1, My2: Integer;
@@ -246,6 +277,7 @@ Begin
       If SCMAXX >= SCMINX Then Begin
         SP_RestoreMouseRegion;
         While SetDR Do Sleep(1); SetDR := True;
+        If SHOWFPS Then PrepFPSVars;
         X1 := SCMINX; Y1 := SCMINY; X2 := SCMAXX +1; Y2 := SCMAXY +1;
         {$IFDEF OPENGL}
         // IMPORTANT: Ensure that the region to display doesn't step outside the boundaries of the texture
@@ -259,6 +291,8 @@ Begin
         DRAWING := True;
         If Assigned(DISPLAYPOINTER) Then
           SP_Composite32(DISPLAYPOINTER, X1, Y1, X2, Y2);
+        If SHOWFPS Then
+          DrawFPS;
         MOUSEMOVED := False;
         If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then Begin
           SP_DrawMouseImage;
@@ -358,6 +392,14 @@ Begin
         h := GLMH * ScaleFactor;
         glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, W, H, GL_BGRA, GL_UNSIGNED_BYTE, @DispArray[X * 4 + ScaledWidth * 4 * Y]);
       End;
+      If (GLFW > 0) And (GLFH > 0) And SHOWFPS Then Begin
+        ScaleBuffers(GLFX, GLFX + GLFW -1, GLFY, GLFH + GLFY -1);
+        x := GLFX * ScaleFactor;
+        y := GLFY * ScaleFactor;
+        w := GLFW * ScaleFactor;
+        h := GLFH * ScaleFactor;
+        glTexSubImage2D(GL_TEXTURE_2D, 0, X, Y, W, H, GL_BGRA, GL_UNSIGNED_BYTE, @DispArray[X * 4 + ScaledWidth * 4 * Y]);
+      End;
     End Else Begin
       if (GLH > 0) And (GLW > 0) Then Begin
         glPixelStorei(GL_UNPACK_ROW_LENGTH, DISPLAYWIDTH);
@@ -365,6 +407,8 @@ Begin
       End;
       If (GLMW > 0) And (GLMH > 0) And MOUSEMOVED Then
         glTexSubImage2D(GL_TEXTURE_2D, 0, GLMX, GLMY, GLMW, GLMH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLMX * 4 + DISPLAYWIDTH * 4 * GLMY]);
+      If (GLFW > 0) And (GLFH > 0) And SHOWFPS Then
+        glTexSubImage2D(GL_TEXTURE_2D, 0, GLFX, GLFY, GLFW, GLFH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLFX * 4 + DISPLAYWIDTH * 4 * GLFY]);
     End;
 
     glBegin(GL_QUADS);

@@ -157,8 +157,16 @@ Begin
 End;
 
 procedure TMain.Timer1Timer(Sender: TObject);
+Var
+  s: String;
+  m: Integer;
 begin
-  Caption := String(BUILDSTR) + ' - ' + Format('%.2f', [1000/AvgFrameTime]) + ' fps';
+  s := Format('%.0f', [1000/AvgFrameTime]);
+  FPSSTRING := OSD + aString(' ' + s);
+  m := Length(FPSSTRING);
+  FPSSTRING := aString(StringOfChar(' ', 1 + (MaxOSDLen - length(FPSSTRING)))) + FPSSTRING;
+  MaxOSDLen := m;
+  Caption := String(BUILDSTR) + ' - ' + String(s) + ' fps';
 end;
 
 Function GetTicks: aFloat;

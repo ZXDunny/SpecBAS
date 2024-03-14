@@ -124,7 +124,8 @@ Begin
   SP_NeedDisplayUpdate := (SCMINX < SCMAXX) or SP_NeedDisplayUpdate;
   OldFlashState := FLASHSTATE;
   FLASHSTATE := Ord((FRAMES Mod (FLASHINTERVAL * 2)) > FLASHINTERVAL);
-  If (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_INPUT]) And (OldFlashState <> FLASHSTATE) Then
+  FLASHFRAME := OldFlashState <> FLASHSTATE;
+  If (SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_INPUT]) And FLASHFRAME Then
     SP_NeedDisplayUpdate := True;
   Result := (NUMSPRITES > 0) or SP_NeedDisplayUpdate;
 

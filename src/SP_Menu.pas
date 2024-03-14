@@ -872,9 +872,9 @@ Begin
           End;
 
           If SP_MENUS[m].Items[Idx].Enabled Then
-            SP_RawTextOut(fB, pLongWord(Dst), dW, dH, tX, tY, SP_MENUS[m].Items[Idx].Caption, MENUBARINK, MENUBARPAPER, SclX, SclY, True)
+            SP_RawTextOut(fB, pLongWord(Dst), dW, dH, tX, tY, SP_MENUS[m].Items[Idx].Caption, MENUBARINK, MENUBARPAPER, SclX, SclY, True, False)
           Else
-            SP_RawTextOut(fB, pLongWord(Dst), dW, dH, tX, tY, SP_MENUS[m].Items[Idx].Caption, MENUDISABLEDINK, MENUBARPAPER, SclX, SclY, True);
+            SP_RawTextOut(fB, pLongWord(Dst), dW, dH, tX, tY, SP_MENUS[m].Items[Idx].Caption, MENUDISABLEDINK, MENUBARPAPER, SclX, SclY, True, False);
 
           Inc(Tx, il);
 
@@ -1075,7 +1075,7 @@ Begin
             End;
             Inc(tY, fH);
           End Else Begin
-            SP_RawTextOut(fB, pLongWord(Dst), dW, dH, tX, tY, Caption, iCl, MENUPAPER, SclX, SclY, True);
+            SP_RawTextOut(fB, pLongWord(Dst), dW, dH, tX, tY, Caption, iCl, MENUPAPER, SclX, SclY, True, False);
             Inc(tY, fH);
           End;
 

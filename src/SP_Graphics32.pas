@@ -98,7 +98,7 @@ Type
   Function  SP_PRINT32Alpha(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: LongWord; var Error: TSP_ErrorCode): Integer;
   Function  SP_TextOut32(BankID, X, Y: Integer; const Text: aString; Ink, Paper: LongWord; Visible: Boolean): Integer;
   Function  SP_TextOut32Alpha(BankID, X, Y: Integer; const Text: aString; Ink, Paper: LongWord; Visible: Boolean): Integer;
-  Function  SP_RawTextOut(BankID: Integer; Dest: pLongWord; dW, dH, X, Y: Integer; const Text: aString; Ink, Paper: LongWord; ScaleX, ScaleY: aFloat; Trans: Boolean): Integer;
+  Function  SP_RawTextOut(BankID: Integer; Dest: pLongWord; dW, dH, X, Y: Integer; const Text: aString; Ink, Paper: LongWord; ScaleX, ScaleY: aFloat; Trans, Alpha: Boolean): Integer;
   Procedure SP_DrawStripe32(Dst: pLongWord; Width, StripeWidth, StripeHeight: Integer);
 
 Var
@@ -3918,7 +3918,7 @@ Begin
 
 End;
 
-Function SP_RawTextOut(BankID: Integer; Dest: pLongWord; dW, dH, X, Y: Integer; const Text: aString; Ink, Paper: LongWord; ScaleX, ScaleY: aFloat; Trans: Boolean): Integer;
+Function SP_RawTextOut(BankID: Integer; Dest: pLongWord; dW, dH, X, Y: Integer; const Text: aString; Ink, Paper: LongWord; ScaleX, ScaleY: aFloat; Trans, Alpha: Boolean): Integer;
 Var
   fW, fH, CharW, CharH, Idx: Integer;
   sX, sY, Cw, Ch, TC, xp, yp, pInk, pPaper: Integer;
@@ -3977,11 +3977,17 @@ Begin
             While CharW > 0 Do Begin
               If (X >= 0) And (Y >= 0) And (X < dW) And (Y < dH) Then
                 If FontBank^.FontType = SP_FONT_TYPE_MONO Then Begin
-                  If pByte(NativeUInt(pIdx) + (xp Shr 16))^ = 1 Then
-                    Coord^ := Ink
-                  Else
+                  If pByte(NativeUInt(pIdx) + (xp Shr 16))^ = 1 Then Begin
+                    If Alpha Then
+                      Coord^ := SP_AlphaBlend(Coord^, Ink)
+                    Else
+                      Coord^ := Ink
+                  End Else
                     If Not Trans Then
-                      Coord^ := Paper;
+                      If Alpha Then
+                        Coord^ := SP_AlphaBlend(Coord^, Paper)
+                      Else
+                        Coord^ := Paper;
                 End Else
                   If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
                     If Transparent Then Begin
@@ -4017,11 +4023,17 @@ Begin
             While CharW > 0 Do Begin
               If (X >= 0) And (Y >= 0) And (X < dW) And (Y < dH) Then
                 If FontBank^.FontType = SP_FONT_TYPE_MONO Then Begin
-                  If Char^ = 1 Then
-                    Coord^ := Ink
-                  Else
+                  If Char^ = 1 Then Begin
+                    If Alpha Then
+                      Coord^ := SP_AlphaBlend(Coord^, Ink)
+                    Else
+                      Coord^ := Ink
+                  End Else
                     If Not Trans Then
-                      Coord^ := Paper;
+                      If Alpha Then
+                        Coord^ := SP_AlphaBlend(Coord^, Paper)
+                      Else
+                        Coord^ := Paper;
                   Inc(Char);
                 End Else
                   If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin

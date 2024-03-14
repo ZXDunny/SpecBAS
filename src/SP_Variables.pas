@@ -2390,6 +2390,7 @@ Begin
     SP_DeleteAllStreams(Error);
     SetLength(FillQueue, 0);
     SP_DeleteAllMenus;
+    OSD := '';
   End;
   SP_ClearLabels;
   ProcLines := '';

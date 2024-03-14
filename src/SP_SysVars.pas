@@ -96,6 +96,7 @@ Var
   SCALEWIDTH:               LongWord;
   SCALEHEIGHT:              LongWord;
   NUMWINDOWS:               Integer;
+  SHOWFPS:                  Boolean;
 
   CBLACK,
   CBLUE,
@@ -196,12 +197,23 @@ Var
   INCLUDEFROM:              Integer;      // The line number that INCLUDEs are appended from, if present (-1 if not)
   INPROC:                   Integer;      // Are we executing code inside a PROC?
 
+  OSD:                      aString;      // User definable on-screen display
+  MAXOSDLEN:                Integer;
   EDITORFPS:                LongWord;     // FPS in the editor
   DEFAULTFPS:               LongWord;     // Default FPS for running
+  FPSLEFT:                  Integer;
+  FPSTOP:                   Integer;
+  FPSWIDTH:                 Integer;
+  FPSHEIGHT:                Integer;
+  FPSSTRING:                aString;      // The current FPS (used for displaying in fullscreen mode)
+  FPSPROCESSEDSTRING:       aString;
+  FPSIMAGE:                 aString;      // Like the mouse, this stores the background under the FPS display
+  FPSSCALE:                 Integer;
   FLASHINTERVAL:            Integer;      // The number of frames that must elapse between cursor flash state changes
   FRAMES:                   Integer;      // Elapsed frame counter, 50Hz
   LASTFRAME:                LongWord;
   FLASHSTATE:               Integer;      // 1 or 0 for the cursor flash
+  FLASHFRAME:               Boolean;      // Is this frame a flash transition?
   EDITERROR:                Boolean;      // True if the syntax check caught an editing error
   EDITERRORPOS:             Integer;      // Position in the EDITLINE aString of the error
   PROGLINE:                 Integer;      // The currently selected line in the listing
@@ -1577,7 +1589,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..247] of TSysVar =
+  SysVars: Array[0..250] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
@@ -1829,7 +1841,10 @@ Const
    (Name: 'GAPSIZE'; svType: svInteger; Size: 4; Data: @BSIZE),
    (Name: 'NATWIDTH'; svType: svLongWord; Size: 4; Data: @REALSCREENWIDTH),
    (Name: 'NATHEIGHT'; svType: svLongWord; Size: 4; Data: @REALSCREENHEIGHT),
-   (Name: 'CIRCLEASPECT'; svType: svBoolean; Size: 1; Data: @CIRCLEASPECT));
+   (Name: 'CIRCLEASPECT'; svType: svBoolean; Size: 1; Data: @CIRCLEASPECT),
+   (Name: 'SHOWFPS'; svType: svBoolean; Size: 1; Data: @SHOWFPS),
+   (Name: 'FPSSTR'; svType: svString; Size: 0; Data: @FPSSTRING),
+   (Name: 'OSD'; svType: svString; Size: 0; Data: @OSD));
 
 
   Function  SP_GetSysVarN(ID: aString; Var Error: TSP_ErrorCode): aFloat;
@@ -2012,6 +2027,7 @@ End;
 
 Initialization
 
+  FPSSCALE := 2;
   MODALWINDOW := -1;
   CIRCLEASPECT := False;
 

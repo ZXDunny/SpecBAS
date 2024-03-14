@@ -185,6 +185,7 @@ Begin
         CB_YIELD;
       Until Not ShouldPause;
       IsPaused := False;
+      LastFrames := FRAMES;
     End;
 
     CurTime := CB_GETTICKS;
@@ -202,8 +203,7 @@ Begin
         DisplaySection.Enter;
         If UpdateDisplay Then Begin
           CB_Refresh_Display;
-          If StartTime = 0 Then
-            StartTime := CB_GETTICKS;
+          If StartTime = 0 Then StartTime := CB_GETTICKS;
           LASTFRAMETIME := CurTime - LastTime;
           AvgFrameTime := (AvgFrameTime + LASTFRAMETIME)/2;
           LastTime := CurTime;

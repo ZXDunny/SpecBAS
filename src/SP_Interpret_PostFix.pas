@@ -23120,9 +23120,9 @@ Begin
 
   SP_GetWindowDetails(SCREENBANK, Win, Info^.Error^);
   If Info^.Error^.Code = SP_ERR_OK Then Begin
-    Win^.Flip := True;
+    Win^.Flip := not Win^.Flip;
     If WinID = SCREENBANK Then
-      WINFLIPPED := True;
+      WINFLIPPED := Win^.Flip;
   End;
 
 End;
@@ -23134,8 +23134,8 @@ Begin
   // Set the flipped var for the current window
   SP_GetWindowDetails(SCREENBANK, Win, Info^.Error^);
   If Info^.Error^.Code = SP_ERR_OK Then Begin
-    Win^.Flip := True;
-    WINFLIPPED := True;
+    Win^.Flip := Not Win^.Flip;
+    WINFLIPPED := Win^.Flip;
   End;
 End;
 

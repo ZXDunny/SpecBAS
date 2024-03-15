@@ -159,14 +159,10 @@ End;
 procedure TMain.Timer1Timer(Sender: TObject);
 Var
   s: String;
-  m: Integer;
 begin
+  GetOSDString;
   s := Format('%.0f', [1000/AvgFrameTime]);
-  FPSSTRING := OSD + aString(' ' + s);
-  m := Length(FPSSTRING);
-  FPSSTRING := aString(StringOfChar(' ', 1 + (MaxOSDLen - length(FPSSTRING)))) + FPSSTRING;
-  MaxOSDLen := m;
-  Caption := String(BUILDSTR) + ' - ' + String(s) + ' fps';
+  Caption := String(BUILDSTR) + ' - ' + s + ' fps';
 end;
 
 Function GetTicks: aFloat;
@@ -712,7 +708,7 @@ begin
 
   // Start graphics server
 
-  SP_SetFPS(60);
+  SP_SetFPS(GetScreenRefreshrate);
   SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
   SetBounds((REALSCREENWIDTH - Width) Div 2, (REALSCREENHEIGHT - Height) Div 2, Width, Height);
   RefreshTimer := TRefreshThread.Create(False);

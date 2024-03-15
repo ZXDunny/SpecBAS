@@ -199,8 +199,6 @@ Var
 
   OSD:                      aString;      // User definable on-screen display
   MAXOSDLEN:                Integer;
-  EDITORFPS:                LongWord;     // FPS in the editor
-  DEFAULTFPS:               LongWord;     // Default FPS for running
   FPSLEFT:                  Integer;
   FPSTOP:                   Integer;
   FPSWIDTH:                 Integer;
@@ -1589,11 +1587,10 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..250] of TSysVar =
+  SysVars: Array[0..249] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
-   (Name: 'EDITORFPS'; svType: svLongWord; Size: 4; Data: @EDITORFPS),
    (Name: 'HARDWARE'; svType: svString; Size: 0; Data: @HARDWARE),
    (Name: 'SPFULLSCREEN'; svType: svBoolean; Size: 1; Data: @SPFULLSCREEN),
    (Name: 'SCMINX'; svType: svInteger; Size: 4; Data: @SCMINX),

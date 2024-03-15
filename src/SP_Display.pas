@@ -25,6 +25,8 @@ Type
   Procedure ResumeDisplay;
   Procedure Refresh_Display;
   Function  UpdateDisplay: Boolean;
+  Function  GetScreenRefreshRate: Integer;
+  Procedure GetOSDString;
   Procedure GLResize;
 
 Var
@@ -66,7 +68,7 @@ begin
   with pfd do begin
     nSize:= SizeOf( PIXELFORMATDESCRIPTOR );
     nVersion:= 1;
-    dwFlags:= PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL or PFD_DOUBLEBUFFER;
+    dwFlags:= PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL or PFD_DOUBLEBUFFER or PFD_SWAP_COPY;
     iPixelType:= PFD_TYPE_RGBA;
     cColorBits:= 32;
     cRedBits:= 0;
@@ -246,10 +248,20 @@ Procedure DrawFPS;
 Var
   Error: TSP_ErrorCode;
 Begin
-
   SP_GetRegion32(DISPLAYPOINTER, DISPLAYSTRIDE, DISPLAYHEIGHT, FPSIMAGE, FPSLEFT, FPSTOP, FPSWIDTH, FPSHEIGHT, Error);
-  SP_RawTextOut(SYSFONT, DISPLAYPOINTER, DISPLAYSTRIDE Shr 2, DISPLAYHEIGHT, FPSLEFT, FPSTOP, FPSSTRING, $8000C000, 0, 2, 2, True, True);
+  SP_RawTextOut(SYSFONT, DISPLAYPOINTER, DISPLAYSTRIDE Shr 2, DISPLAYHEIGHT, FPSLEFT, FPSTOP, FPSSTRING, $8000FF00, 0, 2, 2, True, True);
+End;
 
+Procedure GetOSDString;
+Var
+  s: String;
+  m: Integer;
+begin
+  s := Format('%.0f', [1000/AvgFrameTime]);
+  FPSSTRING := OSD + aString(' ' + s);
+  m := Length(FPSSTRING);
+  FPSSTRING := aString(StringOfChar(' ', 1 + (MaxOSDLen - length(FPSSTRING)))) + FPSSTRING;
+  MaxOSDLen := m;
 End;
 
 Procedure PrepFPSVars;
@@ -370,7 +382,6 @@ Begin
     DC := wglGetCurrentDC;
 
     glDisable(gl_MULTISAMPLE_ARB);
-    glClear(GL_COLOR_BUFFER_BIT);
     glLoadIdentity;
     glUseProgramObjectARB(0);
 
@@ -420,9 +431,9 @@ Begin
 
     glGetIntegerv(GL_UNPACK_ROW_LENGTH, @tmp);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glFinish;
 
     SwapBuffers(DC);
-    glFinish;
 
   {$ELSE}
     InvalidateRect(Main.Handle, iRect, False);
@@ -524,6 +535,16 @@ Begin
 
   SendMessage(Main.Handle, WM_RESIZEMAIN, l + (t shl 16), w + (h Shl 16));
 
+End;
+
+Function GetScreenRefreshRate: Integer;
+var
+  DeviceMode: TDeviceMode;
+const
+  ENUM_CURRENT_SETTINGS = DWORD(-1);
+Begin
+  EnumDisplaySettings(nil, ENUM_CURRENT_SETTINGS, DeviceMode);
+  Result := DeviceMode.dmDisplayFrequency;
 End;
 
 function TestScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;

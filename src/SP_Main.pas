@@ -104,7 +104,6 @@ Begin
 
   FPS := Value;
   FRAME_MS := 1000/FPS;
-  FPS := 1000/FRAME_MS;
   AUTOSAVETIME := Round(FPS * 30);
   FLASHINTERVAL := Max(2, Trunc(0.32*FPS));
   REPDEL := Max(5, Trunc((20/50)*FPS));
@@ -187,9 +186,6 @@ Begin
   BPSIGNAL := False;
   INTSCALING := False;
   ANIMSPEED := 150;
-  DEFAULTFPS := 60;
-  EDITORFPS := 60;
-  SP_SetFPS(DEFAULTFPS);
   FLASHSTATE := 0;
   FRAMES := 0;
   LASTFRAME := FRAMES;

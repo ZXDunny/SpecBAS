@@ -12101,7 +12101,6 @@ Begin
     MATHMODE := 0;
     CSCALEX := 1;
     CSCALEY := 1;
-    SP_SetFPS(DEFAULTFPS);
     SP_Reset_Temp_Colours;
     If Filename <> 's:autosave' Then
       SP_CLS(CPAPER);
@@ -14143,7 +14142,6 @@ Begin
     GWScaleFactor := 1;
 
     MATHMODE := 0;
-    SP_SetFPS(DEFAULTFPS);
 
     If SP_FileExists('s:startup-sequence') Then Begin
       Dir := SP_GetCurrentDir;

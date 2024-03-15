@@ -808,7 +808,6 @@ Begin
   COVER := 0;
   T_OVER := COVER;
 
-  SP_SetFPS(EDITORFPS);
   FPCaptionHeight := FPFh + 2;
 
   DWWindowWidth := DISPLAYWIDTH - (BSize * 2);
@@ -7244,8 +7243,6 @@ Begin
   ErrorFPS := FPS;
   REPCOUNT := FRAMES;
 
-  SP_SetFPS(EDITORFPS);
-
   Font := SP_SetFPEditorFont;
 
   // Turn off ON ERROR - we don't want this to trigger now, it should have done it before if at all.
@@ -7555,8 +7552,6 @@ Begin
     SIGSAMPLEBANK := -2;
   End;
 
-  SP_SetFPS(ErrorFPS);
-
   SP_SetSystemFont(Font, Err);
   SP_SetDrawingWindow(Window);
 
@@ -7621,8 +7616,6 @@ Begin
   SP_DeleteWindow(DWWindowID, Error);
   FPWIndowID := -1;
   DWWindowID := -1;
-
-  SP_SetFPS(FPEditorSaveFPS);
 
   SetLength(Events, 0);
   FPDebugPanel := nil;

@@ -233,7 +233,6 @@ Begin
 
   LocalFlashState := FLASHSTATE;
   EditorSaveFPS := FPS;
-  SP_SetFPS(EditorFPS);
 
   Result := False;
   X := 0; Y := 0;
@@ -341,8 +340,6 @@ Begin
 
   PRPOSX := X; PRPOSY := Y;
   TempStr := '';
-
-  SP_SetFPS(EditorSaveFPS);
 
 End;
 
@@ -564,7 +561,6 @@ Var
 Begin
 
   EditorSaveFPS := FPS;
-  SP_SetFPS(EditorFPS);
 
   Result := -1;
 
@@ -696,8 +692,6 @@ Begin
   SP_SetDrawingWindow(Window);
   SP_DeleteWindow(WindowID, Err);
   OptionList.Free;
-
-  SP_SetFPS(EditorSaveFPS);
 
 End;
 

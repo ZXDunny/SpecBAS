@@ -1023,11 +1023,11 @@ Begin
   FPWindowTop := BSize;
   FPWindowLeft := BSize;
 
-  FPWindowID := SP_Add_Window(FPWindowLeft, -FPWindowHeight, FPWindowWidth, FPWindowHeight, -1, 8, 0, Error);
+  FPWindowID := SP_Add_Window(FPWindowLeft, -FPWindowHeight, FPWindowWidth, FPWindowHeight, 255, 8, 0, Error);
   SP_GetWindowDetails(FPWindowID, Win, Error);
   Win^.CaptionHeight := FPCaptionHeight;
   SP_CreateEditorMenu;
-  // SP_CreateEditorTabBar;
+  //SP_CreateEditorTabBar;
   fwEditor := FPWIndowID;
 
   // Dimensions. Client area is the inner part of the window excluding border ( 1 pixel ) and caption.
@@ -7220,7 +7220,7 @@ Var
   Err: TSP_ErrorCode;
   ErrWin: pSP_Window_Info;
   ErrorText, Text, Title, StripeText, tempText: aString;
-  ErrorFPS, t2, EMove, ETop, TargetTicks: aFloat;
+  t2, EMove, ETop, TargetTicks: aFloat;
   ERRORWINDOW, WinW, WinH, WinX, WinY, MaxW, Lines, Cnt, Idx, MaxLen,
   Font, Window, ofs, x, sz: Integer;
   t, t3: NativeUInt;
@@ -7240,7 +7240,6 @@ Begin
   CB_YIELD;
 
   Window := SCREENBANK;
-  ErrorFPS := FPS;
   REPCOUNT := FRAMES;
 
   Font := SP_SetFPEditorFont;

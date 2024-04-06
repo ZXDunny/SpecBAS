@@ -1276,7 +1276,7 @@ begin
     stsy := SCREENWIDTH * sy;
 
     If Not SKIPFIRSTPOINT Then
-      Ptr^ := Ink
+      SP_AlphaBlend(Ptr^, Ink)
     Else
       If Flip Then
         Ptr^ := SP_AlphaBlend(Ptr^, Ink);

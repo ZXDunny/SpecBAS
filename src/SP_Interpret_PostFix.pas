@@ -741,6 +741,7 @@ Procedure SP_Interpret_SETCPU(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MULTIPLOT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PROJECT3D(Var Info: pSP_iInfo);
 Procedure SP_Interpret_RAINBOW(Var Info: pSP_iInfo);
+Procedure SP_Interpret_RAINBOW_HSV(Var Info: pSP_iInfo);
 Procedure SP_Interpret_KEYBOARD(Var Info: pSP_iInfo);
 Procedure SP_Interpret_WIN_ORG_FLIP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_WIN_ORIGIN(Var Info: pSP_iInfo);
@@ -5921,6 +5922,43 @@ Begin
   Dec(SP_StackPtr);
   dX := SP_StackPtr^.Val;
   SP_StackPtr^.Val := Sqrt((dx * dx) + (dy * dy));
+
+End;
+
+Procedure SP_Interpret_FN_BITCNT(Var Info: pSP_iInfo);
+Var
+  v, c: Integer;
+Begin
+
+  // Counts the number of set bits in a value
+
+  c := 0;
+  v := Round(SP_StackPtr^.Val);
+  While v > 0 Do Begin
+    Inc(c, v And 1);
+    v := v shr 1;
+  End;
+  SP_StackPtr^.Val := c;
+
+End;
+
+Procedure SP_Interpret_FN_HIBIT(Var Info: pSP_iInfo);
+Var
+  v, c: Integer;
+Begin
+
+  // Returns the highest set bit in a value
+
+  c := 0;
+  v := Round(SP_StackPtr^.Val);
+  If v = 0 Then
+    SP_StackPtr^.Val := -1
+  Else
+    While v > 0 Do Begin
+      if v and 1 = 1 then SP_StackPtr^.Val := c;
+      v := v shr 1;
+      Inc(c);
+    End;
 
 End;
 
@@ -22308,6 +22346,7 @@ Begin
         dIdx := SP_CreateNumArray(VarName, Indices, NumArrays[sIdx].Base, False, Info^.Error^);
       End;
     End;
+    // Copy non-3D data to destination
     vIdx := 0;
     iSize := valCount;
     For pIdx := 0 To NumPoints -1 Do Begin
@@ -22325,77 +22364,90 @@ Begin
   NumTransforms := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  While NumTransforms > 0 Do Begin
+  If NumTransforms = 0 Then Begin
 
-    Dec(numTransforms);
-
-    KeyWordID := Round(SP_StackPtr^.Val);
-    Dec(SP_StackPtr);
-
-    dx := SP_StackPtr^.Val;
-    Dec(SP_StackPtr);
-    dy := SP_StackPtr^.Val;
-    Dec(SP_StackPtr);
-    dz := SP_StackPtr^.Val;
-    Dec(SP_StackPtr);
-
-    Case KeyWordID of
-      SP_KW_ROTATE:
-        Begin
-          SP_AngleToRad(dX);
-          SP_AngleToRad(dY);
-          SP_AngleToRad(dZ);
-          xCos := Cos(dX);
-          yCos := Cos(dY);
-          zCos := Cos(dZ);
-          xSin := Sin(dX);
-          ySin := Sin(dY);
-          zSin := Sin(dZ);
-          vIdx := 0;
-          iSize := NumArrays[sIdx].Indices[1];
-          For pIdx := 0 To numPoints -1 Do Begin
-            pX := NumArrays[sIdx].Values[vIdx]^.Value;
-            pY := NumArrays[sIdx].Values[vIdx + 1]^.Value;
-            pZ := NumArrays[sIdx].Values[vIdx + 2]^.Value;
-            y1 := pY * xCos + pZ * xSin;
-            z1 := pZ * xCos - pY * xSin;
-            x2 := pX * yCos - z1 * ySin;
-            z2 := pX * ySin + z1 * yCos;
-            x3 := x2 * zCos - y1 * zSin;
-            y3 := x2 * zSin + y1 * zCos;
-            NumArrays[dIdx].Values[vIdx]^.Value := x3;
-            NumArrays[dIdx].Values[vIdx +1]^.Value := y3;
-            NumArrays[dIdx].Values[vIdx +2]^.Value := z2;
-            Inc(vIdx, iSize);
-          End;
-        End;
-      SP_KW_SCALE:
-        Begin
-          vIdx := 0;
-          iSize := NumArrays[sIdx].Indices[1];
-          For pIdx := 0 To numPoints -1 Do Begin
-            NumArrays[dIdx].Values[vIdx]^.Value := NumArrays[sIdx].Values[vIdx]^.Value * dX;
-            NumArrays[dIdx].Values[vIdx +1]^.Value := NumArrays[sIdx].Values[vIdx + 1]^.Value * dY;
-            NumArrays[dIdx].Values[vIdx +2]^.Value := NumArrays[sIdx].Values[vIdx + 2]^.Value * dZ;
-            Inc(vIdx, iSize);
-          End;
-        End;
-      SP_KW_MOVE:
-        Begin
-          vIdx := 0;
-          iSize := NumArrays[sIdx].Indices[1];
-          For pIdx := 0 To numPoints -1 Do Begin
-            NumArrays[dIdx].Values[vIdx]^.Value := NumArrays[sIdx].Values[vIdx]^.Value + dX;
-            NumArrays[dIdx].Values[vIdx +1]^.Value := NumArrays[sIdx].Values[vIdx + 1]^.Value + dY;
-            NumArrays[dIdx].Values[vIdx +2]^.Value := NumArrays[sIdx].Values[vIdx + 2]^.Value + dZ;
-            Inc(vIdx, iSize);
-          End;
-        End;
+    vIdx := 0;
+    iSize := NumArrays[sIdx].Indices[1];
+    For pIdx := 0 To numPoints -1 Do Begin
+      NumArrays[dIdx].Values[vIdx]^.Value := NumArrays[sIdx].Values[vIdx]^.Value;
+      NumArrays[dIdx].Values[vIdx +1]^.Value := NumArrays[sIdx].Values[vIdx + 1]^.Value;
+      NumArrays[dIdx].Values[vIdx +2]^.Value := NumArrays[sIdx].Values[vIdx + 2]^.Value;
+      Inc(vIdx, iSize);
     End;
 
-    sIdx := dIdx;
+  End Else
 
-  End;
+    While NumTransforms > 0 Do Begin
+
+      Dec(numTransforms);
+
+      KeyWordID := Round(SP_StackPtr^.Val);
+      Dec(SP_StackPtr);
+
+      dx := SP_StackPtr^.Val;
+      Dec(SP_StackPtr);
+      dy := SP_StackPtr^.Val;
+      Dec(SP_StackPtr);
+      dz := SP_StackPtr^.Val;
+      Dec(SP_StackPtr);
+
+      Case KeyWordID of
+        SP_KW_ROTATE:
+          Begin
+            SP_AngleToRad(dX);
+            SP_AngleToRad(dY);
+            SP_AngleToRad(dZ);
+            xCos := Cos(dX);
+            yCos := Cos(dY);
+            zCos := Cos(dZ);
+            xSin := Sin(dX);
+            ySin := Sin(dY);
+            zSin := Sin(dZ);
+            vIdx := 0;
+            iSize := NumArrays[sIdx].Indices[1];
+            For pIdx := 0 To numPoints -1 Do Begin
+              pX := NumArrays[sIdx].Values[vIdx]^.Value;
+              pY := NumArrays[sIdx].Values[vIdx + 1]^.Value;
+              pZ := NumArrays[sIdx].Values[vIdx + 2]^.Value;
+              y1 := pY * xCos + pZ * xSin;
+              z1 := pZ * xCos - pY * xSin;
+              x2 := pX * yCos - z1 * ySin;
+              z2 := pX * ySin + z1 * yCos;
+              x3 := x2 * zCos - y1 * zSin;
+              y3 := x2 * zSin + y1 * zCos;
+              NumArrays[dIdx].Values[vIdx]^.Value := x3;
+              NumArrays[dIdx].Values[vIdx +1]^.Value := y3;
+              NumArrays[dIdx].Values[vIdx +2]^.Value := z2;
+              Inc(vIdx, iSize);
+            End;
+          End;
+        SP_KW_SCALE:
+          Begin
+            vIdx := 0;
+            iSize := NumArrays[sIdx].Indices[1];
+            For pIdx := 0 To numPoints -1 Do Begin
+              NumArrays[dIdx].Values[vIdx]^.Value := NumArrays[sIdx].Values[vIdx]^.Value * dX;
+              NumArrays[dIdx].Values[vIdx +1]^.Value := NumArrays[sIdx].Values[vIdx + 1]^.Value * dY;
+              NumArrays[dIdx].Values[vIdx +2]^.Value := NumArrays[sIdx].Values[vIdx + 2]^.Value * dZ;
+              Inc(vIdx, iSize);
+            End;
+          End;
+        SP_KW_MOVE:
+          Begin
+            vIdx := 0;
+            iSize := NumArrays[sIdx].Indices[1];
+            For pIdx := 0 To numPoints -1 Do Begin
+              NumArrays[dIdx].Values[vIdx]^.Value := NumArrays[sIdx].Values[vIdx]^.Value + dX;
+              NumArrays[dIdx].Values[vIdx +1]^.Value := NumArrays[sIdx].Values[vIdx + 1]^.Value + dY;
+              NumArrays[dIdx].Values[vIdx +2]^.Value := NumArrays[sIdx].Values[vIdx + 2]^.Value + dZ;
+              Inc(vIdx, iSize);
+            End;
+          End;
+      End;
+
+      sIdx := dIdx;
+
+    End;
 
 End;
 
@@ -22550,7 +22602,7 @@ Var
   VarName, Indices: aString;
   rX, rY, rZ, tX, tY, tZ, sX, sY, sZ, y1, z1, x2, z2, x3, y3, f, dist,
   xSin, ySin, zSin, xCos, yCos, zCos, pX, pY, pZ, pC, scrh, cX, cY: aFloat;
-  Idx, iSize, vIdx, pIdx, sIdx, dIdx, Params, numPoints, valCount: Integer;
+  Idx, Idx2, iSize, vIdx, pIdx, sIdx, dIdx, Params, numPoints, valCount: Integer;
   isColour: Boolean;
 Const
   drad: aFloat = PI/180;
@@ -22633,7 +22685,7 @@ Begin
 
   numPoints := NumArrays[sIdx].Indices[0];
   isColour := NumArrays[sIdx].Indices[1] > 3;
-  If isColour Then valCount := 3 Else valCount := 2;
+  If isColour Then valCount := NumArrays[sIdx].Indices[1] -1 Else valCount := 2;
 
   // Get Destination array - doesn't have to exist, will be created if necessary.
   // doesn't have to have the right number of indices or sizes, that will be corrected
@@ -22742,7 +22794,6 @@ Begin
       pY := NumArrays[sIdx].Values[vIdx + 1]^.Value;
       pZ := NumArrays[sIdx].Values[vIdx + 2]^.Value;
       pC := NumArrays[sIdx].Values[vIdx + 3]^.Value;
-      Inc(vIdx, iSize);
 
       If Params And 2 = 2 Then Begin // Scaling
         pX := pX * sX;
@@ -22775,10 +22826,13 @@ Begin
         pY := scrh - ((y3 * f) + cy);
         NumArrays[dIdx].Values[Idx]^.Value := pX;
         NumArrays[dIdx].Values[Idx +1]^.Value := pY;
-        NumArrays[dIdx].Values[Idx +2]^.Value := pC;
-        Inc(Idx, 3);
+        For Idx2 := 2 To ValCount -1 Do
+          NumArrays[dIdx].Values[Idx + Idx2]^.Value := NumArrays[sIdx].Values[vIdx + Idx2 + 1]^.Value;
+        Inc(Idx, ValCount);
         Inc(NumPoints);
       End;
+
+      Inc(vIdx, iSize);
 
     End;
 
@@ -22788,6 +22842,59 @@ Begin
     NumArrays[dIdx].Indices[0] := numPoints;
     NumArrays[dIdx].Size := numPoints * valCount;
   End;
+
+End;
+
+Procedure SP_Interpret_RAINBOW_HSV(Var Info: pSP_iInfo);
+Var
+  Idx, Idx1, Idx2: Integer;
+  ClrA, ClrB: LongWord;
+  r1, r2, g1, g2, b1, b2, h1, s1, v1, h2, s2, v2: aFloat;
+  Mag, hStep, sStep, vStep: aFloat;
+Begin
+
+  Idx1 := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  Idx2 := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  If Idx1 > Idx2 Then Begin
+    Idx1 := Idx1 Xor Idx2;
+    Idx2 := Idx1 Xor Idx2;
+    Idx1 := Idx1 Xor Idx2;
+  End;
+  Idx1 := Max(0, Min(255, Idx1));
+  Idx2 := Max(0, Min(255, Idx2));
+
+  ClrA := SP_GetPalette(Idx1);
+  r1 := (ClrA Shr 24) And $FF;
+  g1 := (ClrA Shr 16) And $FF;
+  b1 := (ClrA Shr 8) And $FF;
+
+  ClrB := SP_GetPalette(Idx2);
+  r2 := (ClrB Shr 24) And $FF;
+  g2 := (ClrB Shr 16) And $FF;
+  b2 := (ClrB Shr 8) And $FF;
+
+  SP_RGBToHSV(r1, g1, b1, h1, s1, v1);
+  SP_RGBToHSV(r2, g2, b2, h2, s2, v2);
+
+  Mag := Idx2 - Idx1;
+  hStep := (h2 - h1)/Mag;
+  sStep := (s2 - s1)/Mag;
+  vStep := (v2 - v1)/Mag;
+
+  For Idx := Idx1 To Idx2 -1 Do Begin
+
+    SP_HSVToRGB(h1, s1, v1, r1, g1, b1);
+    SP_SetWindowPalette(Idx, Round(r1), Round(g1), Round(b1));
+    h1 := h1 + hStep;
+    s1 := s1 + sStep;
+    v1 := v1 + vStep;
+
+  End;
+
+  SP_NeedDisplayUpdate := True;
 
 End;
 
@@ -27047,6 +27154,7 @@ Initialization
   InterpretProcs[SP_KW_TRANSFORM3D] := @SP_Interpret_TRANSFORM3D;
   InterpretProcs[SP_KW_TRANSFORM2D] := @SP_Interpret_TRANSFORM2D;
   InterpretProcs[SP_KW_RAINBOW] := @SP_Interpret_RAINBOW;
+  InterpretProcs[SP_KW_RAINBOW_HSV] := @SP_Interpret_RAINBOW_HSV;
   InterpretProcs[SP_KW_KEYBOARD] := @SP_Interpret_KEYBOARD;
   InterpretProcs[SP_KW_WIN_ORG_FLIP] := @SP_Interpret_WIN_ORG_FLIP;
   InterpretProcs[SP_KW_ORIGIN_FLIP] := @SP_Interpret_ORIGIN_FLIP;
@@ -27369,6 +27477,8 @@ Initialization
   InterpretProcs[SP_FN_INSERTS] := @SP_Interpret_FN_INSERTS;
   InterpretProcs[SP_FN_ITEMS] := @SP_Interpret_FN_ITEMS;
   InterpretProcs[SP_FN_BIT] := @SP_Interpret_FN_BIT;
+  InterpretProcs[SP_FN_BITCNT] := @SP_Interpret_FN_BITCNT;
+  InterpretProcs[SP_FN_HIBIT] := @SP_Interpret_FN_HIBIT;
   InterpretProcs[SP_FN_HIWORD] := @SP_Interpret_FN_HIWORD;
   InterpretProcs[SP_FN_LOWORD] := @SP_Interpret_FN_LOWORD;
   InterpretProcs[SP_FN_HIBYTE] := @SP_Interpret_FN_HIBYTE;

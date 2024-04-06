@@ -102,6 +102,7 @@ var
   LastMouseX, LastMouseY: Integer;
   MouseInForm, IgnoreNextMenuChar, AltDown, FormActivated: Boolean;
   AltChars: aString;
+  CaptionString: String;
   MainCanResize: Boolean = True;
 
 {$IFDEF OPENGL}
@@ -160,9 +161,11 @@ procedure TMain.Timer1Timer(Sender: TObject);
 Var
   s: String;
 begin
-  GetOSDString;
-  s := Format('%.0f', [1000/AvgFrameTime]);
-  Caption := String(BUILDSTR) + ' - ' + s + ' fps';
+  If WCAPTION = '' Then Begin
+    GetOSDString;
+    s := Format('%.0f', [1000/AvgFrameTime]);
+    Caption := CaptionString + ' ' + String(BUILDSTR) + ' - ' + s + ' fps';
+  End;
 end;
 
 Function GetTicks: aFloat;
@@ -548,7 +551,8 @@ Begin
     s := WCAPTION
   Else
     s := aString(ChangeFileExt(ExtractFilename(ParamStr(0)), ''));
-  Main.Caption := String(s);
+  CaptionString := String(s);
+  Main.Caption := CaptionString;
 End;
 
 procedure TMain.FormCreate(Sender: TObject);
@@ -645,13 +649,15 @@ begin
 
     If PCOUNT <= 0 Then Begin
 
-      Main.Caption := 'SpecBAS for Windows v'+String(BuildStr);
+      CaptionString := 'SpecBAS for Windows v';
+      Main.Caption := CaptionString + String(BuildStr);
       SHGetFolderPath(0,$0028,0,SHGFP_TYPE_CURRENT,@path[0]);
       HOMEFOLDER := Path + aString('\specbas');
 
     End Else Begin
 
-      Main.Caption := ExtractFileName(String(PARAMS[1]));
+      CaptionString := ExtractFileName(String(PARAMS[1]));
+      Main.Caption := CaptionString;
       HOMEFOLDER := aString(ExtractFileDir(String(PARAMS[1])));
       If HOMEFOLDER = '' Then
         HOMEFOLDER := aString(GetCurrentDir);

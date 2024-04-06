@@ -14,6 +14,7 @@ SP_TabBar = Class(SP_BaseComponent)
     fTabs: TStringlist;
     fPosition: SP_TabPosition;
     fActiveTab: Integer;
+    fTransBack: Boolean;
 
   Public
 
@@ -26,11 +27,13 @@ SP_TabBar = Class(SP_BaseComponent)
     Procedure InsertTab(Index: Integer; s: aString);
     Procedure MoveTab(Index, Direction: Integer);
     Procedure SetShowTabs(b: Boolean);
+    Procedure SetTransBack(b: Boolean);
     Procedure SetTabPosition(p: SP_TabPosition);
 
     Property Tabs[Index: Integer]: aString read GetTab write SetTab;
     Property ShowTabs: Boolean read fShowTabs write SetShowTabs;
     Property Position: SP_TabPosition read fPosition write SetTabPosition;
+    Property TransparentBackground: Boolean read fTransBack write SetTransBack;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor Destroy; Override;
@@ -50,6 +53,7 @@ Begin
   fTabs := TStringlist.Create;
   fPosition := spTop;
   fActiveTab := -1;
+  fTransBack := True;
 
 End;
 
@@ -62,9 +66,16 @@ Begin
 End;
 
 Procedure SP_TabBar.Draw;
+var
+  BkgClr: Integer;
 Begin
 
-  Fillrect(0, 0, Width -1, Height -1, fBackgroundClr);
+  if fTransBack Then
+    BkgClr := 255
+  else
+    BkgClr := fBackgroundClr;
+
+  Fillrect(0, 0, Width -1, Height -1, BkgClr);
   if Align = sp_AlignTop then
     DrawLine(0, fHeight -1, fWidth -1, fHeight -1, fBorderClr)
   else
@@ -73,6 +84,16 @@ Begin
       DrawLine(0, 2, fWidth -1, 2, SP_UIHalfLight);
       DrawLine(0, 1, fWidth -1, 1, SP_UIShadow);
     end;
+
+End;
+
+Procedure SP_TabBar.SetTransBack(b: Boolean);
+Begin
+
+  If b <> fTransBack Then Begin
+    fTransBack := b;
+    Paint;
+  End;
 
 End;
 

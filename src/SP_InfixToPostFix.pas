@@ -186,7 +186,7 @@ Function  SP_Convert_MULTIPLOT(Var KeyWordID: LongWord; Var Tokens: aString; Var
 Function  SP_Convert_TRANSFORM3D(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_TRANSFORM2D(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_PROJECT3D(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
-Function  SP_Convert_RAINBOW(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_RAINBOW(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_KEYBOARD(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_ORIGIN(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_BEEP(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -685,7 +685,7 @@ Begin
     SP_KW_TRANSFORM3D: Result := Result + SP_Convert_TRANSFORM3D(Tokens, Position, Error);
     SP_KW_TRANSFORM2D: Result := Result + SP_Convert_TRANSFORM2D(Tokens, Position, Error);
     SP_KW_PROJECT3D: Result := Result + SP_Convert_PROJECT3D(Tokens, Position, Error);
-    SP_KW_RAINBOW: Result := Result + SP_Convert_RAINBOW(Tokens, Position, Error);
+    SP_KW_RAINBOW: Result := Result + SP_Convert_RAINBOW(KeyWordID, Tokens, Position, Error);
     SP_KW_KEYBOARD: Result := Result + SP_Convert_KEYBOARD(Tokens, Position, Error);
     SP_KW_ORIGIN: Result := Result + SP_Convert_ORIGIN(KeyWordID, Tokens, Position, Error);
     SP_KW_BEEP: Result := Result + SP_Convert_BEEP(KeywordID, Tokens, Position, Error);
@@ -1226,7 +1226,7 @@ Begin
             SP_FN_LOGTWO, SP_FN_WORDSWAP, SP_FN_BYTESWAP, SP_FN_NYBBLESWAP, SP_FN_HIWORD, SP_FN_LOWORD, SP_FN_HIBYTE,
             SP_FN_LOBYTE, SP_FN_NUBMODE, SP_FN_NUBX, SP_FN_NUBY, SP_FN_LTOPX, SP_FN_LTOPY, SP_FN_PTOLX, SP_FN_PTOLY,
             SP_FN_SPFRAME, SP_FN_SPCOLL, SP_FN_MEMRD, SP_FN_DMEMRD, SP_FN_QMEMRD, SP_FN_FMEMRD, SP_FN_DATADDR, SP_FN_WINADDR, SP_FN_PAR,
-            SP_FN_SINH, SP_FN_COSH, SP_FN_TANH, SP_FN_ASNH, SP_FN_ACSH, SP_FN_ATNH:
+            SP_FN_SINH, SP_FN_COSH, SP_FN_TANH, SP_FN_ASNH, SP_FN_ACSH, SP_FN_ATNH, SP_FN_BITCNT, SP_FN_HIBIT:
 
               Begin
                 If (StackPtr < 0) or (Stack[StackPtr] <> SP_VALUE) Then Begin
@@ -3102,7 +3102,7 @@ Begin
             SP_FN_GETOPT, SP_FN_GETOPTS, SP_FN_NUBMODE, SP_FN_NUBX, SP_FN_NUBY, SP_FN_FEXISTS, SP_FN_FPATH, SP_FN_FNAME, SP_FN_LTOPX,
             SP_FN_LTOPY, SP_FN_PTOLX, SP_FN_PTOLY, SP_FN_INV, SP_FN_SPFRAME, SP_FN_SPCOLL, SP_FN_TEXTURES, SP_FN_IVAL, SP_FN_MEMRD,
             SP_FN_DMEMRD, SP_FN_QMEMRD, SP_FN_FMEMRD, SP_FN_DATADDR, SP_FN_WINADDR, SP_FN_MILLISECONDS, SP_FN_PAR, SP_FN_SINH,
-            SP_FN_COSH, SP_FN_TANH, SP_FN_ASNH, SP_FN_ACSH, SP_FN_ATNH, SP_FN_PARAMS, SP_FN_REVS:
+            SP_FN_COSH, SP_FN_TANH, SP_FN_ASNH, SP_FN_ACSH, SP_FN_ATNH, SP_FN_PARAMS, SP_FN_REVS, SP_FN_BITCNT, SP_FN_HIBIT:
               Begin
                 Inc(Position, SizeOf(LongWord));
                 FnResult := SP_Convert_Expr(Tokens, Position, Error, 14);
@@ -17137,10 +17137,15 @@ Begin
 
 End;
 
-Function SP_Convert_RAINBOW(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function SP_Convert_RAINBOW(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Begin
 
-  // RAINBOW index1 TO index2
+  // RAINBOW [HSV] index1 TO index2
+
+  If (Byte(Tokens[Position]) = SP_FUNCTION) And (pLongWord(@Tokens[Position +1])^ = SP_FN_HSV) Then Begin
+    Inc(Position, SizeOf(LongWord) +1);
+    KeyWordID := SP_KW_RAINBOW_HSV;
+  End;
 
   Result := SP_Convert_Expr(Tokens, Position, Error, -1);
   If Error.Code <> SP_ERR_OK Then

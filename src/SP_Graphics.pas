@@ -2938,8 +2938,8 @@ End;
 
 Procedure SP_DrawEllipse(CX, CY, Rx, Ry: Integer);
 var
-  x, y, p, px, py, twoRx2, twoRy2: Integer;
-  Rx2, Ry2: Int64;
+  x, y, px, py, twoRx2, twoRy2: Integer;
+  p, Rx2, Ry2: Int64;
   cxpx, cypy, cxmx, cymy: Integer;
 begin
 
@@ -4478,6 +4478,8 @@ Var
   NodeX: Array of Integer;
   Ptr: pByte;
   Ink: Byte;
+Const
+  SmallErr = 0.00001;
 Begin
 
   If T_INVERSE = 1 Then
@@ -4495,12 +4497,10 @@ Begin
 
   While Idx >= 0 Do Begin
 
-    Points[Idx].X := Round(Points[Idx].X);
-    Points[Idx].Y := Round(Points[Idx].Y);
-    If Points[Idx].Y < MinY then MinY := Round(Points[Idx].Y);
-    If Points[Idx].Y > MaxY then MaxY := Round(Points[Idx].Y);
-    If Points[Idx].X < MinX then MinX := Round(Points[Idx].X);
-    If Points[Idx].X > MaxX then MaxX := Round(Points[Idx].X);
+    If Points[Idx].Y < MinY then MinY := Trunc(Points[Idx].Y);
+    If Points[Idx].Y > MaxY then MaxY := Ceil(Points[Idx].Y);
+    If Points[Idx].X < MinX then MinX := Trunc(Points[Idx].X);
+    If Points[Idx].X > MaxX then MaxX := Ceil(Points[Idx].X);
     Dec(Idx);
 
   End;
@@ -4523,8 +4523,8 @@ Begin
       Nodes := 0;
       J := NumPoints -1;
       For I := 0 To NumPoints -1 Do Begin
-        If (Points[I].Y < PixelY) And (Points[J].Y >= PixelY) or (Points[J].Y < PixelY) And (Points[I].Y >= PixelY) Then Begin
-          NodeX[Nodes] := Round(Points[I].X + (PixelY-Points[I].Y)/(Points[J].Y-Points[I].Y)*(Points[J].X-Points[I].X));
+        If ((Points[I].Y < PixelY) And (Points[J].Y >= PixelY)) or ((Points[J].Y < PixelY) And (Points[I].Y >= PixelY)) Then Begin
+          NodeX[Nodes] := Ceil(Points[I].X + (PixelY - Points[I].Y) / (Points[J].Y - Points[I].Y) * (Points[J].X - Points[I].X));
           Inc(Nodes);
         End;
         J := I;
@@ -4545,7 +4545,7 @@ Begin
           If NodeX[I] < T_CLIPX1 Then NodeX[I] := T_CLIPX1;
           If NodeX[I+1] >= T_CLIPX2 Then NodeX[I+1] := T_CLIPX2 -1;
           Ptr := SCREENPOINTER;
-          Inc(Ptr, ((Round(PixelY) * SCREENSTRIDE) + NodeX[I]));
+          Inc(Ptr, (PixelY * SCREENSTRIDE) + NodeX[I]);
           For J := NodeX[I] To NodeX[I+1] Do Begin
             IF T_OVER = 0 Then
               Ptr^ := Ink
@@ -4561,52 +4561,6 @@ Begin
 
     DRPOSX := Points[0].X;
     DRPOSY := Points[0].Y;
-    For Idx := 1 To NumPoints -1 Do
-      SP_DrawLine(Points[Idx].X - DRPOSX, Points[Idx].Y - DRPOSY);
-    SP_DrawLine(Points[0].X - DRPOSX, Points[0].Y - DRPOSY);
-{
-    // Now run through with vertical lines - to catch the edge cases which this algorithm can't handle.
-
-    For PixelY := MinX to MaxX Do Begin
-
-      Nodes := 0;
-      J := NumPoints -1;
-      For I := 0 To NumPoints -1 Do Begin
-        If (Points[I].X < PixelY) And (Points[J].X >= PixelY) or (Points[J].X < PixelY) And (Points[I].X >= PixelY) Then Begin
-          NodeX[Nodes] := Round(Points[I].Y + (PixelY-Points[I].X)/(Points[J].X-Points[I].X)*(Points[J].Y-Points[I].Y));
-          Inc(Nodes);
-        End;
-        J := I;
-      End;
-
-      I := 0;
-      While I < Nodes -1 Do
-        If NodeX[I] > NodeX[I+1] Then Begin
-          Swap := NodeX[I]; NodeX[I] := NodeX[I+1]; NodeX[I+1] := Swap; If I > 0 Then Dec(I);
-        End Else
-          Inc(I);
-
-      I := 0;
-      While I < Nodes -1 Do Begin
-        If NodeX[I] >= T_CLIPY2 Then Break;
-        If NodeX[I+1] > T_CLIPY1 Then Begin
-          If NodeX[I] < T_CLIPY1 Then NodeX[I] := T_CLIPY1;
-          If NodeX[I+1] >= T_CLIPY2 Then NodeX[I+1] := T_CLIPY2 -1;
-          Ptr := SCREENPOINTER;
-          Inc(Ptr, (NodeX[I] * SCREENSTRIDE) + PixelY);
-          For J := NodeX[I] To NodeX[I+1] -1 Do Begin
-            IF T_OVER = 0 Then
-              Ptr^ := Ink
-            Else
-              SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
-            Inc(Ptr, SCREENSTRIDE);
-          End;
-        End;
-        Inc(I,2);
-      End;
-
-    End;
-}
 
   End Else
 

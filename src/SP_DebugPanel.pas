@@ -397,7 +397,7 @@ Begin
               AddHeader(' Name', MaxP * iFW);
               AddHeader(' Contents', MaxW * iFW);
               //SortByAlpha := True;
-              Sort(0);
+              //Sort(0);
               Enabled := True;
               OldVars.Free;
               OldContents.Free;

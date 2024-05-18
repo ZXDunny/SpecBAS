@@ -105,7 +105,7 @@ Var
 
 implementation
 
-Uses SP_Main, SP_Editor, SP_Package, SP_FPEditor, SP_Graphics;
+Uses SP_Main, SP_Editor, SP_Package, SP_FPEditor, SP_Graphics, SP_PreRun;
 
 Procedure CopyFiles(inDir: String; outDir: String);
 Var

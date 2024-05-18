@@ -363,7 +363,7 @@ Const
 
 implementation
 
-Uses SP_ControlMsgs, SP_DebugPanel;
+Uses SP_ControlMsgs, SP_DebugPanel, SP_PreRun;
 
 Procedure SetAllToCompile;
 Var

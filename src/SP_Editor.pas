@@ -42,7 +42,7 @@ Var
 
 implementation
 
-Uses SP_Main, SP_Menu, SP_FPEditor;
+Uses SP_Main, SP_Menu, SP_FPEditor, SP_PreRun;
 
 Procedure SP_DrawStripe(Dst: pByte; Width, StripeWidth, StripeHeight: Integer);
 Var

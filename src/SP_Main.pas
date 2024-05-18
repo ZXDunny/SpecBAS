@@ -38,7 +38,7 @@ Uses
   Math, Classes, SysUtils, SP_Graphics32,
   SP_Graphics, SP_SysVars, SP_Input, SP_Errors, SP_Util, SP_Tokenise,
   SP_InfixToPostFix, SP_Interpret_PostFix, SP_Variables, SP_BankManager,
-  SP_FileIO, SP_Sound, SP_Editor, SyncObjs;
+  SP_FileIO, SP_Sound, SP_Editor, SP_PreRun, SyncObjs;
 
 Type
 

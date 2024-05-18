@@ -74,7 +74,7 @@ implementation
 
 Uses SP_BankManager, SP_BankFiling, SP_Errors, SP_Graphics, SP_FileIO, SP_Input,
      SP_FPEditor, SP_SysVars, SP_Util, SP_ControlMsgs, SP_DebugPanel, SP_Main,
-     SP_Variables;
+     SP_Variables, SP_PreRun;
 
 Var
 

@@ -27,7 +27,7 @@ interface
 
 Uses SyncObjs, Forms, {$IFNDEF FPC}IOUtils,{$ELSE}FileUtil,{$ENDIF} SP_Util, SP_Graphics, SP_Graphics32, SP_SysVars, SP_Errors, SP_Components, SP_Tokenise, SP_InfixToPostFix, SP_FileIO,
      SP_Input, SP_BankManager, SP_BankFiling, SP_Streams, SP_Sound, SP_Package, Math, Classes, SysUtils, SP_Math, Clipbrd,
-     {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_Strings, SP_Menu, SP_UITools, SP_AnsiStringlist, SP_Variables;
+     {$IFDEF FPC}LclIntf{$ELSE}Windows{$ENDIF}, SP_Strings, SP_Menu, SP_UITools, SP_AnsiStringlist, SP_Variables, SP_PreRun;
 
 Type
 
@@ -22601,7 +22601,7 @@ Procedure SP_Interpret_PROJECT3D(Var Info: pSP_iInfo);
 Var
   VarName, Indices: aString;
   rX, rY, rZ, tX, tY, tZ, sX, sY, sZ, y1, z1, x2, z2, x3, y3, f, dist,
-  xSin, ySin, zSin, xCos, yCos, zCos, pX, pY, pZ, pC, scrh, cX, cY: aFloat;
+  xSin, ySin, zSin, xCos, yCos, zCos, pX, pY, pZ, scrh, cX, cY: aFloat;
   Idx, Idx2, iSize, vIdx, pIdx, sIdx, dIdx, Params, numPoints, valCount: Integer;
   isColour: Boolean;
 Const
@@ -22793,7 +22793,6 @@ Begin
       pX := NumArrays[sIdx].Values[vIdx]^.Value;
       pY := NumArrays[sIdx].Values[vIdx + 1]^.Value;
       pZ := NumArrays[sIdx].Values[vIdx + 2]^.Value;
-      pC := NumArrays[sIdx].Values[vIdx + 3]^.Value;
 
       If Params And 2 = 2 Then Begin // Scaling
         pX := pX * sX;

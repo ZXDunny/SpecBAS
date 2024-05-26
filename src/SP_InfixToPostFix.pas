@@ -6141,7 +6141,7 @@ Begin
                 If Expr[Length(Expr)] <> ';' Then
                   Expr := CreateToken(SP_SYMBOL, 0, 1) + ';' + Expr;
             End;
-            if KeyWordID = SP_KW_ELSE Then
+            If (KeyWordID = SP_KW_ELSE) or (KeyWordID = SP_KW_ENDIF) Then
               Goto Finalise;
             Result := Result + Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KID);
             Expr := '';
@@ -7977,7 +7977,7 @@ Begin
             Exit;
           End;
         End;
-        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ';') Then Begin
+        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] in [';', ',', #39]) Then Begin
           Inc(Position, 2);
           Case KeyWordID of
             SP_KW_INK:
@@ -11308,7 +11308,7 @@ Label
   NotVar;
 Begin
 
-  // POLYGON|POLYLINE [ALPHA] [INK numexpr;]{Array()|x1,y1 TO x2,y2 TO x3,y3 [ TO xN,yN]}[FILL {fill$|GRAPHIC n}|OPEN]
+  // POLYGON|POLYLINE [ALPHA] [INK numexpr;]{Array()|x1,y1 TO x2,y2 TO x3,y3 [ TO xN,yN]}[FILL {fill$|GRAPHIC n|LINE}|OPEN]
 
   SP_AlphaCheck(KeyWordID, Tokens, Position);
 
@@ -11400,24 +11400,29 @@ Begin
     End Else
       If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_FILL) Then Begin
         Inc(Position, SizeOf(LongWord)+1);
-        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GRAPHIC) Then Begin
+        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_LINE) Then Begin
           Inc(Position, 1 + SizeOf(LongWord));
-          Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Graphic ID
-          If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
-            Error.Code := SP_ERR_MISSING_NUMEXPR;
-            Exit;
-          End;
+          Expr := CreateToken(SP_STRING, 0, 1) + '.'; // Signal that we want an outline
         End Else Begin
-          Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // strexpr
-          If Error.Code <> SP_ERR_OK Then
-            Exit
-          Else Begin
-            If Error.ReturnType <> SP_STRING Then Begin
-              If Expr = '' Then
-                Expr := CreateToken(SP_STRING, 0, 0)
-              Else Begin
-                Error.Code := SP_ERR_MISSING_STREXPR;
-                Exit;
+          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GRAPHIC) Then Begin
+            Inc(Position, 1 + SizeOf(LongWord));
+            Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // Graphic ID
+            If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+              Error.Code := SP_ERR_MISSING_NUMEXPR;
+              Exit;
+            End;
+          End Else Begin
+            Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // strexpr
+            If Error.Code <> SP_ERR_OK Then
+              Exit
+            Else Begin
+              If Error.ReturnType <> SP_STRING Then Begin
+                If Expr = '' Then
+                  Expr := CreateToken(SP_STRING, 0, 0)
+                Else Begin
+                  Error.Code := SP_ERR_MISSING_STREXPR;
+                  Exit;
+                End;
               End;
             End;
           End;
@@ -17673,30 +17678,35 @@ Begin
     // Convert the array assign token to a simple number so it doesn't get evaluated at runtime until
     // we need it.
 
-    Idx := Length(IndexExpr) - (SizeOf(TToken) + SizeOf(LongWord) -1);
-    NumIndices := pLongWord(@IndexExpr[Length(IndexExpr) - SizeOf(LongWord) +1])^;
-    IndexExpr := Copy(IndexExpr, 1, Idx -1) + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(NumIndices);
+    If IndexExpr <> '' Then Begin
+      Idx := Length(IndexExpr) - (SizeOf(TToken) + SizeOf(LongWord) -1);
+      NumIndices := pLongWord(@IndexExpr[Length(IndexExpr) - SizeOf(LongWord) +1])^;
+      IndexExpr := Copy(IndexExpr, 1, Idx -1) + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(NumIndices);
 
-    if Error.ReturnType = SP_ARRAY Then Begin
+      if Error.ReturnType = SP_ARRAY Then Begin
 
-      Result := IndexExpr + VarExpr;
-      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '=') Then Begin
+        Result := IndexExpr + VarExpr;
+        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '=') Then Begin
 
-        Inc(Position, 2);
-        Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result;
-        If Error.ReturnType <> SP_STRING Then
-          Error.Code := SP_ERR_MISSING_STREXPR;
-
-      End Else
-
-        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_CLEAR) Then Begin
-
-          Inc(Position, SizeOf(LongWord) +1);
-          KeyWordID := SP_KW_KEY_CLEAR;
+          Inc(Position, 2);
+          Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result;
+          If Error.ReturnType <> SP_STRING Then
+            Error.Code := SP_ERR_MISSING_STREXPR;
 
         End Else
 
-          Error.Code := SP_ERR_SYNTAX_ERROR;
+          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_CLEAR) Then Begin
+
+            Inc(Position, SizeOf(LongWord) +1);
+            KeyWordID := SP_KW_KEY_CLEAR;
+
+          End Else
+
+            Error.Code := SP_ERR_SYNTAX_ERROR;
+
+      End Else
+
+        Error.Code := SP_ERR_SYNTAX_ERROR;
 
     End Else
 

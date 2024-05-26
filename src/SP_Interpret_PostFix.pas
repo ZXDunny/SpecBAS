@@ -15271,8 +15271,8 @@ Begin
 
     If Not BankFill Then Begin
       Valid := False;
-      If TextureStr = '' Then
-        SP_PolygonSolidFill(Points)
+      If Length(TextureStr) <=1 Then
+        SP_PolygonSolidFill(Points, TextureStr <> '')
       Else Begin
         If Length(TextureStr) > 10 Then Begin
           tW := pLongWord(@TextureStr[1])^;
@@ -25613,8 +25613,8 @@ Begin
 
     If Not BankFill Then Begin
       Valid := False;
-      If TextureStr = '' Then
-        SP_PolygonSolidFill32Alpha(Points)
+      If Length(TextureStr) <= 1 Then
+        SP_PolygonSolidFill32Alpha(Points, TextureStr <> '')
       Else Begin
         If Length(TextureStr) > 10 Then Begin
           tW := pLongWord(@TextureStr[1])^;

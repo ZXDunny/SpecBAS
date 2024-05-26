@@ -29,11 +29,8 @@ uses
   Interfaces,
   {$ENDIF }
   Forms,
-  MainForm in 'MainForm.pas' {Main},
-  SP_MIDI in 'SP_MIDI.pas',
-  SP_Display in 'SP_Display.pas',
-  SP_PreRun in 'SP_PreRun.pas';
-
+  MainForm in 'MainForm.pas' {Main};
+  
 {$R *.res}
 begin
   {$IFDEF DELPHI}

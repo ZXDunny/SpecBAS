@@ -116,6 +116,7 @@ Begin
   dX := iFW + 4;
   dY := (fHeight - iFH) Div 2;
   If fGroupIndex = 0 Then Begin
+    FillRect(0, dy - 2, 3 + iFW, dY + IfH + 1, SP_UIBtnBack);
     If fBorder Then
       DrawRect(0, dy - 2, 3 + iFW, dY + IfH + 1, bClr);
     If Checked Then
@@ -127,6 +128,7 @@ Begin
       PRINT(2, dy + ((iFH - iH) Div 2), #241, cClr, -1, iSC, iSC, False, False, False)
     Else
       PRINT(2, dy + ((iFH - iH) Div 2), #242, cClr, -1, iSC, iSC, False, False, False);
+    Fill(4, dy + ((iFH - iH) Div 2) + 1, SP_UiBtnBack);
   End;
 
   PRINT(dx + (iFW Div 2), dy, Caption, capClr, -1, iSX, iSY, False, False, False);

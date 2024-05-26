@@ -1,4 +1,4 @@
-// Copyright (C) 2010 By Paul Dunn
+﻿// Copyright (C) 2010 By Paul Dunn
 //
 // This file is part of the SpecBAS BASIC Interpreter, which is in turn
 // part of the SpecOS project.
@@ -33,7 +33,15 @@ Uses
 
 Type
 
-  TSP_Point = Packed Record X, Y: aFloat; End;
+//  TSP_Point = Packed Record X, Y: aFloat; End;
+
+  TSP_Point = Record
+    X, Y: aFloat;
+    class operator Add(const a, b: TSP_Point): TSP_Point;
+    class operator Subtract(const a, b: TSP_Point): TSP_Point;
+    class operator Multiply(const a: TSP_Point; const b: Single): TSP_Point;
+  end;
+
   TCB_SetScreenRes = Function(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
   TCB_Refresh_Display = Procedure;
   TCB_UpdateScreenPointer = Procedure;
@@ -112,7 +120,7 @@ Procedure SP_DrawRectangle(X1, Y1, X2, Y2: Integer);
 Procedure SP_DrawTexRectangle(X1, Y1, X2, Y2: Integer; const TextureStr: aString; tW, tH: LongWord);
 Procedure SP_DrawSolidRectangle(X1, Y1, X2, Y2: Integer);
 Procedure SP_PolygonFill(Var Points: Array of TSP_Point; const TextureStr: aString; tW, tH: LongWord);
-Procedure SP_PolygonSolidFill(Var Points: Array of TSP_Point);
+Procedure SP_PolygonSolidFill(Var Points: Array of TSP_Point; Outline: Boolean = False);
 Procedure SP_CopyRect(SrcPtr: pByte; SrcW, SrcH, SrcRx, SrcRy, SrcRw, SrcRh: Integer; DstPtr: pByte; DstW, DstH, DstX, DstY, DcW, DcH, cx1, cy1, cx2, cy2: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_SavePalette(const Filename: aString; Offset, Num: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_LoadPalette(const Filename: aString; Offset: Integer; Var Error: TSP_ErrorCode);
@@ -610,6 +618,24 @@ Const
 implementation
 
 Uses SP_Main, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components, SP_ToolTipWindow, SP_Variables;
+
+class operator TSP_Point.Add(const a, b: TSP_Point): TSP_Point;
+begin
+  Result.X := a.X + b.X;
+  Result.Y := a.Y + b.Y;
+end;
+
+class operator TSP_Point.Subtract(const a, b: TSP_Point): TSP_Point;
+begin
+  Result.X := a.X - b.X;
+  Result.Y := a.Y - b.Y;
+end;
+
+class operator TSP_Point.Multiply(const a: TSP_Point; const b: Single): TSP_Point;
+begin
+  Result.X := Round(a.X * b);
+  Result.Y := Round(a.Y * b);
+end;
 
 Procedure SP_ForceScreenUpdate;
 Var
@@ -4380,15 +4406,11 @@ Begin
   MaxX := -32768;
 
   While Idx >= 0 Do Begin
-
-    Points[Idx].X := Round(Points[Idx].X);
-    Points[Idx].Y := Round(Points[Idx].Y);
-    If Points[Idx].Y < MinY then MinY := Round(Points[Idx].Y);
-    If Points[Idx].Y > MaxY then MaxY := Round(Points[Idx].Y);
-    If Points[Idx].X < MinX then MinX := Round(Points[Idx].X);
-    If Points[Idx].X > MaxX then MaxX := Round(Points[Idx].X);
+    If Points[Idx].Y < MinY then MinY := Floor(Points[Idx].Y);
+    If Points[Idx].Y > MaxY then MaxY := Ceil(Points[Idx].Y);
+    If Points[Idx].X < MinX then MinX := Floor(Points[Idx].X);
+    If Points[Idx].X > MaxX then MaxX := Ceil(Points[Idx].X);
     Dec(Idx);
-
   End;
 
   MaxY := Min(MaxY, T_CLIPY2 -1);
@@ -4471,15 +4493,13 @@ Begin
 
 End;
 
-Procedure SP_PolygonSolidFill(Var Points: Array of TSP_Point);
+Procedure SP_PolygonSolidFill(Var Points: Array of TSP_Point; Outline: Boolean);
 Var
-  Idx, I, J, Nodes, NumPoints, PixelY: Integer;
   MinY, MaxY, MinX, MaxX: Integer;
+  Idx, I, J, Nodes, NumPoints, PixelY: Integer;
   NodeX: Array of Integer;
   Ptr: pByte;
   Ink: Byte;
-Const
-  SmallErr = 0.00001;
 Begin
 
   If T_INVERSE = 1 Then
@@ -4497,12 +4517,13 @@ Begin
 
   While Idx >= 0 Do Begin
 
-    If Points[Idx].Y < MinY then MinY := Trunc(Points[Idx].Y);
-    If Points[Idx].Y > MaxY then MaxY := Ceil(Points[Idx].Y);
-    If Points[Idx].X < MinX then MinX := Trunc(Points[Idx].X);
-    If Points[Idx].X > MaxX then MaxX := Ceil(Points[Idx].X);
+    Points[Idx].X := Round(Points[Idx].X);
+    Points[Idx].Y := Round(Points[Idx].Y);
+    If Points[Idx].Y < MinY then MinY := Round(Points[Idx].Y);
+    If Points[Idx].Y > MaxY then MaxY := Round(Points[Idx].Y);
+    If Points[Idx].X < MinX then MinX := Round(Points[Idx].X);
+    If Points[Idx].X > MaxX then MaxX := Round(Points[Idx].X);
     Dec(Idx);
-
   End;
 
   MaxY := Min(MaxY, T_CLIPY2 -1);
@@ -4514,17 +4535,16 @@ Begin
 
   If SCREENBPP = 8 Then Begin
 
-    // First run through - horizontal scanlines
-
     SetLength(NodeX, NumPoints);
 
-    For PixelY := MinY to MaxY Do Begin
+    PixelY := MinY;
+    While PixelY <= MaxY Do Begin
 
       Nodes := 0;
       J := NumPoints -1;
       For I := 0 To NumPoints -1 Do Begin
         If ((Points[I].Y < PixelY) And (Points[J].Y >= PixelY)) or ((Points[J].Y < PixelY) And (Points[I].Y >= PixelY)) Then Begin
-          NodeX[Nodes] := Ceil(Points[I].X + (PixelY - Points[I].Y) / (Points[J].Y - Points[I].Y) * (Points[J].X - Points[I].X));
+          NodeX[Nodes] := Round(Points[I].X + (PixelY - Points[I].Y) / (Points[J].Y - Points[I].Y) * (Points[J].X - Points[I].X));
           Inc(Nodes);
         End;
         J := I;
@@ -4545,7 +4565,7 @@ Begin
           If NodeX[I] < T_CLIPX1 Then NodeX[I] := T_CLIPX1;
           If NodeX[I+1] >= T_CLIPX2 Then NodeX[I+1] := T_CLIPX2 -1;
           Ptr := SCREENPOINTER;
-          Inc(Ptr, (PixelY * SCREENSTRIDE) + NodeX[I]);
+          Inc(Ptr, PixelY * SCREENSTRIDE + NodeX[I]);
           For J := NodeX[I] To NodeX[I+1] Do Begin
             IF T_OVER = 0 Then
               Ptr^ := Ink
@@ -4557,6 +4577,16 @@ Begin
         Inc(I, 2);
       End;
 
+      Inc(PixelY)
+
+    End;
+
+    If Outline Then Begin
+      DRPOSX := Points[0].X;
+      DRPOSY := Points[0].Y;
+      For I := 1 To NumPoints - 1 Do
+        SP_DrawLine(Points[I].X - DRPOSX, Points[I].Y - DRPOSY);
+      SP_DrawLine(Points[0].X - DRPOSX, Points[0].Y - DRPOSY);
     End;
 
     DRPOSX := Points[0].X;
@@ -4564,7 +4594,7 @@ Begin
 
   End Else
 
-    SP_PolygonSolidFill32(Points, MinX, MinY, MaxX, MaxY, Ink);
+    SP_PolygonSolidFill32(Points, MinX, MinY, MaxX, MaxY, Ink, Outline);
 
   SP_BankList[0]^.Changed := True;
 

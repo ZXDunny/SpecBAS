@@ -217,6 +217,7 @@ SP_BaseComponent = Class
     Procedure DrawRect(r: TRect; Ink: Byte); Overload;
     Procedure FillRect(x1, y1, x2, y2: Integer; Ink: Byte); Overload;
     Procedure FillRect(r: TRect; Ink: Byte); Overload;
+    Procedure Fill(x, y: Integer; Ink: Byte); Overload;
     Procedure Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold, UseAccel: Boolean);
     Procedure DrawBtnFrame(Border, Pressed: Boolean); Overload;
     Procedure DrawBtnFrame(r: TRect; Border, Pressed: Boolean); Overload;
@@ -1013,6 +1014,13 @@ begin
     Ptr^ := Ink;
 
   End;
+
+End;
+
+Procedure SP_BaseComponent.Fill(x, y: Integer; Ink: Byte);
+Begin
+
+  SP_FloodFill(@fCanvas[0], x, y, fWidth, fHeight, Ink);
 
 End;
 

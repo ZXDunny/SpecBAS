@@ -90,8 +90,8 @@ Type
   Procedure SP_FloodFill32(Dst: pLongWord; dX, dY, dW, dH, Clr: LongWord);
   Procedure SP_FloodFill32Alpha(Dst: pLongWord; dX, dY, dW, dH, Clr: LongWord);
   Procedure SP_PolygonFill32Alpha(Var Points: Array of TSP_Point; TextureStr: aString; tW, tH: LongWord);
-  Procedure SP_PolygonSolidFill32(Var Points: Array of TSP_Point; MinX, MinY, MaxX, MaxY: Integer; Ink: LongWord);
-  Procedure SP_PolygonSolidFill32Alpha(Var Points: Array of TSP_Point);
+  Procedure SP_PolygonSolidFill32(Var Points: Array of TSP_Point; MinX, MinY, MaxX, MaxY: Integer; Ink: LongWord; OutLine: Boolean);
+  Procedure SP_PolygonSolidFill32Alpha(Var Points: Array of TSP_Point; Outline: Boolean);
   Procedure SP_CLS32(Paper: LongWord);
 
   Function  SP_PRINT32(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: LongWord; var Error: TSP_ErrorCode): Integer;
@@ -2254,7 +2254,7 @@ Begin
 
 End;
 
-Procedure SP_PolygonSolidFill32(Var Points: Array of TSP_Point; MinX, MinY, MaxX, MaxY: Integer; Ink: LongWord);
+Procedure SP_PolygonSolidFill32(Var Points: Array of TSP_Point; MinX, MinY, MaxX, MaxY: Integer; Ink: LongWord; Outline: Boolean);
 Var
   I, J, Nodes, NumPoints, PixelY: Integer;
   NodeX: Array of Integer;
@@ -2302,11 +2302,19 @@ Begin
 
   End;
 
+  If Outline Then Begin
+    DRPOSX := Points[0].X;
+    DRPOSY := Points[0].Y;
+    For I := 1 To NumPoints - 1 Do
+      SP_DrawLine32Alpha(Points[I].X - DRPOSX, Points[I].Y - DRPOSY);
+    SP_DrawLine32Alpha(Points[0].X - DRPOSX, Points[0].Y - DRPOSY);
+  End;
+
   SP_BankList[0]^.Changed := True;
 
 End;
 
-Procedure SP_PolygonSolidFill32Alpha(Var Points: Array of TSP_Point);
+Procedure SP_PolygonSolidFill32Alpha(Var Points: Array of TSP_Point; Outline: Boolean);
 Var
   MinX, MinY, MaxX, MaxY, Idx, I, J, Nodes, NumPoints, PixelY, Swap: Integer;
   NodeX: Array of Integer;
@@ -2381,6 +2389,14 @@ Begin
       Inc(I, 2);
     End;
 
+  End;
+
+  If Outline Then Begin
+    DRPOSX := Points[0].X;
+    DRPOSY := Points[0].Y;
+    For I := 1 To NumPoints - 1 Do
+      SP_DrawLine32(Points[I].X - DRPOSX, Points[I].Y - DRPOSY);
+    SP_DrawLine32(Points[0].X - DRPOSX, Points[0].Y - DRPOSY);
   End;
 
   SP_BankList[0]^.Changed := True;

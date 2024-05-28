@@ -17,11 +17,6 @@
     <Transaction>2023/02/07 13:12:40.000.258,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_MIDI.pas</Transaction>
     <Transaction>2024/02/20 13:42:01.000.313,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2024/02/20 13:50:50.000.249,D:\Projects\SpecBAS\src\SP_Display.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2024/04/07 11:16:53.000.194,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2024/04/07 11:17:09.000.299,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_PreRun.pas</Transaction>
-    <Transaction>2024/05/19 12:31:11.000.729,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2024/05/19 12:31:30.000.968,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_Testing.pas</Transaction>
-    <Transaction>2024/05/19 12:31:48.000.797,D:\Projects\SpecBAS\src\SP_Testing.pas=</Transaction>
   </Transactions>
 	<ProjectSortOrder AutoSort="0" SortType="0">
     <File Path="MainForm.pas"/>

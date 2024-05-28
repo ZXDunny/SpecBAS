@@ -1993,7 +1993,7 @@ End;
 
 Function SP_FindStrArrayHash(Idx: Integer; Const Key: aString): pHashEntry; Inline;
 Begin
-  Result := NumArrays[Idx].Hashes[Ord(Key[1])];
+  Result := StrArrays[Idx].Hashes[Ord(Key[1])];
   While Result <> nil Do Begin
     If Result^.Key = Key Then
       Break

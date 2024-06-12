@@ -1452,6 +1452,8 @@ Begin
         SetLength(WindowSpriteList[WindowID], 0);
         Window^.SpriteCount := 0;
 
+        SP_SetDirtyRect(Window^.Left, Window^.Top, Window^.Left + Window^.Width, Window^.Top + Window^.Height);
+
         Dec(NUMWINDOWS);
         SP_DeleteBank(BankIdx, Error);
 
@@ -4406,6 +4408,8 @@ Begin
   MaxX := -32768;
 
   While Idx >= 0 Do Begin
+    Points[Idx].X := Round(Points[Idx].X);
+    Points[Idx].Y := Round(Points[Idx].Y);
     If Points[Idx].Y < MinY then MinY := Floor(Points[Idx].Y);
     If Points[Idx].Y > MaxY then MaxY := Ceil(Points[Idx].Y);
     If Points[Idx].X < MinX then MinX := Floor(Points[Idx].X);
@@ -4516,13 +4520,12 @@ Begin
   MaxX := -32768;
 
   While Idx >= 0 Do Begin
-
     Points[Idx].X := Round(Points[Idx].X);
     Points[Idx].Y := Round(Points[Idx].Y);
-    If Points[Idx].Y < MinY then MinY := Round(Points[Idx].Y);
-    If Points[Idx].Y > MaxY then MaxY := Round(Points[Idx].Y);
-    If Points[Idx].X < MinX then MinX := Round(Points[Idx].X);
-    If Points[Idx].X > MaxX then MaxX := Round(Points[Idx].X);
+    If Points[Idx].Y < MinY then MinY := Floor(Points[Idx].Y);
+    If Points[Idx].Y > MaxY then MaxY := Ceil(Points[Idx].Y);
+    If Points[Idx].X < MinX then MinX := Floor(Points[Idx].X);
+    If Points[Idx].X > MaxX then MaxX := Ceil(Points[Idx].X);
     Dec(Idx);
   End;
 

@@ -1795,6 +1795,7 @@ Begin
           If Bold >= 0 Then s := s + #27 + LongWordToString(Bold);
           LastSyntax := s;
         End;
+
       SynLine := SP_SyntaxHighlight(CodeLine, LastSyntax, (CodeLine[1] in ['0'..'9']) And Not SP_WasPrevSoft(Line), Added);
 
       // Now, if we're showing search results (or hilighting braces), insert the highlight codes. Do this by finding them manually.

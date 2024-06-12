@@ -15617,6 +15617,9 @@ Begin
   End Else
     BankNum := -1;
 
+  If Filename = '' Then
+    Filename := OpenFileReq('Load file', '', '', False, Info^.Error^);
+
   SP_LoadBank(Filename, BankNum, Info^.Error^);
 
 End;
@@ -15627,6 +15630,8 @@ Var
 Begin
 
   Filename := SP_StackPtr^.Str;
+  If Filename = '' Then
+    Filename := OpenFileReq('Load file', '', '', False, Info^.Error^);
 
   SP_StackPtr^.Val := SP_LoadBank(Filename, -1, Info^.Error^);
   SP_StackPtr^.OpType := SP_VALUE;
@@ -15846,14 +15851,20 @@ Begin
   Dec(SP_StackPtr);
   Count := Round(SP_StackPtr^.Val);
 
-  SetLength(Buffer, Count);
-  BytesRead := SP_StreamRead(StreamID, @Buffer[0], Count, Info^.Error^);
+  if Count > 0 Then Begin
+    SetLength(Buffer, Count);
+    BytesRead := SP_StreamRead(StreamID, @Buffer[0], Count, Info^.Error^);
 
-  With SP_StackPtr^ Do Begin
-    SetLength(Str, BytesRead);
-    CopyMem(@Str[1], @Buffer[0], BytesRead);
-    OpType := SP_STRING;
-  End;
+    With SP_StackPtr^ Do Begin
+      SetLength(Str, BytesRead);
+      CopyMem(@Str[1], @Buffer[0], BytesRead);
+      OpType := SP_STRING;
+    End;
+  End Else
+    With SP_StackPtr^ Do Begin
+      Str := '';
+      OpType := SP_STRING;
+    End;
 
 End;
 
@@ -20423,6 +20434,9 @@ Begin
 
   Filename := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
+
+  If Filename = '' Then
+    Filename := OpenFileReq('Load file', '', '', False, Info^.Error^);
 
   VarName := SP_StackPtr^.Str;
   If VarName <> '' Then

@@ -1044,7 +1044,8 @@ Begin
         End;
         If (Count > 0) And (fStrings[Count -1] = '') Then
           Delete(Count -1);
-      End;
+      End Else
+        SP_FileClose(FileID, Error);
     End;
 
   End;

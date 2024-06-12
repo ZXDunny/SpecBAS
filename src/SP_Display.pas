@@ -301,7 +301,7 @@ Begin
         SetDR := False;
         Result := True;
         DRAWING := True;
-        If Assigned(DISPLAYPOINTER) Then SP_Composite32(DISPLAYPOINTER, X1, Y1, X2, Y2);
+        If Assigned(DISPLAYPOINTER) Then SP_Composite32(DISPLAYPOINTER, X1 -1, Y1 -1, X2 +1, Y2 +1); // 1-pixel buffer zone for the mouse pointer.
         If SHOWFPS Then DrawFPS;
         MOUSEMOVED := False;
         If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then Begin

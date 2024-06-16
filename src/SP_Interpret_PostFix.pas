@@ -9379,7 +9379,7 @@ Var
   Window: pSP_Window_Info;
 Begin
 
-  If Round(SP_StackPtr^.Val) <> 8 Then Begin
+  If Round(SP_StackPtr^.Val) > 0 Then Begin
     CSTROKE := SP_StackPtr^.Val;
     T_STROKE := CSTROKE;
     SP_GetWindowDetails(SCREENBANK, Window, Info^.Error^);

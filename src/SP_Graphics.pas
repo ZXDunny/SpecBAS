@@ -2912,7 +2912,7 @@ Begin
   If (Round(Sin(Angle/2)*10000000) = 0) or (Z < 1) Then
     SP_DrawLine(X, Y)
   Else Begin
-    NumArcs := Min(1 * Round(Round(Abs(Angle * Sqrt(Z * LL / 100)) + 0.5) / 1) + 4, 252);
+    NumArcs := Min(4 * Round(Round(Abs(Angle * Sqrt(Z * LL / 100)) + 0.5) / 1) + 4, 252);
     W := Sin(Angle/(2*NumArcs))/Sin(Angle/2);
 
     M0 := DRPOSY;

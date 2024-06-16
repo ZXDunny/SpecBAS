@@ -67,7 +67,7 @@ Type
     heading, orgx, orgy, orgw, orgh, winscalex, winscaley, scalex, scaley: aFloat;
     clipx1, clipy1, clipx2, clipy2: Integer; winscale, winorigin, flip: Boolean;
     Visible, AlphaEnabled, FontTrans, System: Boolean;
-    pr_posx, pr_posy, dr_posx, dr_posy, GWScale: aFloat;
+    pr_posx, pr_posy, dr_posx, dr_posy, GWScale, stroke: aFloat;
     Component: SP_BaseComponent;
     Transparent: Word;
     Offset, Ink, Paper: LongWord;
@@ -613,6 +613,7 @@ Begin
                 Window^.Height := INIReadInt(INI, 'Info', 'Height', 0);
                 Window^.Stride := INIReadInt(INI, 'Info', 'Stride', Window^.Width);
                 Window^.Inverse := INIReadInt(INI, 'Info', 'Inverse', 0);
+                Window^.stroke := INIReadFloat(INI, 'Info', 'stroke', 1);
                 Window^.Italic := INIReadInt(INI, 'Info', 'Italic', 0);
                 Window^.Bold := INIReadInt(INI, 'Info', 'Bold', 0);
                 Window^.Over := INIReadInt(INI, 'Info', 'Over', 0);
@@ -976,6 +977,7 @@ Begin
             INIWriteInt(INI, 'Info', 'Height', Window^.Height);
             INIWriteInt(INI, 'Info', 'Stride', Window^.Stride);
             INIWriteInt(INI, 'Info', 'Inverse', Window^.Inverse);
+            INIWriteFloat(INI, 'Info', 'stroke', Window^.stroke);
             INIWriteInt(INI, 'Info', 'Italic', Window^.Italic);
             INIWriteInt(INI, 'Info', 'Bold', Window^.Bold);
             INIWriteInt(INI, 'Info', 'Over', Window^.Over);

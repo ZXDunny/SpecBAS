@@ -4,7 +4,7 @@ unit SP_Display;
 
 interface
 
-  Uses WinAPI.Windows, System.SysUtils, System.SyncObjs, Forms, Classes, System.Types, Math, MainForm, {$IFDEF OPENGL}dglOpenGL,{$ENDIF} SP_Util;
+  Uses WinAPI.Windows, System.SysUtils, System.SyncObjs, Graphics, Forms, Classes, System.Types, Math, PNGImage, MainForm, SP_FileIO, {$IFDEF OPENGL}dglOpenGL,{$ENDIF} SP_Util, WinAPI.DWMApi;
 
 Type
 
@@ -28,6 +28,7 @@ Type
   Function  GetScreenRefreshRate: Integer;
   Procedure GetOSDString;
   Procedure GLResize;
+  Procedure ScreenShot;
 
 Var
 
@@ -676,5 +677,69 @@ Begin
   End;
 
 End;
+
+Procedure ScreenShot;
+var
+  Win: HWND;
+  DC: HDC;
+  Bmp: TBitmap;
+  Png: TPNGImage;
+  Pixels: pByte;
+  FName, FileName: string;
+  WinRect, WinRectEx: TRect;
+  Width, ox, i: Integer;
+  Height: Integer;
+  Error: TSP_ErrorCode;
+const
+  fullwindow = True;
+begin
+
+  If Not DirectoryExists(String(HOMEFOLDER) + '\snaps') Then
+    CreateDir(String(HOMEFOLDER) + '\snaps');
+
+  FName := Format('/snaps/%s.png', ['Screenshot_' + FormatDateTime('mm-dd-yyyy-hhnnss', Now())]);
+  Filename := String(SP_ConvertFilenameToHost(aString(FName), Error));
+  Win := GetForegroundWindow;
+
+  if SPFULLSCREEN Then Begin
+    Bmp := TBitmap.Create;
+    Bmp.Height := DisplayHeight;
+    Bmp.Width := DisplayWidth;
+    Bmp.PixelFormat := pf32Bit;
+    Pixels := @PixArray[0];
+    for i := 0 To DISPLAYHEIGHT -1 do Begin
+      CopyMem(Bmp.ScanLine[i], Pixels, DisplayWidth * SizeOf(LongWord));
+      Inc(Pixels, DisplayWidth * SizeOf(LongWord));
+    End;
+  End Else Begin
+    ox := 0;
+    if FullWindow then begin
+      if (Win32MajorVersion >= 6) and DwmCompositionEnabled then Begin
+        DwmGetWindowAttribute(Win, DWMWA_EXTENDED_FRAME_BOUNDS, @WinRect, SizeOf(WinRect));
+        GetWindowRect(Win, WinRectEx);
+        Ox := WinRect.Left - WinRectEx.Left;
+      End else
+        GetWindowRect(Win, WinRect);
+      DC := GetWindowDC(Win);
+    end else begin
+      GetClientRect(Win, WinRect);
+      DC := GetDC(Win);
+    end;
+    Width := WinRect.Right - WinRect.Left;
+    Height := WinRect.Bottom - WinRect.Top;
+    Bmp := TBitmap.Create;
+    Bmp.Height := Height;
+    Bmp.Width := Width;
+    BitBlt(Bmp.Canvas.Handle, 0, 0, Width, Height, DC, ox, 0, SRCCOPY);
+    ReleaseDC(Win, DC);
+  End;
+  Png := TPNGImage.Create;
+  Png.Assign(Bmp);
+  Png.SaveToFile(Filename);
+  Png.Free;
+  Bmp.Free;
+
+end;
+
 
 end.

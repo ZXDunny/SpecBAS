@@ -80,6 +80,7 @@ Function  SP_Convert_PAPER(Var Tokens: aString; Var Position: Integer; Var Error
 Function  SP_Convert_INVERSE(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_OVER(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_TRANSPARENT(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_STROKE(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_Var_Assign(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_LET(Var Tokens: aString; Var KeyWordID: LongWord; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_CLS(Var Tokens: aString; Var Position: Integer; Var KeyWordID: LongWord; Var Error: TSP_ErrorCode): aString;
@@ -571,6 +572,7 @@ Begin
     SP_KW_ERROR: Result := Result + SP_Convert_ERROR(Tokens, KeyWordID, Position, Error);
     SP_KW_TEXT, SP_KW_PRINT: Result := Result + SP_Convert_PRINT(KeyWordID, Tokens, Position, Error, KeyWordID);
     SP_KW_INK: Result := Result + SP_Convert_INK(Tokens, Position, Error);
+    SP_KW_STROKE: Result := Result + SP_Convert_STROKE(Tokens, Position, Error);
     SP_KW_TRANSPARENT, SP_KW_TRANS: Result := Result + SP_Convert_TRANSPARENT(Tokens, Position, Error);
     SP_KW_CLIP: Result := Result + SP_Convert_CLIP(KeyWordID, Tokens, Position, Error);
     SP_KW_PAPER: Result := Result + SP_Convert_PAPER(Tokens, Position, Error);
@@ -6437,6 +6439,18 @@ Begin
 
 End;
 
+Function  SP_Convert_STROKE(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Begin
+
+  // STROKE numexpr
+
+  Result := '';
+  Result := SP_Convert_Expr(Tokens, Position, Error, -1);
+  If Error.Code <> SP_ERR_OK then Exit;
+  If Error.ReturnType <> SP_VALUE Then Error.Code := SP_ERR_MISSING_NUMEXPR;
+
+End;
+
 Function  SP_Convert_CLIP(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
   Expr: aString;
@@ -7940,7 +7954,7 @@ Begin
       If (pLongWord(@Tokens[Position +1])^ = SP_KW_INK) or (pLongWord(@Tokens[Position +1])^ = SP_KW_OVER) or
          (pLongWord(@Tokens[Position +1])^ = SP_KW_PAPER) or (pLongWord(@Tokens[Position +1])^ = SP_KW_INVERSE) or
          (pLongWord(@Tokens[Position +1])^ = SP_KW_CLIP) or (pLongWord(@Tokens[Position +1])^ = SP_KW_TRANS) or
-         (pLongWord(@Tokens[Position +1])^ = SP_KW_TRANSPARENT) Then Begin
+         (pLongWord(@Tokens[Position +1])^ = SP_KW_TRANSPARENT) or (pLongWord(@Tokens[Position +1])^ = SP_KW_STROKE) Then Begin
         KeyWordID := pLongWord(@Tokens[Position +1])^;
         If KeyWordID = SP_KW_TRANS Then KeyWordID := SP_KW_TRANSPARENT;
         InkPos := Position;
@@ -7992,6 +8006,8 @@ Begin
               KeyWordID := SP_KW_PR_CLIP;
             SP_KW_TRANS:
               KeyWordID := SP_KW_PR_TRANSPARENT;
+            SP_KW_STROKE:
+              KeyWordID := SP_KW_PR_STROKE;
           End;
           Result := Result + Expr + CreateToken(SP_KEYWORD, InkPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
         End Else Begin

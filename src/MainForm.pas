@@ -28,7 +28,7 @@ unit MainForm;
 interface
 
 uses
-  {$IFNDEF FPC}System.Types, SyncObjs, SHellAPI, PNGImage, GIFImg, WIndows, Messages,{$ELSE} LCLIntf, LCLType, {$IFDEF Windows}Windows, Messages{$ELSE}LMessages{$ENDIF}, {$ENDIF}
+  {$IFNDEF FPC}System.Types, SyncObjs, SHellAPI, PNGImage, GIFImg, Windows, Messages,{$ELSE} LCLIntf, LCLType, {$IFDEF Windows}Windows, Messages{$ELSE}LMessages{$ENDIF}, {$ENDIF}
   SHFolder, SysUtils, Variants, Classes, Graphics, Controls, Forms, Math, Dialogs, SP_SysVars, SP_Graphics, SP_Graphics32, SP_BankManager, SP_Util, SP_Main, SP_FileIO,
   ExtCtrls, SP_Input, MMSystem, SP_Errors, SP_Sound, Bass, SP_Tokenise, SP_Menu, RunTimeCompiler, SP_Components, SP_BaseComponentUnit, Clipbrd;
 
@@ -848,6 +848,11 @@ Var
   aStr: aString;
   kInfo: SP_KeyInfo;
 begin
+
+  If Key = K_PAUSE Then Begin // the BREAK key on PC keyboards always saves a screengrab.
+    ScreenShot;
+    Exit;
+  End;
 
   aStr := aString(GetCharFromVirtualKey(Key));
   If (aStr = '') or (aStr[1] < ' ') Then aStr := #0;

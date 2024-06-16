@@ -421,12 +421,14 @@ Procedure SP_Interpret_PR_OUT_SCREEN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PR_OUT_STREAM(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PR_SCALE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PR_USING(Var Info: pSP_iInfo);
+Procedure SP_Interpret_PR_STROKE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_INK(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PAPER(Var Info: pSP_iInfo);
 Procedure SP_Interpret_INVERSE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_OVER(Var Info: pSP_iInfo);
 Procedure SP_Interpret_TRANSPARENT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SCALE(Var Info: pSP_iInfo);
+Procedure SP_Interpret_STROKE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_LET(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ENUM(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ENUM_BASE(Var Info: pSP_iInfo);
@@ -9293,6 +9295,14 @@ Begin
 
 End;
 
+Procedure SP_Interpret_PR_STROKE(Var Info: pSP_iInfo);
+Begin
+
+  T_STROKE := LongWord(Round(SP_StackPtr^.Val));
+  Dec(SP_StackPtr);
+
+End;
+
 Procedure SP_Interpret_PR_CURSOR(Var Info: pSP_iInfo);
 Var
   Spt: pSP_StackItem;
@@ -9360,6 +9370,22 @@ Begin
   SP_GetWindowDetails(SCREENBANK, Window, Info^.Error^);
   If Info^.Error^.Code = SP_ERR_OK Then
     Window^.Paper := CPAPER;
+  Dec(SP_StackPtr);
+
+End;
+
+Procedure SP_Interpret_STROKE(Var Info: pSP_iInfo);
+Var
+  Window: pSP_Window_Info;
+Begin
+
+  If Round(SP_StackPtr^.Val) <> 8 Then Begin
+    CSTROKE := SP_StackPtr^.Val;
+    T_STROKE := CSTROKE;
+    SP_GetWindowDetails(SCREENBANK, Window, Info^.Error^);
+    If Info^.Error^.Code = SP_ERR_OK Then
+      Window^.stroke:= CSTROKE;
+  End;
   Dec(SP_StackPtr);
 
 End;
@@ -10931,6 +10957,7 @@ End;
 Procedure SP_Interpret_PLOT(Var Info: pSP_iInfo);
 Var
   YPos, XPos, Radius: Integer;
+  Ink: Longword;
   VarName: aString;
   dX, dY: aFloat;
   Idx, iSize, vIdx, pIdx: Integer;
@@ -11022,12 +11049,23 @@ Begin
     SP_ConvertToOrigin_d(dX, dY);
     If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
     {$R-}
-    xPos := Round(dX); yPos := Round(dY);
-    If SCREENBPP = 8 Then
-      SP_SetPixel(xPos, yPos)
-    Else
-      SP_SetPixel32(xPos, yPos);
-    If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
+    If T_STROKE > 1 Then begin
+      DRPOSX := dX;
+      DRPOSY := dY;
+      xPos := Round(dX - T_STROKE / 2); yPos := Round(dY - T_STROKE / 2);
+      If T_INVERSE = 0 Then
+        Ink := T_INK
+      Else
+        Ink := T_PAPER;
+      SP_FillRect(xPos, yPos, Round(T_STROKE), Round(T_STROKE), Ink);
+    End Else Begin
+      xPos := Round(dX); yPos := Round(dY);
+      If SCREENBPP = 8 Then
+        SP_SetPixel(dX, dY)
+      Else
+        SP_SetPixel32(dX, dY);
+      If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
+    End;
     {$R+}
   End;
 
@@ -11679,9 +11717,9 @@ Begin
   yPos := Round(dY);
   if (Radius1 > 0) and (Radius1 <= 0.5) and (Radius2 > 0) and (Radius2 <= 0.5) Then Begin
     If SCREENBPP = 8 Then
-      SP_SetPixel(xPos, yPos)
+      SP_SetPixel(dX, dY)
     Else
-      SP_SetPixel32(xPos, yPos);
+      SP_SetPixel32(dX, dY);
     If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
     Exit;
   End;
@@ -11759,9 +11797,9 @@ Begin
     yPos := Round(dY);
     if (Radius1 > 0) and (Radius1 <= 0.5) and (Radius2 > 0) and (Radius2 <= 0.5) Then Begin
       If SCREENBPP = 8 Then
-        SP_SetPixel(xPos, yPos)
+        SP_SetPixel(dX, dY)
       Else
-        SP_SetPixel32(xPos, yPos);
+        SP_SetPixel32(dX, dY);
       If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
       Exit;
     End;
@@ -12139,6 +12177,7 @@ Begin
     MATHMODE := 0;
     CSCALEX := 1;
     CSCALEY := 1;
+    CSTROKE := 1;
     SP_Reset_Temp_Colours;
     If Filename <> 's:autosave' Then
       SP_CLS(CPAPER);
@@ -14193,6 +14232,7 @@ Begin
     CINK := 0;
     CBOLD := 0;
     CITALIC := 0;
+    CSTROKE := 1;
     SP_Reset_Temp_Colours;
     SP_CLS(CPAPER);
     Error^.Line := -2;
@@ -25689,6 +25729,7 @@ End;
 Procedure SP_Interpret_APLOT(Var Info: pSP_iInfo);
 Var
   YPos, XPos: Integer;
+  Ink: LongWord;
   VarName: aString;
   dX, dY: aFloat;
   Idx, iSize, vIdx, pIdx: Integer;
@@ -25753,9 +25794,19 @@ Begin
     Dec(SP_StackPtr);
     SP_ConvertToOrigin_d(dX, dY);
     If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dY;
-    xPos := Round(dX); yPos := Round(dY);
-    SP_SetPixel32Alpha(xPos, yPos);
-    If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
+    If T_STROKE > 1 Then begin
+      xPos := Round(dX - T_STROKE / 2); yPos := Round(dY - T_STROKE / 2);
+      If T_INVERSE = 0 Then
+        Ink := T_INK
+      Else
+        Ink := T_PAPER;
+      SP_FillRect32Alpha(xPos, yPos, Round(T_STROKE), Round(T_STROKE), Ink);
+      If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, Round(SCREENX + XPos + T_STROKE), Round(SCREENY + YPos + T_STROKE));
+    End Else Begin
+      xPos := Round(dX); yPos := Round(dY);
+      SP_SetPixel32Alpha(dX, dY);
+      If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
+    End;
   End;
 
   SP_BankList[0]^.Changed := True;
@@ -27315,6 +27366,8 @@ Initialization
   InterpretProcs[SP_KW_GRAPHIC_SAVE] := @SP_Interpret_GRAPHIC_SAVE;
   InterpretProcs[SP_KW_COMPILE] := @SP_Interpret_COMPILE;
   InterpretProcs[SP_KW_DRAW_GW] := @SP_Interpret_DRAW_GW;
+  InterpretProcs[SP_KW_STROKE] := @SP_Interpret_STROKE;
+  InterpretProcs[SP_KW_PR_STROKE] := @SP_Interpret_PR_STROKE;
 
   // Functions
 

@@ -828,6 +828,7 @@ Begin
   COVER := 0;
   CSCALEX := 1;
   CSCALEY := 1;
+  CSTROKE := 1;
   CTRANSPARENT := False;
 
   CBLACK := SP_Colour(0, 0, 0);
@@ -925,6 +926,7 @@ Begin
         Window^.clipy2 := CCLIPY2;
         Window^.scalex := CSCALEX;
         Window^.scaley := CSCALEY;
+        Window^.stroke := CSTROKE;
 
       End;
 
@@ -950,6 +952,7 @@ Begin
         Window^.scrollcnt := SCROLLCNT;
         Window^.scalex := CSCALEX;
         Window^.scaley := CSCALEY;
+        Window^.stroke := CSTROKE;
         Gfx^.orgx := SORGX;
         Gfx^.orgy := SORGY;
         Gfx^.orgw := SORGW;
@@ -1004,6 +1007,7 @@ Begin
       CITALIC := Window^.Italic;
       CBOLD := Window^.Bold;
       COVER := Window^.Over;
+      CSTROKE := Window^.stroke;
       CTRANSPARENT := Window^.FontTrans;
       WINDOWPOINTER := Window;
       SCRBANKPOINTER := Bank;
@@ -1050,6 +1054,7 @@ Begin
         CINK := Window^.Ink;
         CPAPER := Window^.Paper;
         CINVERSE := Window^.Inverse;
+        CSTROKE := Window^.stroke;
         COVER := Window^.Over;
         CITALIC := Window^.Italic;
         CBOLD := Window^.Bold;
@@ -2058,6 +2063,7 @@ Begin
   T_SCALEY := CSCALEY;
   T_ITALIC := CITALIC;
   T_BOLD := CBOLD;
+  T_STROKE := CSTROKE;
   T_TRANSPARENT := CTRANSPARENT;
 
 End;
@@ -2531,6 +2537,38 @@ Begin
 
 End;
 
+Procedure SP_DrawThickLine(X1, Y1, X2, Y2: aFloat);
+Var
+  xa, ya, xb, yb, angle, app, amp, w: aFloat;
+  Points: Array[0..3] of TSP_Point;
+Begin
+
+  angle := arctan2(y2-y1,x2-x1);
+  app := angle + PI / 2; amp := angle - PI / 2;
+  w := T_STROKE / 2;
+
+  xa := x1 + W * Cos(angle + PI);
+  ya := y1 + W * Sin(angle + PI);
+  xb := x2 + W * Cos(angle);
+  yb := y2 + W * Sin(angle);
+
+  Points[0].x := xa + W * Cos(app);
+  Points[0].y := ya + W * Sin(app);
+  Points[1].x := xa + W * Cos(amp);
+  Points[1].y := ya + W * Sin(amp);
+
+  Points[2].x := xb + W * Cos(amp);
+  Points[2].y := yb + W * Sin(amp);
+  Points[3].x := xb + W * Cos(app);
+  Points[3].y := yb + W * Sin(app);
+
+  SP_PolygonSolidFill(Points, False);
+
+  DRPOSX := X2;
+  DRPOSY := Y2;
+
+End;
+
 Procedure SP_DrawLineEx(X1, Y1, X2, Y2: aFloat);
 Var
   Dx, Dy: aFloat;
@@ -2557,141 +2595,149 @@ var
   flip: Boolean;
 begin
 
-  If SCREENBPP = 8 Then Begin
+  If T_STROKE > 1 Then Begin
 
-    x1 := Round(DRPOSX);
-    y1 := Round(DRPOSY);
-    x2 := x2 + DRPOSX;
-    y2 := y2 + DRPOSY;
-    x3 := Round(x2);
-    y3 := Round(y2);
+    SP_DrawThickLine(DRPOSX, DRPOSY, X2 + DRPOSX, Y2 + DRPOSY);
 
-    DrX := x2;
-    DrY := y2;
+  End Else Begin
 
-    If (x1 < T_CLIPX1) or (y1 < T_CLIPY1) or (x1 >= T_CLIPX2) or (y1 >= T_CLIPY2) Then
-      SKIPFIRSTPOINT := False;
+    If SCREENBPP = 8 Then Begin
 
-    flip := False;
-    If y2 < y1 then Begin
-      y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
-      x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
-      flip := True;
-    End;
+      x1 := Round(DRPOSX);
+      y1 := Round(DRPOSY);
+      x2 := x2 + DRPOSX;
+      y2 := y2 + DRPOSY;
+      x3 := Round(x2);
+      y3 := Round(y2);
 
-    If SP_LineClip(x1, y1, x3, y3, T_CLIPX1, T_CLIPY1, T_CLIPX2, T_CLIPY2) Then Begin
+      DrX := x2;
+      DrY := y2;
 
-      If SCREENVISIBLE Then SP_SetDirtyRectEx(SCREENX + X1, SCREENY + Y1, SCREENX + X3, SCREENY + Y3);
+      If (x1 < T_CLIPX1) or (y1 < T_CLIPY1) or (x1 >= T_CLIPX2) or (y1 >= T_CLIPY2) Then
+        SKIPFIRSTPOINT := False;
 
-      If T_INVERSE = 1 Then
-        Ink := T_PAPER
-      Else
-        Ink := T_INK and $FF;
-
-      dx := x3 - x1;
-      ax := Abs(dx) shl 1;
-      if dx < 0 then
-        sx := -1
-      else
-        sx := 1;
-
-      dy := y3 - y1;
-      ay := Abs(dy) shl 1;
-      if dy < 0 then
-        sy := -1
-      else
-        sy := 1;
-
-      SP_BankList[0]^.Changed := True;
-
-      Ptr := pByte(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + x1);
-      stsy := SCREENSTRIDE * sy;
-
-      If T_OVER = 0 Then Begin
-       If Not SKIPFIRSTPOINT Then
-          Ptr^ := Ink
-        Else
-          If Flip Then
-            Ptr^ := Ink;
-        If ax > ay Then Begin
-          d := ay - (ax shr 1);
-          If SKIPFIRSTPOINT And flip Then
-            if x1 < x3 then Dec(x3) else inc(x3);
-          while x1 <> x3 do begin
-            if d > -1 then begin
-              Inc(Ptr, stsy);
-              Dec(d, ax);
-            end;
-            Inc(Ptr, sx);
-            Inc(x1, sx);
-            Inc(d, ay);
-            Ptr^ := Ink;
-          end;
-        end else begin
-          d := ax - (ay shr 1);
-          If SKIPFIRSTPOINT And flip Then
-            Dec(y3);
-          while y1 < y3 do begin
-            if d > -1 then begin
-              Inc(Ptr, sx);
-              Dec(d, ay);
-            end;
-            Inc(Ptr, stsy);
-            Inc(y1, sy);
-            Inc(d, ax);
-            Ptr^ := Ink;
-          end;
-        end;
-       If Not SKIPFIRSTPOINT and flip Then
-          Ptr^ := Ink;
-      End Else Begin
-        If Not SKIPFIRSTPOINT Then
-          SP_OverPixelPtrVal(Ptr, Ink, T_OVER)
-        Else
-          If Flip Then
-            SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
-        If ax > ay Then Begin
-          d := ay - (ax shr 1);
-          If SKIPFIRSTPOINT And flip Then
-            if x1 < x3 then Dec(x3) else inc(x3);
-          while x1 <> x3 do begin
-            if d > -1 then begin
-              Inc(Ptr, stsy);
-              Dec(d, ax);
-            end;
-            Inc(Ptr, sx);
-            Inc(x1, sx);
-            Inc(d, ay);
-            SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
-          end;
-        end else begin
-          d := ax - (ay shr 1);
-          If SKIPFIRSTPOINT And flip Then Dec(y3);
-          while y1 < y3 do begin
-            if d > -1 then begin
-              Inc(Ptr, sx);
-              Dec(d, ay);
-            end;
-            Inc(Ptr, stsy);
-            Inc(y1, sy);
-            Inc(d, ax);
-            SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
-          end;
-        end;
-        If Not SKIPFIRSTPOINT and flip Then
-          SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
+      flip := False;
+      If y2 < y1 then Begin
+        y1 := y1 Xor y3; y3 := y1 Xor y3; y1 := y1 Xor y3;
+        x1 := x1 Xor x3; x3 := x1 Xor x3; x1 := x1 Xor x3;
+        flip := True;
       End;
 
-      SP_BankList[0]^.Changed := True;
+      If SP_LineClip(x1, y1, x3, y3, T_CLIPX1, T_CLIPY1, T_CLIPX2, T_CLIPY2) Then Begin
 
-    End;
+        If SCREENVISIBLE Then SP_SetDirtyRectEx(SCREENX + X1, SCREENY + Y1, SCREENX + X3, SCREENY + Y3);
 
-    DRPOSX := DrX;
-    DRPOSY := DrY;
+        If T_INVERSE = 1 Then
+          Ink := T_PAPER
+        Else
+          Ink := T_INK and $FF;
 
-  End Else
+        dx := x3 - x1;
+        ax := Abs(dx) shl 1;
+        if dx < 0 then
+          sx := -1
+        else
+          sx := 1;
 
-    SP_DrawLine32(X2, Y2);
+        dy := y3 - y1;
+        ay := Abs(dy) shl 1;
+        if dy < 0 then
+          sy := -1
+        else
+          sy := 1;
+
+        SP_BankList[0]^.Changed := True;
+
+        Ptr := pByte(NativeUInt(SCREENPOINTER) + (y1 * SCREENSTRIDE) + x1);
+        stsy := SCREENSTRIDE * sy;
+
+        If T_OVER = 0 Then Begin
+         If Not SKIPFIRSTPOINT Then
+            Ptr^ := Ink
+          Else
+            If Flip Then
+              Ptr^ := Ink;
+          If ax > ay Then Begin
+            d := ay - (ax shr 1);
+            If SKIPFIRSTPOINT And flip Then
+              if x1 < x3 then Dec(x3) else inc(x3);
+            while x1 <> x3 do begin
+              if d > -1 then begin
+                Inc(Ptr, stsy);
+                Dec(d, ax);
+              end;
+              Inc(Ptr, sx);
+              Inc(x1, sx);
+              Inc(d, ay);
+              Ptr^ := Ink;
+            end;
+          end else begin
+            d := ax - (ay shr 1);
+            If SKIPFIRSTPOINT And flip Then
+              Dec(y3);
+            while y1 < y3 do begin
+              if d > -1 then begin
+                Inc(Ptr, sx);
+                Dec(d, ay);
+              end;
+              Inc(Ptr, stsy);
+              Inc(y1, sy);
+              Inc(d, ax);
+              Ptr^ := Ink;
+            end;
+          end;
+         If Not SKIPFIRSTPOINT and flip Then
+            Ptr^ := Ink;
+        End Else Begin
+          If Not SKIPFIRSTPOINT Then
+            SP_OverPixelPtrVal(Ptr, Ink, T_OVER)
+          Else
+            If Flip Then
+              SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
+          If ax > ay Then Begin
+            d := ay - (ax shr 1);
+            If SKIPFIRSTPOINT And flip Then
+              if x1 < x3 then Dec(x3) else inc(x3);
+            while x1 <> x3 do begin
+              if d > -1 then begin
+                Inc(Ptr, stsy);
+                Dec(d, ax);
+              end;
+              Inc(Ptr, sx);
+              Inc(x1, sx);
+              Inc(d, ay);
+              SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
+            end;
+          end else begin
+            d := ax - (ay shr 1);
+            If SKIPFIRSTPOINT And flip Then Dec(y3);
+            while y1 < y3 do begin
+              if d > -1 then begin
+                Inc(Ptr, sx);
+                Dec(d, ay);
+              end;
+              Inc(Ptr, stsy);
+              Inc(y1, sy);
+              Inc(d, ax);
+              SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
+            end;
+          end;
+          If Not SKIPFIRSTPOINT and flip Then
+            SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
+        End;
+
+        SP_BankList[0]^.Changed := True;
+
+      End;
+
+      DRPOSX := DrX;
+      DRPOSY := DrY;
+
+    End Else
+
+      SP_DrawLine32(X2, Y2);
+
+  End;
 
 End;
 
@@ -2856,16 +2902,17 @@ End;
 
 Procedure SP_DrawSpeccyCurve(X, Y, Angle: aFloat);
 Var
-  Z, W, F, M0, M1, M2, M3, M4, SC, MM1: aFloat;
+  Z, W, F, M0, M1, M2, M3, M4, SC, MM1, LL: aFloat;
   NumArcs: Integer;
 Begin
 
   SP_AngleToRad(Angle);
   Z := Abs((Abs(X)+Abs(Y))/Sin(Angle/2));
+  LL := Sqrt(X * X + Y * Y);
   If (Round(Sin(Angle/2)*10000000) = 0) or (Z < 1) Then
     SP_DrawLine(X, Y)
   Else Begin
-    NumArcs := Min(4 * Round(Round(Abs(Angle * Sqrt(Z)) + 0.5) / 1) +4, 252);
+    NumArcs := Min(1 * Round(Round(Abs(Angle * Sqrt(Z * LL / 100)) + 0.5) / 1) + 4, 252);
     W := Sin(Angle/(2*NumArcs))/Sin(Angle/2);
 
     M0 := DRPOSY;
@@ -2964,6 +3011,38 @@ Begin
 
 End;
 
+Procedure SP_DrawThickEllipse(CX, CY, R1, R2: Integer);
+Var
+  ir1, ir2, id, rd, ys, ox1, ix1: aFloat;
+  y, x: NativeInt;
+Begin
+
+  r1 := Round(r1 + T_STROKE / 2);
+  r2 := Round(r2 + T_STROKE / 2);
+  ir1 := r1 - T_STROKE;
+  ir2 := r2 - T_STROKE;
+  id := ir1/ir2;
+  rd := r1/r2;
+
+  For y := -r2 +1 to r2 -1 Do Begin
+    ys := y * rd;
+    ox1 := sqrt(r1 * r1 - ys * ys);
+
+    If Abs(y) < ir2 Then Begin
+      ys := y * id;
+      ix1 := sqrt(ir1 * ir1 - ys * ys);
+    End Else
+      ix1 := 0;
+
+    For x := Round(ix1) to Round(ox1) Do Begin
+      SP_SetPixel(x + CX, y + CY);
+      SP_SetPixel(-x + CX, y + CY);
+    End;
+
+  End;
+
+End;
+
 Procedure SP_DrawEllipse(CX, CY, Rx, Ry: Integer);
 var
   x, y, px, py, twoRx2, twoRy2: Integer;
@@ -2973,80 +3052,94 @@ begin
 
   If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
 
-  If SCREENBPP = 8 Then Begin
+  If T_STROKE > 1 Then Begin
 
-    Rx := Abs(Rx);
-    Ry := Abs(Ry);
+    If SCREENBPP = 8 Then
+      SP_DrawThickEllipse(CX, CY, Rx, Ry)
+    Else
+      SP_DrawThickEllipse32(CX, CY, Rx, Ry);
 
-    Rx2 := Rx * Rx;
-    Ry2 := Ry * Ry;
-    twoRx2 := 2 * Rx2;
-    twoRy2 := 2 * Ry2;
-    x := 0;
-    y := Ry;
-    px := 0;
-    py := twoRx2 * y;
+    Inc(Rx, Ceil(T_STROKE / 2));
+    Inc(Ry, Ceil(T_STROKE /2 ));
 
-    cxpx := Cx + X; cypy := Cy + Y;
-    cxmx := Cx - X; cymy := Cy - Y;
+  End Else Begin
 
-    SP_SetPixel(cxpx, cypy);
-    SP_SetPixel(cxpx, cymy);
-    If cxmx <> cxpx Then Begin
-      SP_SetPixel(cxmx, cymy);
-      SP_SetPixel(cxmx, cypy);
-    End;
+    If SCREENBPP = 8 Then Begin
 
-    p := Ry2 - (Rx2 * Ry) + (Rx2 div 4);
+      Rx := Abs(Rx);
+      Ry := Abs(Ry);
 
-    while px < py do begin
-       Inc(x);
-       Inc(px, twoRy2);
-       if p < 0 then
-          Inc(p, Ry2 + px)
-       else begin
-          Dec(y);
-          Dec(py, twoRx2);
-          Inc(p, Ry2 + px - py);
-          dec(cypy);
-          inc(cymy);
-       end;
-       inc(cxpx);
-       dec(cxmx);
-       SP_SetPixel(cxpx, cypy);
-       SP_SetPixel(cxmx, cypy);
-       SP_SetPixel(cxpx, cymy);
-       SP_SetPixel(cxmx, cymy);
-    end;
+      Rx2 := Rx * Rx;
+      Ry2 := Ry * Ry;
+      twoRx2 := 2 * Rx2;
+      twoRy2 := 2 * Ry2;
+      x := 0;
+      y := Ry;
+      px := 0;
+      py := twoRx2 * y;
 
-    {$R-}
-    p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
-    {$R-}
-    while y > 0 do begin
-       Dec(y);
-       Dec(py, twoRx2);
-       if p > 0 then
-          Inc(p, Rx2 - py)
-       else begin
-          Inc(x);
-          Inc(px, twoRy2);
-          Inc(p, Rx2 - py + px);
-          inc(cxpx);
-          dec(cxmx);
-       end;
-       dec(cypy);
-       inc(cymy);
-       SP_SetPixel(cxpx, cypy);
-       SP_SetPixel(cxmx, cypy);
-       if y > 0 Then Begin
+      cxpx := Cx + X; cypy := Cy + Y;
+      cxmx := Cx - X; cymy := Cy - Y;
+
+      SP_SetPixel(cxpx, cypy);
+      SP_SetPixel(cxpx, cymy);
+      If cxmx <> cxpx Then Begin
+        SP_SetPixel(cxmx, cymy);
+        SP_SetPixel(cxmx, cypy);
+      End;
+
+      p := Ry2 - (Rx2 * Ry) + (Rx2 div 4);
+
+      while px < py do begin
+         Inc(x);
+         Inc(px, twoRy2);
+         if p < 0 then
+            Inc(p, Ry2 + px)
+         else begin
+            Dec(y);
+            Dec(py, twoRx2);
+            Inc(p, Ry2 + px - py);
+            dec(cypy);
+            inc(cymy);
+         end;
+         inc(cxpx);
+         dec(cxmx);
+         SP_SetPixel(cxpx, cypy);
+         SP_SetPixel(cxmx, cypy);
          SP_SetPixel(cxpx, cymy);
          SP_SetPixel(cxmx, cymy);
-       End;
-    end;
+      end;
 
-  End Else
+      {$R-}
+      p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
+      {$R-}
+      while y > 0 do begin
+         Dec(y);
+         Dec(py, twoRx2);
+         if p > 0 then
+            Inc(p, Rx2 - py)
+         else begin
+            Inc(x);
+            Inc(px, twoRy2);
+            Inc(p, Rx2 - py + px);
+            inc(cxpx);
+            dec(cxmx);
+         end;
+         dec(cypy);
+         inc(cymy);
+         SP_SetPixel(cxpx, cypy);
+         SP_SetPixel(cxmx, cypy);
+         if y > 0 Then Begin
+           SP_SetPixel(cxpx, cymy);
+           SP_SetPixel(cxmx, cymy);
+         End;
+      end;
 
-    SP_DrawEllipse32(Cx, Cy, Rx, Ry);
+    End Else
+
+      SP_DrawEllipse32(Cx, Cy, Rx, Ry);
+
+  End;
 
   If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - Rx, (SCREENY + Cy) - Ry, SCREENX + Cx + Rx, SCREENY + Cy + Ry);
   SP_BankList[0]^.Changed := True;
@@ -4533,6 +4626,8 @@ Begin
   MaxX := Min(MaxX, T_CLIPX2 -1);
   MinY := Max(MinY, T_CLIPY1);
   MinX := Max(MinX, T_CLIPX1);
+
+  If (MinY > T_CLIPY2) or (MinX > T_CLIPX2) or (MaxY < T_CLIPY1) or (MaxX < T_CLIPX1) Then Exit;
 
   If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + MinX, SCREENY + MinY, SCREENX + MaxX, SCREENY + MaxY);
 

@@ -402,6 +402,7 @@ Var
   CINVERSE:                 Integer;      // Current state of the INVERSE ... state?
   COVER:                    Integer;      // Current state of the OVER flag
   CTRANSPARENT:             Boolean;      // Current state of the TRANSPARENT flag for mono text
+  CSTROKE:                  aFloat;       // Current line width for DRAW, PLOT et al
   CCLIPX1:                  Integer;      // Current clip rect
   CCLIPY1:                  Integer;
   CCLIPX2:                  Integer;
@@ -433,6 +434,7 @@ Var
   T_CENTRE:                 Boolean;
   T_CENTRETEXT:             aString;
   T_CENTRE_Y:               Integer;
+  T_STROKE:                 aFloat;
   OUTBUFFER:                aString;
   OUTSET:                   Boolean;
   OUTWORKSP:                aString;
@@ -1587,7 +1589,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..249] of TSysVar =
+  SysVars: Array[0..251] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
@@ -1789,6 +1791,8 @@ Const
    (Name: 'VSYNCENABLED'; svType: svBoolean; size: 1; Data: @VSYNCENABLED),
    (Name: 'CLICKVOL'; svType: svaFloat; Size: 8; Data: @CLICKVOL),
    (Name: 'AUTOSAVETIME'; svType: svLongWord; Size: 4; Data: @AUTOSAVETIME),
+   (Name: 'CSTROKE'; svType: svaFloat; Size: 8; Data: @CSTROKE),
+   (Name: 'T_STROKE'; svType: svaFloat; Size: 8; Data: @T_STROKE),
 
    (Name: 'BACKCLR'; svType: svString; Size: 0; Data: @BackClr),
    (Name: 'NOCLR'; svType: svString; Size: 0; Data: @noClr),

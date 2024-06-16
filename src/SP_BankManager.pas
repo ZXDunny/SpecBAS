@@ -1086,6 +1086,7 @@ Begin
   Window^.Ink := CINK;
   Window^.Paper := CPAPER;
   Window^.Inverse := CINVERSE;
+  Window^.stroke := CSTROKE;
   Window^.Over := COVER;
   Window^.Transparent := Word(TransIDX);
   Window^.pr_posx := 0;

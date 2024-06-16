@@ -3421,7 +3421,7 @@ end;
 
 Procedure SP_DrawRectangle(X1, Y1, X2, Y2: Integer);
 Var
-  T, a, b, c, d: Integer;
+  T, W, a, b, c, d: Integer;
   p: pByte;
 Begin
 
@@ -3440,47 +3440,65 @@ Begin
 
   If SCREENBPP = 8 Then Begin
 
-    a := Max(X1, T_CLIPX1); b := Min(X2, T_CLIPX2 -1);
-    c := Max(Y1, T_CLIPY1); d := Min(Y2, T_CLIPY2 -1);
+    If T_STROKE > 1 Then Begin
 
-    // Top edge
+      W := Floor(T_STROKE / 2);
 
-    If Y1 >= T_CLIPY1 Then Begin
-      p := pByte(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * Y1) + a);
-      For t := 0 to b - a Do Begin
-        SP_SetPixelPtr(p);
-        Inc(p);
+      a := X1 - W;
+      b := Y1 - W;
+      c := X2 + W;
+      d := Y2 + W;
+
+      SP_DrawSolidRectangle(a, b, c, Round(b + T_STROKE) -1);
+      SP_DrawSolidRectangle(a, Round(b + T_STROKE), a + Round(T_STROKE) -1, Round(d - T_STROKE));
+      SP_DrawSolidRectangle(c - Round(T_STROKE) +1, Round(b + T_STROKE), c, Round(d - T_STROKE));
+      SP_DrawSolidRectangle(a, Round(d - T_STROKE) +1, c, d);
+
+    End Else Begin
+
+      a := Max(X1, T_CLIPX1); b := Min(X2, T_CLIPX2 -1);
+      c := Max(Y1, T_CLIPY1); d := Min(Y2, T_CLIPY2 -1);
+
+      // Top edge
+
+      If Y1 >= T_CLIPY1 Then Begin
+        p := pByte(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * Y1) + a);
+        For t := 0 to b - a Do Begin
+          SP_SetPixelPtr(p);
+          Inc(p);
+        End;
       End;
-    End;
 
-    // Left edge
+      // Left edge
 
-    If X1 >= T_CLIPX1 Then Begin
-      p := pByte(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * c) + X1);
-      For t := 0 to d - c Do Begin
-        SP_SetPixelPtr(p);
-        Inc(p, SCREENSTRIDE);
+      If X1 >= T_CLIPX1 Then Begin
+        p := pByte(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * c) + X1);
+        For t := 0 to d - c Do Begin
+          SP_SetPixelPtr(p);
+          Inc(p, SCREENSTRIDE);
+        End;
       End;
-    End;
 
-    // Right edge
+      // Right edge
 
-    If X2 < T_CLIPX2 Then Begin
-      p := pByte(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * c) + X2);
-      For t := 0 to d - c Do Begin
-        SP_SetPixelPtr(p);
-        Inc(p, SCREENSTRIDE);
+      If X2 < T_CLIPX2 Then Begin
+        p := pByte(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * c) + X2);
+        For t := 0 to d - c Do Begin
+          SP_SetPixelPtr(p);
+          Inc(p, SCREENSTRIDE);
+        End;
       End;
-    End;
 
-    // Bottom Edge
+      // Bottom Edge
 
-    If Y2 < T_CLIPY2 Then Begin
-      p := pByte(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * Y2) + a);
-      For t := 0 to b - a Do Begin
-        SP_SetPixelPtr(p);
-        Inc(p);
+      If Y2 < T_CLIPY2 Then Begin
+        p := pByte(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * Y2) + a);
+        For t := 0 to b - a Do Begin
+          SP_SetPixelPtr(p);
+          Inc(p);
+        End;
       End;
+
     End;
 
   End Else

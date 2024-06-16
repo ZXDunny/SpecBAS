@@ -2123,47 +2123,35 @@ End;
 
 Procedure SP_DrawRectangle32Alpha(X1, Y1, X2, Y2: Integer);
 Var
-  W, W2: Integer;
+  W, W2, a, b, c, d: Integer;
   Dst: pLongWord;
 Begin
 
   If Y1 > Y2 Then Begin W := Y1; Y1 := Y2; Y2 := W; End;
   If X1 > X2 Then Begin W := X1; X1 := X2; X2 := W; End;
 
-  W := X2 - X1;
-  Dst := pLongWord(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * Y1) + (X1 * SizeOf(RGBA)));
+  If T_STROKE > 1 Then Begin
 
-  If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + X1, SCREENY + Y1, SCREENX + X2 +1, SCREENY + Y2 +1);
+    W := Floor(T_STROKE / 2);
 
-  If (Y1 >= T_CLIPY1) And (Y1 < T_CLIPY2) Then Begin // top edge
-    W2 := X1;
-    While W2 <= X2 Do Begin
-      If (W2 >= T_CLIPX1) And (W2 < T_CLIPX2) Then
-        SP_SetPixelPtr32Alpha(Dst);
-      Inc(Dst);
-      Inc(W2);
-    End;
-  End Else
-    Inc(Dst, (X2 - X1)+1);
+    a := X1 - W;
+    b := Y1 - W;
+    c := X2 + W;
+    d := Y2 + W;
 
-  Inc(Dst, SCREENWIDTH - W -1);
-  Inc(Y1);
+    SP_DrawSolidRectangle32Alpha(a, b, c, Round(b + T_STROKE) -1);
+    SP_DrawSolidRectangle32Alpha(a, Round(b + T_STROKE), a + Round(T_STROKE) -1, Round(d - T_STROKE));
+    SP_DrawSolidRectangle32Alpha(c - Round(T_STROKE) +1, Round(b + T_STROKE), c, Round(d - T_STROKE));
+    SP_DrawSolidRectangle32Alpha(a, Round(d - T_STROKE) +1, c, d);
 
-  While Y1 < Y2 Do Begin
-    If (Y1 >= T_CLIPY1) And (Y1 < T_CLIPY2) Then Begin
-      If (X1 >= T_CLIPX1) And (X1 < T_CLIPX2) Then // left edge
-        SP_SetPixelPtr32Alpha(Dst);
-      Inc(Dst, X2 - X1);
-      If (X2 >= T_CLIPX1) And (X2 < T_CLIPX2) Then // right edge
-        SP_SetPixelPtr32Alpha(Dst);
-    End Else
-      Inc(Dst, X2 - X1);
-    Inc(Dst, SCREENWIDTH - W);
-    Inc(Y1);
-  End;
+  End Else Begin
 
-  If Y1 <= Y2 Then
-    If (Y2 >= T_CLIPY1) And (Y2 < T_CLIPY2) Then Begin // bottom edge
+    W := X2 - X1;
+    Dst := pLongWord(NativeInt(SCREENPOINTER) + (SCREENSTRIDE * Y1) + (X1 * SizeOf(RGBA)));
+
+    If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + X1, SCREENY + Y1, SCREENX + X2 +1, SCREENY + Y2 +1);
+
+    If (Y1 >= T_CLIPY1) And (Y1 < T_CLIPY2) Then Begin // top edge
       W2 := X1;
       While W2 <= X2 Do Begin
         If (W2 >= T_CLIPX1) And (W2 < T_CLIPX2) Then
@@ -2171,7 +2159,37 @@ Begin
         Inc(Dst);
         Inc(W2);
       End;
+    End Else
+      Inc(Dst, (X2 - X1)+1);
+
+    Inc(Dst, SCREENWIDTH - W -1);
+    Inc(Y1);
+
+    While Y1 < Y2 Do Begin
+      If (Y1 >= T_CLIPY1) And (Y1 < T_CLIPY2) Then Begin
+        If (X1 >= T_CLIPX1) And (X1 < T_CLIPX2) Then // left edge
+          SP_SetPixelPtr32Alpha(Dst);
+        Inc(Dst, X2 - X1);
+        If (X2 >= T_CLIPX1) And (X2 < T_CLIPX2) Then // right edge
+          SP_SetPixelPtr32Alpha(Dst);
+      End Else
+        Inc(Dst, X2 - X1);
+      Inc(Dst, SCREENWIDTH - W);
+      Inc(Y1);
     End;
+
+    If Y1 <= Y2 Then
+      If (Y2 >= T_CLIPY1) And (Y2 < T_CLIPY2) Then Begin // bottom edge
+        W2 := X1;
+        While W2 <= X2 Do Begin
+          If (W2 >= T_CLIPX1) And (W2 < T_CLIPX2) Then
+            SP_SetPixelPtr32Alpha(Dst);
+          Inc(Dst);
+          Inc(W2);
+        End;
+      End;
+
+  End;
 
 End;
 

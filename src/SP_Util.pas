@@ -1743,15 +1743,18 @@ Var
 Begin
 
   l := Length(s);
-  sPtr := pByte(pNativeUInt(@s)^);
-  dPtr := pByte(NativeUInt(sPtr) + l -1);
+  if l >= 2 Then Begin
 
-  While NativeUInt(dPtr) > NativeUInt(sPtr) Do Begin
-    t := sPtr^;
-    sPtr^ := dPtr^;
-    dPtr^ := t;
-    Dec(dPtr);
-    Inc(sPtr);
+    sPtr := pByte(pNativeUInt(@s)^);
+    dPtr := pByte(NativeUInt(sPtr) + l -1);
+
+    While NativeUInt(dPtr) > NativeUInt(sPtr) Do Begin
+      t := sPtr^;
+      sPtr^ := dPtr^;
+      dPtr^ := t;
+      Dec(dPtr);
+      Inc(sPtr);
+    End;
   End;
 
 End;

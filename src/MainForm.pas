@@ -1298,6 +1298,9 @@ Begin
     Inc(Pixels, w);
   End;
 
+  If FileExists(Filename) Then
+    DeleteFile(Filename);
+
   Ext := Lower(aString(ExtractFileExt(String(Filename))));
   If Ext = '.bmp' Then Begin
     Bmp.SaveToFile(String(Filename));

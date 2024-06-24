@@ -164,6 +164,7 @@ Function  SP_Convert_GRAPHIC(Var KeyWordID: LongWord; Var Tokens: aString; Var P
 Function  SP_Convert_RENUMBER(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_CONTINUE(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_LIST(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_LLIST(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_DELETE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_PACKAGE(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_ASSIGN(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
@@ -666,6 +667,7 @@ Begin
     SP_KW_RENUMBER: Result := Result + SP_Convert_RENUMBER(KeyWordID, Tokens, Position, Error);
     SP_KW_CONTINUE: Result := Result + SP_Convert_CONTINUE(Tokens, Position, Error);
     SP_KW_LIST: Result := Result + SP_Convert_LIST(KeyWordID, Tokens, Position, Error);
+    SP_KW_LLIST: Result := Result + SP_Convert_LLIST(KeyWordID, Tokens, Position, Error);
     SP_KW_PACKAGE: Result := Result + SP_Convert_PACKAGE(KeyWordID, Tokens, Position, Error);
     SP_KW_ASSIGN: Result := Result + SP_Convert_ASSIGN(Tokens, Position, Error);
     SP_KW_COPY: Result := Result + SP_Convert_COPY(Tokens, Position, Error);
@@ -8322,7 +8324,7 @@ Begin
     End;
   End Else Begin
     NotVar:
-    Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // x or styexpr
+    Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // x or strexpr
     If Error.Code <> SP_ERR_OK Then Exit;
     If Error.ReturnType <> SP_VALUE Then Begin
       If (Error.ReturnType = SP_STRING) And ((KeyWordID = SP_KW_DRAW) or (KeyWordID = SP_KW_ADRAW)) Then
@@ -15286,6 +15288,38 @@ Begin
                     Error.Code := SP_ERR_MISSING_NUMEXPR;
             End;
           End;
+
+End;
+
+Function SP_Convert_LLIST(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Begin
+
+  // LLIST Filename [,width[,maxheight]]
+
+  Result := SP_Convert_Expr(Tokens, Position, Error, -1); // Filename
+  If Error.ReturnType <> SP_STRING Then
+    Error.Code := SP_ERR_MISSING_STREXPR;
+
+  If Error.Code = SP_ERR_OK Then Begin
+    If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+      Inc(Position, 2);
+      Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result;
+      If Error.Code = SP_ERR_OK Then
+        If Error.ReturnType <> SP_VALUE Then
+          Error.Code := SP_ERR_MISSING_NUMEXPR;
+    End Else
+      Result := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(-1) + Result;
+    If Error.Code = SP_ERR_OK Then Begin
+      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+        Inc(Position, 2);
+        Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result;
+        If Error.Code = SP_ERR_OK Then
+          If Error.ReturnType <> SP_VALUE Then
+            Error.Code := SP_ERR_MISSING_NUMEXPR;
+      End Else
+        Result := CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(-1) + Result;
+    End;
+  End;
 
 End;
 

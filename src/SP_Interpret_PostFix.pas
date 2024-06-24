@@ -690,6 +690,7 @@ Procedure SP_Interpret_RENUMBER(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ERASE_LINES(Var Info: pSP_iInfo);
 Procedure SP_Interpret_LIST(Var Info: pSP_iInfo);
 Procedure SP_Interpret_LIST_LINES(Var Info: pSP_iInfo);
+Procedure SP_Interpret_LLIST(Var Info: pSP_iInfo);
 Procedure SP_Interpret_PACKAGE_NEW(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ASSIGN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_COPY(Var Info: pSP_iInfo);
@@ -7325,6 +7326,9 @@ Begin
     ValPosition := 1;
     ValTkn := @ValTokens;
     SP_InterpretCONTSafe(ValTkn, ValPosition, Info^.Error^);
+    If Info^.Error^.Code = SP_ERR_OK Then
+      If SP_StackPtr^.OpType <> SP_VALUE Then
+        Info^.Error^.Code := SP_ERR_SYNTAX_ERROR;
   End;
 End;
 
@@ -19506,6 +19510,118 @@ Begin
 
 End;
 
+Procedure SP_Interpret_LLIST(Var Info: pSP_iInfo);
+Var
+  W, H, GW, GH, cx, cy, MaxH, i, Gfx, ProgLen, OldWindow, ColCnt: Integer;
+  Content, s, Filename: aString;
+  list: TAnsiStringList;
+Begin
+
+  // List all lines as text, then render them into a bitmap.
+  // Just like a magazine listing!
+
+  Filename := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+
+  W := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  MaxH := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  If INCLUDEFROM <> -1 Then
+    ProgLen := INCLUDEFROM
+  Else
+    ProgLen := SP_Program_Count;
+
+  If ProgLen > 0 Then Begin
+
+    Content := SP_LIST(0, pLongWord(@SP_Program[ProgLen -1][2])^);
+    If W <= 0 Then
+      W := DISPLAYWIDTH div FONTWIDTH;
+
+    List := TAnsiStringList.Create;
+    List.Delimiter := #$D;
+    List.DelimitedText := Content;
+
+    i := 0;
+    While i < List.Count Do Begin
+      s := List[i];
+      if Length(s) > W Then Begin
+        List.Delete(i);
+        While Length(s) > W Do Begin
+          List.Insert(i, Copy(s, 1, W));
+          s := Copy(s, W +1);
+          Inc(i);
+        End;
+        If s <> '' Then Begin
+          List.Insert(i, s);
+          Inc(i);
+        End;
+      End Else
+        Inc(i);
+    End;
+
+    For i := 0 To List.Count -1 Do
+      List[i] := ' ' + List[i] + ' ';
+    List.Insert(0, ' ');
+    List.Add(' ');
+    Inc(W, 2);
+
+    W := W * FONTWIDTH;
+    H := List.Count * FONTHEIGHT;
+
+    If MaxH <= 0 Then MaxH := List.Count +1;
+
+    ColCnt := (List.Count Div MaxH) +1;
+    GW := (W + 2 * FONTWIDTH) * ColCnt;
+    GH := (MaxH + 2) * FONTHEIGHT;
+    If ColCnt = 1 Then
+      Dec(GH, 3 * FONTHEIGHT);
+    Dec(GW, 2* FONTWIDTH);
+
+    Gfx := SP_New_GraphicA(GW, GH, $FFFF, Info^.Error^);
+
+    OldWindow := SCREENBANK;
+    SP_SetDrawingWindow(Gfx);
+    SP_CLS(8);
+    CINK := 0; CPAPER := 8; T_INK := 0; T_PAPER := 8;
+
+    cx := 0; cy := 0;
+    For i := 0 To List.Count -1 Do Begin
+
+      PRPOSX := cx * FONTWIDTH;
+      PRPOSY := cy * FONTHEIGHT;
+      Inc(SP_StackPtr);
+      SP_StackPtr^.OpType := SP_STRING;
+      SP_StackPtr^.Str := List[i];
+      SP_Interpret_PRINT(Info);
+
+      Inc(cy);
+      If cy > MaxH Then Begin
+        cy := 1;
+        Inc(cx, (W Div FONTWIDTH) + 2);
+      End;
+
+    End;
+
+    Inc(SP_StackPtr);
+    SP_StackPtr^.OpType := SP_VALUE;
+    SP_StackPtr^.Val := Gfx;
+    Inc(SP_StackPtr);
+    SP_StackPtr^.OpType := SP_STRING;
+    SP_StackPtr^.Str := Filename;
+    SP_Interpret_GRAPHIC_SAVE(Info);
+
+    SP_SetDrawingWindow(OldWindow);
+    SP_DeleteBank(gfx, Info^.Error^);
+
+    List.Free;
+
+  End;
+
+End;
+
 Procedure SP_Interpret_LIST(Var Info: pSP_iInfo);
 Var
   ProgLen: Integer;
@@ -27160,6 +27276,7 @@ Initialization
   InterpretProcs[SP_KW_ERASE_LINES] := @SP_Interpret_ERASE_LINES;
   InterpretProcs[SP_KW_LIST] := @SP_Interpret_LIST;
   InterpretProcs[SP_KW_LIST_LINES] := @SP_Interpret_LIST_LINES;
+  InterpretProcs[SP_KW_LLIST] := @SP_Interpret_LLIST;
   InterpretProcs[SP_KW_PACK_NEW] := @SP_Interpret_PACKAGE_NEW;
   InterpretProcs[SP_KW_ASSIGN] := @SP_Interpret_ASSIGN;
   InterpretProcs[SP_KW_COPY] := @SP_Interpret_COPY;

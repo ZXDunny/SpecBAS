@@ -168,7 +168,7 @@ End;
 Procedure TRefreshThread.Execute;
 Var
   LastFrames: NativeUint;
-  StartTime, CurTime, LastTime, SleepTime: aFloat;
+  StartTime, CurTime, LastTime, SleepTime, opTime: aFloat;
 Begin
 
   FreeOnTerminate := True;
@@ -203,6 +203,7 @@ Begin
       HandleMouse;
 
       If SP_FrameUpdate Then Begin
+        opTime := CB_GETTICKS;
         DisplaySection.Enter;
         If UpdateDisplay Then Begin
           CB_Refresh_Display;
@@ -212,13 +213,14 @@ Begin
           LastTime := CurTime;
         End;
         DisplaySection.Leave;
+        opTime := CB_GETTICKS - opTime;
         UPDATENOW := False;
       End;
       CauseUpdate := False;
 
     End;
 
-    SleepTime := (((FRAMES + 1) * FRAME_MS) + StartTime) - CB_GETTICKS;
+    SleepTime := (((FRAMES + 1) * FRAME_MS) + StartTime) - CB_GETTICKS - Ceil(opTime);
     If SleepTime >= 1 Then
       Sleep(Trunc(SleepTime));
 

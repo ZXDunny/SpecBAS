@@ -119,6 +119,7 @@ Begin
   fBufferSize := 1000;
   fRedoBufferSize := 1000;
   fCount := 0;
+  Delimiter := #$D;
   Clear;
 End;
 

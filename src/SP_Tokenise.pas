@@ -80,7 +80,7 @@ Const
   // List of keywords that are used in statements.
   // MUST Be in this order - add new commands to the end of the list.
 
-  SP_KEYWORDS_EXTRA: Array[0..253] of aString =
+  SP_KEYWORDS_EXTRA: Array[0..254] of aString =
     ('SPECTRUM ', 'PLAY ', 'AT ', 'TAB ', 'LINE ', ' THEN ', ' TO ', ' STEP ',
      'DEF ', 'CAT ', ' FORMAT ', 'MOVE ', 'ERASE ', 'OPEN ', 'CLOSE ', 'MERGE ', 'BEEP ',
      'CIRCLE ', 'INK ', 'PAPER ', 'INVERSE ', 'OUT ', 'STOP ', 'READ ', ' DATA ',
@@ -110,7 +110,7 @@ Const
      'BOLD ', 'ITALIC ', 'FILTER ', 'INSERT ', 'MENUITEM ', 'MEMWRT ', 'MEMWRTD ', 'MEMWRTQ ',
      'MEMWRT$ ', 'REPEAT', 'PARTICLE ', 'FRICTION ', 'GRAVITY ', 'FORCE ', 'INSTALL', 'MEMWRTF ',
      'PRESS', 'TURNS', 'GRADIANS', 'EGA', 'CGA', 'ADDCTRL', 'CTRL', 'PROP$ ', 'OLD', ' ASYNC',
-     'COMPILE ', 'APPLEHGR', 'APPLELGR', 'CPC', 'ENUM ', 'STROKE ');
+     'COMPILE ', 'APPLEHGR', 'APPLELGR', 'CPC', 'ENUM ', 'STROKE ', 'LLIST ');
 
   // Constants used to quickly identify keywords when in token form. Each keyword listed
   // above has a corresponding constant, which must be SP_KEYWORD_BASE + (Index of Keyword above).
@@ -371,6 +371,7 @@ Const
   SP_KW_CPC                 = 1251;
   SP_KW_ENUM                = 1252;
   SP_KW_STROKE              = 1253;
+  SP_KW_LLIST               = 1254;
 
 
   // These are meta-commands; they do not appear in listings, and are used during

@@ -2456,7 +2456,6 @@ Initialization
 Finalization
 
   PLAYSignalHalt(-1);
-  If Assigned(BEEPMonitor) Then BEEPMonitor.Terminate;
   PLAYLock.Free;
 
 end.

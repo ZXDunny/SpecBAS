@@ -806,6 +806,9 @@ Begin
   SP_SetSpeccyStyleChar(ID, Byte(aChar(#254)), @Arrows[24]);
   SP_SetSpeccyStyleChar(ID, Byte(aChar(#255)), @Slope[0]);
 
+  For Idx := 0 to 3 Do
+    SP_SetSpeccyStyleChar(ID, Idx + 144, @Dithers[Idx * 8]);
+
 ENd;
 
 Procedure SP_InitialGfxSetup(W, H: Integer; IsNEW: Boolean);

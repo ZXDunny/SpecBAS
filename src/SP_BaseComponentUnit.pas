@@ -2162,18 +2162,19 @@ Begin
 
   Dbl := False;
   If Enabled Then Begin
-    fCanClick := True;
-    If Abs(fMouseClickPos.X - X) < 4 Then
-      If Abs(fMouseClickPos.Y - Y) < 4 Then
-        If FRAMES - fMouseClickTime < FPS * SP_DBLCLICKTIME Then
-          If (fMouseLastBtn = Btn) Then Begin
-            DoubleClick(X, Y, Btn);
-            dbl := True;
-          End;
 
-    fMouseClickPos := Point(X, Y);
-    fMouseLastBtn := Btn;
-    fMouseClickTime := FRAMES;
+    fCanClick := True;
+
+    If (Abs(fMouseClickPos.X - X) < 4) and (Abs(fMouseClickPos.Y - Y) < 4) And (FRAMES - fMouseClickTime < FPS * SP_DBLCLICKTIME) and (fMouseLastBtn = Btn) Then Begin
+      DoubleClick(X, Y, Btn);
+      fMouseClickTime := -9999;
+      fMouseClickPos := Point(-100, -100);
+      dbl := True;
+    End Else Begin
+      fMouseClickPos := Point(X, Y);
+      fMouseLastBtn := Btn;
+      fMouseClickTime := FRAMES;
+    End;
 
     If fCanFocus Then
       SetFocus(True);

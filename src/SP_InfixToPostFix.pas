@@ -13232,7 +13232,8 @@ Begin
               Exit;
             End;
           VarExpr := VarExpr + Expr;
-        End;
+        End Else
+          VarExpr := VarExpr + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
 
         VarExpr := VarExpr + CreateToken(SP_NUMVAR, 0, SizeOf(LongWord)+Length(VarName)) + LongWordToString(0) + VarName;
 
@@ -13258,7 +13259,8 @@ Begin
                 Exit;
               End;
             VarExpr := VarExpr + Expr;
-          End;
+          End Else
+            VarExpr := VarExpr + CreateToken(SP_STRING, 0, 0) + '';
 
           VarExpr := VarExpr + CreateToken(SP_STRVAR, 0, SizeOf(LongWord)+Length(VarName)) + LongWordToString(0) + VarName;
 
@@ -17634,7 +17636,7 @@ Var
   VarName: aString;
 Begin
 
-  // SORT [KEY] array$()|Array() [INVERSE]
+  // SORT [KEY] array$()|Array() [INVERSE] [Fn a()]
 
   Result := '';
   Key := -1;
@@ -17661,6 +17663,26 @@ Begin
         Inc(Position, SizeOf(LongWord) +1);
       End Else
         Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(1);
+      If (Byte(Tokens[Position]) = SP_FUNCTION) And (pLongWord(@Tokens[Position +1])^ = SP_FN_FN) Then Begin
+        Inc(Position, 1 + SizeOf(LongWord));
+        VarPos := Position;
+        VarType := Tokens[Position];
+        If VarType = aChar(SP_NUMVAR) Then Begin
+          Inc(Position, 1 + SizeOf(LongWord));
+          VarSize := pLongWord(@Tokens[Position])^;
+          Inc(Position, SizeOf(LongWord));
+          VarName := LowerNoSpaces(Copy(Tokens, Position, VarSize));
+          Inc(Position, VarSize);
+          If VarType = aChar(SP_NUMVAR) Then Begin
+            Result := CreateToken(Byte(VarType), VarPos, SizeOf(LongWord)+Length(VarName)) + LongWordToString(0) + VarName + Result;
+          End else
+            Error.Code := SP_ERR_SYNTAX_ERROR;
+        End Else
+          Error.Code := SP_ERR_SYNTAX_ERROR;
+      End Else Begin
+        VarName := '';
+        Result := CreateToken(Byte(SP_NUMVAR), 0, SizeOf(LongWord)+Length(VarName)) + LongWordToString(0) + VarName + Result;
+      End;
     End Else
       Error.Code := SP_ERR_ARRAY_NOT_FOUND;
   End Else

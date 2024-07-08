@@ -850,7 +850,7 @@ Var
 begin
 
   If Key = K_PAUSE Then Begin // the BREAK key on PC keyboards always saves a screengrab.
-    ScreenShot;
+    ScreenShot(False);
     Exit;
   End;
 
@@ -1298,8 +1298,8 @@ Begin
     Inc(Pixels, w);
   End;
 
-  If FileExists(Filename) Then
-    DeleteFile(Filename);
+  If FileExists(String(Filename)) Then
+    DeleteFile(String(Filename));
 
   Ext := Lower(aString(ExtractFileExt(String(Filename))));
   If Ext = '.bmp' Then Begin

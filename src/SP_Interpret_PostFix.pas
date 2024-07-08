@@ -19512,7 +19512,7 @@ End;
 
 Procedure SP_Interpret_LLIST(Var Info: pSP_iInfo);
 Var
-  W, H, GW, GH, cx, cy, MaxH, i, Gfx, ProgLen, OldWindow, ColCnt: Integer;
+  W, GW, GH, cx, cy, MaxH, i, Gfx, ProgLen, OldWindow, ColCnt: Integer;
   Content, s, Filename: aString;
   list: TAnsiStringList;
 Begin
@@ -19569,7 +19569,6 @@ Begin
     Inc(W, 2);
 
     W := W * FONTWIDTH;
-    H := List.Count * FONTHEIGHT;
 
     If MaxH <= 0 Then MaxH := List.Count +1;
 
@@ -23957,7 +23956,7 @@ End;
 Procedure SP_Interpret_SORT(Var Info: pSP_iInfo);
 Var
   sIdx, Idx, aType: Integer;
-  VarName: aString;
+  VarName, FnName: aString;
   Ascending, Key: Boolean;
 Begin
 
@@ -24011,14 +24010,17 @@ Begin
 
   If Info^.Error^.Code <> SP_ERR_OK Then Exit;
 
+  FnName := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+
   Case aType of
     SP_NUMVAR:
       Begin
-       SP_SortNumArray(sIdx, Key, Ascending, Info^.Error^);
+       SP_SortNumArray(sIdx, Key, Ascending, FnName, Info^.Error^);
       End;
     SP_STRVAR:
       Begin
-        SP_SortStrArray(sIdx, Key, Ascending, Info^.Error^);
+        SP_SortStrArray(sIdx, Key, Ascending, FnName, Info^.Error^);
       End;
   End;
 

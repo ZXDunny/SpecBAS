@@ -224,8 +224,8 @@ Function  SP_UpdateFOREACHVar(Idx: Integer; const Name, ArrayName: aString; Var 
 Function  SP_UpdateFOREACHRANGEVar(Idx: Integer; const Name, EachString: aString; Var NumRanges, LoopLine, LoopStatement, St: Integer; Ptr: pLongWord; Var Error: TSP_ErrorCode): Integer;
 Function  SP_UpdateFOREACHVar_Str(Idx: Integer; const Name, StrContent: aString; Var Step: aFloat; LoopLine, LoopStatement, St: Integer; Ptr: pLongWord; Var Error: TSP_ErrorCode): Integer;
 
-Procedure SP_SortNumArray(sIdx: Integer; Key, Ascending: Boolean; Var Error: TSP_ErrorCode);
-Procedure SP_SortStrArray(sIdx: Integer; Key, Ascending: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_SortNumArray(sIdx: Integer; Key, Ascending: Boolean; FnName: aString; Var Error: TSP_ErrorCode);
+Procedure SP_SortStrArray(sIdx: Integer; Key, Ascending: Boolean; FnName: aString; Var Error: TSP_ErrorCode);
 
 Function  SP_SearchNumArray(Const Name: aString; Term: aFloat; Var Error: TSP_ErrorCode): Integer;
 Function  SP_SearchNumArrayNext(Const Name: aString; Var Error: TSP_ErrorCode): Integer;
@@ -2186,7 +2186,7 @@ Begin
 
     For sIdx := 0 To StrArrays[Idx].Size -1 Do Begin
 
-      If StrArrays[Idx].Strings[sIdx].Value = Term Then Begin
+      If Pos(Term, StrArrays[Idx].Strings[sIdx].Value) > 0 Then Begin
         Result := sIdx + StrArrays[Idx].Base;
         StrArrays[Idx].LastSearchIdx := sIdx;
         Exit;
@@ -2222,7 +2222,7 @@ Begin
 
       For sIdx := StrArrays[Idx].LastSearchIdx +1 To StrArrays[Idx].Size -1 Do Begin
 
-        If StrArrays[Idx].Strings[sIdx].Value = StrArrays[Idx].LastSearchTerm Then Begin
+        If Pos(StrArrays[Idx].LastSearchTerm, StrArrays[Idx].Strings[sIdx].Value) > 0 Then Begin
           Result := sIdx + StrArrays[Idx].Base;
           StrArrays[Idx].LastSearchIdx := sIdx;
           Exit;
@@ -3906,7 +3906,51 @@ Begin
 
 End;
 
-Procedure SP_SortNumArray(sIdx: Integer; Key, Ascending: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_SortNumArray(sIdx: Integer; Key, Ascending: Boolean; FnName: aString; Var Error: TSP_ErrorCode);
+Var
+  UseFn: Boolean;
+  FnIdx, VarIdx1, VarIdx2: Integer;
+  VarList, VarName: aString;
+  Idx2, VarOffsetN, VarOffsetS, ValPosition: Integer;
+  nVar: pFnVar;
+  ValTkn: paString;
+
+  Function CallFn(Const Str1, Str2: Pointer; Var Error: TSP_ErrorCode): Integer;
+  Begin
+
+    Result := 0;
+
+    If Key Then Begin
+
+      StrVars[VarIdx1]^.Content.Value := pSP_StrVarContent(Str1)^.Key;
+      StrVars[VarIdx2]^.Content.Value := pSP_StrVarContent(Str2)^.Key;
+
+    End Else Begin
+
+      NumVars[VarIdx1]^.ContentPtr := pSP_NumVarContent(Str1);
+      NumVars[VarIdx2]^.ContentPtr := pSP_NumVarContent(Str2);
+
+    End;
+
+    // Call the Fn and get the result
+
+    ValPosition := 1;
+    ValTkn := @SP_FnList[FnIdx].Expr;
+    Inc(FN_Recursion_Count);
+    If FN_Recursion_Count >= MAXDEPTH Then
+      Error.Code := SP_ERR_OUT_OF_MEMORY
+    Else
+      SP_InterpretCONTSafe(ValTkn, ValPosition, Error);
+    Dec(FN_Recursion_Count);
+
+    If Error.Code = SP_ERR_OK Then Begin
+
+      Result := Round(SP_StackPtr^.Val);
+      Dec(SP_StackPtr);
+
+    End;
+
+  End;
 
   Procedure SortNumArray(sIdx, L, R: Integer);
   Var
@@ -3927,41 +3971,73 @@ Procedure SP_SortNumArray(sIdx: Integer; Key, Ascending: Boolean; Var Error: TSP
 
           If Ascending Then Begin
 
-            If Key Then Begin
+            If UseFn Then Begin
 
-              While Values[I]^.Key < P^.Key Do
+              While CallFn(Values[I], P, Error) < 0 Do
                 Inc(I);
 
-              while Values[J]^.Key > P^.Key Do
+              If Error.Code <> SP_ERR_OK Then Exit;
+
+              While CallFn(Values[J], P, Error) > 0 Do
                 Dec(J);
+
+              If Error.Code <> SP_ERR_OK Then Exit;
 
             End Else Begin
 
-              While Values[I]^.Value < P^.Value Do
-                Inc(I);
+              If Key Then Begin
 
-              while Values[J]^.Value > P^.Value Do
-                Dec(J);
+                While Values[I]^.Key < P^.Key Do
+                  Inc(I);
+
+                while Values[J]^.Key > P^.Key Do
+                  Dec(J);
+
+              End Else Begin
+
+                While Values[I]^.Value < P^.Value Do
+                  Inc(I);
+
+                while Values[J]^.Value > P^.Value Do
+                  Dec(J);
+
+              End;
 
             End;
 
           End Else Begin
 
-            If Key Then Begin
+            If UseFn Then Begin
 
-              While Values[I]^.Key > P^.Key Do
+              While CallFn(Values[I], P, Error) > 0 Do
                 Inc(I);
 
-              while Values[J]^.Key < P^.Key Do
+              If Error.Code <> SP_ERR_OK Then Exit;
+
+              While CallFn(Values[J], P, Error) < 0 Do
                 Dec(J);
+
+              If Error.Code <> SP_ERR_OK Then Exit;
 
             End Else Begin
 
-              While Values[I]^.Value > P^.Value Do
-                Inc(I);
+              If Key Then Begin
 
-              while Values[J]^.Value < P^.Value Do
-                Dec(J);
+                While Values[I]^.Key > P^.Key Do
+                  Inc(I);
+
+                while Values[J]^.Key < P^.Key Do
+                  Dec(J);
+
+              End Else Begin
+
+                While Values[I]^.Value > P^.Value Do
+                  Inc(I);
+
+                while Values[J]^.Value < P^.Value Do
+                  Dec(J);
+
+              End;
 
             End;
 
@@ -3994,11 +4070,147 @@ Procedure SP_SortNumArray(sIdx: Integer; Key, Ascending: Boolean; Var Error: TSP
 
 Begin
 
+  // Set up for a FN call if we need one.
+
+  UseFn := False;
+  VarOffsetN := NumNV;
+  VarOffsetS := NumSV;
+
+  If FnName <> '' Then Begin
+
+    FnIdx := 0;
+    While FnIdx < Length(SP_FnList) Do Begin
+      If SP_FnList[FnIdx].Name = FnName Then Begin
+        Break;
+      End Else
+        Inc(FnIdx);
+    End;
+
+    If FnIdx < Length(SP_FnList) Then Begin
+
+      If SP_FnList[FnIdx].ParamCount <> 2 Then Begin
+        Error.Code := SP_ERR_PROC_PARAM_COUNT;
+        Exit;
+      End;
+
+      Idx2 := 1;
+      VarIdx1 := -1;
+      VarIdx2 := -1;
+      VarList := SP_FnList[FnIdx].ParamList;
+      While Idx2 < Length(VarList) Do Begin
+        nVar := @VarList[Idx2];
+        Inc(Idx2, SizeOf(TFnVar));
+        VarName := Copy(VarList, Idx2, nVar.Len);
+        Inc(Idx2, nVar.Len);
+        If Key Then Begin
+          If nVar.ID = 0 Then Begin
+            Error.Code := SP_ERR_PARAMETER_ERROR;
+            Exit;
+          End Else
+            If VarIdx1 = -1 Then Begin
+              VarIdx1 := SP_NewStrVar;
+              StrVars[VarIdx1]^.Name := Lower(VarName);
+            End Else Begin
+              VarIdx2 := SP_NewStrVar;
+              StrVars[VarIdx2]^.Name := Lower(VarName);
+            End;
+        End Else
+          If nVar.ID = 0 Then Begin
+            If VarIdx1 = -1 Then Begin
+              VarIdx1 := SP_NewNumVar;
+              NumVars[VarIdx1]^.Name := Lower(VarName);
+            End Else Begin
+              VarIdx2 := SP_NewNumVar;
+              NumVars[VarIdx2]^.Name := Lower(VarName);
+            End;
+          End Else Begin
+            Error.Code := SP_ERR_PARAMETER_ERROR;
+            Exit;
+          End;
+      End;
+
+      If Key Then Begin
+        StrVars[VarIdx1]^.Content.DLen := 0;
+        StrVars[VarIdx1]^.ContentPtr := @StrVars[VarIdx1]^.Content;
+        StrVars[VarIdx2]^.Content.DLen := 0;
+        StrVars[VarIdx2]^.ContentPtr := @StrVars[VarIdx1]^.Content;
+        StrVars[VarIdx1]^.ProcVar := True;
+        StrVars[VarIdx2]^.ProcVar := True;
+      End Else Begin
+        NumVars[VarIdx1]^.ProcVar := True;
+        NumVars[VarIdx2]^.ProcVar := True;
+      End;
+
+      UseFn := True;
+
+    End Else Begin
+
+      Error.Code := SP_ERR_FN_NOT_FOUND;
+      Exit;
+
+    End;
+
+  End;
+
   SortNumArray(sIdx, 0, Length(NumArrays[sIdx].Values) -1);
+
+  If FnName <> '' Then Begin
+
+    // Clean up the vars list if necessary
+
+    SP_ResizeNumVars(VarOffsetN);
+    SP_ResizeStrVars(VarOffsetS);
+
+  End;
+
 
 End;
 
-Procedure SP_SortStrArray(sIdx: Integer; Key, Ascending: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_SortStrArray(sIdx: Integer; Key, Ascending: Boolean; FnName: aString; Var Error: TSP_ErrorCode);
+Var
+  UseFn: Boolean;
+  FnIdx, VarIdx1, VarIdx2: Integer;
+  VarList, VarName: aString;
+  Idx2, VarOffsetS, ValPosition: Integer;
+  nVar: pFnVar;
+  ValTkn: paString;
+
+  Function CallFn(Const Str1, Str2: pSP_StrVarContent; Var Error: TSP_ErrorCode): Integer;
+  Begin
+
+    Result := 0;
+
+    If Key Then Begin
+
+      StrVars[VarIdx1]^.Content.Value := Str1^.Key;
+      StrVars[VarIdx2]^.Content.Value := Str2^.Key;
+
+    End Else Begin
+
+      StrVars[VarIdx1]^.ContentPtr := Str1;
+      StrVars[VarIdx2]^.ContentPtr := Str2;
+
+    End;
+
+    // Call the Fn and get the result
+
+    ValPosition := 1;
+    ValTkn := @SP_FnList[FnIdx].Expr;
+    Inc(FN_Recursion_Count);
+    If FN_Recursion_Count >= MAXDEPTH Then
+      Error.Code := SP_ERR_OUT_OF_MEMORY
+    Else
+      SP_InterpretCONTSafe(ValTkn, ValPosition, Error);
+    Dec(FN_Recursion_Count);
+
+    If Error.Code = SP_ERR_OK Then Begin
+
+      Result := Round(SP_StackPtr^.Val);
+      Dec(SP_StackPtr);
+
+    End;
+
+  End;
 
   Procedure SortStrArray(sIdx, L, R: Integer);
   Var
@@ -4019,41 +4231,73 @@ Procedure SP_SortStrArray(sIdx: Integer; Key, Ascending: Boolean; Var Error: TSP
 
           If Ascending Then Begin
 
-            If Key Then Begin
+            If UseFn Then Begin
 
-              While Strings[I]^.Key < P^.Key Do
+              While CallFn(Strings[I], P, Error) < 0 Do
                 Inc(I);
 
-              while Strings[J]^.Key > P^.Key Do
+              If Error.Code <> SP_ERR_OK Then Exit;
+
+              While CallFn(Strings[J], P, Error) > 0 Do
                 Dec(J);
+
+              If Error.Code <> SP_ERR_OK Then Exit;
 
             End Else Begin
 
-              While Strings[I]^.Value < P^.Value Do
-                Inc(I);
+              If Key Then Begin
 
-              while Strings[J]^.Value > P^.Value Do
-                Dec(J);
+                While Strings[I]^.Key < P^.Key Do
+                  Inc(I);
+
+                while Strings[J]^.Key > P^.Key Do
+                  Dec(J);
+
+              End Else Begin
+
+                While Strings[I]^.Value < P^.Value Do
+                  Inc(I);
+
+                while Strings[J]^.Value > P^.Value Do
+                  Dec(J);
+
+              End;
 
             End;
 
           End Else Begin
 
-            If Key Then Begin
+            If UseFn Then Begin
 
-              While Strings[I]^.Key > P^.Key Do
+              While CallFn(Strings[I], P, Error) > 0 Do
                 Inc(I);
 
-              while Strings[J]^.Key < P^.Key Do
+              If Error.Code <> SP_ERR_OK Then Exit;
+
+              While CallFn(Strings[J], P, Error) < 0 Do
                 Dec(J);
+
+              If Error.Code <> SP_ERR_OK Then Exit;
 
             End Else Begin
 
-              While Strings[I]^.Value > P^.Value Do
-                Inc(I);
+              If Key Then Begin
 
-              while Strings[J]^.Value < P^.Value Do
-                Dec(J);
+                While Strings[I]^.Key > P^.Key Do
+                  Inc(I);
+
+                while Strings[J]^.Key < P^.Key Do
+                  Dec(J);
+
+              End Else Begin
+
+                While Strings[I]^.Value > P^.Value Do
+                  Inc(I);
+
+                while Strings[J]^.Value < P^.Value Do
+                  Dec(J);
+
+              End;
 
             End;
 
@@ -4086,10 +4330,80 @@ Procedure SP_SortStrArray(sIdx: Integer; Key, Ascending: Boolean; Var Error: TSP
 
 Begin
 
+  // Set up for a FN call if we need one.
+
+  UseFn := False;
+  VarOffsetS := NumSV;
+
+  If FnName <> '' Then Begin
+
+    FnIdx := 0;
+    While FnIdx < Length(SP_FnList) Do Begin
+      If SP_FnList[FnIdx].Name = FnName Then Begin
+        Break;
+      End Else
+        Inc(FnIdx);
+    End;
+
+    If FnIdx < Length(SP_FnList) Then Begin
+
+      If SP_FnList[FnIdx].ParamCount <> 2 Then Begin
+        Error.Code := SP_ERR_PROC_PARAM_COUNT;
+        Exit;
+      End;
+
+      Idx2 := 1;
+      VarIdx1 := -1;
+      VarIdx2 := -1;
+      VarList := SP_FnList[FnIdx].ParamList;
+      While Idx2 < Length(VarList) Do Begin
+        nVar := @VarList[Idx2];
+        Inc(Idx2, SizeOf(TFnVar));
+        VarName := Copy(VarList, Idx2, nVar.Len);
+        Inc(Idx2, nVar.Len);
+        If nVar.ID = 0 Then Begin
+          Error.Code := SP_ERR_PARAMETER_ERROR;
+          Exit;
+        End Else
+          If VarIdx1 = -1 Then Begin
+            VarIdx1 := SP_NewStrVar;
+            StrVars[VarIdx1]^.Name := Lower(VarName);
+          End Else Begin
+            VarIdx2 := SP_NewStrVar;
+            StrVars[VarIdx2]^.Name := Lower(VarName);
+          End;
+      End;
+
+      If Key Then Begin
+        StrVars[VarIdx1]^.Content.DLen := 0;
+        StrVars[VarIdx1]^.ContentPtr := @StrVars[VarIdx1]^.Content;
+        StrVars[VarIdx2]^.Content.DLen := 0;
+        StrVars[VarIdx2]^.ContentPtr := @StrVars[VarIdx1]^.Content;
+      End;
+      StrVars[VarIdx1]^.ProcVar := True;
+      StrVars[VarIdx2]^.ProcVar := True;
+
+      UseFn := True;
+
+    End Else Begin
+
+      Error.Code := SP_ERR_FN_NOT_FOUND;
+      Exit;
+
+    End;
+
+  End;
+
   SortStrArray(sIdx, 0, Length(StrArrays[sIdx].Strings) -1);
+
+  If FnName <> '' Then Begin
+
+    // Clean up the vars list if necessary
+
+    SP_ResizeStrVars(VarOffsetS);
+
+  End;
 
 End;
 
 end.
-
-

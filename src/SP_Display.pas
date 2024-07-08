@@ -28,7 +28,7 @@ Type
   Function  GetScreenRefreshRate: Integer;
   Procedure GetOSDString;
   Procedure GLResize;
-  Procedure ScreenShot;
+  Procedure ScreenShot(fullwindow: Boolean);
 
 Var
 
@@ -179,6 +179,7 @@ Begin
   LastFrames := 0;
   StartTime := 0;
   LastTime := 0;
+  opTime := 0;
 
   While Not (QUITMSG Or Terminated) Do Begin
 
@@ -680,7 +681,7 @@ Begin
 
 End;
 
-Procedure ScreenShot;
+Procedure ScreenShot(fullWindow: Boolean);
 var
   Win: HWND;
   DC: HDC;
@@ -692,8 +693,6 @@ var
   Width, ox, i: Integer;
   Height: Integer;
   Error: TSP_ErrorCode;
-const
-  fullwindow = True;
 begin
 
   If Not DirectoryExists(String(HOMEFOLDER) + '\snaps') Then

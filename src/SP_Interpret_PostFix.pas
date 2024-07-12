@@ -19208,6 +19208,10 @@ Begin
     If SP_BankList[Idx]^.DataType = SP_GRAPHIC_BANK Then Begin
 
       Gfx := @SP_BankList[Idx]^.Info[0];
+      If Gfx^.Transparent <> $FFFF Then Begin
+        With Gfx^.Palette[Gfx^.Transparent] Do
+          Gfx^.Transparent := SP_Get_Nearest_Colour(R, G, B, -1);
+      End;
       SP_Dither_Image(Gfx, Dt);
 
     End Else
@@ -19570,7 +19574,7 @@ Begin
 
     W := W * FONTWIDTH;
 
-    If MaxH <= 0 Then MaxH := List.Count +1;
+    If (MaxH <= 0) or (MaxH > List.Count) Then MaxH := List.Count +1;
 
     ColCnt := (List.Count Div MaxH) +1;
     GW := (W + 2 * FONTWIDTH) * ColCnt;

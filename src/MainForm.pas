@@ -563,8 +563,6 @@ Var
   s, dir: String;
 begin
 
-  TimeBeginPeriod(1);
-
   DragAcceptFiles(Handle, True);
 
   INSTARTUP := True;
@@ -785,7 +783,6 @@ begin
 
   Bitmap.Free;
   SetScreenResolution(OrgWidth, OrgHeight, False);
-  TimeEndPeriod(1);
 
   DisplaySection.Leave;
 

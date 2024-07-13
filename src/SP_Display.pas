@@ -14,6 +14,7 @@ Type
     Procedure Execute; Override;
   End;
 
+  procedure ExSleep(target: Double);
   {$IFDEF OPENGL}
   Procedure InitGL;
   {$ENDIF}
@@ -47,10 +48,30 @@ Var
   ScaleFactor: Integer = 1;
   ScaleMouseX, ScaleMouseY: aFloat;
   AvgFrameTime: aFloat;
+  FPS_INK: LongWord;
+  TimerPrecision: Integer;
 
 implementation
 
 Uses SP_SysVars, SP_Graphics, SP_Graphics32, SP_Main, SP_Tokenise, SP_Errors;
+
+procedure ExSleep(target: Double);
+var
+  ticks: Integer;
+  ctime, time, lastTime: aFloat;
+const
+  precision = 10;
+begin
+  ticks := Trunc((target - CB_GETTICKS) / Precision);
+  if ticks > 0 then
+    TThread.Sleep(ticks * Precision);
+  If CB_GETTICKS > target then
+    FPS_INK := $FFFF0000
+  Else Begin
+    FPS_INK := $8000FF00;
+    While CB_GETTICKS < target Do ;
+  End;
+end;
 
 {$IFDEF OPENGL}
 
@@ -168,18 +189,17 @@ End;
 Procedure TRefreshThread.Execute;
 Var
   LastFrames: NativeUint;
-  StartTime, CurTime, LastTime, SleepTime, opTime: aFloat;
+  StartTime, CurTime, LastTime, SleepTime: aFloat;
 Begin
 
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
-  Priority := tpHigher;
+  Priority := tpNormal;
   RefreshThreadAlive := True;
 
   LastFrames := 0;
   StartTime := 0;
   LastTime := 0;
-  opTime := 0;
 
   While Not (QUITMSG Or Terminated) Do Begin
 
@@ -204,26 +224,24 @@ Begin
       HandleMouse;
 
       If SP_FrameUpdate Then Begin
-        opTime := CB_GETTICKS;
         DisplaySection.Enter;
         If UpdateDisplay Then Begin
+          If StartTime = 0 Then
+            StartTime := CB_GETTICKS;
           CB_Refresh_Display;
-          If StartTime = 0 Then StartTime := CB_GETTICKS;
           LASTFRAMETIME := CurTime - LastTime;
           AvgFrameTime := (AvgFrameTime + LASTFRAMETIME)/2;
           LastTime := CurTime;
         End;
         DisplaySection.Leave;
-        opTime := CB_GETTICKS - opTime;
         UPDATENOW := False;
       End;
       CauseUpdate := False;
 
     End;
 
-    SleepTime := (((FRAMES + 1) * FRAME_MS) + StartTime) - CB_GETTICKS - Ceil(opTime);
-    If SleepTime >= 1 Then
-      Sleep(Trunc(SleepTime));
+    SleepTime := (((FRAMES + 1) * FRAME_MS) + StartTime);
+    ExSleep(SleepTime);
 
   End;
 
@@ -253,7 +271,7 @@ Var
   Error: TSP_ErrorCode;
 Begin
   SP_GetRegion32(DISPLAYPOINTER, DISPLAYSTRIDE, DISPLAYHEIGHT, FPSIMAGE, FPSLEFT, FPSTOP, FPSWIDTH, FPSHEIGHT, Error);
-  SP_RawTextOut(SYSFONT, DISPLAYPOINTER, DISPLAYSTRIDE Shr 2, DISPLAYHEIGHT, FPSLEFT, FPSTOP, FPSSTRING, $8000FF00, 0, 2, 2, True, True);
+  SP_RawTextOut(SYSFONT, DISPLAYPOINTER, DISPLAYSTRIDE Shr 2, DISPLAYHEIGHT, FPSLEFT, FPSTOP, FPSSTRING, FPS_INK, 0, 2, 2, True, True);
 End;
 
 Procedure GetOSDString;
@@ -434,6 +452,8 @@ Begin
     glGetIntegerv(GL_UNPACK_ROW_LENGTH, @tmp);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glFinish;
+
+    glFlush;
 
     SwapBuffers(DC);
 

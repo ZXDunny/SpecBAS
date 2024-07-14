@@ -6,37 +6,44 @@ interface
 
   Uses WinAPI.Windows, System.SysUtils, System.SyncObjs, Graphics, Forms, Classes, System.Types, Math, PNGImage, MainForm, SP_FileIO, {$IFDEF OPENGL}dglOpenGL,{$ENDIF} SP_Util, WinAPI.DWMApi;
 
+  {$IFDEF RefreshThread}
 Type
 
   TRefreshThread = Class(TThread)
     ShouldPause, IsPaused: Boolean;
-    Procedure HandleMouse;
     Procedure Execute; Override;
   End;
+  {$ENDIF}
 
-  procedure ExSleep(target: Double);
   {$IFDEF OPENGL}
   Procedure InitGL;
+  Procedure CloseGL;
   {$ENDIF}
   Function  SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
   Function  SetScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
   Function  TestScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
   Procedure SetScaling(Width, Height, sWidth, sHeight: Integer);
+  {$IFDEF RefreshThread}
   Procedure PauseDisplay;
   Procedure ResumeDisplay;
+  {$ENDIF}
   Procedure Refresh_Display;
   Function  UpdateDisplay: Boolean;
   Function  GetScreenRefreshRate: Integer;
   Procedure GetOSDString;
   Procedure GLResize;
   Procedure ScreenShot(fullwindow: Boolean);
+  Procedure HandleMouse;
+  Procedure FrameLoop;
 
 Var
 
   ScrWidth, ScrHeight, OrgWidth, OrgHeight: Integer;
   GLX, GLY, GLW, GLH, GLMX, GLMY, GLMW, GLMH, GLFX, GLFY, GLFW, GLFH: Integer;
   iRect: TRect;
+  {$IFDEF RefreshThread}
   RefreshTimer: TRefreshThread;
+  {$ENDIF}
   {$IFDEF OPENGL}
     LastScaledMouseX, LastScaledMouseY: Integer;
     DisplayFlip, GLInitDone, ReScaleFlag: Boolean;
@@ -48,29 +55,12 @@ Var
   ScaleFactor: Integer = 1;
   ScaleMouseX, ScaleMouseY: aFloat;
   AvgFrameTime: aFloat;
-  FPS_INK: LongWord;
-  TimerPrecision: Integer;
+  LastFrames: NativeUint;
+  StartTime, LastTime: aFloat;
 
 implementation
 
 Uses SP_SysVars, SP_Graphics, SP_Graphics32, SP_Main, SP_Tokenise, SP_Errors;
-
-procedure ExSleep(target: Double);
-var
-  ticks: Integer;
-const
-  precision = 10;
-begin
-  ticks := Trunc((target - CB_GETTICKS) / Precision);
-  if ticks > 0 then
-    TThread.Sleep(ticks * Precision);
-  If CB_GETTICKS > target then
-    FPS_INK := $FFFF0000
-  Else Begin
-    FPS_INK := $8000FF00;
-    While CB_GETTICKS < target Do ;
-  End;
-end;
 
 {$IFDEF OPENGL}
 
@@ -127,8 +117,17 @@ begin
 
 End;
 
+Procedure CloseGL;
+Begin
+  wglMakeCurrent(0, 0);
+  wglDeleteContext(RC);
+  ReleaseDC(Main.Handle, DC);
+  DeleteDC (DC);
+End;
+
 {$ENDIF}
 
+{$IFDEF RefreshThread}
 Procedure PauseDisplay; // Used to halt the refresh thread when working on window banks or sprites.
 Begin
 
@@ -154,8 +153,9 @@ Begin
   End;
 
 End;
+{$ENDIF}
 
-Procedure TRefreshThread.HandleMouse;
+Procedure HandleMouse;
 Var
   p: TPoint;
 Begin
@@ -185,11 +185,52 @@ Begin
   End;
 End;
 
-Procedure TRefreshThread.Execute;
+Procedure FrameLoop;
 Var
   SleepTime: Integer;
-  LastFrames: NativeUint;
-  TargetTime, StartTime, CurTime, LastTime: aFloat;
+  TargetTime, CurTime: aFloat;
+Begin
+
+  CurTime := CB_GETTICKS;
+  FRAMES := Trunc((CurTime - StartTime) / FRAME_MS);
+
+  If FRAMES <> LastFrames Then begin
+
+    FrameElapsed := True;
+    Inc(AutoFrameCount);
+    LastFrames := FRAMES;
+
+    HandleMouse;
+
+    If SP_FrameUpdate Then Begin
+      DisplaySection.Enter;
+      If UpdateDisplay Then Begin
+        If StartTime = 0 Then
+          StartTime := CB_GETTICKS;
+        CB_Refresh_Display;
+        LASTFRAMETIME := CurTime - LastTime;
+        AvgFrameTime := (AvgFrameTime + LASTFRAMETIME)/2;
+        LastTime := CurTime;
+      End;
+      DisplaySection.Leave;
+      UPDATENOW := False;
+    End;
+    CauseUpdate := False;
+
+  End;
+
+  TargetTime := (((FRAMES + 1) * FRAME_MS) + StartTime);
+  SleepTime := Trunc(TargetTime - CB_GETTICKS);
+  If SleepTime >= 1 Then
+    Sleep(SleepTime)
+  Else
+    While CB_GETTICKS < TargetTime Do
+      SwitchToThread;
+
+End;
+
+{$IFDEF RefreshThread}
+Procedure TRefreshThread.Execute;
 Begin
 
   FreeOnTerminate := True;
@@ -212,58 +253,16 @@ Begin
       LastFrames := FRAMES;
     End;
 
-    CurTime := CB_GETTICKS;
-    FRAMES := Trunc((CurTime - StartTime) / FRAME_MS);
-
-    If FRAMES <> LastFrames Then begin
-
-      FrameElapsed := True;
-      Inc(AutoFrameCount);
-      LastFrames := FRAMES;
-
-      HandleMouse;
-
-      If SP_FrameUpdate Then Begin
-        DisplaySection.Enter;
-        If UpdateDisplay Then Begin
-          If StartTime = 0 Then
-            StartTime := CB_GETTICKS;
-          CB_Refresh_Display;
-          LASTFRAMETIME := CurTime - LastTime;
-          AvgFrameTime := (AvgFrameTime + LASTFRAMETIME)/2;
-          LastTime := CurTime;
-        End;
-        DisplaySection.Leave;
-        UPDATENOW := False;
-      End;
-      CauseUpdate := False;
-
-    End;
-
-    TargetTime := (((FRAMES + 1) * FRAME_MS) + StartTime);
-    SleepTime := Trunc(TargetTime - CB_GETTICKS);
-    If SleepTime >= 1 Then Begin
-      FPS_INK := $8000FF00;
-      Sleep(SleepTime);
-    End Else
-      If SleepTime < 0 Then
-        FPS_INK := $FFFF0000
-      Else
-        While CB_GETTICKS < TargetTime Do
-          SwitchToThread;
+    FrameLoop;
 
   End;
 
-  {$IFDEF OpenGL}
-  wglMakeCurrent(0, 0);
-  wglDeleteContext(RC);
-  ReleaseDC(Main.Handle, DC);
-  DeleteDC (DC);
-  {$ENDIF}
+  CloseGL;
 
   RefreshThreadAlive := False;
 
 End;
+{$ENDIF}
 
 Procedure RestoreFPSRegion;
 Var
@@ -280,7 +279,7 @@ Var
   Error: TSP_ErrorCode;
 Begin
   SP_GetRegion32(DISPLAYPOINTER, DISPLAYSTRIDE, DISPLAYHEIGHT, FPSIMAGE, FPSLEFT, FPSTOP, FPSWIDTH, FPSHEIGHT, Error);
-  SP_RawTextOut(SYSFONT, DISPLAYPOINTER, DISPLAYSTRIDE Shr 2, DISPLAYHEIGHT, FPSLEFT, FPSTOP, FPSSTRING, FPS_INK, 0, 2, 2, True, True);
+  SP_RawTextOut(SYSFONT, DISPLAYPOINTER, DISPLAYSTRIDE Shr 2, DISPLAYHEIGHT, FPSLEFT, FPSTOP, FPSSTRING, $8000FF00, 0, 2, 2, True, True);
 End;
 
 Procedure GetOSDString;
@@ -507,7 +506,9 @@ Var
   r: TRect;
 Begin
 
+  {$IFDEF RefreshThread}
   CB_PauseDisplay;
+  {$ENDIF}
 
   Result := 0;
   oW := SCALEWIDTH;

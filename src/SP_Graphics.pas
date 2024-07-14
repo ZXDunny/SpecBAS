@@ -649,11 +649,15 @@ End;
 
 Procedure SP_WaitForSync;
 Begin
+  {$IFDEF RefreshThread}
   If RefreshThreadAlive Then Begin
+  {$ENDIF}
     CauseUpdate := True;
-    While CauseUpdate and RefreshThreadAlive Do
+    While CauseUpdate {$IFDEF RefreshThread}and RefreshThreadAlive{$ENDIF} and Not QUITMSG Do
       CB_YIELD;
+  {$IFDEF RefreshThread}
   End;
+  {$ENDIF}
 End;
 
 Procedure SP_SetDirtyRect(x1, y1, x2, y2: Integer);
@@ -1292,7 +1296,9 @@ Begin
   BankIdx := SP_FindBankID(WindowID);
   If BankIdx > -1 Then Begin
 
+    {$IFDEF RefreshThread}
     CB_PauseDisplay;
+    {$ENDIF}
 
     Bank := SP_BankList[BankIdx];
 
@@ -1379,7 +1385,9 @@ Begin
       SP_CLS(CPAPER);
     End;
 
+    {$IFDEF RefreshThread}
     CB_ResumeDisplay;
+    {$ENDIF}
 
   End;
 

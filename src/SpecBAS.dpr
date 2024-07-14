@@ -29,10 +29,12 @@ uses
   Interfaces,
   {$ENDIF }
   Forms,
+  SP_Display,
   MainForm in 'MainForm.pas' {Main};
   
 {$R *.res}
 begin
+  GLInitDone := False;
   {$IFDEF DELPHI}
   SetProcessDPIAware;
   {$ENDIF}

@@ -5871,7 +5871,9 @@ Var
   Err: TSP_ErrorCode;
 Begin
 
+  {$IFDEF RefreshThread}
   CB_PauseDisplay;
+  {$ENDIF}
   DisplaySection.Enter;
 
   NewH := Max(NewH, 0);
@@ -5907,7 +5909,9 @@ Begin
   SP_SetDrawingWindow(WindowID);
 
   DisplaySection.Leave;
+  {$IFDEF RefreshThread}
   CB_ResumeDisplay;
+  {$ENDIF}
 
 End;
 

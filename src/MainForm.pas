@@ -61,6 +61,7 @@ type
   private
     { Private declarations }
     Minimised: Boolean;
+    Procedure OnIdle(Sender: TObject; Var Done: Boolean);
     procedure OnAppMessage(var Msg: TMsg; var Handled: Boolean);
     procedure CMDialogKey( Var msg: TCMDialogKey ); message CM_DIALOGKEY;
     Procedure OnResizeMain(Var Msg: TMessage); Message WM_RESIZEMAIN;
@@ -121,6 +122,13 @@ Uses {$IFDEF FPC}ShlObj, {$ENDIF}SP_FPEditor, SP_ToolTipWindow, SP_Display;
 {$ELSE}
   {$R *.dfm}
 {$ENDIF}
+
+Procedure TMain.OnIdle(Sender: TObject; Var Done: Boolean);
+Begin
+  If MainCanResize Then FrameLoop;
+  Done := False;
+End;
+
 
 Procedure TMain.OnResizeMain(Var Msg: TMessage);
 Var
@@ -524,7 +532,7 @@ begin
     QUITMSG := True;
   End;
 
-  While InterpreterThreadAlive And RefreshThreadAlive Do
+  While InterpreterThreadAlive {$IFDEF RefreshThread} And RefreshThreadAlive{$ENDIF} Do
     CB_YIELD;
 
 end;
@@ -707,15 +715,19 @@ begin
   CB_Messages := MsgProc;
   CB_MouseMove := MouseMoveTo;
   CB_SETWINDOWCAPTION := SetWindowCaption;
+  {$IFDEF RefreshThread}
   CB_PauseDisplay := PauseDisplay;
   CB_ResumeDisplay := ResumeDisplay;
+  {$ENDIF}
 
   // Start graphics server
 
   SP_SetFPS(GetScreenRefreshrate);
   SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
   SetBounds((REALSCREENWIDTH - Width) Div 2, (REALSCREENHEIGHT - Height) Div 2, Width, Height);
+  {$IFDEF RefreshThread}
   RefreshTimer := TRefreshThread.Create(False);
+  {$ENDIF}
 
   WINLEFT := Left;
   WINTOP := Top;
@@ -741,7 +753,9 @@ begin
   {$ENDIF}
   SetThreadAffinityMask(GetCurrentThread(), 1);
   SetThreadAffinityMask(BASThread.ThreadID, 2);
+  {$IFDEF RefreshThread}
   SetThreadAffinityMask(RefreshTimer.ThreadID, 4);
+  {$ENDIF}
 
   DisplaySection.Leave;
 
@@ -751,6 +765,7 @@ begin
   p := Main.ScreenToClient(p);
   MouseInForm := PtInRect(Main.ClientRect, p);
 
+  Application.OnIdle := OnIdle;
   Activate;
 
 end;
@@ -783,6 +798,7 @@ begin
 
   Bitmap.Free;
   SetScreenResolution(OrgWidth, OrgHeight, False);
+  CloseGL;
 
   DisplaySection.Leave;
 
@@ -1072,7 +1088,9 @@ begin
   End;
 
   DPtrBackup := DISPLAYPOINTER;
+  {$IFDEF RefreshThread}
   CB_ResumeDisplay;
+  {$ENDIF}
 
 end;
 
@@ -1087,7 +1105,7 @@ Procedure Quit;
 Begin
 
   Quitting := True;
-  SendMessage(Main.Handle, WM_CLOSE, 0, 0);
+  PostMessage(Main.Handle, WM_CLOSE, 0, 0);
   PARAMS.Free;
 
 End;

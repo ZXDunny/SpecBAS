@@ -462,8 +462,6 @@ Begin
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glFinish;
 
-    glFlush;
-
     SwapBuffers(DC);
 
   {$ELSE}

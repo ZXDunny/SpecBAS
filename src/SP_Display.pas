@@ -1,6 +1,6 @@
 unit SP_Display;
 
-{$DEFINE OPENGL}
+{$INCLUDE SpecBAS.inc}
 
 interface
 
@@ -219,7 +219,7 @@ Begin
 
   End;
 
-  TargetTime := (((FRAMES + 1) * FRAME_MS) + StartTime);
+ TargetTime := (((FRAMES + 1) * FRAME_MS) + StartTime);
   SleepTime := Trunc(TargetTime - CB_GETTICKS);
   If SleepTime >= 1 Then
     Sleep(SleepTime)

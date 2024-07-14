@@ -4,4 +4,5 @@
 {$IFDEF WIN64}
   {$DEFINE CPU64}
 {$ENDIF}
+{$DEFINE OpenGL}
 

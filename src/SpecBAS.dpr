@@ -34,7 +34,6 @@ uses
   
 {$R *.res}
 begin
-  GLInitDone := False;
   {$IFDEF DELPHI}
   SetProcessDPIAware;
   {$ENDIF}

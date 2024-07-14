@@ -881,7 +881,7 @@ Begin
       Inc(Ptr);
       Dec(W2);
     End;
-    Inc(Ptr^, Add);
+    Inc(Ptr, Add);
   End;
 
 End;

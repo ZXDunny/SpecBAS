@@ -23,7 +23,6 @@ unit MainForm;
 {$ENDIF}
 
 {$INCLUDE SpecBAS.inc}
-{$DEFINE OPENGL}
 
 interface
 
@@ -61,7 +60,9 @@ type
   private
     { Private declarations }
     Minimised: Boolean;
+    {$IFNDEF RefreshThread}
     Procedure OnIdle(Sender: TObject; Var Done: Boolean);
+    {$ENDIF}
     procedure OnAppMessage(var Msg: TMsg; var Handled: Boolean);
     procedure CMDialogKey( Var msg: TCMDialogKey ); message CM_DIALOGKEY;
     Procedure OnResizeMain(Var Msg: TMessage); Message WM_RESIZEMAIN;
@@ -123,12 +124,13 @@ Uses {$IFDEF FPC}ShlObj, {$ENDIF}SP_FPEditor, SP_ToolTipWindow, SP_Display;
   {$R *.dfm}
 {$ENDIF}
 
+{$IFNDEF RefreshThread}
 Procedure TMain.OnIdle(Sender: TObject; Var Done: Boolean);
 Begin
   If MainCanResize Then FrameLoop;
   Done := False;
 End;
-
+{$ENDIF}
 
 Procedure TMain.OnResizeMain(Var Msg: TMessage);
 Var
@@ -765,7 +767,9 @@ begin
   p := Main.ScreenToClient(p);
   MouseInForm := PtInRect(Main.ClientRect, p);
 
+  {$IFNDEF RefreshThread}
   Application.OnIdle := OnIdle;
+  {$ENDIF}
   Activate;
 
 end;

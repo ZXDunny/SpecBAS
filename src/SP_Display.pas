@@ -58,7 +58,6 @@ Uses SP_SysVars, SP_Graphics, SP_Graphics32, SP_Main, SP_Tokenise, SP_Errors;
 procedure ExSleep(target: Double);
 var
   ticks: Integer;
-  ctime, time, lastTime: aFloat;
 const
   precision = 10;
 begin
@@ -188,13 +187,14 @@ End;
 
 Procedure TRefreshThread.Execute;
 Var
+  SleepTime: Integer;
   LastFrames: NativeUint;
-  StartTime, CurTime, LastTime, SleepTime: aFloat;
+  TargetTime, StartTime, CurTime, LastTime: aFloat;
 Begin
 
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
-  Priority := tpNormal;
+  Priority := tpHigher;
   RefreshThreadAlive := True;
 
   LastFrames := 0;
@@ -240,8 +240,17 @@ Begin
 
     End;
 
-    SleepTime := (((FRAMES + 1) * FRAME_MS) + StartTime);
-    ExSleep(SleepTime);
+    TargetTime := (((FRAMES + 1) * FRAME_MS) + StartTime);
+    SleepTime := Trunc(TargetTime - CB_GETTICKS);
+    If SleepTime >= 1 Then Begin
+      FPS_INK := $8000FF00;
+      Sleep(SleepTime);
+    End Else
+      If SleepTime < 0 Then
+        FPS_INK := $FFFF0000
+      Else
+        While CB_GETTICKS < TargetTime Do
+          SwitchToThread;
 
   End;
 

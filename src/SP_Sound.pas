@@ -149,7 +149,7 @@ Begin
 
   ChanLock := TCriticalSection.Create;
 
-  While Not Terminated Do Begin
+  While Not (QUITMSG or Terminated) Do Begin
 
     If ChanLock.TryEnter Then Begin
 

@@ -459,7 +459,7 @@ Begin
 
     glGetIntegerv(GL_UNPACK_ROW_LENGTH, @tmp);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glFinish;
+    glFlush;
 
     SwapBuffers(DC);
 

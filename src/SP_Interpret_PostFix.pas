@@ -1139,6 +1139,7 @@ Begin
     If NXTLINE <> 0 Then Begin
       Error.Line := CurLine;
       SP_StackPtr := SP_StackStart;
+      Error.Code := PreParseErrorCode;
       SP_Interpret(Tokens, Error.Position, Error);
 
       If DEBUGGING Then Begin
@@ -3947,7 +3948,7 @@ End;
 
 Procedure SP_Interpret(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
 Var
-  Idx, CurST, OldST, OldEC: Integer;
+  Idx, CurST, OldST, OldEC, ppError: Integer;
   Info: TSP_iInfo;
   pInfo: pSP_iInfo;
   BreakNow: Boolean;
@@ -3956,6 +3957,12 @@ Var
 Label
   Next_Statement;
 Begin
+
+  If Error.Code <> SP_ERR_OK Then Begin
+    ppError := Error.Code;
+    Error.Code := SP_ERR_OK;
+  End Else
+    ppError := SP_ERR_OK;
 
   pInfo := @Info;
 
@@ -4104,7 +4111,7 @@ Begin
       End;
       nPosition := Info.Position;
       If Error.Code = SP_EXIT then
-        Error.Code := SP_ERR_OK;
+        Error.Code := ppError;
       Exit;
     End;
 

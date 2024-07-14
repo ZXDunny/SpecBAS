@@ -539,8 +539,10 @@ Begin
         End;
       End Else
         SP_TestConsts(SP_Program[Idx], Idx, Error, False);
-      If Error.Code <> SP_ERR_OK Then Error.Line := Idx;
-
+      If Error.Code <> SP_ERR_OK Then Begin
+        Error.Line := Idx;
+        Exit;
+      End;
     End;
 
   End;

@@ -1298,6 +1298,8 @@ Begin
 
     {$IFDEF RefreshThread}
     CB_PauseDisplay;
+    {$ELSE}
+    DisplaySection.Enter;
     {$ENDIF}
 
     Bank := SP_BankList[BankIdx];
@@ -1387,6 +1389,8 @@ Begin
 
     {$IFDEF RefreshThread}
     CB_ResumeDisplay;
+    {$ELSE}
+    DisplaySection.Leave;
     {$ENDIF}
 
   End;

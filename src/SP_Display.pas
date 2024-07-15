@@ -212,16 +212,17 @@ Begin
     HandleMouse;
 
     If SP_FrameUpdate Then Begin
-      DisplaySection.Enter;
-      If UpdateDisplay Then Begin
-        If StartTime = 0 Then
-          StartTime := CB_GETTICKS;
-        CB_Refresh_Display;
-        LASTFRAMETIME := CurTime - LastTime;
-        AvgFrameTime := (AvgFrameTime + LASTFRAMETIME)/2;
-        LastTime := CurTime;
+      If DisplaySection.TryEnter Then Begin
+        If UpdateDisplay Then Begin
+          If StartTime = 0 Then
+            StartTime := CB_GETTICKS;
+          CB_Refresh_Display;
+          LASTFRAMETIME := CurTime - LastTime;
+          AvgFrameTime := (AvgFrameTime + LASTFRAMETIME) / 2;
+          LastTime := CurTime;
+        End;
+        DisplaySection.Leave;
       End;
-      DisplaySection.Leave;
       UPDATENOW := False;
     End;
     CauseUpdate := False;
@@ -517,6 +518,8 @@ Begin
 
   {$IFDEF RefreshThread}
   CB_PauseDisplay;
+  {$ELSE}
+  DisplaySection.Enter;
   {$ENDIF}
 
   Result := 0;
@@ -573,6 +576,8 @@ Begin
   End;
 
   SendMessage(Main.Handle, WM_RESIZEMAIN, l + (t shl 16), w + (h Shl 16));
+
+  DisplaySection.Leave;
 
 End;
 

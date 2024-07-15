@@ -728,6 +728,7 @@ begin
   SP_SetFPS(GetScreenRefreshrate);
   SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
   SetBounds((REALSCREENWIDTH - Width) Div 2, (REALSCREENHEIGHT - Height) Div 2, Width, Height);
+
   {$IFDEF RefreshThread}
   RefreshTimer := TRefreshThread.Create(False);
   {$ENDIF}

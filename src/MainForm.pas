@@ -218,6 +218,7 @@ Begin
 
   InterpreterThreadAlive := True;
   Priority := tpNormal;
+
   SP_MainLoop;
   InterpreterThreadAlive := False;
 

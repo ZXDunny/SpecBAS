@@ -35,6 +35,7 @@ Type
   Procedure ScreenShot(fullwindow: Boolean);
   Procedure HandleMouse;
   Procedure FrameLoop;
+  Procedure WaitForDisplayInit;
 
 Var
 
@@ -126,6 +127,14 @@ Begin
 End;
 
 {$ENDIF}
+
+Procedure WaitForDisplayInit;
+Begin
+
+  // Wait for the display to start
+  While StartTime = 0 Do CB_YIELD;
+
+End;
 
 {$IFDEF RefreshThread}
 Procedure PauseDisplay; // Used to halt the refresh thread when working on window banks or sprites.

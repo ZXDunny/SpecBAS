@@ -363,7 +363,7 @@ Const
 
 implementation
 
-Uses SP_ControlMsgs, SP_DebugPanel, SP_PreRun;
+Uses SP_ControlMsgs, SP_DebugPanel, SP_PreRun, SP_Display;
 
 Procedure SetAllToCompile;
 Var
@@ -619,6 +619,8 @@ Begin
   Error.Code := -1;
   NXTLINE := -1;
   Error.Position := 1;
+
+  WaitForDisplayInit;
 
   SP_FPEditorError(Error);
 

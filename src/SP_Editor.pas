@@ -42,7 +42,7 @@ Var
 
 implementation
 
-Uses SP_Main, SP_Menu, SP_FPEditor, SP_PreRun;
+Uses SP_Main, SP_Menu, SP_FPEditor, SP_PreRun, SP_Display;
 
 Procedure SP_DrawStripe(Dst: pByte; Width, StripeWidth, StripeHeight: Integer);
 Var
@@ -211,6 +211,9 @@ Begin
     NXTLINE := CurLine;
     If CurLine = -1 Then CurLine := 0;
     SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
+
+    WaitForDisplayInit;
+
     SP_Interpreter_Ready := True;
     SP_Execute('GO TO '+IntToString(CurLine), True, Error);
 

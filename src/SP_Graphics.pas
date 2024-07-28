@@ -76,7 +76,7 @@ Procedure SP_DeleteWindow(WindowID: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_SetWindowOrigin(WindowID: Integer; X, Y, W, H: aFloat; Flip: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_SetWindowOriginNoExt(WindowID: Integer; X, Y: aFloat; Flip: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_SetWindowOriginOff(WinID: Integer; Var Error: TSP_ErrorCode);
-Procedure SP_GetWindowDetails(WindowID: Integer; Var Window: pSP_Window_Info; Var Error: TSP_ErrorCode);// Inline;
+Procedure SP_GetWindowDetails(WindowID: Integer; Var Window: pSP_Window_Info; Var Error: TSP_ErrorCode); Inline;
 Function  SP_GetWindowLeft(WindowID: Integer; Var Error: TSP_ErrorCode): Integer;
 Function  SP_GetWindowTop(WindowID: Integer; Var Error: TSP_ErrorCode): Integer;
 Function  SP_GetWindowWidth(WindowID: Integer; Var Error: TSP_ErrorCode): Integer;
@@ -1177,7 +1177,7 @@ Begin
 
 End;
 
-Procedure SP_GetWindowDetails(WindowID: Integer; Var Window: pSP_Window_Info; Var Error: TSP_ErrorCode);// Inline;
+Procedure SP_GetWindowDetails(WindowID: Integer; Var Window: pSP_Window_Info; Var Error: TSP_ErrorCode); Inline;
 Var
   BankIdx: Integer;
   Gfx: pSP_Graphic_Info;
@@ -3028,20 +3028,22 @@ End;
 
 Procedure SP_DrawThickEllipse(CX, CY, R1, R2: Integer);
 Var
-  ir1, ir2, id, rd, ys, ox1, ix1: aFloat;
+  fr1,fr2, ir1, ir2, id, rd, ys, ox1, ix1: aFloat;
   y, x: NativeInt;
 Begin
 
-  r1 := Round(r1 + T_STROKE / 2);
-  r2 := Round(r2 + T_STROKE / 2);
-  ir1 := r1 - T_STROKE;
-  ir2 := r2 - T_STROKE;
-  id := ir1/ir2;
-  rd := r1/r2;
+  fr1 := r1 + T_STROKE / 2;
+  fr2 := r2 + T_STROKE / 2;
+  ir1 := fr1 - T_STROKE;
+  ir2 := fr2 - T_STROKE;
+  id := ir1 / ir2;
+  rd := fr1 / fr2;
 
-  For y := -r2 +1 to r2 -1 Do Begin
+  r2 := Round(fr2);
+
+  For y := -r2 to r2 Do Begin
     ys := y * rd;
-    ox1 := sqrt(r1 * r1 - ys * ys);
+    ox1 := sqrt(fr1 * fr1 - ys * ys);
 
     If Abs(y) < ir2 Then Begin
       ys := y * id;
@@ -4628,8 +4630,8 @@ Var
   MinY, MaxY, MinX, MaxX: Integer;
   Idx, I, J, Nodes, NumPoints, PixelY: Integer;
   NodeX: Array of Integer;
+  Ink: LongWord;
   Ptr: pByte;
-  Ink: Byte;
 Begin
 
   If T_INVERSE = 1 Then

@@ -203,6 +203,7 @@ Var
   FPSTOP:                   Integer;
   FPSWIDTH:                 Integer;
   FPSHEIGHT:                Integer;
+  NEXTFRAMETIME:            aFloat;       // Time the next frame is due
   FPSSTRING:                aString;      // The current FPS (used for displaying in fullscreen mode)
   FPSPROCESSEDSTRING:       aString;
   FPSIMAGE:                 aString;      // Like the mouse, this stores the background under the FPS display

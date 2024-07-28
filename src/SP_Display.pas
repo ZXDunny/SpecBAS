@@ -197,7 +197,7 @@ End;
 Procedure FrameLoop;
 Var
   SleepTime: Integer;
-  TargetTime, CurTime: aFloat;
+  CurTime: aFloat;
 Begin
 
   CurTime := CB_GETTICKS;
@@ -229,12 +229,12 @@ Begin
 
   End;
 
- TargetTime := (((FRAMES + 1) * FRAME_MS) + StartTime);
-  SleepTime := Trunc(TargetTime - CB_GETTICKS);
+  NEXTFRAMETIME := (((FRAMES + 1) * FRAME_MS) + StartTime);
+  SleepTime := Trunc(NEXTFRAMETIME - CB_GETTICKS);
   If SleepTime >= 1 Then
     Sleep(SleepTime)
   Else
-    While CB_GETTICKS < TargetTime Do
+    While CB_GETTICKS < NEXTFRAMETIME Do ;
       SwitchToThread;
 
 End;
@@ -401,6 +401,7 @@ end;
 Procedure Refresh_Display;
 Var
   DC: hDc;
+  t: Int64;
   x, y, w, h, tmp: Integer;
 Begin
 
@@ -469,6 +470,8 @@ Begin
 
     glGetIntegerv(GL_UNPACK_ROW_LENGTH, @tmp);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glGetInteger64v(GL_TIMESTAMP, @t);
+    glFinish;
     glFlush;
 
     SwapBuffers(DC);

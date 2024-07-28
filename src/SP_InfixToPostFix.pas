@@ -6606,7 +6606,7 @@ Var
   VarExpr: Array of aString;
   RTs: Array of Integer;
   VarType, RT, VarPos, VarIdx, VarSize, Idx, sPos: Integer;
-  VarName, Expr, stExpr, arExpr, arTokens, TempStr: aString;
+  VarName, Expr, stExpr, arExpr, arTokens, TempStr, ExprStr: aString;
   Done: Boolean;
   Token: pToken;
   EquateType: aChar;
@@ -6687,23 +6687,31 @@ Next_Assign:
       Begin
         Idx := 1;
         TempStr := Copy(Tokens, sPos, (Position - sPos)-2);
+        ExprStr := Copy(Tokens, Position);
         Case EquateType of
           '=': ArTokens := '';
-          SP_CHAR_INCVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '+' + Copy(Tokens, Position, 999999);
-          SP_CHAR_DECVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '-' + Copy(Tokens, Position, 999999);
-          SP_CHAR_MULVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '*' + Copy(Tokens, Position, 999999);
-          SP_CHAR_DIVVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '/' + Copy(Tokens, Position, 999999);
-          SP_CHAR_POWVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '^' + Copy(Tokens, Position, 999999);
-          SP_CHAR_MODVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_MOD + Copy(Tokens, Position, 999999);
-          SP_CHAR_ANDVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '&' + Copy(Tokens, Position, 999999);
-          SP_CHAR_ORVAR:  ArTokens := TempStr + aChar(SP_SYMBOL) + '|' + Copy(Tokens, Position, 999999);
-          SP_CHAR_NOTVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_NOTVAR + Copy(Tokens, Position, 999999);
-          SP_CHAR_XORVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_XOR + Copy(Tokens, Position, 999999);
-          SP_CHAR_SHLVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_SHL + Copy(Tokens, Position, 999999);
-          SP_CHAR_SHRVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_SHR + Copy(Tokens, Position, 999999);
+          SP_CHAR_INCVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '+';
+          SP_CHAR_DECVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '-';
+          SP_CHAR_MULVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '*';
+          SP_CHAR_DIVVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '/';
+          SP_CHAR_POWVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '^';
+          SP_CHAR_MODVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_MOD;
+          SP_CHAR_ANDVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + '&';
+          SP_CHAR_ORVAR:  ArTokens := TempStr + aChar(SP_SYMBOL) + '|';
+          SP_CHAR_NOTVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_NOTVAR;
+          SP_CHAR_XORVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_XOR;
+          SP_CHAR_SHLVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_SHL;
+          SP_CHAR_SHRVAR: ArTokens := TempStr + aChar(SP_SYMBOL) + SP_CHAR_SHR;
         End;
-        If ArTokens <> '' Then
-          arExpr := SP_Convert_Expr(arTokens, Idx, Error, -1);
+        If ArTokens <> '' Then Begin
+          arExpr := SP_Convert_Expr(ExprStr, Idx, Error, -1);
+          If Error.Code = SP_ERR_OK Then Begin
+            ExprStr := ArTokens + aChar(SP_SYMBOL) + '(' + Copy(ExprStr, 1, Idx -1) + aChar(SP_SYMBOL) + ')' + Copy(ExprStr, Idx);
+            Idx := 1;
+            arExpr := SP_Convert_Expr(ExprStr, Idx, Error, -1);
+          End Else
+            Exit;
+        End;
         Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
         If Error.Code <> SP_ERR_OK Then
           Exit

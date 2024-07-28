@@ -26089,6 +26089,10 @@ Begin
     Y2 := (SCREENHEIGHT - 1) - Y2;
   End;
 
+  DRPOSX := X1;
+  DRPOSY := Y1;
+
+  SKIPFIRSTPOINT := False;
   SP_DrawCurve32Alpha(X1, Y1, X2, Y2, X3, Y3, N);
   SP_NeedDisplayUpdate := True;
 

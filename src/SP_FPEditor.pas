@@ -885,6 +885,7 @@ Var
   Win: pSP_Window_Info;
   Err: TSP_ErrorCode;
   Font, Window, sp: Integer;
+  Stroke: aFloat;
 Begin
 
   Window := SCREENBANK;
@@ -914,6 +915,8 @@ Begin
   If FPFw * Length(Title) > Sp Then
     Title := SP_CopyClrs(Title, 1, Sp Div FPFw);
 
+  Stroke := T_STROKE;
+  T_STROKE := 1;
   If Focused Then T_INK := 0;
   SP_DrawRectangle(0, 0, Win^.Width -1, Win^.Height -1);
   If Focused Then
@@ -933,6 +936,7 @@ Begin
   SP_SetDirtyRect(Win^.Left, Win^.Top, Win^.Left + Win^.Width -1, Win^.Top + Win^.Height);
   SP_SetDrawingWindow(Window);
   SP_SetSystemFont(Font, Err);
+  T_STROKE := Stroke;
 
 End;
 

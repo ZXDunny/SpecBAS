@@ -119,7 +119,7 @@ Function  SP_WasPrevSoft(Idx: Integer): Boolean; Inline;
 Function  SP_GetLineExtents(Idx: Integer; FindStart: Boolean = False): TPoint;
 Function  SP_GetLineY(Line: Integer): Integer;
 Function  SP_LineFlags(Index: Integer): pLineFlags;
-Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1);
+Function  SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1): SP_KeyInfo;
 Procedure SP_CreateMetrics;
 Procedure SP_CreateFPWindow;
 Procedure SP_CreateDirectWindow;
@@ -6731,7 +6731,7 @@ Begin
                       EDITLINE := 'CONTINUE';
                     s2 := EDITLINE;
                     SP_FPExecuteEditLine(EDITLINE);
-                    SP_ClearAllKeys;
+                    SP_ClearAllNonAsciiKeys;
                     if QUITMSG then Exit;
                     If EDITLINE = s2 Then
                       EDITLINE := s;
@@ -7226,7 +7226,7 @@ Begin
 
 End;
 
-Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1);
+Function SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1): SP_KeyInfo;
 Var
   Err: TSP_ErrorCode;
   ErrWin: pSP_Window_Info;
@@ -7527,22 +7527,32 @@ Begin
 
     If Not IsNew Then Begin
 
-      t := Round(CB_GetTicks);
-      WinY := DisplayHeight +1;
-      EMove := WinY - ErrWin^.Top;
-      ETop := ErrWin^.Top;
+      If Length(ActiveKeys) > 0 Then
 
-      Repeat
-        t3 := Round(CB_GetTicks);
-        t2 := (t3 - t)/ANIMSPEED;
-        DisplaySection.Enter;
-        ErrWin^.Top := Trunc(ETop + (EMove * t2));
-        If ((EMove > 0) And (ErrWin^.Top > WinY)) or ((EMove < 0) And (ErrWin^.Top < WinY)) Then
-          ErrWin^.Top := WinY;
-        DisplaySection.Leave;
-        SP_InvalidateWholeDisplay;
-        SP_WaitForSync;
-      Until (t3 - t) >= ANIMSPEED;
+        CopyMemory(@Result.KeyChar, @ActiveKeys[Length(ActiveKeys) -1].KeyChar, SizeOf(SP_KeyInfo))
+
+      Else Begin
+
+        Result.KeyCode := 0;
+
+        t := Round(CB_GetTicks);
+        WinY := DisplayHeight +1;
+        EMove := WinY - ErrWin^.Top;
+        ETop := ErrWin^.Top;
+
+        Repeat
+          t3 := Round(CB_GetTicks);
+          t2 := (t3 - t)/ANIMSPEED;
+          DisplaySection.Enter;
+          ErrWin^.Top := Trunc(ETop + (EMove * t2));
+          If ((EMove > 0) And (ErrWin^.Top > WinY)) or ((EMove < 0) And (ErrWin^.Top < WinY)) Then
+            ErrWin^.Top := WinY;
+          DisplaySection.Leave;
+          SP_InvalidateWholeDisplay;
+          SP_WaitForSync;
+        Until (t3 - t) >= ANIMSPEED;
+
+      End;
 
     End;
 
@@ -7598,7 +7608,6 @@ Begin
           DWSelP := CURSORPOS;
         End;
     End;
-  SP_ClearAllKeys;
 
   If IsNew And (PCOUNT = 0) Then
     SP_CLS(CPAPER);
@@ -7804,11 +7813,13 @@ Var
   PreParseErrorCode, PreParseErrorLine, PreParseErrorStatement, Idx, LocalFlashState,
   saveCONTLINE, saveCONTSTATEMENT: Integer;
   Error: TSP_ErrorCode;
+  keyDown: SP_KeyInfo;
   Key: pSP_KeyInfo;
 Label
   ExitProc;
 Begin
 
+  keyDown.KeyCode := 0;
   SP_HideFindResults(False);
   If StripLeadingSpaces(Line) <> '' Then Begin
 
@@ -8041,7 +8052,7 @@ Begin
         If Not EDITERROR Then Begin
           If STEPMODE < SM_Single Then Begin
             If STEPMODE = SM_None Then
-              SP_FPEditorError(Error);
+              keyDown := SP_FPEditorError(Error);
             SP_CreateEditorWindows;
             If SHOWLIST Then Begin
               SP_DisplayFPListing(-1);
@@ -8082,6 +8093,9 @@ Begin
     SYSTEMSTATE := SS_EDITOR
   Else
     SYSTEMSTATE := SS_DIRECT;
+
+  If keyDown.KeyCode in [13, 16..18, 32..111] Then
+    SP_BufferKey(@keyDown, 1, 0);
 
   STEPMODE := SM_None;
   SP_GetDebugStatus(-1);

@@ -31,7 +31,9 @@ Type
   Function  UpdateDisplay: Boolean;
   Function  GetScreenRefreshRate: Integer;
   Procedure GetOSDString;
+  {$IFDEF OpenGL}
   Procedure GLResize;
+  {$ENDIF}
   Procedure ScreenShot(fullwindow: Boolean);
   Procedure HandleMouse;
   Procedure FrameLoop;
@@ -368,9 +370,11 @@ Begin
 End;
 
 Procedure ScaleBuffers(x1, x2, y1, y2: Integer);
+{$IFDEF OpenGL}
 var
   w,w2,x,y,i: Integer;
   ps,pd,lpd: pLongWord;
+{$ENDIF}
 begin
   {$IFDEF OPENGL}
   w2 := (x2 - x1) +1;         // Width of area to scale
@@ -399,10 +403,12 @@ begin
 end;
 
 Procedure Refresh_Display;
+{$IFDEF OpenGL}
 Var
   DC: hDc;
   t: Int64;
   x, y, w, h, tmp: Integer;
+{$ENDIF}
 Begin
 
   {$IFDEF OPENGL}
@@ -678,6 +684,7 @@ begin
 
 end;
 
+{$IFDEF OpenGL}
 Procedure GLResize;
 Begin
 
@@ -725,6 +732,7 @@ Begin
   End;
 
 End;
+{$ENDIF}
 
 Procedure ScreenShot(fullWindow: Boolean);
 var
@@ -740,6 +748,7 @@ var
   Error: TSP_ErrorCode;
 begin
 
+  {$IFDEF OpenGL}
   If Not DirectoryExists(String(HOMEFOLDER) + '\snaps') Then
     CreateDir(String(HOMEFOLDER) + '\snaps');
 
@@ -784,6 +793,7 @@ begin
   Png.SaveToFile(Filename);
   Png.Free;
   Bmp.Free;
+  {$ENDIF}
 
 end;
 

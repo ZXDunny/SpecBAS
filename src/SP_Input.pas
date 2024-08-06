@@ -63,6 +63,7 @@ Type
   Function  SP_AreAnyKeysDown: Boolean;
   Function  SP_GetNextKey(CurFrames: Integer): pSP_KeyInfo;
   Procedure SP_ClearAllKeys;
+  Procedure SP_ClearAllNonAsciiKeys;
 
   Procedure SP_LoadKeyboardDefinition(Name: aString; Var Error: TSP_ErrorCode);
   Procedure SP_BufferKey(Key: pSP_KeyInfo; Event, Flags: Byte);
@@ -467,6 +468,21 @@ Begin
     KEYSTATE[i] := 0;
   KeyBufferPos := 0;
   K_DOWNFLAG := False;
+  K_UPFLAG := False;
+  KeyLock.Leave;
+End;
+
+Procedure SP_ClearAllNonAsciiKeys;
+Var
+  i: Integer;
+Begin
+  KeyLock.Enter;
+  i := 0;
+  While i < Length(ActiveKeys) Do Begin
+    If Not (ActiveKeys[i].KeyCode in [13, 16..18, 32..111]) Then
+      SP_RemoveKey(ActiveKeys[i].KeyCode);
+    Inc(i);
+  End;
   K_UPFLAG := False;
   KeyLock.Leave;
 End;

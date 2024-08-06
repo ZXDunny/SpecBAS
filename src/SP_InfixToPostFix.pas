@@ -2743,16 +2743,16 @@ End;
 Function  SP_Convert_Expr(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode; StartPri: Integer): aString;
 Var
   Symbol, FnType: aChar;
-  FnResult, Expr, Name, VarList, tExpr, fExpr, VarName: aString;
+  FnResult, OldFnResult, Expr, Name, VarList, tExpr, fExpr, VarName: aString;
   Token: Byte;
   ExpectOperand, CanOptimise, Done: Boolean;
   OpPriority, Idx, fType, FunctionId, NumIndices, LabelLen, ParamCount: Integer;
-  SP_OperatorMin, SP_OperandMin, NameLen, NamePos, MaxOperand,
+  SP_OperatorMin, SP_OperandMin, NameLen, NamePos, MaxOperand, OldPos,
   VarType, VarPos, VarSize, VarIdx, l, m: Integer;
   oPosition, numTerms, ReturnType: Integer;
   Tkn: pToken;
 Label
-  Finish;
+  NotArray, Finish;
 
   Function SP_ProcessExprList(iType: Integer; var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
   Var
@@ -4779,6 +4779,8 @@ Begin
 
                     If (Byte(Tokens[Position]) = SP_STRVAR) And (NumTerms = 1) Then Begin
 
+                      OldPos := Position;
+                      OldFnResult := FnResult;
                       FnType := Tokens[Position];
                       Inc(Position, SizeOf(LongWord)+1);
                       NameLen := pLongWord(@Tokens[Position])^;
@@ -4791,11 +4793,14 @@ Begin
                         Done := True;
                         FunctionID := SP_FN_MENUBOX_EX;
                       End Else Begin
-                        Error.Code := SP_ERR_SYNTAX_ERROR;
-                        Exit;
+                        Position := OldPos;
+                        FnResult := OldFnResult;
+                        GoTo NotArray;
                       End;
 
                     End Else Begin
+
+                      NotArray:
 
                       FnResult := FnResult + SP_Convert_Expr(Tokens, Position, Error, -1);
                       If Error.Code <> SP_ERR_OK Then

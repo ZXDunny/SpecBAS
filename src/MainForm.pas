@@ -59,7 +59,9 @@ type
     procedure Timer1Timer(Sender: TObject);
   private
     { Private declarations }
+    {$IFDEF OpenGL}
     Minimised: Boolean;
+    {$ENDIF}
     {$IFNDEF RefreshThread}
     Procedure OnIdle(Sender: TObject; Var Done: Boolean);
     {$ENDIF}
@@ -804,7 +806,9 @@ begin
 
   Bitmap.Free;
   SetScreenResolution(OrgWidth, OrgHeight, False);
+  {$IFDEF OpenGL}
   CloseGL;
+  {$ENDIF}
 
   DisplaySection.Leave;
 

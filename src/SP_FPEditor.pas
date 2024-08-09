@@ -119,7 +119,7 @@ Function  SP_WasPrevSoft(Idx: Integer): Boolean; Inline;
 Function  SP_GetLineExtents(Idx: Integer; FindStart: Boolean = False): TPoint;
 Function  SP_GetLineY(Line: Integer): Integer;
 Function  SP_LineFlags(Index: Integer): pLineFlags;
-Function  SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1): SP_KeyInfo;
+Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1);
 Procedure SP_CreateMetrics;
 Procedure SP_CreateFPWindow;
 Procedure SP_CreateDirectWindow;
@@ -470,18 +470,24 @@ Begin
 
   While Not (QUITMSG or Finish) Do Begin
 
+    Sleep(20);
+
     CompilerBusy := False;
-    If MaxCompileLines > -1 Then Begin
-      If CompilerLock.TryEnter Then Begin
+    If CompilerLock.TryEnter Then Begin
+      If MaxCompileLines > -1 Then Begin
         If Listing.Flags[CompileList[0]].State in [spLineError, spLineDirty, spLineduplicate] Then Begin
           CompilerBusy := True;
-          Idx := CompileList[0]
+          Idx := CompileList[0];
         End;
         RemoveCompileLine(CompileList[0]);
-        CompilerLock.Leave;
-      End;
-    End Else
-      Sleep(20);
+      End Else
+        For i := 0 To Listing.Count -1 Do
+          If Listing.Flags[i].State in [spLineError, spLineDirty, spLineduplicate] Then Begin
+            CompilerBusy := True;
+            Idx := i;
+          End;
+      CompilerLock.Leave;
+    End;
 
     While Not (Finish or QUITMSG) And CompilerBusy Do Begin
 
@@ -489,7 +495,7 @@ Begin
 
       If CompilerLock.TryEnter Then Begin
 
-        If Listing.Flags[Idx].State = spLineDirty Then Begin
+        If Listing.Flags[Idx].State in [spLineDirty, spLineDuplicate] Then Begin
 
           lIdx := Idx;
           InString := False;
@@ -7226,7 +7232,7 @@ Begin
 
 End;
 
-Function SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1): SP_KeyInfo;
+Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1);
 Var
   Err: TSP_ErrorCode;
   ErrWin: pSP_Window_Info;
@@ -7527,32 +7533,22 @@ Begin
 
     If Not IsNew Then Begin
 
-      If Length(ActiveKeys) > 0 Then
+      t := Round(CB_GetTicks);
+      WinY := DisplayHeight +1;
+      EMove := WinY - ErrWin^.Top;
+      ETop := ErrWin^.Top;
 
-        CopyMemory(@Result.KeyChar, @ActiveKeys[Length(ActiveKeys) -1].KeyChar, SizeOf(SP_KeyInfo))
-
-      Else Begin
-
-        Result.KeyCode := 0;
-
-        t := Round(CB_GetTicks);
-        WinY := DisplayHeight +1;
-        EMove := WinY - ErrWin^.Top;
-        ETop := ErrWin^.Top;
-
-        Repeat
-          t3 := Round(CB_GetTicks);
-          t2 := (t3 - t)/ANIMSPEED;
-          DisplaySection.Enter;
-          ErrWin^.Top := Trunc(ETop + (EMove * t2));
-          If ((EMove > 0) And (ErrWin^.Top > WinY)) or ((EMove < 0) And (ErrWin^.Top < WinY)) Then
-            ErrWin^.Top := WinY;
-          DisplaySection.Leave;
-          SP_InvalidateWholeDisplay;
-          SP_WaitForSync;
-        Until (t3 - t) >= ANIMSPEED;
-
-      End;
+      Repeat
+        t3 := Round(CB_GetTicks);
+        t2 := (t3 - t)/ANIMSPEED;
+        DisplaySection.Enter;
+        ErrWin^.Top := Trunc(ETop + (EMove * t2));
+        If ((EMove > 0) And (ErrWin^.Top > WinY)) or ((EMove < 0) And (ErrWin^.Top < WinY)) Then
+          ErrWin^.Top := WinY;
+        DisplaySection.Leave;
+        SP_InvalidateWholeDisplay;
+        SP_WaitForSync;
+      Until (t3 - t) >= ANIMSPEED;
 
     End;
 
@@ -7813,13 +7809,11 @@ Var
   PreParseErrorCode, PreParseErrorLine, PreParseErrorStatement, Idx, LocalFlashState,
   saveCONTLINE, saveCONTSTATEMENT: Integer;
   Error: TSP_ErrorCode;
-  keyDown: SP_KeyInfo;
   Key: pSP_KeyInfo;
 Label
   ExitProc;
 Begin
 
-  keyDown.KeyCode := 0;
   SP_HideFindResults(False);
   If StripLeadingSpaces(Line) <> '' Then Begin
 
@@ -8052,7 +8046,7 @@ Begin
         If Not EDITERROR Then Begin
           If STEPMODE < SM_Single Then Begin
             If STEPMODE = SM_None Then
-              keyDown := SP_FPEditorError(Error);
+              SP_FPEditorError(Error);
             SP_CreateEditorWindows;
             If SHOWLIST Then Begin
               SP_DisplayFPListing(-1);
@@ -8093,9 +8087,6 @@ Begin
     SYSTEMSTATE := SS_EDITOR
   Else
     SYSTEMSTATE := SS_DIRECT;
-
-  If keyDown.KeyCode in [13, 16..18, 32..111] Then
-    SP_BufferKey(@keyDown, 1, 0);
 
   STEPMODE := SM_None;
   SP_GetDebugStatus(-1);

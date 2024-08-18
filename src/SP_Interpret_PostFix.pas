@@ -328,6 +328,7 @@ Procedure SP_Interpret_FN_HIBYTE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_LOBYTE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_POLARDIST(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_LPADS(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_CPADS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_RPADS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_PROCID(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_ERRORS(Var Info: pSP_iInfo);
@@ -5852,6 +5853,28 @@ Begin
 
 End;
 
+Procedure SP_Interpret_FN_CPADS(Var Info: pSP_iInfo);
+Var
+  src, pad: aString;
+  len: Integer;
+Begin
+
+  len := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  pad := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+  src := SP_StackPtr^.Str;
+
+  while Length(src) < len do begin
+    src := pad + src;
+    if Length(src) < len then
+      src := src + pad;
+  end;
+
+  SP_StackPtr^.Str := src;
+
+End;
+
 Procedure SP_Interpret_FN_RPADS(Var Info: pSP_iInfo);
 Var
   src, pad: aString;
@@ -11277,11 +11300,11 @@ Begin
     Delay := FRAMES + Delay;
     Repeat
       CB_YIELD;
-    Until (FRAMES = Delay) or (Length(ActiveKeys) <> 0);
+    Until (FRAMES >= Delay) or (Length(ActiveKeys) <> 0) or QUITMSG;
   End Else
     Repeat
       CB_YIELD;
-    Until Length(ActiveKeys) <> 0;
+    Until (Length(ActiveKeys) <> 0) or QUITMSG;
 
   If KEYSTATE[K_ESCAPE] = 1 Then BreakSignal := True;
 
@@ -27685,6 +27708,7 @@ Initialization
   InterpretProcs[SP_FN_LOBYTE] := @SP_Interpret_FN_LOBYTE;
   InterpretProcs[SP_FN_POLARDIST] := @SP_Interpret_FN_POLARDIST;
   InterpretProcs[SP_FN_LPADS] := @SP_Interpret_FN_LPADS;
+  InterpretProcs[SP_FN_CPADS] := @SP_Interpret_FN_CPADS;
   InterpretProcs[SP_FN_RPADS] := @SP_Interpret_FN_RPADS;
   InterpretProcs[SP_FN_PROCID] := @SP_Interpret_FN_PROCID;
   InterpretProcs[SP_FN_BTSET] := @SP_Interpret_FN_BTSET;

@@ -470,8 +470,6 @@ Begin
 
   While Not (QUITMSG or Finish) Do Begin
 
-    Sleep(20);
-
     CompilerBusy := False;
     If CompilerLock.TryEnter Then Begin
       If MaxCompileLines > -1 Then Begin
@@ -488,6 +486,8 @@ Begin
           End;
       CompilerLock.Leave;
     End;
+
+    If Not CompilerBusy Then Sleep(20);
 
     While Not (Finish or QUITMSG) And CompilerBusy Do Begin
 
@@ -6133,7 +6133,7 @@ Begin
 
   // Limit our search to either the current selection or the whole program
 
-  If soInSelection In Options Then Begin
+  If (soInSelection In Options) And (Sel.StartL >= 0) and (Sel.StartP >= 0) Then Begin
     StartL := Sel.StartL;
     StartP := Sel.StartP;
     FinishL := Sel.EndL;
@@ -7488,7 +7488,7 @@ Begin
         Dec(x, 8);
       End;
       T_SCALEY := 1;
-      SP_TextOut(FONTBANKID, 16, WinH - 22, #127' 2023 ZX Development Ltd.'{#13'        ZXDunny    Windows/Pandora/OSX'#13'        Piez       Linux'#13'        Chris      Pi'}, 232, 0, True);
+      SP_TextOut(FONTBANKID, 16, WinH - 22, #127+' '+IntToString(CurrentYear)+' ZX Development Ltd.'{#13'        ZXDunny    Windows/Pandora/OSX'#13'        Piez       Linux'#13'        Chris      Pi'}, 232, 0, True);
       SP_InvalidateWholeDisplay;
       SP_NeedDisplayUpdate := True;
       SP_WaitForSync;
@@ -9002,7 +9002,7 @@ Label
   Wrap, LastOne;
 Begin
 
-  If Assigned(FindWindow) Then Begin
+  If Assigned(FindWindow) And (FPSearchTerm <> '') Then Begin
 
     SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
     FPShowingSearchResults := True;

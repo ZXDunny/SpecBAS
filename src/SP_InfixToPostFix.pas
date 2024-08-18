@@ -1473,7 +1473,7 @@ Begin
               End;
 
 
-            SP_FN_INSERTS, SP_FN_LPADS, SP_FN_RPADS: // (str,str,num) = str
+            SP_FN_INSERTS, SP_FN_LPADS, SP_FN_RPADS, SP_FN_CPADS: // (str,str,num) = str
               Begin
                 If StackPtr > 0 Then Begin
                   If Stack[StackPtr] <> SP_VALUE Then Begin
@@ -3893,7 +3893,7 @@ Begin
 
             // Three Parameters - two strings, one numeric
 
-            SP_FN_INSERTS, SP_FN_LPADS, SP_FN_RPADS:
+            SP_FN_INSERTS, SP_FN_LPADS, SP_FN_RPADS, SP_FN_CPADS:
               Begin
                 Inc(Position, SizeOf(LongWord));
                 If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin

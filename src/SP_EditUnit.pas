@@ -642,13 +642,15 @@ Var
   t: Integer;
 Begin
 
-  While (fCursorPos > 1) And (fText[fCursorPos] in Seps) Do Dec(fCursorPos);
-  While (fCursorPos > 1) And Not (fText[fCursorPos] in Seps) Do Dec(fCursorPos);
-  If fText[fCursorPos] in Seps Then Inc(fCursorPos);
-  fSelStart := fCursorPos;
-  While (fSelStart <= Length(fText)) And Not (fText[fSelStart] in Seps) Do Inc(fSelStart);
-  t := fSelStart; fSelStart := fCursorPos; fCursorPos := t;
-  Paint;
+  if fCursorPos <= Length(fText) Then Begin
+    While (fCursorPos > 1) And (fText[fCursorPos] in Seps) Do Dec(fCursorPos);
+    While (fCursorPos > 1) And Not (fText[fCursorPos] in Seps) Do Dec(fCursorPos);
+    If fText[fCursorPos] in Seps Then Inc(fCursorPos);
+    fSelStart := fCursorPos;
+    While (fSelStart <= Length(fText)) And Not (fText[fSelStart] in Seps) Do Inc(fSelStart);
+    t := fSelStart; fSelStart := fCursorPos; fCursorPos := t;
+    Paint;
+  End;
 
 End;
 

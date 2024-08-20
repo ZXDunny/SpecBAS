@@ -9745,6 +9745,7 @@ Begin
                       End;
                   End Else
                     SP_SetStructMember(StrPtr, Sp1^.Str, Sp2^.Str, Sp2^.Val, Info^.Error^);
+                  Dec(SP_StackPtr, 3);
                 End;
               End;
             End Else Begin
@@ -12221,6 +12222,7 @@ Begin
       Listing.FPCPos := 1;
       FPScrollBars[SP_FindScrollBar(FPVertSc)].Position := 0;
       SP_ScrollInView(True);
+      SP_ClearEditorMarks;
     End;
   End;
 

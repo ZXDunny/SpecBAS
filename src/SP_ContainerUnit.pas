@@ -77,6 +77,8 @@ Var
   yo, c: Integer;
 Begin
 
+  FillRect(0, 0, fWidth -1, fHeight -1, fBackgroundClr);
+
   If fEnabled Then
     c := fFontClr
   Else

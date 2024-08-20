@@ -547,7 +547,7 @@ Begin
             Begin
               L := pRect.Left;
               W := pRect.Right;
-              T := pRect.Bottom - fHeight;
+              T := pRect.Bottom - fHeight +1;
               H := fHeight;
               Dec(pRect.Bottom, fHeight);
             End;

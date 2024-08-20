@@ -2,7 +2,8 @@ unit SP_MenuActions;
 
 interface
 
-Uses SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_TabBarUnit, SP_LabelUnit, SP_Interpret_PostFix;
+Uses SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit,
+     SP_TabBarUnit, SP_LabelUnit, SP_EditUnit, SP_ContainerUnit, SP_Interpret_PostFix;
 
 Type
 
@@ -58,12 +59,13 @@ Type
 
   Procedure SP_CreateEditorMenu;
   Procedure SP_CreateEditorTabBar;
+  Procedure SP_CreateEditorSearchBar;
   Procedure UpdateStatusLabel;
 
 Var
 
   // Editor menu strip
-  FPMenu: SP_WindowMenu; FPTabBar: SP_TabBar;
+  FPMenu: SP_WindowMenu; FPTabBar: SP_TabBar; FPSearchBox: SP_Edit; FPSearchPanel: SP_Container;
   FPFileMenu, FPRecentMenu, FPEditMenu, FPMarkerMenu, FPViewMenu, FPRunMenu, FPToolsMenu, FPHelpMenu,
   FPSetMarkerMenu, FPJumpMarkerMenu: SP_PopupMenu;
 
@@ -89,6 +91,25 @@ Begin
   SP_GetWindowDetails(FPWindowID, Win, Error);
   FPTabBar := SP_TabBar.Create(Win^.Component);
   FPTabBar.Align := SP_AlignBottom;
+End;
+
+Procedure SP_CreateEditorSearchBar;
+Var
+  FW, FH: Integer;
+  Win: pSP_Window_Info;
+  Error: TSP_ErrorCode;
+Begin
+  FW := Trunc(FONTWIDTH * EDFONTSCALEX);
+  FH := Trunc(FONTHEIGHT * EDFONTSCALEY);
+
+  SP_GetWindowDetails(FPWindowID, Win, Error);
+  FPSearchPanel := SP_Container.Create(Win^.Component);
+  FPSearchPanel.Align := SP_AlignBottom;
+  FPSearchPanel.Border := False;
+
+  FPSearchBox := SP_Edit.Create(FPSearchPanel);
+  FPSearchBox.Width := FW * 20 + 8;
+  FPSearchBox.Border := False;
 End;
 
 Procedure SP_CreateEditorMenu;
@@ -245,7 +266,7 @@ Begin
   // Help menu
 
   FPHelpMenu.AddItem(CreateItem('&Contents', False, True, False, False, 'K_F1', Nil, Nil));
-  FPHelpMenu.AddItem(CreateItem('&Keyword help', False, True, False, False, 'K_CTRL,K_F1', Nil, Nil));
+  FPHelpMenu.AddItem(CreateItem('&Keyword help', False, True, False, False, 'K_SHIFT,K_F1', Nil, Nil));
   FPHelpMenu.AddItem(CreateItem('-', True, True, False, False, '', Nil, Nil));
   FPHelpMenu.AddItem(CreateItem('&About', False, True, False, False, '', Nil, Nil));
 
@@ -302,10 +323,11 @@ Begin
   If FocusedWindow = fwEditor Then Begin
     FPDirectStatusLabel.Caption := cap;
     FPEditorStatusLabel.Caption := ''
-  End Else Begin
-    FPDirectStatusLabel.Caption := cap;
-    FPEditorStatusLabel.Caption := '';
-  End;
+  End Else
+    If FocusedWindow = fwDirect Then Begin
+      FPDirectStatusLabel.Caption := cap;
+      FPEditorStatusLabel.Caption := '';
+    End;
 
 End;
 
@@ -462,12 +484,8 @@ Begin
 End;
 
 Class Procedure SP_MenuActionProcs.FPMenu_ClearMarkers(Sender: SP_BaseComponent);
-Var
-  i: Integer;
 Begin
-  For i := 0 To 9 Do
-    EditorMarks[i] := 0;
-  SP_DisplayFPListing(-1);
+  SP_ClearEditorMarks;
 End;
 
 Class Procedure SP_MenuActionProcs.FPMenu_View_Popup(Sender: SP_BaseComponent);

@@ -1041,7 +1041,7 @@ Begin
   a := (cKEYSTATE[K_ALT] = 1) or (cKEYSTATE[K_ALTGR] = 1);
   For i := 0 To Length(fItems) -1 Do
     With fItems[i] Do Begin
-      if fShortcut > 0 Then Begin
+      if (fShortcut > 0) And (fItems[i].Enabled) Then Begin
         Result := True;
         v := fShortcut Shr 16;
         if v and 1 = 1 Then Result := Result And c Else Result := Result And Not c;

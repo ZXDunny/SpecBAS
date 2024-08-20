@@ -211,7 +211,7 @@ Procedure RemoveDirtyLine(Line: Integer);
 Procedure ClearDirtyLines;
 Procedure RefreshDirtyLines;
 Procedure ListingChange(Index, Operation: Integer);
-Procedure AddCompileLine(Line: Integer);
+Procedure AddCompileLine(Line: Integer; ScanForDuplicates: Boolean = True);
 Procedure RemoveCompileLine(Line: Integer);
 Procedure LaunchScrollEvent;
 Function  IsSelActive: Boolean;
@@ -245,6 +245,7 @@ Procedure SP_ShowError(Code, Line, Pos: Integer);
 Procedure SP_FPSetDisplayColours;
 Procedure SP_ToggleBreakPoint(Hidden: Boolean);
 Procedure SP_FPGotoLine(line, statement: Integer);
+Procedure SP_ClearEditorMarks;
 Procedure SP_ToggleEditorMark(i: Integer);
 Function  SP_JumpToMark(i: Integer): Boolean;
 Procedure SP_ResetConditionalBreakPoints;
@@ -409,7 +410,7 @@ Begin
     SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), False, False, FocusedWindow = fwEditor);
 End;
 
-Procedure AddCompileLine(Line: Integer);
+Procedure AddCompileLine(Line: Integer; ScanForDuplicates: Boolean = True);
 Var
   i: Integer;
 Begin
@@ -426,6 +427,11 @@ Begin
     If MaxCompileLines >= Length(CompileList) Then
       SetLength(CompileList, Length(CompileList) + 1000);
     CompileList[MaxCompileLines] := Line;
+    If ScanForDuplicates Then Begin
+      For i := 0 To Listing.Count -1 Do
+        if Listing.Flags[i].State = spLineDuplicate Then
+          AddCompileLine(i, False);
+    End;
   End;
 End;
 
@@ -478,12 +484,7 @@ Begin
           Idx := CompileList[0];
         End;
         RemoveCompileLine(CompileList[0]);
-      End Else
-        For i := 0 To Listing.Count -1 Do
-          If Listing.Flags[i].State in [spLineError, spLineDirty, spLineduplicate] Then Begin
-            CompilerBusy := True;
-            Idx := i;
-          End;
+      End;
       CompilerLock.Leave;
     End;
 
@@ -759,6 +760,7 @@ Begin
   Listing.Clear;
   SyntaxListing.Clear;
   ClearDirtyLines;
+  SP_ClearEditorMarks;
 End;
 
 Function  SP_LineFlags(Index: Integer): pLineFlags;
@@ -1040,6 +1042,7 @@ Begin
   Win^.CaptionHeight := FPCaptionHeight;
   SP_CreateEditorMenu;
   //SP_CreateEditorTabBar;
+  //SP_CreateEditorSearchbar;
   fwEditor := FPWIndowID;
 
   // Dimensions. Client area is the inner part of the window excluding border ( 1 pixel ) and caption.
@@ -4659,6 +4662,16 @@ Begin
       i := DirtyLines[0];
       SP_DisplayFPListing(i);
     End;
+End;
+
+Procedure SP_ClearEditorMarks;
+Var
+  i: Integer;
+Begin
+  For i := 0 To 9 Do
+    EditorMarks[i] := 0;
+  If (listing.Count > 0) and (FocusedWindow in [fwEditor, fwDirect]) Then
+    SP_DisplayFPListing(-1);
 End;
 
 Procedure SP_ToggleEditorMark(i: Integer);

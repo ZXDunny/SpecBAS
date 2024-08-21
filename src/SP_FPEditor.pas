@@ -110,6 +110,7 @@ Type
 Procedure SP_InitFPEditor;
 Procedure SetAllToCompile;
 Procedure SP_ForceCompile;
+Procedure SP_StartCompiler;
 Procedure SP_StopCompiler;
 Procedure SP_AddLine(Const l, s, c: aString);
 Procedure SP_InsertLine(Index: Integer; Const l, s, c: aString; MarkDirty: Boolean = True);
@@ -450,11 +451,21 @@ End;
 Procedure SP_StopCompiler;
 Begin
 
-  CompilerThread.Finish := True;
-  Repeat
-    CB_YIELD;
-  Until Not CompilerRunning;
-  FreeAndNil(CompilerThread);
+  If Assigned(CompilerThread) Then Begin
+    CompilerThread.Finish := True;
+    Repeat
+      CB_YIELD;
+    Until Not CompilerRunning;
+    FreeAndNil(CompilerThread);
+  End;
+
+End;
+
+Procedure SP_StartCompiler;
+Begin
+
+  If Not Assigned(CompilerThread) then
+    CompilerThread := TCompilerThread.Create(False);
 
 End;
 
@@ -488,7 +499,7 @@ Begin
       CompilerLock.Leave;
     End;
 
-    If Not CompilerBusy Then Sleep(20);
+    If Not CompilerBusy Then Sleep(20) Else Sleep(1);
 
     While Not (Finish or QUITMSG) And CompilerBusy Do Begin
 
@@ -668,7 +679,7 @@ Begin
   SP_FPCycleEditorWindows(2);
 
   SetAllToCompile;
-  CompilerThread := TCompilerThread.Create(False);
+  SP_StartCompiler;
 
   UndoLock.Enter;
   DWUndoBufferPtr := -1;
@@ -8053,8 +8064,7 @@ Begin
 
     PROGSTATE := SP_PR_STOP;
     If Not QUITMSG Then Begin
-      If Not Assigned(CompilerThread) Then
-        CompilerThread := TCompilerThread.Create(False);
+      SP_StartCompiler;
       If Error.Code <> SP_ERR_NO_ERROR Then Begin
         If Not EDITERROR Then Begin
           If STEPMODE < SM_Single Then Begin
@@ -8847,8 +8857,8 @@ Begin
     DWSelP := CURSORPOS;
   End Else Begin
     Found := SP_FindFPLineStatement(line, statement);
-    Listing.FPCLine := Found.Y;
-    Listing.FPCPos := Found.X;
+    Listing.FPCLine := Found.X;
+    Listing.FPCPos := Found.Y;
     While Listing[Listing.FPCLine][Listing.FPCPos] <= ' ' Do Listing.FPCPos := Listing.FPCPos +1;
     Listing.FPSelLine := Listing.FPCLine;
     Listing.FPSelPos := Listing.FPCPos;
@@ -8948,13 +8958,15 @@ Var
   b: Boolean;
   l, s, Linetxt, StatementTxt: aString;
   line, statement: aFloat;
-  i: Integer;
+  i, fw: Integer;
   Found: TPoint;
   searchOpt: SP_SearchOptions;
 Begin
 
+  fw := FocusedWindow;
   GotoWindow := SP_TextRequester.Create;
   GotoWindow.Open('GO TO line or label', '', tkLineStatement, True, Error);
+  FocusedWindow := fw;
 
   i := 1;
   Found.y := -1;
@@ -9675,9 +9687,7 @@ Begin
 
   SP_Reset_Temp_Colours;
   SP_GetDebugStatus(dbgVariables or dbgWatches);
-
-  If Not Assigned(CompilerThread) Then
-    CompilerThread := TCompilerThread.Create(False);
+  SP_StartCompiler;
 
 End;
 

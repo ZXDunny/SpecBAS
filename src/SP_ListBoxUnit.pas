@@ -86,6 +86,7 @@ SP_ListBox = Class(SP_BaseComponent)
     Procedure     SetHeaderClr(c: Integer);
     Procedure     SetSortIndClr(c: Integer);
     Procedure     SetSortedColumnClr(c: Integer);
+    Procedure     HasSized; Override;
 
     Procedure     MouseWheel(X, Y, Btn, Delta: Integer); Override;
     Procedure     MouseDown(X, Y, Btn: Integer); Override;
@@ -639,6 +640,11 @@ Begin
   If J > L then SortStrings(L, J);
   If I < R then SortStrings(I, R);
 
+End;
+
+Procedure SP_ListBox.HasSized;
+Begin
+  SetUIElements;
 End;
 
 Procedure SP_ListBox.SetUIElements;

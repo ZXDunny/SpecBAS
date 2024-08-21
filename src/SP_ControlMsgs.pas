@@ -108,6 +108,7 @@ Begin
 
       clGrabberMouseDown:
         Begin
+          SP_StopCompiler;
           FPDebugLastMouseX := Integer(pLongWord(@ControlMsgList[0].Data[1])^);
           FPResizingDebugPanel := True;
           DeleteControlMsg(0);
@@ -123,6 +124,8 @@ Begin
       clGrabberMouseUp:
         Begin
           FPResizingDebugPanel := False;
+          SetAllToCompile;
+          SP_StartCompiler;
           DeleteControlMsg(0);
         End;
 

@@ -205,6 +205,7 @@ SP_BaseComponent = Class
     Function  GetCanvas: NativeUInt;
     Procedure CopyParentCanvas;
     Procedure DoResize(WidthChange, HeightChange: Integer);
+    Procedure HasSized; Virtual;
 
     Procedure Paint; Virtual;
     Procedure Render(Dst: pByte; dW, dH: Integer);
@@ -1941,10 +1942,17 @@ begin
 
   AlignChildren;
 
+  HasSized;
+
   If Assigned(fOnResize) Then
     fOnResize;
 
 end;
+
+Procedure SP_BaseComponent.HasSized;
+Begin
+  //
+End;
 
 Procedure SP_BaseComponent.SetBounds(x, y, w, h: Integer);
 Var

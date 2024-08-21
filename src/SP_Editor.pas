@@ -139,7 +139,7 @@ Begin
           CurLine := NXTLINE;
         If CurLine = -1 Then CurLine := 0;
         SetAllToCompile;
-        CompilerThread := TCompilerThread.Create(False);
+        SP_StartCompiler;
         SetExceptionMask([exInvalidOp, exDenormalized, exZeroDivide, exOverflow, exUnderflow, exPrecision]);
         SP_Interpreter_Ready := True;
         SP_Execute('RUN '+IntToString(CurLine), True, Error);

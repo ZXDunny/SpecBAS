@@ -488,18 +488,17 @@ Begin
   While Not (QUITMSG or Finish) Do Begin
 
     CompilerBusy := False;
-    If CompilerLock.TryEnter Then Begin
-      If MaxCompileLines > -1 Then Begin
+    If MaxCompileLines > -1 Then Begin
+      If CompilerLock.TryEnter Then Begin
         If Listing.Flags[CompileList[0]].State in [spLineError, spLineDirty, spLineduplicate] Then Begin
           CompilerBusy := True;
-          Idx := CompileList[0];
+          Idx := CompileList[0]
         End;
         RemoveCompileLine(CompileList[0]);
+        CompilerLock.Leave;
       End;
-      CompilerLock.Leave;
-    End;
-
-    If Not CompilerBusy Then Sleep(20) Else Sleep(1);
+    End Else
+      Sleep(20);
 
     While Not (Finish or QUITMSG) And CompilerBusy Do Begin
 

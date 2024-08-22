@@ -1036,7 +1036,8 @@ Begin
               Error.Line := SP_FindLine(LineNum, True);
               Error.Statement := pStatement;
               Exit;
-            End;
+            End Else
+              LastRefWasConst := False;
             Inc(Idx, Tkn^.TokenLen);
 
           End;
@@ -1052,8 +1053,10 @@ Begin
             While (Idx2 < NUMCONSTS) And (Constants[Idx2].Name <> Name) Do Inc(Idx2);
             If Idx2 < NUMCONSTS Then
               Tkn^.TokenPos := Idx2
-            Else
+            Else Begin
+              LastRefWasConst := False;
               Tkn^.TokenPos := LongWord(-1);
+            End;
             Inc(Idx, Tkn^.TokenLen);
 
           End;

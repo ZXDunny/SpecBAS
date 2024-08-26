@@ -3349,6 +3349,7 @@ Begin
         StrVars[Idx]^.Name := Name;
         StrVars[Idx]^.ProcVar := SP_ProcStackPtr > -1;
         StrVars[Idx]^.ContentPtr := @StrVars[Idx]^.Content;
+        StrVars[Idx]^.ContentPtr^.DLen := 0;
         If Not StrVars[Idx]^.ProcVar Then Ptr^ := Idx +1;
       End;
     End Else
@@ -3640,6 +3641,7 @@ Begin
       StrVars[Idx]^.Name := nName;
       StrVars[Idx]^.ProcVar := SP_ProcStackPtr > -1;
       StrVars[Idx]^.ContentPtr := @StrVars[Idx]^.Content;
+      StrVars[Idx]^.ContentPtr^.DLen := 0;
       If Not StrVars[Idx]^.ProcVar Then Ptr^ := Idx +1;
     End;
   End Else
@@ -3692,6 +3694,7 @@ Begin
         StrVars[Idx]^.Name := nName;
         StrVars[Idx]^.ProcVar := SP_ProcStackPtr > -1;
         StrVars[Idx]^.ContentPtr := @StrVars[Idx]^.Content;
+        StrVars[Idx]^.ContentPtr^.DLen := 0;
         If Not StrVars[Idx]^.ProcVar Then Ptr^ := Idx +1;
       End;
     End;
@@ -3790,6 +3793,7 @@ Begin
         StrVars[Idx]^.Name := nName;
         StrVars[Idx]^.ProcVar := SP_ProcStackPtr > -1;
         StrVars[Idx]^.ContentPtr := @StrVars[Idx]^.Content;
+        StrVars[Idx]^.ContentPtr^.DLen := 0;
         If Not StrVars[Idx]^.ProcVar Then Ptr^ := Idx +1;
       End;
     End;

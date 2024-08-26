@@ -17348,6 +17348,7 @@ Begin
         StrVars[Idx]^.ProcVar := SP_ProcStackPtr > -1;
         StrVars[Idx]^.Content.VarType := SP_SIMPLE;
         StrVars[Idx]^.ContentPtr := @StrVars[Idx]^.Content;
+        StrVars[Idx]^.ContentPtr^.DLen := 0;
       End;
     End;
     SP_UpdateStrVar(Idx +1, Name, ValS, -1, -1, Info^.Error^, Ptr);

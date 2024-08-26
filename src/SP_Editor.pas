@@ -253,7 +253,7 @@ Begin
   Finished := False;
   Changed := True;
 
-  While Not Finished Do Begin
+  While Not (Finished or QUITMSG) Do Begin
 
     If SP_NeedDisplayUpdate Then SP_ForceScreenUpdate;
 

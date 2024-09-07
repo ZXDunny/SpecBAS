@@ -16834,8 +16834,8 @@ Begin
     NXTLINE := TempLine.Line;
     NXTSTATEMENT := TempLine.Statement;
     With Info^ Do Begin
-      Error^.Line := SP_ProcsList[Idx].EP_Line;
-      Error^.Statement := SP_ProcsList[Idx].EP_St + 1;
+//      Error^.Line := SP_ProcsList[Idx].EP_Line;
+//      Error^.Statement := SP_ProcsList[Idx].EP_St + 1;
       Error^.ReturnType := SP_JUMP;
     End;
 

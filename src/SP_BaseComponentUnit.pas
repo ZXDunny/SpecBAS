@@ -1549,7 +1549,7 @@ Var
   p: TPoint;
 Begin
 
-  If fValidCanvas And (fLockCount <= 0) Then Begin
+  If fVisible And fValidCanvas And (fLockCount <= 0) Then Begin
 
     DisplaySection.Enter;
 

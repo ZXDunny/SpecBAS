@@ -18,6 +18,8 @@ SP_WindowMenu = Class(SP_BaseComponent)
     fPermanent: Boolean;
     fAutoOpen: Boolean;
     fAltDown: Boolean;
+    fCapWidth: Integer;
+    fSubMenuClr: Byte;
     Procedure CalculateSizes;
     Procedure Draw; Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
@@ -47,6 +49,7 @@ SP_WindowMenu = Class(SP_BaseComponent)
     Property  AutoOpen: Boolean read fAutoOpen write fAutoOpen;
     Property  Count: Integer read GetCount;
     Property  Activated: Boolean read fActivated write fActivated;
+    Property  SubMenuClr: Byte read fSubMenuClr write fSubMenuClr;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -77,6 +80,8 @@ Begin
   AddOverrideControl(Self);
   fAltDown := False;
   Height := iFH + 8;
+  fCapWidth := 0;
+  fSubMenuClr := fBackgroundClr;
 
 End;
 
@@ -223,11 +228,22 @@ Begin
       e.Left := Extents.Left -2; e.Top := Extents.Top;
       e.Right := Extents.Right -3; e.Bottom := Extents.Bottom;
       If Selected Then Begin
-        FillRect(e, c);
-        MouseInSubMenu := Assigned(SubMenu) And SubMenu.Visible And PtInRect(Rect(0, 0, SubMenu.Width, SubMenu.Height), SubMenu.ScreenToClient(mp));
-        If (Focused or PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp)) And Not MouseInSubMenu Then
-          DrawRect(e, SP_UISelectionOutline);
+        If Not SubMenu.Visible Then Begin
+          FillRect(e, c);
+          MouseInSubMenu := Assigned(SubMenu) And SubMenu.Visible And PtInRect(Rect(0, 0, SubMenu.Width, SubMenu.Height), SubMenu.ScreenToClient(mp));
+          If (Focused or PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp)) And Not MouseInSubMenu Then
+            DrawRect(e, SP_UISelectionOutline);
+        End Else Begin
+          e.Left := e.Left +2;
+          e.Top := e.Top -1;
+          FillRect(e, SubMenu.BackgroundClr);
+          DrawLine(e.Left, e.Top, e.Left, e.Bottom, fBorderClr);
+          DrawLine(e.Right, e.Top, e.Right, e.Bottom, fBorderClr);
+          DrawLine(e.Left, e.Top, e.Right, e.Top, fBorderClr);
+          DrawLine(e.Right +1, e.Top +1, e.Right +1, e.Bottom, fBorderClr);
+        End;
       End;
+
       PRINT(Extents.Left + iFW -2, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, fAltDown And fEnabled);
 
     End;
@@ -248,6 +264,7 @@ Begin
     p := Point(fLeft+fItems[i].Extents.Left, fTop+fItems[i].Extents.Bottom);
     fItems[i].SubMenu.fAltDown := fAltDown;
     fItems[i].SubMenu.PopUp(p.x, p.y);
+    Paint;
   End;
   Paint;
 End;
@@ -304,6 +321,7 @@ End;
 
 Procedure SP_WindowMenu.MouseMove(X, Y, Btn: Integer);
 Var
+  e: TRect;
   i: Integer;
 Begin
 
@@ -315,6 +333,11 @@ Begin
     If i >= 0 Then Begin
       Lock;
       SelectItem(i, fActivated or not fPermanent);
+      With fItems[i] Do Begin
+        e.Left := Extents.Left -2; e.Top := Extents.Top;
+        e.Right := Extents.Right -3; e.Bottom := Extents.Bottom;
+        fCapWidth := e.Right - (e.Left + 2) -1;
+      End;
       Unlock;
       Paint;
     End Else
@@ -422,6 +445,7 @@ Begin
           fItems[i].SubMenu.Close;
           fActivated := False;
         End;
+        Paint;
       End;
     End;
   End Else Begin

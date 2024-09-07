@@ -136,27 +136,18 @@ Begin
   FPHelpMenu := SP_PopUpMenu.Create(Win^.Component, FPMenu);
 
   FPFileMenu.name := 'filemenu';
-  FPFileMenu.BackgroundClr := 253;
   FPRecentMenu.name := 'recentmenu';
-  FPRecentMenu.BackgroundClr := 253;
   FPEditMenu.name := 'editmenu';
-  FPEditMenu.BackgroundClr := 253;
   FPMarkerMenu.name := 'markermenu';
-  FPMarkerMenu.BackgroundClr := 253;
   FPSetMarkerMenu.name := 'setmarkermenu';
-  FPSetMarkerMenu.BackgroundClr := 253;
   FPJumpMarkerMenu.name := 'jumpmarkermenu';
-  FPJumpMarkerMenu.BackgroundClr := 253;
   FPViewMenu.name := 'viewmenu';
-  FPViewMenu.BackgroundClr := 253;
   FPRunMenu.name := 'runmenu';
-  FPRunMenu.BackgroundClr := 253;
   FPToolsMenu.name := 'toolsmenu';
-  FPToolsMenu.BackgroundClr := 253;
   FPHelpMenu.name := 'helpmenu';
-  FPHelpMenu.BackgroundClr := 253;
   FPMenu.Name := 'windowmenu';
   FPMenu.BackgroundClr := 251;
+  FPMenu.SubMenuClr := 253;
 
   FPMenu.AddItem(CreateItem('&File', True, True, False, False, '', FPFileMenu, Nil));
   FPMenu.AddItem(CreateItem('&Edit', True, True, False, False, '', FPEditMenu, Nil));

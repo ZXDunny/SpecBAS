@@ -181,7 +181,7 @@ Begin
   If Assigned(ParentMenu) Then Begin
     fDisabledFontClr := SP_WindowMenu(ParentMenu).fDisabledFontClr;
     fHighlightClr := SP_WindowMenu(ParentMenu).fHighlightClr;
-    fBackgroundClr := SP_WindowMenu(ParentMenu).fBackgroundClr;
+    fBackgroundClr := SP_WindowMenu(ParentMenu).fSubMenuClr;
   End Else Begin
     fDisabledFontClr := SP_UITextDisabled;
     fHighlightClr := SP_UISelection;
@@ -348,6 +348,11 @@ Begin
     DrawRect(0, 0, fWidth -2, fHeight -2, fBorderClr);
     SetPixel(fWidth -1, 0, 3);
     SetPixel(0, fHeight -1, 3);
+    If Assigned(fParentMenu) and (fParentMenu is SP_WindowMenu) Then Begin
+      i := SP_WindowMenu(fParentMenu).fCapWidth;
+      if i > 0 Then
+        DrawLine(1, 0, i, 0, fBackgroundClr);
+    End;
   End;
 
   mp := Point(MOUSEX, MOUSEY);
@@ -617,7 +622,7 @@ Begin
     If fParentMenu is SP_WindowMenu Then Begin
       fDisabledFontClr := SP_WindowMenu(fParentMenu).fDisabledFontClr;
       fHighlightClr := SP_WindowMenu(fParentMenu).fHighlightClr;
-      fBackgroundClr := SP_WindowMenu(fParentMenu).fBackgroundClr;
+      fBackgroundClr := SP_WindowMenu(fParentMenu).fSubMenuClr;
     End Else Begin
       fDisabledFontClr := SP_PopUpMenu(fParentMenu).fDisabledFontClr;
       fHighlightClr := SP_PopUpMenu(fParentMenu).fHighlightClr;

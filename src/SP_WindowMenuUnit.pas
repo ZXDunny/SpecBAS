@@ -489,7 +489,7 @@ Label
   AutoOpenSubMenu;
 Begin
 
-  If cLastKey = K_ALT Then Begin
+  If (cLastKey = K_ALT) And (KeyState[K_CONTROL] = 0) Then Begin
     fAltDown := True;
     Paint;
   End Else

@@ -3098,7 +3098,7 @@ Begin
   SP_SetDrawingWindow(DWWindowID);
 
   Mode := GFXLOCK;
-  If (KEYSTATE[K_CONTROL] + KEYSTATE[K_ALT] = 2) or (KEYSTATE[K_ALTGR] = 1) Then Mode := 1-Mode;
+//  If (KEYSTATE[K_CONTROL] + KEYSTATE[K_ALT] = 2) or (KEYSTATE[K_ALTGR] = 1) Then Mode := 1-Mode;
   If Mode = 1 Then Begin
     Ch := 'G';
     Fg := 15;
@@ -4715,7 +4715,7 @@ Var
   Idx, lc, c, i, n, nl, m, p, fp, GfxMode, Flag, cy: Integer;
   SB: pSP_ScrollBar;
   Sel: SP_SelectionInfo;
-  Changed, b: Boolean;
+  Changed, b, IgnoreAltGR: Boolean;
   Error: TSP_ErrorCode;
 
   Procedure PlayClick;
@@ -4734,8 +4734,10 @@ Begin
   Changed := False;
   SP_GetSelectionInfo(Sel);
 
-  If Not (Key.KeyCode in [K_F3, K_ESCAPE]) Then
-    HideSearchResults;
+  If Not (Key.KeyCode in [K_F3, K_ESCAPE]) Then HideSearchResults;
+
+  // check for Alt-Gr and remove it
+  IgnoreALtGR := KeyState[K_CONTROL] + KeyState[K_ALT] = 2;
 
   If (Key.KeyChar = ' ') And Listing.UndoInProgress Then
     Listing.CompleteUndo;
@@ -5473,7 +5475,7 @@ Begin
   End Else Begin
 
     PlayClick;
-    If KEYSTATE[K_CONTROL] = 0 Then Begin
+    If (KEYSTATE[K_CONTROL] = 0) or ((KEYSTATE[K_CONTROL] = 1) And IgnoreAltGR) Then Begin
       If Sel.Active or Not (Key.KeyChar in ['a'..'z', 'A'..'Z', '0'..'9']) or Not Listing.UndoInProgress Then Listing.CommenceUndo;
       If Sel.Active Then Begin
         SP_FPDeleteSelection(Sel);
@@ -5493,7 +5495,7 @@ Begin
         SP_FPClearSelection(Sel);
         PlayClick;
       End Else Begin
-        If KEYSTATE[K_CONTROL] = 0 Then Begin
+        If (KEYSTATE[K_CONTROL] = 0) or ((KEYSTATE[K_CONTROL] = 1) And IgnoreAltGR) Then Begin
           If INSERT Then
             s := Copy(s, 1, Listing.FPCPos -1) + Key.KeyChar + Copy(s, Listing.FPCPos, Length(s))
           Else Begin
@@ -6628,6 +6630,7 @@ Procedure SP_DWPerformEdit(Key: pSP_KeyInfo);
 Var
   Idx, LineNum, GfxMode, c: Integer;
   Sel: SP_SelectionInfo;
+  IgnoreAltGR: Boolean;
   Error: TSP_ErrorCode;
   SB: pSP_ScrollBar;
   s, s2: aString;
@@ -6648,6 +6651,10 @@ Begin
   Error.Code := SP_ERR_OK;
 
   GfxMode := GFXLOCK;
+
+  // check for Alt-Gr and remove it
+
+  IgnoreALtGR := KeyState[K_CONTROL] + KeyState[K_ALT] = 2;
 
   If (Key^.KeyChar in ['a'..'z', 'A'..'Z', '0'..'9']) And Not DWUndoInProgress Then
     DWCommenceUndo;
@@ -7110,7 +7117,7 @@ Begin
       NewChar := NewChar + 32;
     End;
     {$ENDIF}
-    If KEYSTATE[K_CONTROL] = 0 Then Begin
+    If (KEYSTATE[K_CONTROL] = 0) or ((KEYSTATE[K_CONTROL] = 1) And IgnoreAltGR) Then Begin
       If (DWSelP <> CURSORPOS) or Not (Key^.KeyChar in ['a'..'z', 'A'..'Z', '0'..'9']) or Not DWUndoInProgress Then DWCommenceUndo;
       If DWSelP <> CURSORPOS Then Begin
         SP_FPDeleteSelection(Sel);

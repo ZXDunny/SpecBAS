@@ -84,7 +84,6 @@ type
   Procedure GetKeyState;
   Function  GetTicks: aFloat;
   Procedure MouseMoveTo(ToX, ToY: Integer);
-  Function  GetTimerFrequency: aFloat;
   Procedure Quit;
   function  Sto_GetFmtFileVersion(const FileName: String = ''; const Fmt: String = '%d.%d'): String;
   Procedure LoadImage(Filename: aString; Var Error: TSP_ErrorCode);
@@ -100,7 +99,7 @@ var
   InitTime: LongWord;
   ImgResource: Array of Byte;
   lastt, ft: Longword;
-  TimerFreq, BaseTime: Int64;
+  BaseTime: Int64;
   Bits: Pointer;
   Bitmap: TBitmap = Nil;
   LastMouseX, LastMouseY: Integer;
@@ -181,16 +180,8 @@ begin
 end;
 
 Function GetTicks: aFloat;
-Var
-  t: Int64;
 Begin
-  QueryPerformanceCounter(t);
-  Result := (t - BaseTime) / TimerFreq;
-End;
-
-Function GetTimerFrequency: aFloat;
-Begin
-  Result := TimerFreq;
+  Result := TimeGetTime - baseTime;
 End;
 
 procedure TMain.OnAppMessage(var Msg: TMsg; var Handled: Boolean);
@@ -629,10 +620,8 @@ begin
 
   SetPriorityClass(GetCurrentProcess, $8000{ABOVE_NORMAL_PRIORITY_CLASS});
 
-  QueryPerformanceFrequency(TimerFreq);
-  QueryPerformanceCounter(BaseTime);
-  TimerFreq := Round(TimerFreq / 1000);
-
+  TimeBeginPeriod(10);
+  baseTime := TimeGetTime;
   InitTime := Round(GetTicks);
 
   If Not PAYLOADPRESENT Then Begin
@@ -712,7 +701,6 @@ begin
   CB_SetScreenRes := SetScreen;
   CB_Test_Resolution := TestScreenResolution;
   CB_GetTicks := GetTicks;
-  CB_GetTimeFreq := GetTimerFrequency;
   CB_Yield := YieldProc;
   CB_Load_Image := LoadImage;
   CB_Save_Image := SaveImage;
@@ -811,6 +799,8 @@ begin
   {$ENDIF}
 
   DisplaySection.Leave;
+
+  TimeEndPeriod(10);
 
 end;
 

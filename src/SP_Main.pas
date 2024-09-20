@@ -77,7 +77,6 @@ Var
   CB_Yield: TCB_YieldProc;
   CB_Quit: TCB_QuitProc;
   CB_GetTicks: TCB_GetTicks;
-  CB_GetTimeFreq: TCB_GetTicks;
   CB_GetAxis: TCB_GetAxis;
   CB_InitSticks: TCB_InitSticks;
   CB_ReleaseSticks: TCB_ReleaseSticks;

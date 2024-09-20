@@ -2558,7 +2558,7 @@ Var
   Points: Array[0..3] of TSP_Point;
 Begin
 
-  angle := arctan2(y2-y1,x2-x1);
+  angle := arctan2(y2-y1, x2-x1);
   app := angle + PI / 2; amp := angle - PI / 2;
   w := T_STROKE / 2;
 
@@ -2922,21 +2922,21 @@ Var
 Begin
 
   SP_AngleToRad(Angle);
-  Z := Abs((Abs(X)+Abs(Y))/Sin(Angle/2));
+  Z := Abs((Abs(X) + Abs(Y)) / Sin(Angle / 2));
   LL := Sqrt(X * X + Y * Y);
-  If (Round(Sin(Angle/2)*10000000) = 0) or (Z < 1) Then
+  If (Round(Sin(Angle / 2)*10000000) = 0) or (Z < 1) Then
     SP_DrawLine(X, Y)
   Else Begin
     NumArcs := Min(4 * Round(Round(Abs(Angle * Sqrt(Z * LL / 100)) + 0.5) / 1) + 4, 252);
-    W := Sin(Angle/(2*NumArcs))/Sin(Angle/2);
+    W := Sin(Angle / (2 * NumArcs))/Sin(Angle / 2);
 
     M0 := DRPOSY;
     SC := DRPOSX;
-    F := 0.5*(Angle-(Angle/NumArcs));
-    M1 := (Y*W*Sin(F))+(X*W*Cos(F));
-    M2 := (Y*W*Cos(F))-(X*W*Sin(F));
-    M3 := Cos(Angle/NumArcs);
-    M4 := Sin(Angle/NumArcs);
+    F := 0.5 * (Angle - (Angle / NumArcs));
+    M1 := (Y * W * Sin(F))+(X * W * Cos(F));
+    M2 := (Y * W * Cos(F))-(X * W * Sin(F));
+    M3 := Cos(Angle / NumArcs);
+    M4 := Sin(Angle / NumArcs);
 
     While NumArcs > 0 Do Begin
 
@@ -2946,8 +2946,8 @@ Begin
       SP_DrawLine(SC - DRPOSX, M0 - DRPOSY);
 
       MM1 := M1;
-      M1 := (M1*M3)-(M2*M4);
-      M2 := (MM1*M4)+(M2*M3);
+      M1 := (M1 * M3)-(M2 * M4);
+      M2 := (MM1 * M4)+(M2 * M3);
 
       Dec(NumArcs);
 

@@ -1216,7 +1216,8 @@ Begin
       if s <> '' Then For i := 1 to Length(s) Do If s[i] = '"' Then InString := Not InString;
       While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do Begin
         s2 := Listing[Idx];
-        If (s2 <> '') And Not InString And (((s2[1] in ['A'..'Z', 'a'..'z']) And (Listing.Flags[Idx -1].ReturnType = spHardReturn) And (s[Length(s)] in ['0'..'9'])) or (Listing.Flags[Idx -1].ReturnType = spHardReturn)) Then
+        If (s <> '') And (s2 <> '') And Not InString And
+           (((s2[1] in ['A'..'Z', 'a'..'z']) And (Listing.Flags[Idx -1].ReturnType = spHardReturn) And (s[Length(s)] in ['0'..'9'])) or (Listing.Flags[Idx -1].ReturnType = spHardReturn)) Then
           s := s + ' ' + s2
         Else
           s := s + s2;

@@ -20581,7 +20581,6 @@ Begin
   If PackageIsOpen Then
     SP_ClosePackage;
 
-  ERRStr := Filename;
   Filename := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
 
@@ -20592,6 +20591,7 @@ Begin
   Else Begin
 
     Info^.Error^.Code := SP_ERR_FILE_MISSING;
+    ERRStr := SP_ExtractFilename(Filename);
     Dec(SP_StackPtr);
 
   End;

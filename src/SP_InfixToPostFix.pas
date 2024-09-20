@@ -778,7 +778,7 @@ Function SP_Test_Expr(Var Tokens: aString; Var Position: Integer; Var Error: TSP
 Var
   Symbol: aChar;
   SliceFlags: Byte;
-  Idx, NumIndices, nIdx, NumParams, FnToken: LongWord;
+  Idx, NumIndices, nIdx, NumParams, FnToken, i: LongWord;
   Stack: Array [0..1024] of Integer;
   StackPtr, FnType, NumTerms, tIdx, INType: Integer;
   PrevStruct: Boolean;
@@ -1194,13 +1194,17 @@ Begin
           // then it can usually be optimised. Functions know if they can or not. The exception here is IN, as it
           // inherits the current optimisation state.
 
-          If FnToken >= SP_META_BASE Then Begin
-            If SP_OPTIMISE_META_FLAGS[FnToken - SP_META_BASE] = False Then
+          i := FnToken - SP_META_BASE;
+          If (Integer(i) >= 0) And (i <= High(SP_OPTIMISE_META_FLAGS)) Then Begin
+            If SP_OPTIMISE_META_FLAGS[i] = False Then
               Optimise := False;
-          End Else
-            If SP_OPTIMISE_FLAGS[FnToken - SP_FUNCTION_BASE] = False Then
-              If FnToken <> SP_FN_IN Then
-                Optimise := False;
+          End Else Begin
+            i := FnToken - SP_FUNCTION_BASE;
+            If (Integer(i) >= 0) and (i <= High(SP_OPTIMISE_FLAGS)) Then
+              If SP_OPTIMISE_FLAGS[FnToken - SP_FUNCTION_BASE] = False Then
+                If FnToken <> SP_FN_IN Then
+                  Optimise := False;
+          End;
 
           Case FnToken of
 
@@ -2213,6 +2217,13 @@ Begin
                 End;
 
               End;
+
+          Else
+
+            Begin
+              Error.Code := SP_ERR_SYNTAX_ERROR;
+              Exit;
+            End;
 
           End;
 
@@ -5264,7 +5275,8 @@ Finish:
 
   // Now add handlers to the finished code
 
-  SP_AddHandlers(Result);
+  If Error.Code = SP_ERR_OK Then
+    SP_AddHandlers(Result);
 
 End;
 

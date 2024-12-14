@@ -457,6 +457,8 @@ Procedure SP_Interpret_MULTIDRAW(Var Info: pSP_iInfo);
 Procedure SP_Interpret_MULTIDRAW_TO(Var Info: pSP_iInfo);
 Procedure SP_Interpret_AMULTIDRAW(Var Info: pSP_iInfo);
 Procedure SP_Interpret_AMULTIDRAW_TO(Var Info: pSP_iInfo);
+Procedure SP_Interpret_DRAW_FOUR(Var Info: pSP_iInfo);
+Procedure SP_Interpret_ADRAW_FOUR(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CIRCLE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ELLIPSE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_CIRCLEFILL(Var Info: pSP_iInfo);
@@ -10457,7 +10459,8 @@ Begin
             NXTLINE := -1;
           Error.Statement := LineItem.St;
           Error.ReturnType := SP_JUMP;
-        End;
+        End Else
+          Error.Code := SP_ERR_FOR_WITHOUT_NEXT;
       End;
     End;
 
@@ -11453,6 +11456,122 @@ Begin
     Else
       SP_DrawSpeccyCurve32(XPos - dXPos, YPos - dYPos, Angle);
   End;
+
+  SP_NeedDisplayUpdate := True;
+
+End;
+
+Procedure SP_Interpret_DRAW_FOUR(Var Info: pSP_iInfo);
+Var
+  YPos, XPos, dXPos, dYPos, Angle: aFloat; NumParams: Integer;
+  Sp1, Sp2: pSP_StackItem;
+Begin
+
+  Angle := 0;
+  NumParams := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  If NumParams = 5 Then Begin
+    Angle := SP_StackPtr^.Val;
+    If WINFLIPPED Then Angle := -Angle;
+    Dec(SP_StackPtr);
+  End;
+
+  Sp1 := SP_StackPtr;
+  Dec(Sp1);
+
+  SP_ConvertToOrigin_d(Sp1^.Val, SP_StackPtr^.Val);
+  Dec(Sp1);
+  Sp2 := Sp1;
+  Dec(Sp2);
+  SP_ConvertToOrigin_d(Sp2^.Val, Sp1^.Val);
+
+  dYPos := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  dXPos := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  YPos := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  XPos := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+
+  If WINFLIPPED Then Begin
+    YPos := (SCREENHEIGHT - 1) - YPos;
+    dYPos := (SCREENHEIGHT - 1) - dYPos;
+  End;
+
+  SKIPFIRSTPOINT := False;
+  DRPOSX := XPos;
+  DRPOSY := YPos;
+
+  If SCREENBPP = 8 Then Begin
+    If NumParams = 2 Then
+      SP_DrawLine(dXPos, dYPos)
+    Else
+      SP_DrawSpeccyCurve(dXPos, dYPos, Angle);
+  End Else Begin
+    If NumParams = 2 Then
+      SP_DrawLine32(dXPos, dYPos)
+    Else
+      SP_DrawSpeccyCurve32(dXPos, dYPos, Angle);
+  End;
+
+  SP_NeedDisplayUpdate := True;
+
+End;
+
+Procedure SP_Interpret_ADRAW_FOUR(Var Info: pSP_iInfo);
+Var
+  YPos, XPos, dXPos, dYPos, Angle: aFloat; NumParams: Integer;
+  Sp1, Sp2: pSP_StackItem;
+Begin
+
+  If SCREENBPP <> 32 Then Begin
+    Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
+    Exit;
+  End;
+
+  Angle := 0;
+  NumParams := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  If NumParams = 5 Then Begin
+    Angle := SP_StackPtr^.Val;
+    If WINFLIPPED Then Angle := -Angle;
+    Dec(SP_StackPtr);
+  End;
+
+  Sp1 := SP_StackPtr;
+  Dec(Sp1);
+
+  SP_ConvertToOrigin_d(Sp1^.Val, SP_StackPtr^.Val);
+  Dec(Sp1);
+  Sp2 := Sp1;
+  Dec(Sp2);
+  SP_ConvertToOrigin_d(Sp2^.Val, Sp1^.Val);
+
+  YPos := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  XPos := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  dYPos := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+  dXPos := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+
+  If WINFLIPPED Then Begin
+    YPos := (SCREENHEIGHT - 1) - YPos;
+    dYPos := (SCREENHEIGHT - 1) - dYPos;
+  End;
+
+  SKIPFIRSTPOINT := False;
+  DRPOSX := XPos;
+  DRPOSY := YPos;
+
+  If NumParams = 2 Then
+    SP_DrawLine32Alpha(dXPos, dYPos)
+  Else
+    SP_DrawSpeccyCurve32Alpha(dXPos, dYPos, Angle);
 
   SP_NeedDisplayUpdate := True;
 
@@ -27090,6 +27209,8 @@ Initialization
   InterpretProcs[SP_KW_FORCE] := @SP_Interpret_FORCE;
   InterpretProcs[SP_KW_PAUSE] := @SP_Interpret_PAUSE;
   InterpretProcs[SP_KW_DRAW] := @SP_Interpret_DRAW;
+  InterpretProcs[SP_KW_DRAW_FOUR] := @SP_Interpret_DRAW_FOUR;
+  InterpretProcs[SP_KW_ADRAW_FOUR] := @SP_Interpret_ADRAW_FOUR;
   InterpretProcs[SP_KW_DRAWTO] := @SP_Interpret_DRAWTO;
   InterpretProcs[SP_KW_CIRCLE] := @SP_Interpret_CIRCLE;
   InterpretProcs[SP_KW_ELLIPSE] := @SP_Interpret_ELLIPSE;

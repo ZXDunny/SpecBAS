@@ -2968,14 +2968,20 @@ Begin
     Ink := T_INK and $FF
   Else
     Ink := T_PAPER and $FF;
-  If (x >= T_CLIPX1) And (x < T_CLIPX2) And (y >= T_CLIPY1) And (y < T_CLIPY2) Then Begin
-    xr := Round(X); yr := Round(Y);
-    Ptr := pByte(NativeUInt(SCREENPOINTER)+(LongWord(yr * SCREENSTRIDE) + LongWord(xr)));
-    IF T_OVER = 0 Then
-      Ptr^ := Ink
-    Else
-      SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
-  End;
+  If (x >= T_CLIPX1) And (x < T_CLIPX2) And (y >= T_CLIPY1) And (y < T_CLIPY2) Then
+    If T_STROKE > 1 Then Begin
+      DRPOSX := X;
+      DRPOSY := Y;
+      xr := Round(X - T_STROKE / 2); yr := Round(Y - T_STROKE / 2);
+      SP_FillRect(xr, yr, Round(T_STROKE), Round(T_STROKE), Ink);
+    End Else Begin
+      xr := Round(X); yr := Round(Y);
+      Ptr := pByte(NativeUInt(SCREENPOINTER)+(LongWord(yr * SCREENSTRIDE) + LongWord(xr)));
+      IF T_OVER = 0 Then
+        Ptr^ := Ink
+      Else
+        SP_OverPixelPtrVal(Ptr, Ink, T_OVER);
+    End;
 
   DRPOSX := X;
   DRPOSY := Y;

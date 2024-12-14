@@ -209,8 +209,9 @@ Const
   SP_ERR_TOO_MANY_BRACKETS = 162;
   SP_ERR_CLIPBOARD_ERROR = 163;
   SP_ERR_INVALID_ERRNUM = 164;
+  SP_ERR_FOR_WITHOUT_NEXT = 165;
 
-  MAXERROR = 164;
+  MAXERROR = 165;
 
   // Runtime error codes.
 
@@ -386,7 +387,8 @@ Const
      'Invalid property value',
      'Too many brackets',
      'Clipboard error',
-     'Invalid error number');
+     'Invalid error number',
+     'FOR without NEXT');
 
 Var
 

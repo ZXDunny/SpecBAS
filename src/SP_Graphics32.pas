@@ -888,6 +888,7 @@ End;
 
 Procedure SP_SetPixel32(X, Y: aFloat); Inline;
 Var
+  xr, yr: Integer;
   Ink: LongWord;
 Begin
 
@@ -896,7 +897,13 @@ Begin
   Else
     Ink := T_PAPER;
   If (X >= T_CLIPX1) And (X < T_CLIPX2) And (Y >= T_CLIPY1) And (Y < T_CLIPY2) Then
-    pLongWord(NativeUInt(SCREENPOINTER)+(LongWord(Round(Y) * SCREENSTRIDE) + LongWord(Round(X) * SizeOf(RGBA))))^ := Ink;
+    If T_STROKE > 1 Then Begin
+      DRPOSX := X;
+      DRPOSY := Y;
+      xr := Round(X - T_STROKE / 2); yr := Round(Y - T_STROKE / 2);
+      SP_FillRect32(xr, yr, Round(T_STROKE), Round(T_STROKE), Ink);
+    End Else
+      pLongWord(NativeUInt(SCREENPOINTER)+(LongWord(Round(Y) * SCREENSTRIDE) + LongWord(Round(X) * SizeOf(RGBA))))^ := Ink;
 
   DRPOSX := X;
   DRPOSY := Y;
@@ -933,6 +940,7 @@ End;
 
 Procedure SP_SetPixel32Alpha(X, Y: aFloat); Inline;
 Var
+  xr, yr: Integer;
   Ink: LongWord;
   Ptr: pLongWord;
 Begin
@@ -941,10 +949,16 @@ Begin
     Ink := T_INK
   Else
     Ink := T_PAPER;
-  If (X >= T_CLIPX1) And (X < T_CLIPX2) And (Y >= T_CLIPY1) And (Y < T_CLIPY2) Then Begin
-    Ptr := pLongWord(NativeUInt(SCREENPOINTER)+(LongWord(Round(Y) * SCREENSTRIDE) + LongWord(Round(X) * SizeOf(RGBA))));
-    Ptr^ := SP_AlphaBlend(Ptr^, Ink);
-  End;
+  If (X >= T_CLIPX1) And (X < T_CLIPX2) And (Y >= T_CLIPY1) And (Y < T_CLIPY2) Then
+    If T_STROKE > 1 Then Begin
+      DRPOSX := X;
+      DRPOSY := Y;
+      xr := Round(X - T_STROKE / 2); yr := Round(Y - T_STROKE / 2);
+      SP_FillRect32Alpha(xr, yr, Round(T_STROKE), Round(T_STROKE), Ink);
+    End Else Begin
+      Ptr := pLongWord(NativeUInt(SCREENPOINTER)+(LongWord(Round(Y) * SCREENSTRIDE) + LongWord(Round(X) * SizeOf(RGBA))));
+      Ptr^ := SP_AlphaBlend(Ptr^, Ink);
+    End;
 
   DRPOSX := X;
   DRPOSY := Y;

@@ -60,6 +60,7 @@ SP_PopupMenu = Class(SP_BaseComponent)
     PrevFocusedControl: SP_BaseComponent;
     fAltDown: Boolean;
     fShortcutLen: Integer;
+    fCapOfs: Integer;
     Procedure CalculateSizes;
     Procedure Draw; Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
@@ -248,7 +249,7 @@ End;
 
 Procedure SP_PopUpMenu.CalculateSizes;
 Var
-  x, y, w, h, mw, mx, i, l, t, bs: Integer;
+  x, y, w, h, mw, mx, i, ol, l, t, bs: Integer;
   SubsPresent: Boolean;
   Win: pSP_Window_Info;
   r: TRect;
@@ -314,7 +315,7 @@ Begin
 
   bs := Ord(fBorder);
 
-  l := Left;
+  l := Left; ol := l;
   t := Top;
   w := mw + mx + iFW + (Ord(SubsPresent)*iFW) + bs;
   h := y + 2 + bs;
@@ -324,6 +325,9 @@ Begin
   If l < 0 Then l := 0;
   If t < 0 Then t := 0;
   If t + h > Win^.Height - BSize Then t := Win^.Height - h - BSize;
+
+  if ol <> l Then
+    fCapOfs := ol - l;
 
   SetBounds(l, t, w, h);
   Unlock;
@@ -351,7 +355,7 @@ Begin
     If Assigned(fParentMenu) and (fParentMenu is SP_WindowMenu) Then Begin
       i := SP_WindowMenu(fParentMenu).fCapWidth;
       if i > 0 Then
-        DrawLine(1, 0, i, 0, fBackgroundClr);
+        DrawLine(1 + fCapOfs, 0, i + fCapOfs, 0, fBackgroundClr);
     End;
   End;
 
@@ -635,6 +639,7 @@ Begin
   MouseControl := Self;
   ForceCapture := True;
   SetPosition(x, y);
+  fCapOfs := 0;
   CalculateSizes;
 
   If Assigned(OnPopUp) Then
@@ -671,6 +676,7 @@ End;
 Procedure SP_PopUpMenu.MouseDown(X, Y, Btn: Integer);
 Var
   p: TPoint;
+  Item: Integer;
 Begin
 
   // Outside the menu, close it if we're not in the parent submenu chain
@@ -679,8 +685,16 @@ Begin
   SP_PlaySystem(CLICKCHAN, CLICKBANK);
   If Not PtInRect(Rect(0, 0, fWidth, fHeight), Point(X, Y)) Then Begin
     If Assigned(fParentMenu) Then Begin
-      If Not (SP_BaseComponent(fParentMenu) is SP_WindowMenu) Then
-        Close;
+      p := fParentMenu.ScreenToClient(ClientToScreen(Point(X, Y)));
+      if PtInRect(fParentMenu.BoundsRect, p) Then Begin
+        Item := ItemAtPos(p.X, p.Y);
+        If (item >= 0) And ((SP_PopUpMenu(fParentMenu).fItems[Item].SubMenu = Self) or Not (SP_PopUpMenu(fParentMenu).fItems[Item].Enabled)) Then Begin
+          fIgnoreMouseUp := True;
+          Exit;
+        End;
+      End Else
+        If Not (SP_BaseComponent(fParentMenu) is SP_WindowMenu) Then
+          Close;
       CaptureControl := fParentMenu;
       ForceCapture := True;
       p := CaptureControl.ScreenToClient(ClientToScreen(Point(X, Y)));

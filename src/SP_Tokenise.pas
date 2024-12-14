@@ -744,10 +744,12 @@ Const
   SP_KW_STREAM_READFILE     = 4415;
   SP_KW_RAINBOW_HSV         = 4416;
   SP_KW_PR_STROKE           = 4417;
+  SP_KW_DRAW_FOUR           = 4418;
+  SP_KW_ADRAW_FOUR          = 4419;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..366] of aString =
+  SP_Keyword_Names: Array[0..368] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -799,7 +801,7 @@ Const
      'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP', 'PLAY STOP', 'MOUSE TO ', 'PALETTE APPLE LGR',
      'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN', 'A-RECTANGLE TO', 'A-RECTFILL TO', 'RECTANGLE TO',
      'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING', 'ENUM BASE', 'ORG DIM', 'DRAW GML', 'WIN ORG DIM', 'GFX ORG DIM',
-     'STREAM READ FILE', 'RAINBOW HSV', 'PR STROKE');
+     'STREAM READ FILE', 'RAINBOW HSV', 'PR STROKE', 'DRAW CDELTA', 'A-DRAW CDELTA');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.

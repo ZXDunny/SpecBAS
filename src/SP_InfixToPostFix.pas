@@ -8292,7 +8292,7 @@ End;
 
 Function SP_Convert_DRAW(Var KeyWordID: LongWord; Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Var
-  VarPos, VarSize: Integer;
+  VarPos, VarSize, pCnt: Integer;
   VarName: aString;
   Expr: aString;
   AllResult: aString;
@@ -8304,9 +8304,10 @@ Begin
   // DRAW [INK|OVER numexpr;][ TO ]x[,y[,a]]
   // DRAW [INK|OVER numexpr;] [TO] Array()
   // DRAW [INK|OVER numexpr;] x1,y1 TO x2,y2
-  // DRAW [INK|OVER numexpr;] x1,y1,x2,y2[,a]
+  // DRAW [INK|OVER numexpr;] x,y,dx,dy[,a]
   // DRAW [INK|OVER numexpr;] strexpr$
 
+  pCnt := 0;
   Result := '';
   AllResult := '';
 
@@ -8362,6 +8363,7 @@ Begin
         Exit;
       End;
     End;
+    Inc(pCnt);
     If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
       Inc(Position, 2);
       Result := Result + Expr;
@@ -8372,15 +8374,18 @@ Begin
         Exit;
       End;
       Result := Result + Expr;
+      Inc(pCnt);
       If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
         Inc(Position, 2);
-        Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // angle
+        Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // angle or dx for x1,y1,dx,dy
         If Error.Code <> SP_ERR_OK Then Exit;
         If Error.ReturnType <> SP_VALUE Then Begin
           Error.Code := SP_ERR_MISSING_NUMEXPR;
           Exit;
         End;
-        Result := Result + Expr + CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(3);
+        If Not ((Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',')) Then
+          Result := Result + Expr + CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(3);
+        Inc(pCnt);
       End Else
         If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) And ((KeyWordID = SP_KW_DRAW) Or (KeyWordID = SP_KW_ADRAW)) Then Begin
           Inc(Position, 1 + SizeOf(LongWord));
@@ -8422,6 +8427,40 @@ Begin
           End;
         End Else
           Result := Result + CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(2);
+      If Pcnt = 3 Then Begin
+        // Possible "," means that the last param was not an angle, but dx.
+        // So get dy[,a] now.
+        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+          Inc(Position, 2);
+          Result := Result + Expr;
+          Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // y
+          If Error.Code <> SP_ERR_OK Then Exit;
+          If Error.ReturnType <> SP_VALUE Then Begin
+            Error.Code := SP_ERR_MISSING_NUMEXPR;
+            Exit;
+          End;
+          If KEYWORDID = SP_KW_DRAW Then
+            KEYWORDID := SP_KW_DRAW_FOUR
+          Else
+            If KEYWORDID = SP_KW_ADRAW Then
+              KEYWORDID := SP_KW_ADRAW_FOUR;
+          Result := Result + Expr;
+          If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+            Inc(Position, 2);
+            Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // angle
+            If Error.Code <> SP_ERR_OK Then Exit;
+            If Error.ReturnType <> SP_VALUE Then Begin
+              Error.Code := SP_ERR_MISSING_NUMEXPR;
+              Exit;
+            End;
+            Result := Result + Expr + CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(5);
+          End Else
+            Result := Result + CreateToken(SP_VALUE, Position, SizeOf(aFloat)) + aFloatToString(4);
+        End Else Begin
+          // Not an error!
+          Exit;
+        End;
+      End;
       Result := Result + AllResult;
       Exit;
     End Else

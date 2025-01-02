@@ -10440,7 +10440,8 @@ Begin
         LineItem.St := Error^.Statement + 1;
       End;
       SP_UpdateFORVar(VarIdx, varName, StartFrom, EndAt, Step, LineItem.Line, LineItem.Statement, LineItem.St, Ptr, Error^);
-      If ((Step > 0) And (StartFrom > EndAt)) or ((Step < 0) And (StartFrom < EndAt)) Then Begin
+
+      If ((Step >= 0) And (StartFrom > EndAt)) or ((Step < 0) And (StartFrom < EndAt)) Then Begin
         i := 0;
         While i < SP_NextCount Do Begin
           If SP_NextEntries[i].VarName = VarName then
@@ -10474,6 +10475,37 @@ Var
   VarIdx: Integer;
   Tkns: paString;
   rType: Byte;
+
+  Procedure SkipFOR;
+  Var
+    i: Integer;
+  Begin
+    With Info^, NumVars[VarIdx]^, ContentPtr^ Do Begin
+      i := 0;
+      While i < SP_NextCount Do Begin
+        If SP_NextEntries[i].VarName = Name then
+          If SP_NextEntries[i].Line = LoopLine Then Begin
+            If (SP_NextEntries[i].Statement > St) or (SP_NextEntries[i].Statement = -1) Then
+              Break;
+          End Else
+            If SP_NextEntries[i].Line > LoopLine Then
+              Break;
+        Inc(i);
+      End;
+      If i < SP_NextCount Then Begin
+        NXTLINE := SP_NextEntries[i].Line;
+        NXTSTATEMENT := SP_NextEntries[i].Statement;
+        If NXTStatement = -1 then
+          NXTLINE := -1;
+        Error.Statement := St;
+        Error.ReturnType := SP_JUMP;
+      End Else
+        Error.Code := SP_ERR_FOR_WITHOUT_NEXT;
+    End;
+  End;
+
+Label
+  NextEachNum, NextEachStr;
 Begin
 
   With Info^ Do Begin
@@ -10581,6 +10613,8 @@ Begin
                   Inc(EachIndex);
                   If EachIndex < Count Then Begin
 
+                    NextEachNum:
+
                     Tkns := @EachTokens;
                     rType := Byte(EachTokens[EachPtr]);
                     Inc(EachPtr, SizeOf(TToken));
@@ -10620,9 +10654,17 @@ Begin
 
                       // Jump to the stored line/statement.
 
-                      NXTLINE := LoopLine;
-                      NXTSTATEMENT := LoopStatement;
-                      Error.Statement := St;
+                      If ((RangeStep >= 0) And ((RangeMin > RangeMax) or (Value > RangeMax)) or ((RangeStep < 0) And ((RangeMin < RangeMax) or (Value < RangeMax)))) Then Begin
+                        Inc(EachIndex);
+                        If EachIndex < Count Then
+                          Goto NextEachNum
+                        Else
+                          SkipFOR;
+                      End Else Begin
+                        NXTLINE := LoopLine;
+                        NXTSTATEMENT := LoopStatement;
+                        Error.Statement := St;
+                      End;
                       Error.ReturnType := SP_JUMP;
 
                     End;
@@ -10714,6 +10756,8 @@ Begin
                 Inc(EachIndex);
                 If EachIndex < Count Then Begin
 
+                  NextEachStr:
+
                   Tkns := @EachTokens;
                   rType := Byte(EachTokens[EachPtr]);
                   Inc(EachPtr, SizeOf(TToken));
@@ -10753,9 +10797,17 @@ Begin
 
                     // Jump to the stored line/statement.
 
-                    NXTLINE := LoopLine;
-                    NXTSTATEMENT := LoopStatement;
-                    Error.Statement := St;
+                    If ((RangeStep >= 0) And ((RangeMin > RangeMax) or (Value > aChar(RangeMax))) or ((RangeStep < 0) And ((RangeMin < RangeMax) or (Value < aChar(RangeMax))))) Then Begin
+                        Inc(EachIndex);
+                        If EachIndex < Count Then
+                          Goto NextEachStr
+                        Else
+                          SkipFOR;
+                    End Else Begin
+                      NXTLINE := LoopLine;
+                      NXTSTATEMENT := LoopStatement;
+                      Error.Statement := St;
+                    End;
                     Error.ReturnType := SP_JUMP;
 
                   End;
@@ -21455,7 +21507,7 @@ End;
 
 Procedure SP_Interpret_FOR_EACH_RANGE(Var Info: pSP_iInfo);
 Var
-  VarIdx, NumRanges: Integer;
+  VarIdx, NumRanges, i: Integer;
   VarName, EachString: aString;
   VarPtr: pLongWord;
   LineItem: TSP_GOSUB_Item;
@@ -21473,7 +21525,9 @@ Begin
     VarName := Str;
     VarPtr := Ptr;
     With Info^ Do Begin
-      If OpType = SP_STRVAR Then VarName := VarName + '$';
+      If OpType = SP_STRVAR Then Begin
+        VarName := VarName + '$';
+      End;
       If Error^.Line >= 0 Then Begin
         LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1);
       End Else Begin
@@ -21492,7 +21546,30 @@ Begin
   EachString := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
 
-  SP_UpdateFOREACHRANGEVar(VarIdx, VarName, EachString, NumRanges, LineItem.Line, LineItem.Statement, LineItem.St, VarPtr, Info^.Error^);
+  VarIdx := SP_UpdateFOREACHRANGEVar(VarIdx, VarName, EachString, NumRanges, LineItem.Line, LineItem.Statement, LineItem.St, VarPtr, Info^.Error^);
+
+  If VarIdx < 0 Then With Info^ Do Begin
+    i := 0;
+    While i < SP_NextCount Do Begin
+      If SP_NextEntries[i].VarName = VarName then
+        If SP_NextEntries[i].Line = LineItem.Line Then Begin
+          If (SP_NextEntries[i].Statement > LineItem.St) or (SP_NextEntries[i].Statement = -1) Then
+            Break;
+        End Else
+          If SP_NextEntries[i].Line > LineItem.Line Then
+            Break;
+      Inc(i);
+    End;
+    If i < SP_NextCount Then Begin
+      NXTLINE := SP_NextEntries[i].Line;
+      NXTSTATEMENT := SP_NextEntries[i].Statement;
+      If NXTStatement = -1 then
+        NXTLINE := -1;
+      Error.Statement := LineItem.St;
+      Error.ReturnType := SP_JUMP;
+    End Else
+      Error.Code := SP_ERR_FOR_WITHOUT_NEXT;
+  End;
 
 End;
 

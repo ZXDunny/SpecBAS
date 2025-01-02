@@ -778,9 +778,8 @@ Function SP_Test_Expr(Var Tokens: aString; Var Position: Integer; Var Error: TSP
 Var
   Symbol: aChar;
   SliceFlags: Byte;
-  Idx, NumIndices, nIdx, NumParams, FnToken, i: LongWord;
+  Idx, NumIndices, nIdx, NumParams, FnToken, StackPtr, FnType, NumTerms, tIdx, INType, i: Integer;
   Stack: Array [0..1024] of Integer;
-  StackPtr, FnType, NumTerms, tIdx, INType: Integer;
   PrevStruct: Boolean;
   LastValue, nIdxDbl: aFloat;
   Token: pToken;
@@ -942,7 +941,7 @@ Begin
             If Stack[StackPtr] = SP_NUMVAR Then
               Stack[StackPtr] := SP_VALUE
             Else
-              If (Integer(Idx + Token^.TokenLen) > Length(Tokens)) or (Not (pToken(@Tokens[Idx + Token^.TokenLen])^.Token in [SP_STRUCT_MEMBER_N, SP_STRUCT_MEMBER_S])) Then
+              If (Idx + Integer(Token^.TokenLen) > Length(Tokens)) or (Not (pToken(@Tokens[Idx + Integer(Token^.TokenLen)])^.Token in [SP_STRUCT_MEMBER_N, SP_STRUCT_MEMBER_S])) Then
                 Stack[StackPtr] := SP_STRING;
         End;
 
@@ -7573,6 +7572,7 @@ Begin
             While True Do Begin
               // Must be a term here, of the same type (value or string) as the variable.
               TempExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+              If Error.Code <> SP_ERR_OK Then Exit;
               If Error.ReturnType <> EachType Then Begin
                 Error.Code := SP_ERR_MIXED_TYPES;
                 Break;
@@ -7588,6 +7588,7 @@ Begin
                   // A term MUST follow the TO, and it must be of the correct type.
                   Inc(Position, SizeOf(LongWord) +1);
                   TempExpr := TempExpr + SP_Convert_Expr(Tokens, Position, Error, -1);
+                  If Error.Code <> SP_ERR_OK Then Exit;
                   If Error.ReturnType <> EachType Then Begin
                     Error.Code := SP_ERR_MIXED_TYPES;
                     Break;
@@ -7608,6 +7609,7 @@ Begin
                         // Must be a numeric.
                         Inc(Position, SizeOf(LongWord) +1);
                         TempExpr := TempExpr + SP_Convert_Expr(Tokens, Position, Error, -1);
+                        If Error.Code <> SP_ERR_OK Then Exit;
                         If Error.ReturnType <> SP_VALUE Then Begin
                           Error.Code := SP_ERR_MISSING_NUMEXPR;
                           Break;

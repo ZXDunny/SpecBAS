@@ -3767,6 +3767,8 @@ Var
   rType: Byte;
   Tokens: paString;
   nName: aString;
+Label
+  NextEachNum, NextEachStr;
 Begin
 
   // Find the variable to use. Can be string or numeric.
@@ -3813,6 +3815,8 @@ Begin
 
     // Now we're all set up, interpret the first range item.
 
+    NextEachStr:
+
     Tokens := @ContentPtr^.EachTokens;
     rType := Byte(ContentPtr^.EachTokens[ContentPtr^.EachPtr]);
     Inc(ContentPtr^.EachPtr, SizeOf(TToken));
@@ -3850,6 +3854,15 @@ Begin
           End;
       End;
 
+      With ContentPtr^ Do
+        If ((RangeStep >= 0) And ((RangeMin > RangeMax) or (Value > aChar(RangeMax))) or ((RangeStep < 0) And ((RangeMin < RangeMax) or (Value < aChar(RangeMax))))) Then Begin
+          Inc(EachIndex);
+          If EachIndex < Count Then
+            Goto NextEachStr
+          Else
+            Idx := -1;
+        End;
+
     End;
 
   End Else With NumVars[Idx]^ Do Begin
@@ -3864,6 +3877,8 @@ Begin
     ContentPtr^.VarType := SP_FOREACHRANGE;
 
     // Now we're all set up, interpret the first range item.
+
+    NextEachNum:
 
     Tokens := @ContentPtr^.EachTokens;
     rType := Byte(ContentPtr^.EachTokens[ContentPtr^.EachPtr]);
@@ -3901,6 +3916,15 @@ Begin
             Dec(SP_StackPtr);
           End;
       End;
+
+      With ContentPtr^ Do
+        If ((RangeStep >= 0) And ((RangeMin > RangeMax) or (Value > RangeMax)) or ((RangeStep < 0) And ((RangeMin < RangeMax) or (Value < RangeMax)))) Then Begin
+          Inc(EachIndex);
+          If EachIndex < Count Then
+            Goto NextEachNum
+          Else
+            Idx := -1;
+        End;
 
     End;
 

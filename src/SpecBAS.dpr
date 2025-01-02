@@ -36,6 +36,7 @@ uses
 begin
   {$IFDEF DELPHI}
   SetProcessDPIAware;
+  ReportMemoryLeaksOnShutdown := True;
   {$ENDIF}
   Application.Initialize;
   Application.MainFormOnTaskbar := True;

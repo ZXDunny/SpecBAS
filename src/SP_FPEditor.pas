@@ -7439,6 +7439,7 @@ Begin
 
         If SIGSAMPLEBANK = -1 Then Begin
 
+          Delay(250);
           SP_WaitForSync;
           SP_PlaySignature;
 

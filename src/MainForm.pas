@@ -176,7 +176,8 @@ begin
     GetOSDString;
     s := Format('%.0f', [1000/AvgFrameTime]);
     Caption := CaptionString + ' ' + String(BUILDSTR) + ' - ' + s + ' fps';
-  End;
+  End Else
+    Caption := String(WCAPTION);
 end;
 
 Function GetTicks: aFloat;

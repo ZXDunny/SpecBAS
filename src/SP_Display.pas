@@ -82,7 +82,7 @@ begin
   with pfd do begin
     nSize:= SizeOf( PIXELFORMATDESCRIPTOR );
     nVersion:= 1;
-    dwFlags:= PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL or PFD_DOUBLEBUFFER or PFD_SWAP_COPY;
+    dwFlags:= PFD_DRAW_TO_WINDOW or PFD_SUPPORT_OPENGL {$IFDEF DOUBLEBUFFER}or PFD_DOUBLEBUFFER or PFD_SWAP_COPY{$ENDIF};
     iPixelType:= PFD_TYPE_RGBA;
     cColorBits:= 32;
     cRedBits:= 0;
@@ -113,7 +113,11 @@ begin
   RC := wglCreateContext(DC);
   ActivateRenderingContext(DC, RC);
   wglMakeCurrent(DC, RC);
+  {$IFDEF DOUBLEBUFFER}
   wglSwapIntervalEXT(1);
+  {$ELSE}
+  wglSwapIntervalEXT(0);
+  {$ENDIF}
   VSYNCENABLED := wglGetSwapIntervalEXT <> 0;
 
   GLInitDone := True;
@@ -247,7 +251,7 @@ Begin
 
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
-  Priority := tpHigher;
+  Priority := tpNormal;
   RefreshThreadAlive := True;
 
   LastFrames := 0;
@@ -405,9 +409,12 @@ end;
 Procedure Refresh_Display;
 {$IFDEF OpenGL}
 Var
+  {$IFDEF DOUBLEBUFFER}
   DC: hDc;
   t: Int64;
-  x, y, w, h, tmp: Integer;
+  tmp: Integer;
+  {$ENDIF}
+  x, y, w, h: Integer;
 {$ENDIF}
 Begin
 
@@ -424,7 +431,9 @@ Begin
       Main.FormResize(Main);
     End;
 
+    {$IFDEF DOUBLEBUFFER}
     DC := wglGetCurrentDC;
+    {$ENDIF}
 
     glDisable(gl_MULTISAMPLE_ARB);
     glLoadIdentity;
@@ -474,6 +483,7 @@ Begin
     glTexCoord2D(0, 1); glVertex2D(0, ScaleHeight);
     glEnd;
 
+    {$IFDEF DOUBLEBUFFER}
     glGetIntegerv(GL_UNPACK_ROW_LENGTH, @tmp);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glGetInteger64v(GL_TIMESTAMP, @t);
@@ -481,6 +491,9 @@ Begin
     glFlush;
 
     SwapBuffers(DC);
+    {$ELSE}
+    glFinish;
+    {$ENDIF}
 
   {$ELSE}
     InvalidateRect(Main.Handle, iRect, False);
@@ -727,7 +740,11 @@ Begin
     End;
 
     glEnable(GL_TEXTURE_2D);
+    {$IFDEF DOUBLEBUFFER}
     wglSwapIntervalEXT(1);
+    {$ELSE}
+    wglSwapIntervalEXT(0);
+    {$ENDIF}
 
   End;
 

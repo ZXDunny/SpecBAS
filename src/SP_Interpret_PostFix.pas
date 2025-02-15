@@ -1040,7 +1040,7 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, RunTimeCompiler, SP_Util2;
+Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, RunTimeCompiler, SP_Util2, SP_Display;
 
 Procedure SP_Execute(Line: aString; InitInterpreter: Boolean; Var Error: TSP_ErrorCode);
 Var
@@ -13478,7 +13478,7 @@ Begin
           Exit;
         End;
         If Token^.Token = SP_SYMBOL Then
-          If (Tokens[Position + 1] = ':') or (Tokens[Position + 1] = SP_CHAR_SEMICOLON) or (Tokens[Position + 1] = ';') Then
+          If (Tokens[Position] = ':') or (Tokens[Position] = SP_CHAR_SEMICOLON) or (Tokens[Position] = ';') Then
             Inc(SP_DATA_Line.St);
         Inc(Position, Token^.TokenLen);
       End;
@@ -13532,6 +13532,8 @@ Procedure SP_Interpret_SCR_FULL(Var Info: pSP_iInfo);
 Var
   Win: pSP_Window_Info;
 Begin
+
+  SP_GetMonitorMetrics;
 
   SP_GetWindowDetails(0, win, Info^.Error^);
 

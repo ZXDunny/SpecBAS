@@ -4,7 +4,7 @@ unit SP_Display;
 
 interface
 
-  Uses WinAPI.Windows, System.SysUtils, System.SyncObjs, Graphics, Forms, Classes, System.Types, Math, PNGImage, MainForm, SP_FileIO, {$IFDEF OPENGL}dglOpenGL,{$ENDIF} SP_Util, WinAPI.DWMApi;
+  Uses WinAPI.Windows, MultiMon, System.SysUtils, System.SyncObjs, Graphics, Forms, Classes, System.Types, Math, PNGImage, MainForm, SP_FileIO, {$IFDEF OPENGL}dglOpenGL,{$ENDIF} SP_Util, WinAPI.DWMApi;
 
   {$IFDEF RefreshThread}
 Type
@@ -19,6 +19,7 @@ Type
   Procedure InitGL;
   Procedure CloseGL;
   {$ENDIF}
+  procedure SP_GetMonitorMetrics;
   Function  SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
   Function  SetScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
   Function  TestScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
@@ -585,8 +586,9 @@ Begin
   SystemParametersInfo(SPI_GETWORKAREA, 0, @r, 0);
 
   If FullScreen Then Begin
-    l := 0;
-    t := 0;
+    SP_GetMonitorMetrics;
+    l := REALSCREENLEFT;
+    t := REALSCREENTOP;
   End Else Begin
     If INSTARTUP Then Begin
       l := ((r.Right - r.Left) - Main.Width) Div 2;
@@ -635,6 +637,7 @@ begin
 
   End Else Begin
 
+    SP_GetMonitorMetrics;
     hMod := Main.Height - Main.ClientHeight;
     wMod := Main.Width - Main.ClientWidth;
     Result := (Width + wMod <= REALSCREENWIDTH) and (Height + hMod <= REALSCREENHEIGHT);
@@ -642,8 +645,37 @@ begin
   End;
 end;
 
+function GetMonitorName(hmon: HMONITOR) : string;
+var
+  DispDev : TDisplayDevice;
+  monInfo : TMonitorInfoEx;
+begin
+  Result := '';
+
+  monInfo.cbSize := sizeof(monInfo);
+  if GetMonitorInfo(hmon, @monInfo) then begin
+    DispDev.cb := sizeof(DispDev);
+    EnumDisplayDevices(@monInfo.szDevice, 0, DispDev, 0);
+    Result := StrPas(monInfo.szDevice);
+  end;
+end;
+
+procedure SP_GetMonitorMetrics;
+Var
+  Monitor: TMonitor;
+Begin
+
+  Monitor := Screen.MonitorFromWindow(Main.Handle);
+  REALSCREENWIDTH := Screen.Width;
+  REALSCREENHEIGHT := Screen.Height;
+  REALSCREENLEFT := Monitor.Left;
+  REALSCREENTOP := Monitor.Top;
+
+End;
+
 function SetScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
 var
+  MonitorName: String;
   oldDeviceMode, DeviceMode: TDeviceMode;
   oW, oH: Integer;
   oFS: Boolean;
@@ -663,7 +695,11 @@ begin
     oFS := False;
   End;
 
+
+  SP_GetMonitorMetrics;
+
   If FullScreen Then Begin
+    MonitorName := GetMonitorName(HMonitor(Screen.MonitorFromWindow(Main.Handle).Handle));
     with DeviceMode do begin
       dmSize := SizeOf(TDeviceMode);
       dmPelsWidth := Width;
@@ -671,13 +707,15 @@ begin
       dmFields := DM_PELSWIDTH or DM_PELSHEIGHT;
     end;
     If (oFS <> FullScreen) or (Width <> oW) or (Height <> oH) Then Begin
-      Result := ChangeDisplaySettings(DeviceMode, 0) = DISP_CHANGE_SUCCESSFUL;
       Main.BorderStyle := bsNone;
+      Result := ChangeDisplaySettingsEx(pWideChar(MonitorName), DeviceMode, 0, CDS_FULLSCREEN, nil) = DISP_CHANGE_SUCCESSFUL;
+      SetWindowPos(Main.Handle, HWND_TOPMOST, REALSCREENLEFT, REALSCREENTOP, REALSCREENWIDTH, REALSCREENHEIGHT, SWP_SHOWWINDOW);
     End Else
       Result := True;
     SPFULLSCREEN := True;
   End Else Begin
     If SPFULLSCREEN Then Begin
+      SetWindowPos(Main.Handle, HWND_NOTOPMOST, REALSCREENLEFT, REALSCREENTOP, REALSCREENWIDTH, REALSCREENHEIGHT, SWP_SHOWWINDOW);
       R := Rect(0, 0, Width, Height);
       AdjustWindowRect(R, WS_CAPTION or WS_POPUPWINDOW, FALSE);
       with DeviceMode do begin

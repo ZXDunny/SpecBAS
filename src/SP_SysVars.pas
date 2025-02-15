@@ -469,6 +469,8 @@ Var
   WINHEIGHT:                Integer;
   MODALWINDOW:              Integer;
   USERMOUSEVISIBLE:         Boolean = True;
+  REALSCREENLEFT,
+  REALSCREENTOP,
   REALSCREENWIDTH,
   REALSCREENHEIGHT:         Integer;
   FocusedWindow:            Integer;
@@ -1596,7 +1598,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..252] of TSysVar =
+  SysVars: Array[0..254] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
@@ -1849,6 +1851,9 @@ Const
    (Name: 'GAPSIZE'; svType: svInteger; Size: 4; Data: @BSIZE),
    (Name: 'NATWIDTH'; svType: svLongWord; Size: 4; Data: @REALSCREENWIDTH),
    (Name: 'NATHEIGHT'; svType: svLongWord; Size: 4; Data: @REALSCREENHEIGHT),
+   (Name: 'NATLEFT'; svType: svLongWord; Size: 4; Data: @REALSCREENLEFT),
+   (Name: 'NATTOP'; svType: svLongWord; Size: 4; Data: @REALSCREENTOP),
+
    (Name: 'CIRCLEASPECT'; svType: svBoolean; Size: 1; Data: @CIRCLEASPECT),
    (Name: 'SHOWFPS'; svType: svBoolean; Size: 1; Data: @SHOWFPS),
    (Name: 'FPSSTR'; svType: svString; Size: 0; Data: @FPSSTRING),

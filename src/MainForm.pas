@@ -574,8 +574,9 @@ begin
 
   DisplaySection.Enter;
 
-  REALSCREENWIDTH := Round(Screen.Width);
-  REALSCREENHEIGHT := Round(Screen.Height);
+  SP_GetMonitorMetrics;
+//  REALSCREENWIDTH := Round(Screen.Width);
+//  REALSCREENHEIGHT := Round(Screen.Height);
   OrgWidth := REALSCREENWIDTH;
   OrgHeight := REALSCREENHEIGHT;
 
@@ -718,6 +719,7 @@ begin
 
   SP_SetFPS(GetScreenRefreshrate);
   SP_InitialGFXSetup(ScrWidth, ScrHeight, False);
+  SP_GetMonitorMetrics;
   SetBounds((REALSCREENWIDTH - Width) Div 2, (REALSCREENHEIGHT - Height) Div 2, Width, Height);
 
   {$IFDEF RefreshThread}

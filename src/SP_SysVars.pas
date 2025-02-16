@@ -97,6 +97,7 @@ Var
   SCALEHEIGHT:              LongWord;
   NUMWINDOWS:               Integer;
   SHOWFPS:                  Boolean;
+  SHOWFPSHISTORY:           Boolean;
 
   CBLACK,
   CBLUE,
@@ -1598,7 +1599,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..254] of TSysVar =
+  SysVars: Array[0..255] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
@@ -1856,6 +1857,7 @@ Const
 
    (Name: 'CIRCLEASPECT'; svType: svBoolean; Size: 1; Data: @CIRCLEASPECT),
    (Name: 'SHOWFPS'; svType: svBoolean; Size: 1; Data: @SHOWFPS),
+   (Name: 'SHOWFPSHISTORY'; svType: svBoolean; Size: 1; Data: @SHOWFPSHISTORY),
    (Name: 'FPSSTR'; svType: svString; Size: 0; Data: @FPSSTRING),
    (Name: 'OSD'; svType: svString; Size: 0; Data: @OSD),
    (Name: 'CAPTION'; svType: svString; Size: 0; Data: @WCAPTION));

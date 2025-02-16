@@ -62,6 +62,17 @@ Var
   LastFrames: NativeUint;
   StartTime, LastTime: aFloat;
 
+Const
+
+  FrameTimeHistoryLength = 1024;
+
+Var
+
+  FrameTimeHistory: Array[0..FrameTimeHistoryLength -1] of aFloat;
+  FrameTimeHistoryPos: Integer;
+
+  Procedure AddToFrameTimeHistory(Time: aFloat);
+
 implementation
 
 Uses SP_SysVars, SP_Graphics, SP_Graphics32, SP_Main, SP_Tokenise, SP_Errors;
@@ -70,9 +81,13 @@ Uses SP_SysVars, SP_Graphics, SP_Graphics32, SP_Main, SP_Tokenise, SP_Errors;
 
 Procedure InitGL;
 Var
+  i: Integer;
   Pixelformat: GLuint;
   pfd: pixelformatdescriptor;
 begin
+
+  For i := 0 To Length(FrameTimeHistory) -1 Do
+    FrameTimeHistory[i] := 0;
 
   If RC <> 0 Then Begin
     wglDeleteContext(RC);
@@ -201,6 +216,19 @@ Begin
   End;
 End;
 
+Procedure AddToFrameTimeHistory(Time: aFloat);
+Var
+  d: aFloat;
+Begin
+
+  d := Time - FRAME_MS;
+  If Abs(d) > FRAME_MS Then
+    d := FRAME_MS * Sign(d);
+  FrameTimeHistory[FrameTimeHistoryPos] := d;
+  FrameTimeHistoryPos := (FrameTimeHistoryPos + 1) Mod FrameTimeHistoryLength;
+
+End;
+
 Procedure FrameLoop;
 Var
   SleepTime: Integer;
@@ -225,6 +253,7 @@ Begin
             StartTime := CB_GETTICKS;
           CB_Refresh_Display;
           LASTFRAMETIME := CurTime - LastTime;
+          AddToFrameTimeHistory(LASTFRAMETIME);
           AvgFrameTime := (AvgFrameTime + LASTFRAMETIME) / 2;
           LastTime := CurTime;
         End;
@@ -238,9 +267,16 @@ Begin
 
   NEXTFRAMETIME := (((FRAMES + 1) * FRAME_MS) + StartTime);
   SleepTime := Trunc(NEXTFRAMETIME - CB_GETTICKS);
-  If SleepTime >= 1 Then
-    Sleep(SleepTime)
-  Else
+
+  If SleepTime > 2 Then Begin
+    If SleepTime <= 4 Then
+      Sleep(1)
+    Else If SleepTime <= 6 Then
+      Sleep(2)
+    Else begin
+      Sleep(Trunc((SleepTime / 1.6)));
+    end;
+  End Else
     While CB_GETTICKS < NEXTFRAMETIME Do ;
       SwitchToThread;
 
@@ -294,9 +330,30 @@ End;
 Procedure DrawFPS;
 Var
   Error: TSP_ErrorCode;
+  TxLeft, i, Hx, Hy, Ml: Integer;
+  ptr: pLongWord;
 Begin
+  TxLeft := FPSLEFT + FPSWIDTH - (Length(FPSSTRING) * 8 * FPSSCALE);
   SP_GetRegion32(DISPLAYPOINTER, DISPLAYSTRIDE, DISPLAYHEIGHT, FPSIMAGE, FPSLEFT, FPSTOP, FPSWIDTH, FPSHEIGHT, Error);
-  SP_RawTextOut(SYSFONT, DISPLAYPOINTER, DISPLAYSTRIDE Shr 2, DISPLAYHEIGHT, FPSLEFT, FPSTOP, FPSSTRING, $8000FF00, 0, 2, 2, True, True);
+  SP_RawTextOut(SYSFONT, DISPLAYPOINTER, DISPLAYSTRIDE Shr 2, DISPLAYHEIGHT, TxLeft, FPSTOP, FPSSTRING, $8000FF00, 0, FPSSCALE, FPSSCALE, True, True);
+
+  If SHOWFPSHISTORY Then Begin
+
+    Ml := FPSTOP + (FPSHEIGHT Div 2);
+    Hx := TxLeft - 8;
+    i := FrameTimeHistoryPos -1;
+    if i < 0 Then i := FrameTimeHistoryLength -1;
+    Repeat
+      Hy := Max(FPSTOP, Min(FPSTOP + FPSHEIGHT -1, Trunc(Ml + FrameTimeHistory[i] / 2)));
+      ptr := DISPLAYPOINTER;
+      Inc(ptr, ((DISPLAYSTRIDE Shr 2) * Hy) + Hx);
+      Ptr^ := $8000FF00;
+      If i > 0 Then Dec(i) Else i := FrameTimeHistoryLength -1;
+      Dec(Hx);
+    Until (i = FrameTimeHistoryPos) or (Hx < FPSLEFT);
+
+  End;
+
 End;
 
 Procedure GetOSDString;
@@ -314,8 +371,8 @@ End;
 Procedure PrepFPSVars;
 Begin
   If FPSIMAGE <> '' Then RestoreFPSRegion;
-  GLFW := (Length(FPSSTRING) * 8 * FPSSCALE);
-  GLFX := DISPLAYWIDTH - (GLFW + 8);
+  GLFW := DISPLAYWIDTH - 16;
+  GLFX := 8;
   GLFY := 8;
   GLFH := 8 * FPSSCALE;
   FPSTOP := GLFY; FPSLEFT := GLFX;

@@ -8559,14 +8559,14 @@ Var
   Expr: aString;
 Begin
 
-  // ELLIPSE [INK numexpr;]x,y,rx,ry[FILL {fill$|GRAPHIC n}]
+  // ELLIPSE [INK numexpr;]x,y,rx,ry[,a][FILL {fill$|GRAPHIC n}]
 
   SP_AlphaCheck(KeyWordID, Tokens, Position);
 
   Result := SP_Convert_Embedded_Colours(Tokens, Position, Error);
   If Error.Code <> SP_ERR_OK Then Exit;
 
-  Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+  Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // x
   If Error.Code <> SP_ERR_OK Then Exit;
   If Error.ReturnType <> SP_VALUE Then Begin
     Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8575,7 +8575,7 @@ Begin
   Result := Result + Expr;
   If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
     Inc(Position, 2);
-    Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+    Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // y
     If Error.Code <> SP_ERR_OK Then Exit;
     If Error.ReturnType <> SP_VALUE Then Begin
       Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8584,7 +8584,7 @@ Begin
     Result := Result + Expr;
     If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
       Inc(Position, 2);
-      Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+      Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // rx
       If Error.Code <> SP_ERR_OK Then Exit;
       If Error.ReturnType <> SP_VALUE Then Begin
         Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8593,13 +8593,24 @@ Begin
       Result := Result + Expr;
       If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
         Inc(Position, 2);
-        Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+        Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // ry
         If Error.Code <> SP_ERR_OK Then Exit;
         If Error.ReturnType <> SP_VALUE Then Begin
           Error.Code := SP_ERR_MISSING_NUMEXPR;
           Exit;
         End;
         Result := Result + Expr;
+        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
+          Inc(Position, 2);
+          Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // a [optional]
+          If Error.Code <> SP_ERR_OK Then Exit;
+          If Error.ReturnType <> SP_VALUE Then Begin
+            Error.Code := SP_ERR_MISSING_NUMEXPR;
+            Exit;
+          End;
+          Result := Result + Expr;
+        End Else
+          Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
         If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_FILL) Then Begin
           Inc(Position, SizeOf(LongWord)+1);
           If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_GRAPHIC) Then Begin
@@ -8645,7 +8656,7 @@ Var
   Expr: aString;
 Begin
 
-  // CURVE [INK|OVER numexpr;]x1,y1 TO x2,y2[,x3 TO y3,]n
+  // CURVE [INK|OVER numexpr;]x1,y1 TO x2,y2[,x3 TO y3..],n
 
   SP_AlphaCheck(KeyWordID, Tokens, Position);
 
@@ -15665,7 +15676,7 @@ Var
 Begin
 
   // TILEMAP NEW numvar,w,h [GRAPHIC gfx-id|gfx$],tilew,tileh
-  // TILEMAP DRAW id,offx,offy [ROTATE angle] [SCALE size] [TO x,y,w,h]
+  // TILEMAP DRAW id,offx,offy [ROTATE rx,ry,angle] [SCALE size] [TO x,y,w,h]
   // TILEMAP SET id,x,y,tile
   // TILEMAP GRAPHIC id,gfx-id|gfx$,tilew,tileh
   // TILEMAP CLEAR id
@@ -15749,7 +15760,7 @@ Begin
 
     If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_DRAW) Then Begin
 
-      // id,offx,offy [ROTATE angle] [SCALE size] [TO x,y,w,h]
+      // id,offx,offy [ROTATE rx,ry,angle] [SCALE size] [TO x,y,w,h]
 
       Inc(Position, 1 + SizeOf(LongWord));
       Result := SP_Convert_Expr(Tokens, Position, Error, -1) + Result; // id

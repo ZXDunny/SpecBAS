@@ -25,7 +25,7 @@ unit SP_BankManager;
 
 interface
 
-Uses Math, SyncObjs, SP_BankFiling, SP_Util, SP_FileIO, SP_Errors, SP_SysVars, SP_Tokenise, SP_InfixToPostFix, SP_Package, Bass, SP_Components;
+Uses Classes, Math, SyncObjs, SP_BankFiling, SP_Util, SP_FileIO, SP_Errors, SP_SysVars, SP_Tokenise, SP_InfixToPostFix, SP_Package, Bass, SP_Components;
 
 Type
 
@@ -3039,6 +3039,15 @@ Begin
 
 End;
 
+Function IntLoadImage(Filename: aString): Integer;
+Var
+  nError: TSP_ErrorCode;
+Begin
+  nError.Code := SP_ERR_OK;
+  TThread.Synchronize(nil, Procedure Begin CB_Load_Image(Filename, nError); End);
+  Result := nError.Code;
+End;
+
 Function  SP_New_GraphicC(Filename: aString; Trans: Word; Var Error: TSP_ErrorCode): Integer;
 Var
   Bank: pSP_Bank;
@@ -3062,7 +3071,8 @@ Begin
     Gfx := @Bank^.Info[0];
 
     SP_TestPackageFile(Filename, Error);
-    CB_Load_Image(Filename, Error);
+
+    Error.Code := IntLoadImage(Filename);
 
     If Error.Code = SP_ERR_OK Then Begin
 
@@ -3134,7 +3144,7 @@ Begin
       Gfx := @Bank^.Info[0];
 
       SP_TestPackageFile(Filename, Error);
-      CB_Load_Image(Filename, Error);
+      Error.Code := IntLoadImage(Filename);
 
       If Error.Code = SP_ERR_OK Then Begin
 
@@ -4273,7 +4283,7 @@ Begin
                   w := tdw;
 
                   {$IFDEF CPU64}
-                  While w > SizeOf(LongWord) Do Begin
+                  While w > SizeOf(NativeUInt) Do Begin
                     pNativeUInt(DestPtr)^ := pNativeUInt(SrcPtr)^;
                     Dec(w, SizeOf(NativeUInt));
                     Inc(pNativeUInt(DestPtr));

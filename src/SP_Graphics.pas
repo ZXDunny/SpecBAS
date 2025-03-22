@@ -29,7 +29,7 @@ interface
 
 Uses
 
-  Math, Classes, GraphUtil, SyncObjs, SP_SysVars, SP_Errors, SP_Util, SP_BankManager, SP_BankFiling, SP_FileIO, SP_Streams, SP_Menu;
+  Types, Math, Classes, GraphUtil, SyncObjs, SP_SysVars, SP_Errors, SP_Util, SP_BankManager, SP_BankFiling, SP_FileIO, SP_Streams, SP_Menu;
 
 Type
 
@@ -101,7 +101,7 @@ Procedure SP_DrawLine(X2, Y2: aFloat);
 Procedure SP_DrawLineEx(X1, Y1, X2, Y2: aFloat);
 Procedure SP_DrawRect(x1, y1, x2, y2: Integer; Ink: Byte);
 Procedure SP_DrawSpeccyCurve(X, Y, Angle: aFloat);
-Procedure SP_DrawEllipse(CX, CY, Rx, Ry: Integer);
+Procedure SP_DrawEllipse(CX, CY, Rx, Ry: Integer; Angle: aFloat);
 Procedure SP_DrawTexEllipse(CX, CY, Rx, Ry: Integer; const TextureStr: aString; tW, tH: LongWord);
 Procedure SP_DrawSolidEllipse(CX, CY, Rx, Ry: Integer);
 Procedure SP_SetPixel(X, Y: aFloat);
@@ -2927,7 +2927,8 @@ Begin
   If (Round(Sin(Angle / 2)*10000000) = 0) or (Z < 1) Then
     SP_DrawLine(X, Y)
   Else Begin
-    NumArcs := Min(4 * Round(Round(Abs(Angle * Sqrt(Z * LL / 100)) + 0.5) / 1) + 4, 252);
+
+    NumArcs := Min(4 * Round(Abs(Angle * Sqrt(Z * LL / 100)) + 0.5) + 4, 252);
     W := Sin(Angle / (2 * NumArcs))/Sin(Angle / 2);
 
     M0 := DRPOSY;
@@ -3032,20 +3033,26 @@ Begin
 
 End;
 
-Procedure SP_DrawThickEllipse(CX, CY, R1, R2: Integer);
+Procedure SP_DrawThickEllipseRot(CX, CY, R1, R2: Integer; Angle: aFloat);
 Var
-  fr1,fr2, ir1, ir2, id, rd, ys, ox1, ix1: aFloat;
-  y, x: NativeInt;
+  fr1, fr2, ir1, ir2, id, rd, ys, ox1, ix1: aFloat;
+  y, x, sx, sy, sx2, sy2: NativeInt;
+  cosA, sinA: aFloat;
+  i: Integer;
+  localStroke: Integer;
 Begin
 
-  fr1 := r1 + T_STROKE / 2;
-  fr2 := r2 + T_STROKE / 2;
+  fr1 := R1 + T_STROKE / 2;
+  fr2 := R2 + T_STROKE / 2;
   ir1 := fr1 - T_STROKE;
   ir2 := fr2 - T_STROKE;
   id := ir1 / ir2;
   rd := fr1 / fr2;
 
   r2 := Round(fr2);
+
+  cosA := Cos(Angle);
+  sinA := Sin(Angle);
 
   For y := -r2 to r2 Do Begin
     ys := y * rd;
@@ -3058,15 +3065,65 @@ Begin
       ix1 := 0;
 
     For x := Round(ix1) to Round(ox1) Do Begin
-      SP_SetPixel(x + CX, y + CY);
-      SP_SetPixel(-x + CX, y + CY);
+      sx := Round(x * cosA - y * sinA);
+      sy := Round(x * sinA + y * cosA);
+      sx2 := Round(-x * cosA - y * sinA);
+      sy2 := Round(-x * sinA + y * cosA);
+      SP_SetPixel(sx + CX, sy + CY);
+      SP_SetPixel(sx2 + CX, sy2 + CY);
+    End;
+
+  End;
+End;
+
+Procedure SP_DrawThickEllipse(CX, CY, R1, R2: Integer; Angle: aFloat);
+Var
+  fr1,fr2, ir1, ir2, id, rd, ys, ox1, ix1, ts: aFloat;
+  y, x: NativeInt;
+Begin
+
+  If Angle <> 0 Then
+
+    SP_DrawThickEllipseRot(CX, CY, R1, R2, Angle)
+
+  Else Begin
+
+    fr1 := r1 + T_STROKE / 2;
+    fr2 := r2 + T_STROKE / 2;
+    ir1 := fr1 - T_STROKE;
+    ir2 := fr2 - T_STROKE;
+    id := ir1 / ir2;
+    rd := fr1 / fr2;
+
+    r2 := Round(fr2);
+
+    For y := -r2 to r2 Do Begin
+      ys := y * rd;
+      ox1 := sqrt(fr1 * fr1 - ys * ys);
+
+      If Abs(y) < ir2 Then Begin
+        ys := y * id;
+        ix1 := sqrt(ir1 * ir1 - ys * ys);
+      End Else
+        ix1 := 0;
+
+      tS := T_STROKE;
+      T_STROKE := 1;
+
+      For x := Round(ix1) to Round(ox1) Do Begin
+        SP_SetPixel(x + CX, y + CY);
+        SP_SetPixel(-x + CX, y + CY);
+      End;
+
+      T_STROKE := ts;
+
     End;
 
   End;
 
 End;
 
-Procedure SP_DrawEllipse(CX, CY, Rx, Ry: Integer);
+Procedure SP_DrawEllipse(CX, CY, Rx, Ry: Integer; Angle: aFloat);
 var
   x, y, px, py, twoRx2, twoRy2: Integer;
   p, Rx2, Ry2: Int64;
@@ -3078,12 +3135,12 @@ begin
   If T_STROKE > 1 Then Begin
 
     If SCREENBPP = 8 Then
-      SP_DrawThickEllipse(CX, CY, Rx, Ry)
+      SP_DrawThickEllipse(CX, CY, Rx, Ry, angle)
     Else
       SP_DrawThickEllipse32(CX, CY, Rx, Ry);
 
     Inc(Rx, Ceil(T_STROKE / 2));
-    Inc(Ry, Ceil(T_STROKE /2 ));
+    Inc(Ry, Ceil(T_STROKE / 2));
 
   End Else Begin
 
@@ -3133,9 +3190,8 @@ begin
          SP_SetPixel(cxmx, cymy);
       end;
 
-      {$R-}
       p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
-      {$R-}
+
       while y > 0 do begin
          Dec(y);
          Dec(py, twoRx2);

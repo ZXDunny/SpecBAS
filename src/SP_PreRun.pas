@@ -728,9 +728,9 @@ Var
 
     If Length(SP_LabelList) > 0 Then
       For Idx := 0 To Length(SP_LabelList) -1 Do Begin
-        If (SP_LabelList[Idx].Dline >= lIdx) and (SP_LabelList[Idx].DStatement >= Position) Then
+        If (SP_LabelList[Idx].Dline = lIdx) and (SP_LabelList[Idx].DStatement >= Position) Then
           Inc(SP_LabelList[Idx].DStatement, Displacement);
-        If (SP_LabelList[Idx].Line >= lIdx) and (SP_LabelList[Idx].Statement >= Position) Then
+        If (SP_LabelList[Idx].Line = lIdx) and (SP_LabelList[Idx].Statement >= Position) Then
           Inc(SP_LabelList[Idx].Statement, Displacement);
       End;
 

@@ -11930,7 +11930,7 @@ Begin
     Exit;
   End;
 
-  SP_DrawEllipse(xPos, yPos, Round(Radius1), Round(Radius2));
+  SP_DrawEllipse(xPos, yPos, Round(Radius1), Round(Radius2), 0);
 
   SP_NeedDisplayUpdate := True;
 
@@ -12048,9 +12048,12 @@ End;
 
 Procedure SP_Interpret_ELLIPSE(Var Info: pSP_iInfo);
 Var
-  rX, rY, dX, dY: aFloat;
+  rX, rY, dX, dY, angle: aFloat;
   RadiusX, RadiusY: Integer;
 Begin
+
+  angle := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
 
   If WINSCALE Then Begin
     Ry := SP_StackPtr^.Val;
@@ -12073,7 +12076,7 @@ Begin
   SP_ConvertToOrigin_d(dX, dY);
   If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
 
-  SP_DrawEllipse(Round(dX), Round(dY), RadiusX, RadiusY);
+  SP_DrawEllipse(Round(dX), Round(dY), RadiusX, RadiusY, angle);
 
   SP_NeedDisplayUpdate := True;
 
@@ -12083,7 +12086,7 @@ Procedure SP_Interpret_ELLIPSEFILL(Var Info: pSP_iInfo);
 Var
   Valid, BankFill, Bits32: Boolean;
   TextureStr: aString;
-  rX, rY, dX, dY: aFloat;
+  rX, rY, dX, dY, angle: aFloat;
   tW, tH, RadiusX, RadiusY, BankID: Integer;
   gBank: pSP_Bank;
   Graphic: pSP_Graphic_Info;
@@ -12110,6 +12113,9 @@ Begin
   Dec(SP_StackPtr);
 
   If Info^.Error^.Code <> SP_ERR_OK Then Exit;
+
+  angle := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
 
   If WINSCALE Then Begin
     Ry := SP_StackPtr^.Val;
@@ -13625,8 +13631,11 @@ Begin
       Info^.Error^.Code := SP_ERR_FILE_MISSING;
       Exit;
     End;
-    i := SP_FindBankID(i);
-    Graphic := @SP_BankList[i]^.Info[0];
+    If Info^.Error^.Code = SP_ERR_OK Then Begin
+      i := SP_FindBankID(i);
+      Graphic := @SP_BankList[i]^.Info[0];
+    End Else
+      Exit;
   End Else Begin
     i := -1;
     Graphic := nil;
@@ -25538,7 +25547,7 @@ Procedure SP_Interpret_AELLIPSEFILL(Var Info: pSP_iInfo);
 Var
   Valid, BankFill: Boolean;
   TextureStr: aString;
-  rX, rY, dX, dY: aFloat;
+  rX, rY, dX, dY, angle: aFloat;
   tW, tH, RadiusX, RadiusY, BankID: Integer;
   gBank: pSP_Bank;
   Graphic: pSP_Graphic_Info;
@@ -25570,6 +25579,9 @@ Begin
   Dec(SP_StackPtr);
 
   If Info^.Error^.Code <> SP_ERR_OK Then Exit;
+
+  angle := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
 
   If WINSCALE Then Begin
     Ry := SP_StackPtr^.Val;
@@ -26210,7 +26222,7 @@ End;
 
 Procedure SP_Interpret_AELLIPSE(Var Info: pSP_iInfo);
 Var
-  rX, rY, dX, dY: aFloat;
+  rX, rY, dX, dY, angle: aFloat;
   RadiusX, RadiusY: Integer;
 Begin
 
@@ -26218,6 +26230,9 @@ Begin
     Info^.Error^.Code := SP_ERR_INVALID_DEPTH;
     Exit;
   End;
+
+  angle := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
 
   If WINSCALE Then Begin
     Ry := SP_StackPtr^.Val;

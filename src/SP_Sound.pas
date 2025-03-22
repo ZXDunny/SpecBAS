@@ -149,7 +149,7 @@ Begin
 
   ChanLock := TCriticalSection.Create;
 
-  While Not (QUITMSG or Terminated) Do Begin
+  While Not (QUITMSG or Terminated) And SoundEnabled Do Begin
 
     If ChanLock.TryEnter Then Begin
 
@@ -232,11 +232,13 @@ Begin
       If MINRATE = 0 Then MINRATE := 1024;
       If MAXRATE = MINRATE Then MINRATE := 1024;
 
-    End;
+      SP_SetGlobalVolume(1.0, Error);
+      VOLUME := 1.0;
+      CLICKVOL := 0.5;
 
-    SP_SetGlobalVolume(1.0, Error);
-    VOLUME := 1.0;
-    CLICKVOL := 0.5;
+    End Else
+
+      SoundEnabled := False;
 
   End;
 
@@ -436,9 +438,11 @@ Begin
         Inc(dPtr);
       End;
       Channel := SP_Sample_Play(SIGSAMPLEBANK, -1, '', 0, CLICKVOL, 0, Error);
-      Repeat
-        CB_YIELD;
-      Until BASS_ChannelGetPosition(Channel, BASS_POS_BYTE) >= 0;
+      SoundEnabled := (BASS_ErrorGetCode = 0) And SoundEnabled;
+      If SoundEnabled Then
+        Repeat
+          CB_YIELD;
+        Until BASS_ChannelGetPosition(Channel, BASS_POS_BYTE) >= 0;
     End;
 
 End;

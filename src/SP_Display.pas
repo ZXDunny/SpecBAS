@@ -86,6 +86,7 @@ Var
   pfd: pixelformatdescriptor;
 begin
 
+  StartTime := CB_GETTICKS;
   For i := 0 To Length(FrameTimeHistory) -1 Do
     FrameTimeHistory[i] := 0;
 
@@ -231,8 +232,8 @@ End;
 
 Procedure FrameLoop;
 Var
-  SleepTime: Integer;
   CurTime: aFloat;
+  SleepTime: Integer;
 Begin
 
   CurTime := CB_GETTICKS;
@@ -249,13 +250,12 @@ Begin
     If SP_FrameUpdate Then Begin
       If DisplaySection.TryEnter Then Begin
         If UpdateDisplay Then Begin
-          If StartTime = 0 Then
-            StartTime := CB_GETTICKS;
-          CB_Refresh_Display;
           LASTFRAMETIME := CurTime - LastTime;
-          AddToFrameTimeHistory(LASTFRAMETIME);
+          If SHOWFPSHISTORY Then
+            AddToFrameTimeHistory(LASTFRAMETIME);
           AvgFrameTime := (AvgFrameTime + LASTFRAMETIME) / 2;
           LastTime := CurTime;
+          CB_Refresh_Display;
         End;
         DisplaySection.Leave;
       End;
@@ -263,22 +263,23 @@ Begin
     End;
     CauseUpdate := False;
 
-  End;
+    NEXTFRAMETIME := ((FRAMES + 1) * FRAME_MS) + StartTime;
+    SleepTime := Trunc(NEXTFRAMETIME - CB_GETTICKS);
 
-  NEXTFRAMETIME := (((FRAMES + 1) * FRAME_MS) + StartTime);
-  SleepTime := Trunc(NEXTFRAMETIME - CB_GETTICKS);
+    If SleepTime > 2 Then Begin
+      If SleepTime <= 4 Then
+        Sleep(1)
+      Else If SleepTime <= 6 Then
+        Sleep(2)
+      Else begin
+        Sleep(Trunc(Min(FRAME_MS, SleepTime / 1.6)));
+      end;
+    End Else
+      While CB_GETTICKS < NEXTFRAMETIME Do ;
 
-  If SleepTime > 2 Then Begin
-    If SleepTime <= 4 Then
-      Sleep(1)
-    Else If SleepTime <= 6 Then
-      Sleep(2)
-    Else begin
-      Sleep(Trunc((SleepTime / 1.6)));
-    end;
   End Else
-    While CB_GETTICKS < NEXTFRAMETIME Do ;
-      SwitchToThread;
+
+    Sleep(1);
 
 End;
 
@@ -288,7 +289,7 @@ Begin
 
   FreeOnTerminate := True;
   NameThreadForDebugging('Refresh Thread');
-  Priority := tpNormal;
+  Priority := tpIdle;
   RefreshThreadAlive := True;
 
   LastFrames := 0;
@@ -330,7 +331,7 @@ End;
 Procedure DrawFPS;
 Var
   Error: TSP_ErrorCode;
-  TxLeft, i, Hx, Hy, Ml: Integer;
+  TxLeft, i, Hx, Hy, Ml, MinSize: Integer;
   ptr: pLongWord;
 Begin
   TxLeft := FPSLEFT + FPSWIDTH - (Length(FPSSTRING) * 8 * FPSSCALE);
@@ -340,7 +341,18 @@ Begin
   If SHOWFPSHISTORY Then Begin
 
     Ml := FPSTOP + (FPSHEIGHT Div 2);
-    Hx := TxLeft - 8;
+    Hx := TxLeft - 4 * FPSSCALE;
+
+    If FPSSTRING <> '' Then Begin
+      i := 1;
+      While (i < Length(FPSSTRING)) And (FPSSTRING[i] <= ' ') Do Begin
+        Inc(Hx, 8 * FPSSCALE);
+        Inc(i);
+      End;
+    End;
+
+    MinSize := Max(Hx - FPSHISTSIZE, FPSLEFT);
+
     i := FrameTimeHistoryPos -1;
     if i < 0 Then i := FrameTimeHistoryLength -1;
     Repeat
@@ -350,7 +362,7 @@ Begin
       Ptr^ := $8000FF00;
       If i > 0 Then Dec(i) Else i := FrameTimeHistoryLength -1;
       Dec(Hx);
-    Until (i = FrameTimeHistoryPos) or (Hx < FPSLEFT);
+    Until (i = FrameTimeHistoryPos) or (Hx < MinSize);
 
   End;
 
@@ -545,12 +557,10 @@ Begin
     glGetIntegerv(GL_UNPACK_ROW_LENGTH, @tmp);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glGetInteger64v(GL_TIMESTAMP, @t);
-    glFinish;
-    glFlush;
 
     SwapBuffers(DC);
     {$ELSE}
-    glFinish;
+    glFlush;
     {$ENDIF}
 
   {$ELSE}

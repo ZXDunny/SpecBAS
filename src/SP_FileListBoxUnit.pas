@@ -206,7 +206,7 @@ Begin
 
     Enabled := True;
 
-    AddHeader(' Filename', 20 * iFW);
+    AddHeader(' Filename', ((Width Div Ifw) - 26) * iFW);
     AddHeader(' Size', 12 * iFW);
     AddHeader(' Date', 12 * iFW);
     fHeaders[1].Justify := 1;

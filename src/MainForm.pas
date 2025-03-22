@@ -1184,7 +1184,6 @@ Var
   Ext, FirstBytes, OldFilename, tStr: aString;
   FS: TFileStream;
   RGBQ: Array[0..255] of RGBQUAD;
-
 {$IFDEF FPC}
 Type
   TPNGImage = TPortableNetworkGraphic;
@@ -1222,7 +1221,6 @@ Begin
     Bmp := TPicture.Create;
     Try
       Bmp.LoadFromFile(String(Filename));
-      Sleep(20);
     Except
       On E: Exception Do Begin
         Bmp.Free;
@@ -1237,7 +1235,6 @@ Begin
         If ((Bmp.Graphic as TPNGImage).PixelFormat <> pf8Bit) Then
         {$ENDIF}
           Error.Code := SP_ERR_INVALID_IMAGE_FORMAT
-
       End Else
         If Bmp.Graphic is TBitmap Then Begin
           If (Bmp.Graphic As TBitmap).PixelFormat <> pf8Bit Then

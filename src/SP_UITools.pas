@@ -112,7 +112,7 @@ Begin
   Locked := SCREENLOCK;
   SCREENLOCK := False;
   MOUSEVISIBLE := True;
-  While Not ToolWindowDone Do Begin
+  While Not ToolWindowDone And Not QUITMSG Do Begin
     SP_WaitForSync;
     DoTimerEvents;
   End;
@@ -318,7 +318,8 @@ Begin
     FW := FONTWIDTH;
   End;
 
-  w := 35 * FW; h := DISPLAYHEIGHT - (DISPLAYHEIGHT Div 8);
+  w := DISPLAYWIDTH - (DISPLAYWIDTH Div 8);
+  h := DISPLAYHEIGHT - (DISPLAYHEIGHT Div 8);
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
   Dec(w, 2); // Account for the 1 pixel black border
   SP_GetWindowDetails(FDWindowID, Win, Error);

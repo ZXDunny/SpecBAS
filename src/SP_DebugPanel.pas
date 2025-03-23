@@ -849,16 +849,14 @@ Begin
   SetLength(FPPoIList, 0);
   For i := 0 To Listing.Count -1 Do
     If Listing.Flags[i].PoI Then Begin
-      j := i;
+      j := i; s := ''; InString := False; InClr := False; InREM := False;
       While (j > 0) And (SP_LineHasNumber(j) = 0) Do Dec(j);
-      InString := False; InClr := False; InREM := False;
-      St := Listing.Flags[j].Statement;
       While j < i Do Begin
         s := s + Listing[j];
         Inc(j);
       End;
-      ScanForStatements(s, St, InString, InREM, InClr);
-      s := lower(Listing[i]);
+      s := lower(s + Listing[i]);
+      St := 1;
       If (i < Listing.Count -2) And (SP_LineHasNumber(i + 1) = 0) Then
         s := s + Lower(Listing[i + 1]);
     Again:

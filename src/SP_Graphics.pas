@@ -3038,8 +3038,6 @@ Var
   fr1, fr2, ir1, ir2, id, rd, ys, ox1, ix1: aFloat;
   y, x, sx, sy, sx2, sy2: NativeInt;
   cosA, sinA: aFloat;
-  i: Integer;
-  localStroke: Integer;
 Begin
 
   fr1 := R1 + T_STROKE / 2;
@@ -3094,8 +3092,10 @@ Begin
     ir2 := fr2 - T_STROKE;
     id := ir1 / ir2;
     rd := fr1 / fr2;
-
     r2 := Round(fr2);
+
+    tS := T_STROKE;
+    T_STROKE := 1;
 
     For y := -r2 to r2 Do Begin
       ys := y * rd;
@@ -3107,17 +3107,14 @@ Begin
       End Else
         ix1 := 0;
 
-      tS := T_STROKE;
-      T_STROKE := 1;
-
       For x := Round(ix1) to Round(ox1) Do Begin
         SP_SetPixel(x + CX, y + CY);
         SP_SetPixel(-x + CX, y + CY);
       End;
 
-      T_STROKE := ts;
-
     End;
+
+    T_STROKE := ts;
 
   End;
 

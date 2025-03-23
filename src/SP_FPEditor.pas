@@ -107,6 +107,9 @@ Type
     Procedure Execute; Override;
   End;
 
+Procedure SetIsPoI(Index: Integer); inline;
+Procedure UpdatePoIStatus; Inline;
+
 Procedure SP_InitFPEditor;
 Procedure SetAllToCompile;
 Procedure SP_ForceCompile;
@@ -377,8 +380,8 @@ Begin
       AddCompileLine(i);
 End;
 
-Procedure ListingChange(Index, Operation: Integer);
-Var
+Procedure SetIsPoI(Index: Integer);
+var
   s: aString;
   c: Boolean;
 Begin
@@ -391,6 +394,24 @@ Begin
     Listing.Flags[Index].PoI := c;
   End;
 
+End;
+
+Procedure UpdatePoIStatus;
+Var
+  i: Integer;
+Begin
+
+  For i := 0 To Listing.Count -1 Do
+    SetIsPoi(i);
+
+End;
+
+Procedure ListingChange(Index, Operation: Integer);
+Var
+  c: Boolean;
+Begin
+
+  SetIsPoI(Index);
   If FPDebugPanelVisible And (FPDebugCombo.ItemIndex in  [3, 4]) Then Begin
     SP_DisplayFPListing(Index);
     SP_FPUpdatePoIList;
@@ -2910,12 +2931,8 @@ Begin
         Cy := Cx;
   End;
 
-  If Cy < mn Then
-    VertSB.TargetPos := Max(Cy - TenPercentH, 0)
-  Else
-    If Cy > mx Then
-      VertSB.TargetPos := Min(Max(0, Cy - VertSB.PageSize + TenPercentH), VertSB.TotalSize - VertSB.PageSize);
-
+  If (Cy < mn) or (Cy > mx) Then
+    VertSB.TargetPos := Cy - VertSB.PageSize Div 2;
 
   // Then sort out the X position if editor wrapping is disabled.
 
@@ -5671,8 +5688,8 @@ End;
 Procedure SP_FPUnWrapLine(Line: Integer);
 Var
   s: aString;
-  lMin, lMax, Idx, l, OldIndent: Integer;
-  c: Boolean;
+  lMin, lMax, Idx, l, OldIndent, OldLine: Integer;
+  c, PoI: Boolean;
   Flag: Integer;
 Begin
 
@@ -5695,12 +5712,15 @@ Begin
 
   // Fix the cursor position
 
-  oldIndent := Listing.Flags[lMin].Indent;
   l := 0;
+  PoI := False;
+  oldIndent := Listing.Flags[lMin].Indent;
+  oldLine := Listing.Flags[lMin].Line;
   Flag := spLineNull;
   For Idx := lMin To lMax Do Begin
     s := s + Listing[Idx];
     Flag := Max(Flag, Listing.Flags[Idx].State);
+    PoI := Listing.Flags[Idx].PoI or PoI;
     If Listing.FPCLine = Idx Then Begin
       Listing.FPCLine := lMin;
       Listing.FPCPos := Listing.FPCPos +l;
@@ -5718,6 +5738,9 @@ Begin
   Listing.Flags[lMin].ReturnType := spHardReturn;
   Listing.Flags[lMin].Indent := oldIndent;
   Listing.Flags[lMin].State := Flag;
+  Listing.Flags[lMin].PoI := PoI;
+  Listing.Flags[lMin].Line := oldLine;
+  Listing.Flags[lMin].Statement := 1;
   CompilerLock.Leave;
 
   FILECHANGED := c;
@@ -5747,9 +5770,9 @@ End;
 
 Procedure SP_FPWordWrapLine(Line: Integer; FromHere: Boolean);
 Var
-  Idx, MaxW, Min, Max, cp, sp, ns, l, indent, state: Integer;
+  Idx, MaxW, Min, Max, cp, sp, ns, l, indent, state, LineNum: Integer;
   s, s2, s3, nl: aString;
-  c: Boolean;
+  c, PoI: Boolean;
 Begin
 
   If (Line >= Listing.Count) Or Not EDITORWRAP Then Exit;
@@ -5784,7 +5807,9 @@ Begin
     Exit;
   End;
 
+  PoI := False;
   cp := -1; sp := -1;
+  LineNum := Listing.Flags[Min].Line;
   For Idx := Min To Max Do Begin
     If Listing.FPSelLine = Idx Then sp := Length(s) + Listing.FPSelPos;
     If Listing.FPCLine = Idx Then cp := Length(s) + Listing.FPCPos;
@@ -5842,15 +5867,18 @@ Begin
         Listing.Flags[Idx].ReturnType := spSoftReturn;
         Listing.Flags[Idx].Indent := indent;
         Listing.Flags[Idx].State := state;
+        Listing.Flags[Idx].Line := LineNum;
         If Idx = Min Then Inc(indent, ns);
       End Else Begin
         SP_InsertLine(Idx, s, '', '', False);
         Listing.Flags[Idx].Indent := indent;
         Listing.Flags[Idx].State := state;
+        Listing.Flags[Idx].Line := LineNum;
         If Idx = Min Then Inc(indent, ns);
         s := '';
       End;
       If Idx = Min Then Dec(MaxW, ns);
+      SetIsPoI(Idx);
       Inc(Idx);
     End Else Begin
       If s2 <> '' Then s := s2 + s;
@@ -5867,6 +5895,8 @@ Begin
       Listing.Flags[Idx].ReturnType := spHardReturn;
       Listing.Flags[Idx].Indent := indent;
       Listing.Flags[Idx].State := state;
+      Listing.Flags[Idx].Line := LineNum;
+      SetIsPoI(Idx);
       If Idx = Min Then Inc(indent, ns);
       If Idx = Min Then Dec(MaxW, ns);
       Inc(Idx);
@@ -9944,9 +9974,12 @@ var
 Label
   Finish;
 Begin
+
   i := 1; j := 1;
   Result.Hint := '';
+
   // First find the line we're on.
+
   p := SP_FPCharAtPos(X, Y);
   If (p.Y >= 0) and (p.x <= Length(Listing[p.y])) Then Begin // line = y, char = x
 
@@ -9960,14 +9993,14 @@ Begin
 
     If c in ['0'..'9', '_', '$', 'a'..'z'] Then Begin
       lMin := p.Y;
-      While (lMin > 0) And SP_WasPrevSoft(lMin) Do Dec(lMin);
+      While (lMin > 0) And SP_WasPrevSoft(lMin) Do Begin
+        Dec(lMin);
+        Inc(p.X, Length(Listing[lMin]));
+      End;
       lMax := lMin;
       While (lMax < Listing.Count -1) And (Listing.Flags[lMax].ReturnType = spSoftReturn) Do Inc(lMax);
-      lMax := Min(lMax, p.Y);
-      For i := lMin to lMax Do Begin
-        if i = lMax Then Inc(p.X, Length(s));
+      For i := lMin to lMax Do
         s := s + Listing[i];
-      End;
       Result := ProcessHint(s, p.x, i, j);
     End;
 

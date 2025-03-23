@@ -735,8 +735,8 @@ Var
   nl: Integer;
 Begin
   CompilerLock.Enter;
-  Listing.Add(l);
   SyntaxListing.Add(l);
+  Listing.Add(l);
   nl := SP_LineHasNumber(Listing.Count -1);
   If (nl > 0) And Not SP_WasPrevSoft(Listing.Count -1) Then Begin
     Listing.Flags[Listing.Count -1].State := spLineDirty;
@@ -755,8 +755,8 @@ Var
   i: Integer;
 Begin
   CompilerLock.Enter;
-  Listing.Insert(Index, l);
   SyntaxListing.Insert(Index, s);
+  Listing.Insert(Index, l);
   i := SP_LineHasNumber(Index);
   Listing.Flags[Index].ReturnType := 0;
   Listing.Flags[Index].Indent := 0;
@@ -775,8 +775,8 @@ Var
   i: Integer;
 Begin
   CompilerLock.Enter;
-  Listing.Delete(Index);
   SyntaxListing.Delete(Index);
+  Listing.Delete(Index);
   If MarkDirty Then Begin
     For i := Index To Listing.Count -1 Do Begin
       AddDirtyLine(i);
@@ -788,8 +788,8 @@ End;
 
 Procedure SP_ClearListing;
 Begin
-  Listing.Clear;
   SyntaxListing.Clear;
+  Listing.Clear;
   ClearDirtyLines;
   SP_ClearEditorMarks;
 End;

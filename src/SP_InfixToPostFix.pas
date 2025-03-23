@@ -12218,7 +12218,7 @@ Begin
 
   // LABEL labelname
 
-  If Tokens[Position] <> SP_TERMINAL_CHAR Then Begin
+  If Ord(Tokens[Position]) = SP_LABEL Then Begin
     Inc(Position);
     LabelLen := pLongWord(@Tokens[Position])^;
     Inc(Position, SizeOf(LongWord));

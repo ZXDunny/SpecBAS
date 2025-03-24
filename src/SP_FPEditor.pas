@@ -62,7 +62,7 @@ interface
 Uses Types, Classes, Clipbrd, SyncObjs, SysUtils, Math{$IFNDEF FPC}, Windows{$ENDIF},
      SP_Graphics, SP_BankManager, SP_SysVars, SP_Errors, SP_Main, SP_Tokenise, SP_BankFiling, SP_UITools,
      SP_Input, SP_Sound, SP_InfixToPostFix, SP_Interpret_PostFix, SP_FileIO, SP_Package, SP_Variables, SP_Components, SP_Menu, SP_AnsiStringlist,
-     SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_CheckListUnit, SP_MenuActions, SP_Util, SP_ProgressBarUnit, SP_ToolTipWindow;
+     SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_CheckListUnit, SP_MenuActions, SP_Util, SP_ProgressBarUnit, SP_ToolTipWindow, SP_Compiler;
 
 Type
 
@@ -102,19 +102,10 @@ Type
     Tag: NativeUInt;              // Anything using the event can set a value here
   End;
 
-  TCompilerThread = Class(TThread)
-    Finish, CompilerBusy: Boolean;
-    Procedure Execute; Override;
-  End;
-
 Procedure SetIsPoI(Index: Integer); inline;
 Procedure UpdatePoIStatus; Inline;
 
 Procedure SP_InitFPEditor;
-Procedure SetAllToCompile;
-Procedure SP_ForceCompile;
-Procedure SP_StartCompiler;
-Procedure SP_StopCompiler;
 Procedure SP_AddLine(Const l, s, c: aString);
 Procedure SP_InsertLine(Index: Integer; Const l, s, c: aString; MarkDirty: Boolean = True);
 Procedure SP_DeleteLine(Index: Integer; MarkDirty: Boolean = True);
@@ -137,8 +128,6 @@ Procedure SP_SwitchFocus(FocusMode: Integer);
 Procedure SP_FPNewProgram;
 Procedure SP_FPRethinkScrollBars;
 Procedure SP_FPApplyHighlighting(Line: Integer);
-Procedure SP_MarkAsDirty(Idx: Integer);
-Procedure SP_MarkWholeProgramDirty;
 Procedure SP_FPEditorLoop;
 Function  SP_CheckForConflict(LineIndex: Integer): Boolean;
 Function  SP_GetLineIndex(LineNum: Integer): Integer;
@@ -149,7 +138,7 @@ Procedure ScanForStatements(Const s: aString; Var St: Integer; Var InString, InR
 Procedure SP_DisplayFPListing(Line: Integer);
 Procedure SP_FPScrollToLine(Line, Statement: Integer);
 Procedure SP_CalculateFPCursorPos;
-Function  SP_ScrollInView(Force: Boolean = False): Boolean;
+Function  SP_ScrollInView(FromSearch: Boolean; Force: Boolean = False): Boolean;
 Procedure SP_DrawGraphicsID;
 Procedure SP_DisplayFPCursor;
 Procedure SP_DisplayDWCursor;
@@ -215,8 +204,6 @@ Procedure RemoveDirtyLine(Line: Integer);
 Procedure ClearDirtyLines;
 Procedure RefreshDirtyLines;
 Procedure ListingChange(Index, Operation: Integer);
-Procedure AddCompileLine(Line: Integer; ScanForDuplicates: Boolean = True);
-Procedure RemoveCompileLine(Line: Integer);
 Procedure LaunchScrollEvent;
 Function  IsSelActive: Boolean;
 Procedure SP_HideFindResults(Clear: Boolean);
@@ -370,16 +357,6 @@ implementation
 
 Uses SP_ControlMsgs, SP_DebugPanel, SP_PreRun, SP_Display;
 
-Procedure SetAllToCompile;
-Var
-  i: Integer;
-Begin
-  MaxCompileLines := -1;
-  for i := 0 To Listing.Count -1 do
-    If SP_LineHasNumber(i) <> 0 Then
-      AddCompileLine(i);
-End;
-
 Procedure SetIsPoI(Index: Integer);
 var
   s: aString;
@@ -430,191 +407,6 @@ Begin
   FILECHANGED := True;
   If Not c And (FPWindowID > -1) Then
     SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), False, False, FocusedWindow = fwEditor);
-End;
-
-Procedure AddCompileLine(Line: Integer; ScanForDuplicates: Boolean = True);
-Var
-  i: Integer;
-Begin
-  i := Line;
-  While (i > 0) And (SP_lineHasNumber(i) = 0) Do Dec(i);
-  if i >= 0 Then Begin
-    Line := i;
-    Listing.Flags[Line].State := spLineDirty;
-    if MaxCompileLines >= 0 Then
-      For i := 0 to MaxCompileLines Do
-        If CompileList[i] = Line Then
-          Exit;
-    Inc(MaxCompileLines);
-    If MaxCompileLines >= Length(CompileList) Then
-      SetLength(CompileList, Length(CompileList) + 1000);
-    CompileList[MaxCompileLines] := Line;
-    If ScanForDuplicates Then Begin
-      For i := 0 To Listing.Count -1 Do
-        if Listing.Flags[i].State = spLineDuplicate Then
-          AddCompileLine(i, False);
-    End;
-  End;
-End;
-
-Procedure RemoveCompileLine(Line: Integer);
-Var
-  i, j: Integer;
-Begin
-  For i := 0 To MaxCompileLines Do
-    If CompileList[i] = Line Then Begin
-      For j := i To MaxCompileLines -1 Do
-        CompileList[j] := CompileList[j +1];
-      Dec(MaxCompileLines);
-    End;
-End;
-
-Procedure SP_StopCompiler;
-Begin
-
-  If Assigned(CompilerThread) Then Begin
-    CompilerThread.Finish := True;
-    Repeat
-      CB_YIELD;
-    Until Not CompilerRunning;
-    FreeAndNil(CompilerThread);
-  End;
-
-End;
-
-Procedure SP_StartCompiler;
-Begin
-
-  If Not Assigned(CompilerThread) then
-    CompilerThread := TCompilerThread.Create(False);
-
-End;
-
-Procedure TCompilerThread.Execute;
-Var
-  s, t, Compiled: aString;
-  Idx, lIdx, i: Integer;
-  Error: TSP_ErrorCode;
-  InString: Boolean;
-  Extents: TPoint;
-Begin
-
-  NameThreadForDebugging('Compiler Thread');
-  Priority := tpIdle;
-  Idx := Listing.Count;
-  CompilerRunning := True;
-  CompilerBusy := False;
-  Finish := False;
-
-  While Not (QUITMSG or Finish) Do Begin
-
-    CompilerBusy := False;
-    If MaxCompileLines > -1 Then Begin
-      If CompilerLock.TryEnter Then Begin
-        If Listing.Flags[CompileList[0]].State in [spLineError, spLineDirty, spLineduplicate] Then Begin
-          CompilerBusy := True;
-          Idx := CompileList[0]
-        End;
-        RemoveCompileLine(CompileList[0]);
-        CompilerLock.Leave;
-      End;
-    End Else
-      Sleep(20);
-
-    While Not (Finish or QUITMSG) And CompilerBusy Do Begin
-
-      // Get the line we want to compile.
-
-      If CompilerLock.TryEnter Then Begin
-
-        If Listing.Flags[Idx].State in [spLineDirty, spLineDuplicate] Then Begin
-
-          lIdx := Idx;
-          InString := False;
-          While (Idx > 0) And (SP_LineHasNumber(Idx) = 0) Do Dec(Idx);
-          s := Listing[Idx];
-          For i := 1 To Length(s) Do
-            If s[i] = '"' Then
-              InString := not InString;
-          Inc(Idx);
-
-          While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do Begin
-            t := Listing[Idx];
-            For i := 1 To Length(t) Do
-              If t[i] = '"' Then
-                InString := not InString;
-            If Not SP_WasPrevSoft(Idx) And Not InString Then
-              t := ' ' + t;
-            s := s + t;
-            Inc(Idx);
-          End;
-
-          If s <> '' Then Begin
-
-            // Check its syntax and compile it.
-
-            Compiled := SP_TokeniseLine(s, False, True) + SP_TERMINAL_SEQUENCE;
-            SP_Convert_ToPostFix(Compiled, Error.Position, Error);
-
-            If Compiled <> SP_TERMINAL_SEQUENCE Then
-              If Byte(Compiled[1]) <> SP_LINE_NUM Then
-                Error.Code := SP_ERR_SYNTAX_ERROR;
-
-            Extents := SP_GetLineExtents(lIdx);
-            If Error.Code = SP_ERR_OK Then Begin
-
-              If (lIdx < Listing.Count) Then Begin
-                If SP_CheckForConflict(lIdx) Then
-                  Listing.Flags[lIdx].State := spLineDuplicate
-                Else
-                  Listing.Flags[lIdx].State := spLineOk;
-                If Extents.X < Extents.Y Then
-                  For i := Extents.X +1 To Extents.Y Do
-                    Listing.Flags[i].State := spLineNull;
-
-              End;
-
-            End Else Begin
-
-              // An error in compilation. Set this listing line's flags as containing an error - the listing display routines
-              // will pick it up.
-
-              If lIdx < Listing.Count Then
-                Listing.Flags[lIdx].State := spLineError;
-
-            End;
-
-            // Now flag the editor that this line needs to be refreshed to display the info
-
-            For i := Extents.X To Extents.Y Do
-              AddDirtyLine(i);
-
-          End Else Begin
-
-            Idx := lIdx;
-            While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do Begin
-              If Listing.Flags[Idx].State = spLineDirty Then Begin
-                Listing.Flags[Idx].State := spLineNull;
-                AddDirtyLine(Idx);
-              End;
-              Inc(Idx);
-            End;
-
-          End;
-
-        End;
-
-        CompilerBusy := False;
-        CompilerLock.Leave;
-
-      End;
-
-    End;
-
-  End;
-
-  CompilerRunning := False;
-
 End;
 
 Procedure SP_InitFPEditor;
@@ -1034,7 +826,7 @@ Begin
 
   SP_FPReThinkScrollBars;
 
-  If AutoScroll Then SP_ScrollInView;
+  If AutoScroll Then SP_ScrollInView(False);
 
 End;
 
@@ -1215,84 +1007,6 @@ Function SP_WasPrevSoft(Idx: Integer): Boolean; Inline;
 Begin
 
   Result := (Idx > 0) And (Listing.Flags[Idx -1].ReturnType = spSoftReturn);
-
-End;
-
-Procedure SP_ForceCompile;
-Var
-  s, s2: aString;
-  Idx, i: Integer;
-  InString: Boolean;
-  Error: TSP_ErrorCode;
-Begin
-
-  Idx := 0;
-  SP_Program_Clear;
-
-  if Assigned(Listing) then
-    While Idx < Listing.Count Do Begin
-      s := Listing[Idx];
-      Inc(Idx);
-      InString := False;
-      if s <> '' Then For i := 1 to Length(s) Do If s[i] = '"' Then InString := Not InString;
-      While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do Begin
-        s2 := Listing[Idx];
-        If (s <> '') And (s2 <> '') And Not InString And
-           (((s2[1] in ['A'..'Z', 'a'..'z']) And (Listing.Flags[Idx -1].ReturnType = spHardReturn) And (s[Length(s)] in ['0'..'9'])) or (Listing.Flags[Idx -1].ReturnType = spHardReturn)) Then
-          s := s + ' ' + s2
-        Else
-          s := s + s2;
-        if s2 <> '' then For i := 1 to Length(s2) Do If s2[i] = '"' Then InString := Not InString;
-        Inc(Idx);
-      End;
-      s := SP_TokeniseLine(s, False, True) + SP_TERMINAL_SEQUENCE;
-      If s <> SP_TERMINAL_SEQUENCE Then Begin
-        SP_Convert_ToPostFix(s, Error.Position, Error);
-        If Error.Code = SP_ERR_OK Then Begin
-          SP_Store_Line(s);
-        End;
-      End;
-    End;
-
-End;
-
-Procedure SP_MarkAsDirty(Idx: Integer);
-Var
-  Mxg: Integer;
-Begin
-
-  // Marks a line in the text editor as dirty - i.e, changed and needing to be syntax checked and compiled.
-  // The compiler thread will pick this up.
-
-  While (Idx > 0) And (SP_LineHasNumber(Idx) = 0) Do Dec(Idx);
-  Listing.Flags[Idx].GutterSize := SP_LineNumberSize(Idx);
-  Listing.Flags[Idx].State := spLineDirty;
-  AddCompileLine(Idx);
-
-  // Also just run a quick check to see if the guttersize has changed
-
-  Mxg := 0;
-  For Idx := 0 To Listing.Count -1 Do
-    Mxg := Max(Listing.Flags[Idx].GutterSize, Mxg);
-  If Mxg + FPMinGutterWidth <> FPGutterWidth Then Begin
-    FPGutterWidth := Mxg + FPMinGutterWidth;
-    FPGutterChangedSize := True;
-    If EDITORREADY Then SP_FPWrapProgram;
-  End;
-
-End;
-
-Procedure SP_MarkWholeProgramDirty;
-Var
-  Idx: Integer;
-Begin
-
-  Idx := 0;
-  While Idx < Listing.Count Do Begin
-    If SP_LineHasNumber(Idx) > 0 Then
-      SP_MarkAsDirty(Idx);
-    Inc(Idx);
-  End;
 
 End;
 
@@ -2861,7 +2575,7 @@ Begin
 
 End;
 
-Function SP_ScrollInView(Force: Boolean = False): Boolean;
+Function SP_ScrollInView(FromSearch: Boolean; Force: Boolean = False): Boolean;
 Var
   Extents: TPoint;
   VertSB, HorzSB: pSP_ScrollBar;
@@ -2931,8 +2645,15 @@ Begin
         Cy := Cx;
   End;
 
-  If (Cy < mn) or (Cy > mx) Then
-    VertSB.TargetPos := Cy - VertSB.PageSize Div 2;
+  If FromSearch Then Begin
+    If (Cy < mn) or (Cy > mx) Then
+      VertSB.TargetPos := Cy - VertSB.PageSize Div 2;
+  End Else
+    If Cy < mn Then
+      VertSB.TargetPos := Max(Cy - TenPercentH, 0)
+    Else
+      If Cy > mx Then
+        VertSB.TargetPos := Min(Max(0, Cy - VertSB.PageSize + TenPercentH), VertSB.TotalSize - VertSB.PageSize);
 
   // Then sort out the X position if editor wrapping is disabled.
 
@@ -3681,7 +3402,7 @@ Begin
           SP_CalculateFPCursorPos;
           SP_CursorPosChanged;
           SP_DisplayFPListing(-1);
-          SP_ScrollInView;
+          SP_ScrollInView(False);
 
         End;
 
@@ -4076,7 +3797,7 @@ Begin
     End;
 
     SP_FPClearSelection(Sel);
-    If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
+    If Not SP_ScrollInView(False) Then SP_DisplayFPListing(-1);
   End Else
     If FocusedWindow = fwDirect Then Begin
       If DWSelP <> CURSORPOS Then Begin
@@ -4237,7 +3958,7 @@ Begin
       SP_FPClearSelection(Sel);
     End;
     SP_CursorPosChanged;
-    If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
+    If Not SP_ScrollInView(False) Then SP_DisplayFPListing(-1);
     Strings.Free;
   End Else
     If FocusedWindow = fwDirect Then Begin
@@ -4267,7 +3988,7 @@ Begin
     Listing.FPCLine := Listing.Count -1;
     Listing.FPCPos := Length(Listing[Listing.FPCLine]) +1;
     SP_CursorPosChanged;
-    SP_ScrollInView;
+    SP_ScrollInView(False);
     SP_DisplayFPListing(-1);
   End Else
     If FocusedWindow = fwDirect Then Begin
@@ -4291,7 +4012,7 @@ Begin
       Listing.FPSelLine := Sel.EndL;
       Listing.FPSelPos := Sel.EndP;
       SP_CursorPosChanged;
-      SP_ScrollInView;
+      SP_ScrollInView(False);
       SP_DisplayFPListing(-1);
     End;
   End Else
@@ -4321,7 +4042,7 @@ Begin
       While (Listing.FPSelPos < Length(s)) And Not (s[Listing.FPSelPos] in Seps) Do Inc(Listing.FPSelPos);
       t := Listing.FPSelPos; Listing.FPSelPos := Listing.FPCPos; Listing.FPCPos := t;
       SP_CursorPosChanged;
-      If Not SP_ScrollInView Then SP_DisplayFPListing(-1);
+      If Not SP_ScrollInView(False) Then SP_DisplayFPListing(-1);
     End;
   End Else
     If FocusedWindow = fwDirect Then Begin
@@ -5681,7 +5402,7 @@ Begin
   SP_RefreshCursorLineAfterChange(Cy);
   UpdateStatusLabel;
 
-  SP_ScrollInView;
+  SP_ScrollInView(False);
 
 End;
 
@@ -6550,7 +6271,7 @@ Begin
           If SYSTEMSTATE <> SS_ERROR Then Begin
             SP_DisplayFPListing(-1);
             SP_CalculateFPCursorPos;
-            SP_ScrollInView;
+            SP_ScrollInView(True);
           End;
         End Else Begin
           EDITERRORPOS := CURSORPOS;
@@ -6647,7 +6368,7 @@ Begin
     If FPWindowID >= 0 Then Begin
       SP_DisplayFPListing(-1);
       SP_CalculateFPCursorPos;
-      SP_ScrollInView;
+      SP_ScrollInView(True);
     End;
     If DoEdit Then Begin
       DWSelP := CURSORPOS;
@@ -6714,7 +6435,7 @@ Begin
                 End;
                 SP_CalculateFPCursorPos;
                 SP_CursorPosChanged;
-                SP_ScrollInView;
+                SP_ScrollInView(True);
                 SP_FPClearSelection(Sel);
               End;
             End;
@@ -6964,7 +6685,7 @@ Begin
                 FPCDes := Listing.FPCPos;
                 SP_DisplayFPListing(-1);
                 SP_CalculateFPCursorPos;
-                SP_ScrollInView;
+                SP_ScrollInView(False);
               End;
             End;
           End;
@@ -7010,7 +6731,7 @@ Begin
                   SP_DisplayFPListing(-1);
                   SP_CalculateFPCursorPos;
                   SP_CursorPosChanged;
-                  SP_ScrollInView;
+                  SP_ScrollInView(False);
                 End;
               End;
             End;
@@ -7052,7 +6773,7 @@ Begin
             Idx := Max(Trunc(SB^.Position/FPFh) - 1, 0);
             PROGLINE := SP_GetLineNumberFromIndex(Idx);
             SP_DisplayFPListing(-1);
-            SP_ScrollInView;
+            SP_ScrollInView(False);
           End;
           PlayClick;
         End;
@@ -7064,7 +6785,7 @@ Begin
             Idx := Min(Trunc(SB^.Position/FPFh) + Trunc(SB^.PageSize/FPFh), Listing.Count -1);
             PROGLINE := SP_GetLineNumberFromIndex(Idx);
             SP_DisplayFPListing(-1);
-            SP_ScrollInView;
+            SP_ScrollInView(False);
           End;
           PlayClick;
         End;
@@ -7662,7 +7383,7 @@ Begin
       If Error.Line > 0 Then
         If Error.Code > 0 Then Begin
           SP_FPBringToEditor(Error.Line, Error.Statement, Error);
-          SP_ScrollInView;
+          SP_ScrollInView(True);
           DWSelP := CURSORPOS;
         End;
     End;
@@ -8113,7 +7834,7 @@ Begin
               SP_DisplayFPListing(-1);
               SP_CalculateFPCursorPos;
               SP_CursorPosChanged;
-              SP_ScrollInView;
+              SP_ScrollInView(True);
               SHOWLIST := FALSE;
             End;
           End Else
@@ -8265,7 +7986,7 @@ Begin
   SP_FPApplyHighlighting(Listing.FPCLine);
   SP_FPRethinkScrollBars;
   SP_DisplayFPListing(-1);
-  SP_ScrollInView;
+  SP_ScrollInView(False);
   SP_EditorDisplayEditLine;
 
 End;
@@ -8891,7 +8612,7 @@ Begin
 
   If FocusedWindow = fwDirect Then Begin
     SP_FPBringToEditor(line, statement, Error);
-    SP_ScrollInView;
+    SP_ScrollInView(True);
     DWSelP := CURSORPOS;
   End Else Begin
     Found := SP_FindFPLineStatement(line, statement);
@@ -8906,7 +8627,7 @@ Begin
     If FPWindowID >= 0 Then Begin
       SP_DisplayFPListing(-1);
       SP_CalculateFPCursorPos;
-      SP_ScrollInView;
+      SP_ScrollInView(True);
     End;
   End;
 
@@ -9160,7 +8881,7 @@ Begin
       If FocusedWindow = fwDirect Then Begin
         i := Listing.FPCLine;
         PROGLINE := SP_GetLineNumberFromIndex(i);
-        SP_ScrollInView(True);
+        SP_ScrollInView(True, True);
         SP_DisplayFPListing(-1);
       End;
 
@@ -9772,7 +9493,7 @@ Begin
   FPCDesLine := Listing.FPCLine;
   SP_CursorPosChanged;
   SP_DisplayFPListing(-1);
-  SP_ScrollInView;
+  SP_ScrollInView(False);
   PROGLINE := Line;
   SHOWLIST := True;
 End;

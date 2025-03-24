@@ -1040,7 +1040,7 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, RunTimeCompiler, SP_Util2, SP_Display;
+Uses SP_Compiler, SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, RunTimeCompiler, SP_Util2, SP_Display;
 
 Procedure SP_Execute(Line: aString; InitInterpreter: Boolean; Var Error: TSP_ErrorCode);
 Var

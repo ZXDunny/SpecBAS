@@ -30,8 +30,9 @@ uses
   {$ENDIF }
   Forms,
   SP_Display,
-  MainForm in 'MainForm.pas' {Main};
-  
+  MainForm in 'MainForm.pas' {Main},
+  SP_Compiler in 'SP_Compiler.pas';
+
 {$R *.res}
 begin
   {$IFDEF DELPHI}

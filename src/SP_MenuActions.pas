@@ -471,7 +471,7 @@ Begin
   SP_CursorPosChanged;
   SP_DrawGraphicsID;
   SP_RefreshCursorLineAfterChange(Cy);
-  SP_ScrollInView;
+  SP_ScrollInView(True);
 End;
 
 Class Procedure SP_MenuActionProcs.FPMenu_ClearMarkers(Sender: SP_BaseComponent);

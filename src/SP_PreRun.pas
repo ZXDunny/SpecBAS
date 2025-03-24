@@ -67,7 +67,8 @@ Var
 
 implementation
 
-Uses SyncObjs, SP_Interpret_PostFix, SP_Tokenise, SP_Variables, SP_Streams, SP_Menu, SP_Graphics, SP_Main, SP_FPEditor, SP_InfixToPostFix, SP_BankManager, SP_FileIO;
+Uses SyncObjs, SP_Compiler, SP_Interpret_PostFix, SP_Tokenise, SP_Variables, SP_Streams, SP_Menu,
+     SP_Graphics, SP_Main, SP_FPEditor, SP_InfixToPostFix, SP_BankManager, SP_FileIO;
 
 Function IsColourCommand(KW: LongWord): Boolean;
 Begin

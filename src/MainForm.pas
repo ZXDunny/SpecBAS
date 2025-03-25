@@ -102,7 +102,7 @@ var
   BaseTime: Int64;
   Bits: Pointer;
   Bitmap: TBitmap = Nil;
-  LastMouseX, LastMouseY: Integer;
+  LastActiveWindow, LastMouseX, LastMouseY: Integer;
   MouseInForm, IgnoreNextMenuChar, AltDown, FormActivated: Boolean;
   AltChars: aString;
   CaptionString: String;
@@ -490,6 +490,7 @@ end;
 Procedure TMain.FormActivate(Sender: TObject);
 begin
   FormActivated := True;
+  FocusedWindow := LastActiveWindow;
 end;
 
 procedure TMain.FormCanResize(Sender: TObject; var NewWidth, NewHeight: Integer; var Resize: Boolean);
@@ -773,6 +774,8 @@ procedure TMain.FormDeactivate(Sender: TObject);
 begin
   FormActivated := False;
   SP_ClearAllKeys;
+  LastActiveWindow := FocusedWindow;
+  FocusedWindow := -1;
 end;
 
 Procedure TMain.FormDestroy(Sender: TObject);

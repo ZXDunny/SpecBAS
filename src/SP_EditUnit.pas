@@ -14,7 +14,7 @@ SP_Edit = Class(SP_BaseComponent)
     fCursorPos: Integer;
     fSelStart: Integer;
     fFlashTimer: Integer;
-    fCursFG, fCursBG: Integer;
+    fCursFG, fCursBG, fCursUnfocusedFG, fCUrsUnfocusedBG: Integer;
     fGfxMode, fGfxLock: Integer;
     fMouseIsDown: Boolean;
     fAccepted: Boolean;
@@ -93,6 +93,8 @@ Begin
   fSelStart := 1;
   fCursFg := 9;
   fCursBg := 15;
+  fCursUnfocusedFG := 236;
+  fCursUnfocusedBG := 244;
   fCanFocus := True;
   fAccepted := False;
   fGfxMode := 0;
@@ -164,7 +166,7 @@ End;
 
 Procedure SP_Edit.Draw;
 Var
-  tl, ss, sc, p, Clr: Integer;
+  tl, ss, sc, p, Clr, fg, bg: Integer;
   s: aString;
   c: aChar;
 Begin
@@ -216,7 +218,13 @@ Begin
         s := aChar(#5) + c
       else
         s := c;
-      Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, fCursFg, fCursBg, iSX, iSY, False, False, False);
+
+      If SP_SysVars.FOCUSED Then Begin
+        Fg := fCursFg; Bg := fCursBg;
+      End Else Begin
+        Fg := fCursUnfocusedFG; Bg := fCursUnfocusedBG;
+      End;
+      Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Fg, Bg, iSX, iSY, False, False, False);
 
     End;
 
@@ -771,6 +779,9 @@ Begin
     t := fCursFg;
     fCursFg := fCursBg;
     fCursBg := t;
+    t := fCursUnfocusedFg;
+    fCursUnfocusedFg := fCursUnfocusedBg;
+    fCursUnfocusedBg := t;
   End;
   Paint;
 

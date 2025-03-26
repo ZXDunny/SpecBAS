@@ -2974,20 +2974,25 @@ Procedure SP_SetCursorColours;
 Var
   Sel: SP_SelectionInfo;
 Begin
-  CURSORFG := 15;
-  CURSORBG := 9;
-  If IsSelActive Then Begin
-    If FocusedWindow = fwEditor Then Begin
-      SP_GetSelectionInfo(Sel);
-      If Sel.Dir = 1 Then Begin
-        CURSORFG := 13;
-        CURSORBG := 0;
-      End;
-    End Else
-      If DWSelP > CURSORPOS Then Begin
-        CURSORFG := 13;
-        CURSORBG := 9;
-      End;
+  If Not FOCUSED Then Begin
+    CURSORFG := 236;
+    CURSORBG := 244;
+  End Else Begin
+    CURSORFG := 15;
+    CURSORBG := 9;
+    If IsSelActive Then Begin
+      If FocusedWindow = fwEditor Then Begin
+        SP_GetSelectionInfo(Sel);
+        If Sel.Dir = 1 Then Begin
+          CURSORFG := 13;
+          CURSORBG := 0;
+        End;
+      End Else
+        If DWSelP > CURSORPOS Then Begin
+          CURSORFG := 13;
+          CURSORBG := 9;
+        End;
+    End;
   End;
 End;
 
@@ -3063,7 +3068,7 @@ Begin
 
   While Not (Finished or QUITMSG) Do Begin
 
-    If EDITERROR Then Begin
+    If EDITERROR And FOCUSED Then Begin
       If not (CURSORBG in [4, 6]) Then Begin
         CURSORBG := 10;
         CURSORFG := 15;

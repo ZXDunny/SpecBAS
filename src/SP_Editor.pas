@@ -287,10 +287,20 @@ Begin
     End;
 
     If LocalFlashState <> FLASHSTATE Then Begin
-      If FlashState = 1 Then Begin
-        Fg := CURSORFG; Bg := CURSORBG;
+      If Not FOCUSED Then Begin
+        If FlashState = 1 Then Begin
+          Fg := 236;
+          Bg := 244;
+        End Else Begin
+          Fg := 244;
+          Bg := 236;
+        End;
       End Else Begin
-        Fg := CURSORBG; Bg := CURSORFG;
+        If FlashState = 1 Then Begin
+          Fg := CURSORFG; Bg := CURSORBG;
+        End Else Begin
+          Fg := CURSORBG; Bg := CURSORFG;
+        End;
       End;
       PosX := PRPOSX; PosY := PRPOSY;
       If SCREENBPP = 8 Then Begin

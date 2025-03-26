@@ -161,6 +161,7 @@ Var
   CURPROGBANK:              Integer;      // The currently executing bank - usually the same as one of the above.
 
   EDITORREADY:              Boolean;      // Has the editor been set up yet?
+  FOCUSED:                  Boolean;      // SpecBAS itself has focus?
   FILECHANGED:              Boolean;
   SYSTEMSTATE:              Integer;      // What the system is doing now - SS_INPUT, SS_PAUSE or SS_INTERPRET
   PROGCHANGED:              Boolean;      // Set if the program in memory has changed.

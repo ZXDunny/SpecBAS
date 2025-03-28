@@ -721,7 +721,7 @@ Procedure SP_PutCurrentWindow(Var Str: aString); inline;
 Begin
 
   CopyMem(SCREENPOINTER, @Str[1], SCREENSTRIDE * SCREENHEIGHT);
-  If SCREENVISIBLE Then SP_SetDirtyRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
+  If SCREENVISIBLE Then SP_InvalidateWholeDisplay;
 
 End;
 

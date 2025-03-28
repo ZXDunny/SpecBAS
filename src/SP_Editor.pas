@@ -345,7 +345,7 @@ Begin
     Else
       Scrolls := SP_PRINT32(-1, Round(X), Round(Y), CURSORPOS, EL_Text, T_INK, T_PAPER, Error);
   End;
-  SP_SetDirtyRect(0, 0, DISPLAYWIDTH, DISPLAYHEIGHT);
+
   SP_ForceScreenUpdate;
 
   While (Length(ActiveKeys) <> 0) And Not (BREAKSIGNAL or QUITMSG) Do

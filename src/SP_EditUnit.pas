@@ -14,7 +14,7 @@ SP_Edit = Class(SP_BaseComponent)
     fCursorPos: Integer;
     fSelStart: Integer;
     fFlashTimer: Integer;
-    fCursFG, fCursBG, fCursUnfocusedFG, fCUrsUnfocusedBG: Integer;
+    fCursFG, fCursBG, fCursUnfocusedFG, fCursUnfocusedBG: Integer;
     fGfxMode, fGfxLock: Integer;
     fMouseIsDown: Boolean;
     fAccepted: Boolean;

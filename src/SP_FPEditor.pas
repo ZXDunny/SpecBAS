@@ -865,7 +865,7 @@ Begin
   Win^.CaptionHeight := FPCaptionHeight;
   SP_CreateEditorMenu;
   //SP_CreateEditorTabBar;
-  //SP_CreateEditorSearchbar;
+//  SP_CreateEditorSearchbar;
   fwEditor := FPWIndowID;
 
   // Dimensions. Client area is the inner part of the window excluding border ( 1 pixel ) and caption.
@@ -1235,7 +1235,8 @@ Begin
           Else
             SmoothMove := False;
         End Else Begin
-          Dec(CURSORX, Delta);
+          If CURSORX > FPGutterWidth * FPFw Then
+            Dec(CURSORX, Delta);
           SP_DisplayFPListing(-1);
         End;
         OnChange(Data);
@@ -1426,7 +1427,7 @@ Procedure SP_FPApplyHighlighting(Line: Integer);
 Var
   CodeLine, SynLine, LastSyntax, AddedEndChars, AddedStartChars, t, s, s2, s3: aString;
   Idx, Idx2, Added, l, m, Ink, Paper, Bold, Italic, i, j, k, bp1, bp2: Integer;
-  NeedUpdate, GoAgain, CanShowBraces, Done: Boolean;
+  NeedUpdate, GoAgain, CanShowBraces, Done, SearchActive: Boolean;
   fPos, fLen: Integer;
   c: aChar;
 Begin
@@ -1561,7 +1562,66 @@ Begin
 
       // Now, if we're showing search results (or hilighting braces), insert the highlight codes. Do this by finding them manually.
 
-      If CanShowBraces and Not IsSelActive Then Begin
+      SearchActive := False;
+      If FPShowingSearchResults Then Begin
+        j := 0;
+        l := Length(FPFindResults);
+        While (j < l) And (FPFindResults[j].Line <= Line) Do Begin
+          If FPFindResults[j].Line = Line Then Begin
+            fPos := FPFindResults[j].Position + Length(AddedStartChars);
+            fLen := FPFindResults[j].Length;
+            i := 1; k := 0;
+            Paper := -1; Ink := -1; Bold := -1; Italic := -1;
+            Repeat
+              c := SynLine[i];
+              If (c < ' ') and (c <> #5) Then Begin
+                Case SynLine[i] of
+                  #16: // Ink
+                    Ink := pLongWord(@SynLine[i+1])^;
+                  #17: // Paper
+                    If pLongWord(@SynLine[i+1])^ <> pLongWord(@SearchClr[2])^ Then
+                      Paper := pLongWord(@SynLine[i+1])^;
+                  #26: // Italic
+                    Italic := pLongWord(@SynLine[i+1])^;
+                  #27: // Bold
+                    Bold := pLongWord(@SynLine[i+1])^;
+                  #28: // Reset
+                    Begin
+                      Ink := -1;
+                      Paper := -1;
+                    End;
+                End;
+                Inc(i, 5);
+              End Else Begin
+                If c = #5 Then
+                  Inc(i);
+                Inc(i);
+                Inc(k);
+              End;
+            Until k = fPos;
+            Dec(i);
+            If Ink >= 0 Then t := #16 + LongWordToString(Ink) Else t := '';
+            If Paper >= 0 Then t := t + #17 + LongWordToString(Paper);
+            If Italic >= 0 Then t := t + #26 + LongWordToString(Italic);
+            If Bold >= 0 Then t := t + #27 + LongWordToString(Bold);
+            k := 0; m := 0;
+            while (k < Length(SynLine)) and (k < fLen) do Begin
+              if SynLine[m + i] < ' ' Then Begin
+                If SynLine[m] = #5 Then Inc(m, 2) Else Inc(m, 5);
+              End Else Begin
+                Inc(m);
+                Inc(k);
+              end;
+            end;
+            fLen := m;
+            SynLine := Copy(SynLine, 1, i -1) + SearchClr + Copy(SynLine, i, fLen) + NoSearchClr + t + Copy(SynLine, i + fLen);
+            SearchActive := True;
+          End;
+          Inc(j);
+        End;
+      End;
+
+      If CanShowBraces and Not IsSelActive And Not SearchActive Then Begin
 
         bp1 := -1; bp2 := -1;
         If Line = FPBracket1Line Then Begin
@@ -1619,63 +1679,6 @@ Begin
               t := NoSearchClr;
             SynLine := Copy(SynLine, 1, i -1) + BraceHltClr + Copy(SynLine, i, 1) + t + Copy(SynLine, i +1);
           End;
-        End;
-      End;
-
-      If FPShowingSearchResults Then Begin
-        j := 0;
-        l := Length(FPFindResults);
-        While (j < l) And (FPFindResults[j].Line <= Line) Do Begin
-          If FPFindResults[j].Line = Line Then Begin
-            fPos := FPFindResults[j].Position + Length(AddedStartChars);
-            fLen := FPFindResults[j].Length;
-            i := 1; k := 0;
-            Paper := -1; Ink := -1; Bold := -1; Italic := -1;
-            Repeat
-              c := SynLine[i];
-              If (c < ' ') and (c <> #5) Then Begin
-                Case SynLine[i] of
-                  #16: // Ink
-                    Ink := pLongWord(@SynLine[i+1])^;
-                  #17: // Paper
-                    If pLongWord(@SynLine[i+1])^ <> pLongWord(@SearchClr[2])^ Then
-                      Paper := pLongWord(@SynLine[i+1])^;
-                  #26: // Italic
-                    Italic := pLongWord(@SynLine[i+1])^;
-                  #27: // Bold
-                    Bold := pLongWord(@SynLine[i+1])^;
-                  #28: // Reset
-                    Begin
-                      Ink := -1;
-                      Paper := -1;
-                    End;
-                End;
-                Inc(i, 5);
-              End Else Begin
-                If c = #5 Then
-                  Inc(i);
-                Inc(i);
-                Inc(k);
-              End;
-            Until k = fPos;
-            Dec(i);
-            If Ink >= 0 Then t := #16 + LongWordToString(Ink) Else t := '';
-            If Paper >= 0 Then t := t + #17 + LongWordToString(Paper);
-            If Italic >= 0 Then t := t + #26 + LongWordToString(Italic);
-            If Bold >= 0 Then t := t + #27 + LongWordToString(Bold);
-            k := 0; m := 0;
-            while (k < Length(SynLine)) and (k < fLen) do Begin
-              if SynLine[m + i] < ' ' Then Begin
-                If SynLine[m] = #5 Then Inc(m, 2) Else Inc(m, 5);
-              End Else Begin
-                Inc(m);
-                Inc(k);
-              end;
-            end;
-            fLen := m;
-            SynLine := Copy(SynLine, 1, i -1) + SearchClr + Copy(SynLine, i, fLen) + NoSearchClr + t + Copy(SynLine, i + fLen);
-          End;
-          Inc(j);
         End;
       End;
 
@@ -2579,7 +2582,7 @@ Function SP_ScrollInView(FromSearch: Boolean; Force: Boolean = False): Boolean;
 Var
   Extents: TPoint;
   VertSB, HorzSB: pSP_ScrollBar;
-  TenPercentW, TenPercentH, Cx, Cy, OfsX, mn, mx, tpx, tpy: Integer;
+  TenPercentW, TenPercentH, Cx, Cy, mn, mx, tpx, tpy: Integer;
   Direct: Boolean;
 Label
   Skip;
@@ -2609,10 +2612,9 @@ Begin
   Direct := False;
 
   If FocusedWindow = fwEditor Then Begin
-    If Not EDITORWRAP Then Begin
-      OfsX := -Trunc(HorzSB^.Position) + (FPGutterWidth * FPFw) + FPPaperLeft;
-      Cx := CURSORX - OfsX;
-    End Else
+    If Not EDITORWRAP Then
+      Cx := CURSORX
+    Else
       Cx := 0;
     Cy := Listing.FPCLine * FPFh;
   End Else Begin
@@ -3345,7 +3347,8 @@ Begin
       If Kind = scVertical Then
         Inc(CURSORY, Round(Position - NewPosition))
       Else
-        Inc(CURSORX, Round(Position - NewPosition));
+        If CURSORX > FPGutterWidth * FPFw Then
+          Inc(CURSORX, Round(Position - NewPosition));
       SP_UpdateScrollBar(ID, -1, -1, NewPosition);
       SP_DisplayFPListing(-1);
       Exit;
@@ -5133,6 +5136,8 @@ Begin
               SP_FPWordWrapLine(Listing.FPCLine, True);
               SP_FPApplyHighlighting(Listing.FPCLine);
               SP_MarkAsDirty(Listing.FPCLine);
+              If (Listing.FPCLine > 0) And (Listing.FPCPos <= 1) Then
+                SP_MarkAsDirty(Listing.FPCLine -1);
             End Else Begin
               Listing.CommenceUndo;
               SP_FPDeleteSelection(Sel);
@@ -8830,9 +8835,8 @@ Begin
             End;
           If Length(FPFindResults) > 0 Then
             If i = Length(FPFindResults) Then Begin
-              Listing.FPCLine := 0;
-              Listing.FPCPos := 1;
-              Goto Wrap;
+              Listing.FPCLine := FPFindResults[0].Line;
+              Listing.FPCPos := FPFindResults[0].Position;
             End;
         End Else Begin
           i := 0;
@@ -8881,7 +8885,8 @@ Begin
           SP_FPWordWrapLine(FPFindResults[i].Line);
         End;
         Listing.CompleteUndo;
-      End;
+      End Else
+        SP_FPClearSelection(Sel);
 
       If FocusedWindow = fwDirect Then Begin
         i := Listing.FPCLine;

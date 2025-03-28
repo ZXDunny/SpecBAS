@@ -1235,7 +1235,7 @@ Begin
           Else
             SmoothMove := False;
         End Else Begin
-          If CURSORX > FPGutterWidth * FPFw Then
+          If (Listing.FPCPos >= FPGutterWidth) And (SP_LineHasNumber(Listing.FPCLine) > 0) Then
             Dec(CURSORX, Delta);
           SP_DisplayFPListing(-1);
         End;
@@ -1389,7 +1389,7 @@ Begin
   FPPageHeight := FPPaperHeight;
   FPPageWidth := FPPaperWidth - (FPGutterWidth * FPFw);
   FPTotalHeight := Listing.Count * FPFh;
-  FPTotalWidth := FPLongestLineLen * FPFw;
+  FPTotalWidth := (FPLongestLineLen * FPFw) - FPGUtterWidth;
   scIdx := SP_FindScrollBar(FPVertSc);
   If scIdx > -1 Then
     SP_UpdateScrollBar(FPVertSc, FPPageHeight, FPTotalHeight, Trunc(FPScrollBars[scIdx].Position));
@@ -2582,7 +2582,7 @@ Function SP_ScrollInView(FromSearch: Boolean; Force: Boolean = False): Boolean;
 Var
   Extents: TPoint;
   VertSB, HorzSB: pSP_ScrollBar;
-  TenPercentW, TenPercentH, Cx, Cy, mn, mx, tpx, tpy: Integer;
+  TenPercentW, TenPercentH, Cx, Cy, OfsX, mn, mx, tpx, tpy: Integer;
   Direct: Boolean;
 Label
   Skip;
@@ -2612,9 +2612,10 @@ Begin
   Direct := False;
 
   If FocusedWindow = fwEditor Then Begin
-    If Not EDITORWRAP Then
-      Cx := CURSORX
-    Else
+    If Not EDITORWRAP Then Begin
+      OfsX := -Trunc(HorzSB^.Position) + (FPGutterWidth * FPFw) + FPPaperLeft;
+      Cx := CURSORX - OfsX;
+    End Else
       Cx := 0;
     Cy := Listing.FPCLine * FPFh;
   End Else Begin
@@ -2667,11 +2668,14 @@ Begin
     mx := Round(HorzSB.TargetPos + HorzSB.PageSize - TenPercentW);
 
     If not Direct Then Begin
-      If Cx < mn Then
-        HorzSB.TargetPos := Max(0, Cx - TenPercentW)
+      If (Listing.FPCPos < FPGutterWidth) And (SP_LineHasNumber(Listing.FPCLine) > 0) Then
+        HorzSB.TargetPos := 0
       Else
-        If Cx > mx Then
-          HorzSB.TargetPos := Min(Max(0, Cx - HorzSB.PageSize + TenPercentW), HorzSB.TotalSize - HorzSB.PageSize);
+        If Cx < mn Then
+          HorzSB.TargetPos := Max(0, Cx - TenPercentW)
+        Else
+          If Cx > mx Then
+            HorzSB.TargetPos := Min(Max(0, Cx - HorzSB.PageSize + TenPercentW), HorzSB.TotalSize - HorzSB.PageSize);
     End Else
       HorzSB.TargetPos := 0;
 

@@ -777,9 +777,9 @@ Begin
         s2 := Copy(s, 1, ps-1);
         If Assigned(OnTextPrep) Then s2 := OnTextPrep(s2, j, i);
         Case fHeaders[j].Justify of
-         -1: Print(hx + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False);
-          0: Print(hx + (Ord(fBorder) * 2) + (fHeaders[j].Width - (Length(s2)*iFW)) Div 2, py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False);
-          1: Print(hx + (Ord(fBorder) * 2) + (fHeaders[j].Width - (Length(s2)*iFW)), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False);
+         -1: Print(hx + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False, False);
+          0: Print(hx + (Ord(fBorder) * 2) + (fHeaders[j].Width - (Length(s2)*iFW)) Div 2, py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False, False);
+          1: Print(hx + (Ord(fBorder) * 2) + (fHeaders[j].Width - (Length(s2)*iFW)), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False, False);
         End;
         If ps > 0 Then
           s := Copy(s, ps +1)
@@ -808,7 +808,7 @@ Begin
         c := fFontClr
       Else
         c := fDisabledFontClr;
-      Print(-fHScroll.Pos + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False);
+      Print(-fHScroll.Pos + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False, False);
       If fEnabled Then Begin
         If Focused Then
           c := SP_UISelectionOutline
@@ -850,8 +850,8 @@ Begin
         c := fFontClr
       Else
         c := fDisabledFontClr;
-      Print(hx + (Ord(fBorder) * 2), Ord(fBorder) * 2, fHeaders[j].Caption, c, -1, iSX, iSY, False, False, False);
-      Print(hx + (Ord(fBorder) * 2) + ((Length(fHeaders[j].Caption) +1) * iFW), ((iFH - fH) Div 2) + (Ord(fBorder) * 2), pr, fSortIndClr, -1, 1, 1, False, False, False);
+      Print(hx + (Ord(fBorder) * 2), Ord(fBorder) * 2, fHeaders[j].Caption, c, -1, iSX, iSY, False, False, False, False);
+      Print(hx + (Ord(fBorder) * 2) + ((Length(fHeaders[j].Caption) +1) * iFW), ((iFH - fH) Div 2) + (Ord(fBorder) * 2), pr, fSortIndClr, -1, 1, 1, False, False, False, False);
       Inc(hx, fHeaders[j].Width);
 
     End;

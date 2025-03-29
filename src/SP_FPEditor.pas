@@ -1480,7 +1480,7 @@ Begin
     End Else
       If (Line < Listing.Count -1) And (CodeLine <> '') And
          (CodeLine[Length(CodeLine)] in ['a'..'z', 'A'..'Z', '$']) And
-         Not SP_LineHasNumber_Fast(Listing.FPCLine -1) And (Listing.Flags[Line].ReturnType = spSoftReturn) Then Begin
+        { Not SP_LineHasNumber_Fast(Listing.FPCLine -1) And} (Listing.Flags[Line].ReturnType = spSoftReturn) Then Begin
         AddedEndChars := '';
         t := Listing[Line +1];
         While (t <> '') And (t[1] <= ' ') Do Begin
@@ -3837,7 +3837,7 @@ Function SP_GetSelectionAsString: aString;
 Var
   Idx, SelS, SelE: Integer;
   Sel: SP_SelectionInfo;
-Begin
+Begin                                                                                                                      
   If FocusedWindow = fwEditor Then Begin
     SP_GetSelectionInfo(Sel);
     If Sel.Active Then
@@ -5526,7 +5526,7 @@ Begin
     While (Min > 0) And SP_WasPrevSoft(Min) Do Dec(Min);
   Max := Min;
   While (Max < Listing.Count -1) And (Listing.Flags[Max].ReturnType <> spHardReturn) Do Inc(Max);
-  MaxW := ((FPPaperWidth - (FPGutterWidth * FPFw)) Div FPFw) -2;
+  MaxW := ((FPPaperWidth - (FPGutterWidth * FPFw)) Div FPFw);
   indent := Listing.Flags[Min].Indent;
 
   ns := 0;

@@ -184,14 +184,14 @@ Begin
       Clr := fErrorClr;
     If (fGhostText <> '') And (Copy(fGhostText, 1, Length(fText)) = fText) Then Begin
       s := InsertLiterals(fGhostText);
-      Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, SP_UITextDisabled, -1, iSX, iSY, False, False, False)
+      Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, SP_UITextDisabled, -1, iSX, iSY, False, False, False, False)
     End Else
       fGhostText := '';
   End Else
     Clr := SP_UITextDisabled;
 
   s := InsertLiterals(fText);
-  Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Clr, -1, iSX, iSY, False, False, False);
+  Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Clr, -1, iSX, iSY, False, False, False, False);
 
   If fBorder Then Begin
     DrawRect(0, 0, Width -1, Height -1, fBorderClr);
@@ -206,7 +206,7 @@ Begin
       ss := Min(fSelStart, fCursorPos);
       sc := (Max(fSelStart, fCursorPos) - ss) +1;
       s := InsertLiterals(Copy(fText, ss, sc));
-      Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Clr, p, iSX, iSY, False, False, False);
+      Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Clr, p, iSX, iSY, False, False, False, False);
     End;
 
     If Focused Then Begin
@@ -224,7 +224,7 @@ Begin
       End Else Begin
         Fg := fCursUnfocusedFG; Bg := fCursUnfocusedBG;
       End;
-      Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Fg, Bg, iSX, iSY, False, False, False);
+      Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Fg, Bg, iSX, iSY, False, False, False, False);
 
     End;
 

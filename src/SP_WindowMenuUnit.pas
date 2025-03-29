@@ -244,7 +244,7 @@ Begin
         End;
       End;
 
-      PRINT(Extents.Left + iFW -2, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, fAltDown And fEnabled);
+      PRINT(Extents.Left + iFW -2, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, True, fAltDown And fEnabled);
 
     End;
 

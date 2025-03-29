@@ -219,7 +219,7 @@ SP_BaseComponent = Class
     Procedure FillRect(x1, y1, x2, y2: Integer; Ink: Byte); Overload;
     Procedure FillRect(r: TRect; Ink: Byte); Overload;
     Procedure Fill(x, y: Integer; Ink: Byte); Overload;
-    Procedure Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold, UseAccel: Boolean);
+    Procedure Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold, UseAccel, ShowAccel: Boolean);
     Procedure DrawBtnFrame(Border, Pressed: Boolean); Overload;
     Procedure DrawBtnFrame(r: TRect; Border, Pressed: Boolean); Overload;
     Function  Components(Idx: Integer): SP_BaseComponent;
@@ -603,7 +603,7 @@ Begin
 
 End;
 
-Procedure SP_BaseComponent.Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold, UseAccel: Boolean);
+Procedure SP_BaseComponent.Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold, UseAccel, ShowAccel: Boolean);
 Var
   BankID, CharW, CharH, Idx, cCount, ItalicOffset: Integer;
   sx, sy, Cw, Ch, yp, xp, TC, t: Integer;
@@ -645,8 +645,8 @@ Begin
       If (curChar >= ' ') or ForceNextChar Then Begin
 
         ForceNextChar := False;
-        if curChar = '&' Then Begin
-          if UseAccel Then Begin
+        If UseAccel And (curChar = '&') Then Begin
+          if ShowAccel Then Begin
             Char := @Bank^.Memory[FontBank^.Font_Info[239].Data];
             Inc(Y);
           End Else Begin
@@ -754,7 +754,7 @@ Begin
           Inc(X, CharW);
         End;
 
-        If curChar = '&' Then Begin
+        If ShowAccel And (curChar = '&') Then Begin
           Dec(X, CharW);
           Dec(Y);
         End;

@@ -120,17 +120,17 @@ Begin
 
     If Border Then DrawBtnFrame(fBorder, False);
     If Enabled Then
-      Print(fCaptionPos.x, fCaptionPos.y, Caption, fFontClr, -1, iSX, iSY, False, False, False)
+      Print(fCaptionPos.x, fCaptionPos.y, Caption, fFontClr, -1, iSX, iSY, False, False, False, False)
     Else
-      Print(fCaptionPos.x, fCaptionPos.y, Caption, fDisabledFontClr, -1, iSX, iSY, False, False, False)
+      Print(fCaptionPos.x, fCaptionPos.y, Caption, fDisabledFontClr, -1, iSX, iSY, False, False, False, False)
 
   End Else Begin
 
     If Border Then DrawBtnFrame(fBorder, True);
     If Enabled Then
-      Print(fCaptionPos.x+Ord(Border), fCaptionPos.y+Ord(Border), Caption, fFontClr, -1, iSX, iSY, False, False, False)
+      Print(fCaptionPos.x+Ord(Border), fCaptionPos.y+Ord(Border), Caption, fFontClr, -1, iSX, iSY, False, False, False, False)
     Else
-      Print(fCaptionPos.x+Ord(Border), fCaptionPos.y+Ord(Border), Caption, fDisabledFontClr, -1, iSX, iSY, False, False, False);
+      Print(fCaptionPos.x+Ord(Border), fCaptionPos.y+Ord(Border), Caption, fDisabledFontClr, -1, iSX, iSY, False, False, False, False);
 
   End;
 

@@ -387,20 +387,20 @@ Begin
       End;
       If Checked Then Begin
         If fGroupID = 0 Then cChar := #246 else cChar := #244;
-        PRINT(5, Extents.Top +1, cChar, ic, -1, iSX, iSY, False, False, False);
+        PRINT(5, Extents.Top +1, cChar, ic, -1, iSX, iSY, False, False, False, False);
       End;
       If Caption <> '-' Then Begin
-        PRINT(Extents.Left, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, fAltDown And fEnabled);
+        PRINT(Extents.Left, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, True, fAltDown And fEnabled);
         If Shortcut <> 0 Then Begin
           s := ShortcutToString(Shortcut) + '  ';
-          PRINT(Extents.Right - iFW * Length(s), Extents.Top +1, s, fSepClr, -1, iSX, iSY, False, False, False);
+          PRINT(Extents.Right - iFW * Length(s), Extents.Top +1, s, fSepClr, -1, iSX, iSY, False, False, False, False);
         End;
       End Else Begin
         y := Trunc(((Extents.Bottom - Extents.Top)/2) + Extents.Top);
         DrawLine(Extents.Left, y, Extents.Right, y, fSepClr);
       End;
       If Assigned(SubMenu) Then
-        PRINT(Extents.Right - iFW * 2, Extents.Top +1, #247, ic, -1, iSX, iSY, False, False, False);
+        PRINT(Extents.Right - iFW * 2, Extents.Top +1, #247, ic, -1, iSX, iSY, False, False, FAlse, False);
 
     End;
 

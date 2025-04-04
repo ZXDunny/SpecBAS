@@ -3922,7 +3922,7 @@ Procedure SP_PasteSelection;
 Var
   Idx, nCPos: Integer;
   txt, t: aString;
-  Strings: TStringList;
+  Strings: TAnsiStringList;
   Sel: SP_SelectionInfo;
 
   Procedure ProcessTabs(var s: aString);
@@ -3945,8 +3945,8 @@ Begin
     If Sel.Active Then
       SP_FPDeleteSelection(Sel);
 
-    Strings := TStringlist.Create;
-    Strings.Text := aString(Clipboard.AsText);
+    Strings := TAnsiStringlist.Create;
+    Strings.Text := ClipBoard.AsText;
 
     If Strings.Count > 0 Then Begin
       nCPos := Length(Strings[Strings.Count -1]);

@@ -253,7 +253,7 @@ End;
 
 Procedure TAnsiStringlist.SetText(s: AnsiString);
 Var
-  p: Integer;
+  p, i: Integer;
 Begin
   Clear;
   While s <> '' Do Begin
@@ -262,8 +262,16 @@ Begin
       p := Pos(#10, s);
     If p > 0 Then Begin
       Add(Copy(s, 1, p -1));
-      While (Copy(s, p, 1) = #13) or (Copy(s, p, 1) = #10) Do
-        Inc(p);
+      Case s[p] of
+        #13:
+          Begin
+            Inc(p);
+            If s[p] = #10 Then
+              Inc(p);
+          End;
+        #10:
+          Inc(p);
+      End;
       s := Copy(s, p);
     End Else
       If s <> '' Then Begin

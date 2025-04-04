@@ -46,9 +46,9 @@ SP_Edit = Class(SP_BaseComponent)
     Procedure Draw; Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
     Procedure PerformKeyUp(Var Handled: Boolean); Override;
-    Procedure MouseDown(X, Y, Btn: Integer); Override;
-    Procedure MouseUp(X, Y, Btn: Integer); Override;
-    Procedure MouseMove(X, Y, Btn: Integer); Override;
+    Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure DoubleClick(X, Y, Btn: Integer); Override;
     Procedure SetBounds(x, y, w, h: Integer); Override;
 
@@ -662,7 +662,7 @@ Begin
 
 End;
 
-Procedure SP_Edit.MouseDown(X, Y, Btn: Integer);
+Procedure SP_Edit.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   if not fEnabled Then Exit;
@@ -684,7 +684,7 @@ Begin
 
 End;
 
-Procedure SP_Edit.MouseMove(X, Y, Btn: Integer);
+Procedure SP_Edit.MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   if not fEnabled Then Exit;
@@ -701,7 +701,7 @@ Begin
 
 End;
 
-Procedure SP_Edit.MouseUp(X, Y, Btn: Integer);
+Procedure SP_Edit.MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   fMouseIsDown := False;

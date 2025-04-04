@@ -16,11 +16,11 @@ Type
 
 SP_BaseComponent = Class;
 
-SP_MouseEvent = Procedure(Mx, My, Button: Integer) of Object;
-SP_MouseWheelEvent = Procedure(Mx, My, Button, Delta: Integer) of Object;
-SP_KeyEvent = Procedure(Key: Integer; Down: Boolean);
-SP_PaintEvent = Procedure of Object;
-SP_ResizeEvent = Procedure of Object;
+SP_MouseEvent = Procedure(Sender: SP_BaseComponent; Mx, My, Button: Integer) of Object;
+SP_MouseWheelEvent = Procedure(Sender: SP_BaseComponent; Mx, My, Button, Delta: Integer) of Object;
+SP_KeyEvent = Procedure(Sender: SP_BaseComponent; Key: Integer; Down: Boolean);
+SP_PaintEvent = Procedure(Control: SP_BaseComponent) of Object;
+SP_ResizeEvent = Procedure(Sender: SP_BaseComponent) of Object;
 SP_TimerProc = Procedure(evt: Pointer) of Object;
 SP_LBSelectEvent = Procedure(Sender: SP_BaseComponent; Index: Integer) of Object;
 SP_LBChooseEvent = Procedure(Sender: SP_BaseComponent; Index: Integer; s: aString) of Object;
@@ -28,15 +28,15 @@ SP_SortEvent = Function(Val1, Val2: aString): Integer of Object;
 SP_TextPrepare = Function(s: aString; c, i: Integer): aString of Object;
 SP_EditEvent = Procedure(Sender: SP_BaseComponent; Text: aString) of Object;
 SP_ClickEvent = Procedure(Sender: SP_BaseComponent) of Object;
-SP_CheckEvent = Procedure Of Object;
+SP_CheckEvent = Procedure(Sender: SP_BaseComponent) Of Object;
 SP_AbortEvent = Procedure(Sender: SP_BaseComponent) Of Object;
 SP_MenuClickEvent = Procedure(Sender: SP_BaseComponent) Of Object;
-SP_ExitEvent = Procedure of Object;
-SP_EnterEvent = Procedure(X, Y: Integer) of Object;
-SP_VisibleEvent = Procedure of Object;
-SP_PopUpEvent = Procedure (Sender: SP_BaseComponent) of Object;
-SP_ActivateEvent = Procedure of Object;
-SP_DeactivateEvent = Procedure of Object;
+SP_ExitEvent = Procedure(Sender: SP_BaseComponent) of Object;
+SP_EnterEvent = Procedure(Sender: SP_BaseComponent; X, Y: Integer) of Object;
+SP_VisibleEvent = Procedure(Sender: SP_BaseComponent) of Object;
+SP_PopUpEvent = Procedure(Sender: SP_BaseComponent) of Object;
+SP_ActivateEvent = Procedure(Sender: SP_BaseComponent) of Object;
+SP_DeactivateEvent = Procedure(Sender: SP_BaseComponent) of Object;
 SP_FocusEvent = Procedure(Sender: SP_BaseComponent; WillFocus: Boolean) of Object;
 SP_ChangeEvent = Procedure(Sender: SP_BaseComponent) of Object;
 
@@ -226,10 +226,10 @@ SP_BaseComponent = Class
     Procedure KeyDown(Key: Integer; Var Handled: Boolean); Virtual;
     Procedure KeyUp(Key: Integer; Var Handled: Boolean); Virtual;
     Procedure PreMouseMove(X, Y, Btn: Integer);
-    Procedure MouseDown(X, Y, Btn: Integer); Virtual;
-    Procedure MouseUp(X, Y, Btn: Integer); Virtual;
-    Procedure MouseMove(X, Y, Btn: Integer); Virtual;
-    Procedure MouseWheel(X, Y, Btn, Delta: Integer); Virtual;
+    Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Virtual;
+    Procedure MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Virtual;
+    Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Virtual;
+    Procedure MouseWheel(Sender: SP_BaseComponent; X, Y, Btn, Delta: Integer); Virtual;
     Procedure DoubleClick(X, Y, Btn: Integer); Virtual;
     Function  ClientToScreen(p: TPoint): TPoint;
     Function  ScreenToClient(p: TPoint): TPoint;
@@ -1396,7 +1396,7 @@ Procedure SP_BaseComponent.MouseExit;
 Begin
 
   If Assigned(OnExit) Then
-    OnExit;
+    OnExit(Self);
 
 End;
 
@@ -1404,7 +1404,7 @@ Procedure SP_BaseComponent.MouseEnter(X, Y: Integer);
 Begin
 
   If Assigned(OnEnter) Then
-    fOnEnter(X, Y);
+    fOnEnter(Self, X, Y);
 
 End;
 
@@ -1561,12 +1561,12 @@ Begin
     // the "during" event actually paints the component, so should be set.
 
     If Assigned(fOnPaintBefore) Then
-      fOnPaintBefore;
+      fOnPaintBefore(Self);
 
     Draw;
 
     If Assigned(fOnPaintAfter) Then
-      fOnPaintAfter;
+      fOnPaintAfter(Self);
 
     p := ClientToScreen(Point(0, 0));
     SP_SetDirtyRect(p.x, p.y, p.x + Width, p.y + Height);
@@ -1945,7 +1945,7 @@ begin
   HasSized;
 
   If Assigned(fOnResize) Then
-    fOnResize;
+    fOnResize(Self);
 
 end;
 
@@ -2016,7 +2016,7 @@ Begin
   PerformKeyDown(Handled);
 
   If Assigned(fOnKeyDown) Then
-    fOnKeyDown(Key, Handled);
+    fOnKeyDown(Self, Key, Handled);
 
 End;
 
@@ -2161,11 +2161,11 @@ Begin
   PerformKeyUp(Handled);
 
   If Assigned(fOnKeyUp) Then
-    fOnKeyUp(Key, Handled);
+    fOnKeyUp(Self, Key, Handled);
 
 End;
 
-Procedure SP_BaseComponent.MouseDown(X, Y, Btn: Integer);
+Procedure SP_BaseComponent.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   Dbl := False;
@@ -2188,7 +2188,7 @@ Begin
       SetFocus(True);
 
     If Assigned(fOnMouseDown) And Not Dbl Then
-      fOnMouseDown(X, Y, Btn);
+      fOnMouseDown(Self, X, Y, Btn);
 
   End;
 
@@ -2198,11 +2198,11 @@ Procedure SP_BaseComponent.DoubleClick(X, Y, Btn: Integer);
 Begin
 
   If Assigned(OnDblClick) Then
-    OnDblClick(X, Y, Btn);
+    OnDblClick(Self, X, Y, Btn);
 
 End;
 
-Procedure SP_BaseComponent.MouseUp(X, Y, Btn: Integer);
+Procedure SP_BaseComponent.MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   If fCanClick Then Begin
@@ -2212,7 +2212,7 @@ Begin
   End;
 
   If Assigned(fOnMouseUp) Then
-    fOnMouseUp(X, Y, Btn);
+    fOnMouseUp(Self, X, Y, Btn);
 
 End;
 
@@ -2226,25 +2226,25 @@ Begin
     p := ClientToScreen(Point(X, Y));
     CheckForTip(p.x, p.y);
   End;
-  MouseMove(X, Y, Btn);
+  MouseMove(Self, X, Y, Btn);
 
 End;
 
-Procedure SP_BaseComponent.MouseMove(X, Y, Btn: Integer);
+Procedure SP_BaseComponent.MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   If Assigned(fOnMouseMove) Then
-    fOnMouseMove(X, Y, Btn);
+    fOnMouseMove(Self, X, Y, Btn);
 
 End;
 
-Procedure SP_BaseComponent.MouseWheel(X, Y, Btn, Delta: Integer);
+Procedure SP_BaseComponent.MouseWheel(Sender: SP_BaseComponent; X, Y, Btn, Delta: Integer);
 Begin
 
   Inherited;
 
   If Assigned(fOnMouseWheel) Then
-    fOnMouseWheel(X, Y, Btn, Delta);
+    fOnMouseWheel(Self, X, Y, Btn, Delta);
 
 End;
 
@@ -2257,11 +2257,11 @@ Begin
     fVisible := Value;
     If fVisible Then Begin
       If Assigned(fOnShow) Then
-        fOnShow;
+        fOnShow(Self);
       Paint;
     End Else Begin
       If Assigned(fOnHide) Then
-        fOnHide;
+        fOnHide(Self);
       p := ClientToScreen(Point(0, 0));
       SP_SetDirtyRect(p.x, p.y, p.x + Width, p.y + Height);
       SP_NeedDisplayUpdate := True;

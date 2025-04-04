@@ -25,7 +25,7 @@ SP_RadioGroup = Class(SP_BaseComponent)
     Procedure SetCheckColor(c: Byte);
     Procedure SetItemIndex(v: Integer);
     Procedure Draw; Override;
-    Procedure SelectItem;
+    Procedure SelectItem(Sender: SP_BaseComponent);
 
     Procedure AddItem(Caption: aString);
     Procedure InsertItem(Caption: aString; Index: Integer);
@@ -122,7 +122,7 @@ Begin
 
 End;
 
-Procedure SP_RadioGroup.SelectItem;
+Procedure SP_RadioGroup.SelectItem(Sender: SP_BaseComponent);
 var
   i: Integer;
 Begin

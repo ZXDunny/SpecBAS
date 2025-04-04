@@ -60,6 +60,7 @@ Type
   Procedure SP_AddKey(var KeyInfo: SP_KeyInfo);
   Procedure SP_RemoveKey(KeyCode: Word);
   Function  GetLastKeyChar: aString;
+  Function  GetLastKeyCode: Integer;
   Function  SP_AreAnyKeysDown: Boolean;
   Function  SP_GetNextKey(CurFrames: Integer): pSP_KeyInfo;
   Procedure SP_ClearAllKeys;
@@ -431,10 +432,23 @@ Begin
         39: Result := aChar(9);
         40: Result := aChar(10);
       Else
-        Result := aChar(ActiveKeys[l -1].KeyCode);
+        Result := '';
       End;
   End Else
     Result := '';
+  KeyLock.Leave;
+End;
+
+Function GetLastKeyCode: Integer;
+Var
+  l: Integer;
+Begin
+  KeyLock.Enter;
+  l := Length(ActiveKeys);
+  If l > 0 Then
+    Result := ActiveKeys[l -1].KeyCode
+  Else
+    Result := -1;
   KeyLock.Leave;
 End;
 

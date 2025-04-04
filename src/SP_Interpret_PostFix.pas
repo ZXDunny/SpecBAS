@@ -205,6 +205,7 @@ Procedure SP_Interpret_FN_MOUSEDY(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_MOUSEBTN(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_RND(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_INKEYS(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_INKEY(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_KEY(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_PI(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_TAU(Var Info: pSP_iInfo);
@@ -712,6 +713,7 @@ Procedure SP_Interpret_GRAPHIC_ROLL(Var Info: pSP_iInfo);
 Procedure SP_Interpret_GRAPHIC_SCROLL(Var Info: pSP_iInfo);
 Procedure SP_Interpret_TILEMAP_NEW(Var Info: pSP_iInfo);
 Procedure SP_Interpret_TILEMAP_DRAW(Var Info: pSP_iInfo);
+Procedure SP_Interpret_TILEMAP_DRAW_TILE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_TILEMAP_SET(Var Info: pSP_iInfo);
 Procedure SP_Interpret_TILEMAP_GRAPHIC(Var Info: pSP_iInfo);
 Procedure SP_Interpret_TILEMAP_CLEAR(Var Info: pSP_iInfo);
@@ -7111,6 +7113,19 @@ Begin
     Str := GetLastKeyChar;
     If KEYSTATE[K_ESCAPE] = 1 Then BreakSignal := True;
     OpType := SP_STRING;
+  End;
+End;
+
+Procedure SP_Interpret_FN_INKEY(Var Info: pSP_iInfo);
+Begin
+  // Like INKEY$ but returns a raw keycode -
+  // for keys like F1 to F12 that don't have an ascii char representation
+  Inc(SP_StackPtr);
+  If FRAMES <> LASTINKEYFRAME Then CB_YIELD;
+  With SP_StackPtr^ Do Begin
+    Val := GetLastKeyCode;
+    If KEYSTATE[K_ESCAPE] = 1 Then BreakSignal := True;
+    OpType := SP_VALUE;
   End;
 End;
 
@@ -20992,6 +21007,33 @@ Begin
 
 End;
 
+Procedure SP_Interpret_TILEMAP_DRAW_TILE(Var Info: pSP_iInfo);
+Var
+  TileMapID, TileID, X, Y: Integer;
+  Rotate, Scale: aFloat;
+Begin
+
+  TileMapID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  TileID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  X := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  Y := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  Rotate := SP_StackPtr^.Val;
+  SP_AngleToRad(Rotate);
+  Dec(SP_StackPtr);
+
+  Scale  := SP_StackPtr^.Val;
+  Dec(SP_StackPtr);
+
+  SP_TileMap_Draw_Tile(TileMapID, TileID, X, Y, Rotate, Scale, Info^.Error^);
+
+End;
+
 Procedure SP_Interpret_TILEMAP_SET(Var Info: pSP_iInfo);
 Var
   TileMapID, X, Y, Tile: Integer;
@@ -27553,6 +27595,7 @@ Initialization
   InterpretProcs[SP_KW_GFX_SCROLL] := @SP_Interpret_GRAPHIC_SCROLL;
   InterpretProcs[SP_KW_TILEMAP_NEW] := @SP_Interpret_TILEMAP_NEW;
   InterpretProcs[SP_KW_TILEMAP_DRAW] := @SP_Interpret_TILEMAP_DRAW;
+  InterpretProcs[SP_KW_TILEMAP_DRAW_TILE] := @SP_Interpret_TILEMAP_DRAW_TILE;
   InterpretProcs[SP_KW_TILEMAP_SET] := @SP_Interpret_TILEMAP_SET;
   InterpretProcs[SP_KW_TILEMAP_GRAPHIC] := @SP_Interpret_TILEMAP_GRAPHIC;
   InterpretProcs[SP_KW_TILEMAP_CLEAR] := @SP_Interpret_TILEMAP_CLEAR;
@@ -27807,6 +27850,7 @@ Initialization
   InterpretProcs[SP_FN_STKS] := @SP_Interpret_FN_STKS;
   InterpretProcs[SP_FN_CLIPS] := @SP_Interpret_FN_CLIPS;
   InterpretProcs[SP_FN_INKEYS] := @SP_Interpret_FN_INKEYS;
+  InterpretProcs[SP_FN_INKEY] := @SP_Interpret_FN_INKEY;
   InterpretProcs[SP_FN_KEY] := @SP_Interpret_FN_KEY;
   InterpretProcs[SP_FN_PI] := @SP_Interpret_FN_PI;
   InterpretProcs[SP_FN_TAU] := @SP_Interpret_FN_TAU;

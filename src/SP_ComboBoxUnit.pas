@@ -31,8 +31,8 @@ SP_ComboBox = Class(SP_BaseComponent)
     Procedure EditChange(Sender: SP_BaseComponent; Text: aString);
     Function  GetCaption(Index: Integer): aString;
     Procedure SetCaption(Index: Integer; s: aString);
-    Procedure LabMouseDown(X, Y, Btn: Integer);
-    Procedure LabMouseUp(X, Y, Btn: Integer);
+    Procedure LabMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+    Procedure LabMouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 
   Public
 
@@ -368,7 +368,7 @@ Begin
 
 End;
 
-Procedure SP_ComboBox.LabMouseDown(X, Y, Btn: Integer);
+Procedure SP_ComboBox.LabMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 begin
 
   SP_PlaySystem(CLICKCHAN, CLICKBANK);
@@ -376,7 +376,7 @@ begin
 
 end;
 
-Procedure SP_ComboBox.LabMouseUp(X, Y, Btn: Integer);
+Procedure SP_ComboBox.LabMouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   Self.btn.State := spNormal;

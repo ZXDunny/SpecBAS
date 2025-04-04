@@ -80,7 +80,7 @@ Const
   // List of keywords that are used in statements.
   // MUST Be in this order - add new commands to the end of the list.
 
-  SP_KEYWORDS_EXTRA: Array[0..254] of aString =
+  SP_KEYWORDS_EXTRA: Array[0..255] of aString =
     ('SPECTRUM ', 'PLAY ', 'AT ', 'TAB ', 'LINE ', ' THEN ', ' TO ', ' STEP ',
      'DEF ', 'CAT ', ' FORMAT ', 'MOVE ', 'ERASE ', 'OPEN ', 'CLOSE ', 'MERGE ', 'BEEP ',
      'CIRCLE ', 'INK ', 'PAPER ', 'INVERSE ', 'OUT ', 'STOP ', 'READ ', ' DATA ',
@@ -110,7 +110,7 @@ Const
      'BOLD ', 'ITALIC ', 'FILTER ', 'INSERT ', 'MENUITEM ', 'MEMWRT ', 'MEMWRTD ', 'MEMWRTQ ',
      'MEMWRT$ ', 'REPEAT', 'PARTICLE ', 'FRICTION ', 'GRAVITY ', 'FORCE ', 'INSTALL', 'MEMWRTF ',
      'PRESS', 'TURNS', 'GRADIANS', 'EGA', 'CGA', 'ADDCTRL', 'CTRL', 'PROP$ ', 'OLD', ' ASYNC',
-     'COMPILE ', 'APPLEHGR', 'APPLELGR', 'CPC', 'ENUM ', 'STROKE ', 'LLIST ');
+     'COMPILE ', 'APPLEHGR', 'APPLELGR', 'CPC', 'ENUM ', 'STROKE ', 'LLIST ', ' TILE ');
 
   // Constants used to quickly identify keywords when in token form. Each keyword listed
   // above has a corresponding constant, which must be SP_KEYWORD_BASE + (Index of Keyword above).
@@ -372,6 +372,7 @@ Const
   SP_KW_ENUM                = 1252;
   SP_KW_STROKE              = 1253;
   SP_KW_LLIST               = 1254;
+  SP_KW_TILE                = 1255;
 
 
   // These are meta-commands; they do not appear in listings, and are used during
@@ -746,10 +747,11 @@ Const
   SP_KW_PR_STROKE           = 4417;
   SP_KW_DRAW_FOUR           = 4418;
   SP_KW_ADRAW_FOUR          = 4419;
+  SP_KW_TILEMAP_DRAW_TILE   = 4420;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..368] of aString =
+  SP_Keyword_Names: Array[0..369] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -801,12 +803,12 @@ Const
      'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP', 'PLAY STOP', 'MOUSE TO ', 'PALETTE APPLE LGR',
      'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN', 'A-RECTANGLE TO', 'A-RECTFILL TO', 'RECTANGLE TO',
      'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING', 'ENUM BASE', 'ORG DIM', 'DRAW GML', 'WIN ORG DIM', 'GFX ORG DIM',
-     'STREAM READ FILE', 'RAINBOW HSV', 'PR STROKE', 'DRAW CDELTA', 'A-DRAW CDELTA');
+     'STREAM READ FILE', 'RAINBOW HSV', 'PR STROKE', 'DRAW CDELTA', 'A-DRAW CDELTA', 'TILEMAP DRAW TILE');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.
 
-  SP_FUNCTIONS_EXTRA: Array[0..278] of aString =
+  SP_FUNCTIONS_EXTRA: Array[0..279] of aString =
     ('nRND', 'nINKEY$', 'oPI', 'nVAL$ ', 'oCODE ', 'oVAL ', 'oLEN ', 'nSIN ', 'nCOS ',
      'nTAN ', 'nASN ', 'nACS ', 'nATN ', 'oLN ', 'oEXP ', 'oINT ', 'oSQR ', 'oSGN ', 'oABS ', 'n IN ',
      'nUSR ', 'oSTR$ ','oCHR$ ', 'nPEEK ', 'oNOT ', 'o OR ', 'o AND ', 'o MOD ', 'o XOR ', 'o SHL ',
@@ -838,7 +840,7 @@ Const
      'oTAU', 'nMILLISECONDS', 'oBINV', 'oBREV', 'oINTERP', 'oMIN$', 'oMAX$', 'nFMEMRD', 'nTXTw', 'nTXTh',
      'nNOISE', 'nOCTNOISE', 'oPAR ', 'oMAP', 'o EQV ', 'o IMP ', 'oSINH ', 'oCOSH ', 'oTANH ', 'oASNH ',
      'oACSH ', 'oATNH ', 'oMID', 'nPARAM$', 'nSTK', 'nSTK$', 'oREV$ ', 'nCLIP$', 'oINSTR', 'oFMOD',
-     'oBITCNT', 'oHIBIT', 'oCPAD$');
+     'oBITCNT', 'oHIBIT', 'oCPAD$', 'nINKEY');
 
   // Constants, like above, for identifying Functions in token form
 
@@ -1123,6 +1125,7 @@ Const
   SP_FN_BITCNT              = 2276;
   SP_FN_HIBIT               = 2277;
   SP_FN_CPADS               = 2278;
+  SP_FN_INKEY               = 2279;
 
   // Meta-functions
 

@@ -184,6 +184,7 @@ Type
   Procedure SP_Tilemap_GraphicBank(TileMapID, GraphicID, TileWidth, TileHeight: Integer; Var Error: TSP_ErrorCode);
   Procedure SP_Tilemap_GraphicString(TileMapID, TileWidth, TileHeight: Integer; Graphic: aString; Var Error: TSP_ErrorCode);
   Procedure SP_Tilemap_Clear(TileMapID: Integer; Var Error: TSP_ErrorCode);
+  Procedure SP_TileMap_Draw_Tile(TileMapID, TileID, X, Y: Integer; Rotate, Scale: aFloat; Var Error: TSP_ErrorCode);
   Procedure SP_TileMap_Draw(TileMapID, OffX, OffY, ToX, ToY, ToW, ToH, RX, RY: Integer; Rotate, Scale: aFloat; Var Error: TSP_ErrorCode);
   Procedure SP_Tilemap_BuildLUT(TileMap: pSP_TileMap_Info);
   Function  SP_GetTile(id, x, y: Integer; Var Error: TSP_ErrorCode): Integer;
@@ -1138,6 +1139,13 @@ Var
   dPtr: pLongWord;
   Window: pSP_Window_Info;
 Begin
+
+  Result := -1;
+
+  If (Width <= 0) or (Height <= 0) Then Begin
+    Error.Code := SP_ERR_INVALID_WINDOW;
+    Exit;
+  End;
 
   DisplaySection.Enter;
 
@@ -3667,6 +3675,7 @@ Begin
         TMInfo^.TileHeight := TileHeight;
         TMInfo^.GraphicData := Gfx^.Data;
         TMInfo^.GraphicWidth := Gfx^.Width;
+        TMInfo^.GraphicHeight := Gfx^.Height;
         TMInfo^.GraphicTransparent := Gfx^.Transparent;
         TMInfo^.Rotation := 0;
         TMInfo^.Scaling := 1;
@@ -3757,6 +3766,7 @@ Begin
     TMInfo^.TileHeight := TileHeight;
     TMInfo^.GraphicData := @Bank^.Memory[0];
     TMInfo^.GraphicWidth := tW;
+    TMInfo^.GraphicHeight := tH;
     TMInfo^.GraphicTransparent := Trans;
     TMInfo^.Rotation := 0;
     TMInfo^.Scaling := 1;
@@ -3877,6 +3887,7 @@ Begin
           TileMap^.TileHeight := TileHeight;
           TileMap^.GraphicData := Gfx^.Data;
           TileMap^.GraphicWidth := Gfx^.Width;
+          TileMap^.GraphicHeight := Gfx^.Height;
           TileMap^.GraphicTransparent := Gfx^.Transparent;
 
           SP_TileMap_BuildLUT(TileMap);
@@ -3982,6 +3993,7 @@ Begin
       TileMap^.TileHeight := TileHeight;
       TileMap^.GraphicData := @Bank.Memory[0];
       TileMap^.GraphicWidth := tW;
+      TileMap^.GraphicHeight := tH;
       TileMap^.GraphicTransparent := Trans;
 
       SP_TileMap_BuildLUT(TileMap);
@@ -4040,6 +4052,72 @@ Begin
     End Else
 
       Error.Code := SP_ERR_INVALID_BANK;
+
+  End Else
+
+    Error.Code := SP_ERR_BANK_NOT_FOUND;
+
+End;
+
+Procedure SP_TileMap_Draw_Tile(TileMapID, TileID, X, Y: Integer; Rotate, Scale: aFloat; Var Error: TSP_ErrorCode);
+Var
+  Bank: pSP_Bank;
+  TileMap: pSP_TileMap_Info;
+  Idx, tWidth, tHeight, tileX, tileY, gW, gH: Integer;
+  Graphic: aString;
+  SrcPtr: pByte;
+Begin
+
+  Idx := SP_FindBankID(TileMapID);
+  If Idx > -1 Then Begin
+
+    Bank := SP_BankList[Idx];
+    TileMap := @Bank^.Info[0];
+
+    If Bank^.DataType <> SP_TILEMAP_BANK Then Begin
+      Error.Code := SP_ERR_INVALID_BANK;
+      Exit;
+    End;
+
+    If (TileID < 0) or (TileID >= TileMap^.NumTiles) Then Begin
+      Error.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+      Exit;
+    End;
+
+    If Not TileMap^.InternalGFX Then Begin
+
+      Idx := SP_FindBankID(TileMap^.GraphicID);
+      If Idx > -1 Then Begin
+
+        If SP_BankList[Idx]^.DataType <> SP_GRAPHIC_BANK then Begin
+
+          Error.Code := SP_ERR_INVALID_BANK;
+          Exit;
+
+        End;
+
+      End Else Begin
+
+        Error.Code := SP_ERR_GRAPHIC_LOST;
+        Exit;
+
+      End;
+
+    End;
+
+    // Copy the tile to a temporary graphic bank, then WINDOW PUT it.
+
+    tWidth := TileMap^.TileWidth;
+    tHeight := TileMap^.TileHeight;
+    gW := TileMap^.GraphicWidth;
+    gH := TileMap^.GraphicHeight;
+
+    TileX := (TileID Mod (gW Div tWidth)) * tWidth;
+    TileY := (TileID Div (gW Div tWidth)) * tHeight;
+    SrcPtr := TileMap^.TileLut[0];
+
+    SP_GetRegion(SrcPtr, gW, gH, Graphic, tileX, tileY, tWidth, tHeight, TileMap^.GraphicTransparent, Error);
+    SP_PutRegion(SCREENPOINTER, X, Y, SCREENWIDTH, SCREENHEIGHT, @Graphic[1], Length(Graphic), Rotate, Scale, T_CLIPX1, T_CLIPY1, T_CLIPX2, T_CLIPY2, Error);
 
   End Else
 

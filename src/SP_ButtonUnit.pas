@@ -25,8 +25,8 @@ SP_Button = Class(SP_BaseComponent)
     Procedure Draw; Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
     Procedure PerformKeyUp(Var Handled: Boolean); Override;
-    Procedure MouseDown(X, Y, Btn: Integer); Override;
-    Procedure MouseUp(X, Y, Btn: Integer); Override;
+    Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure CentreCaption;
 
     Property  CaptionPos: TPoint           read fCaptionPos  write SetCaptionPos;
@@ -136,7 +136,7 @@ Begin
 
 End;
 
-Procedure SP_Button.MouseDown(X, Y, Btn: Integer);
+Procedure SP_Button.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   If Enabled Then Begin
@@ -149,7 +149,7 @@ Begin
 
 End;
 
-Procedure SP_Button.MouseUp(X, Y, Btn: Integer);
+Procedure SP_Button.MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   fState := spNormal;

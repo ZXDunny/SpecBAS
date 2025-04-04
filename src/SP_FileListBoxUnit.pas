@@ -36,7 +36,7 @@ SP_FileListBox = Class(SP_ListBox)
     Property  OnChooseFile: SP_FLBSelectEvent read fOnChooseFile write fOnChooseFile;
     Property  OnChooseDir: SP_FLBSelectEvent read fOnChooseDir write fOnChooseDir;
     Property  Filters: aString read GetFilters write SetFilters;
-    Procedure DoDoubleClick(X, Y, Btn: Integer);
+    Procedure DoDoubleClick(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor Destroy; Override;
@@ -398,7 +398,7 @@ Begin
 
 End;
 
-Procedure SP_FileListBox.DoDoubleClick(X, Y, Btn: Integer);
+Procedure SP_FileListBox.DoDoubleClick(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Var
   i: Integer;
 Begin

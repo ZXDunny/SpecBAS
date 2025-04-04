@@ -375,7 +375,7 @@ Begin
           Else
             if c.Visible Then Begin
               Result := SendKey(c);
-              If Key <> K_ALT Then Exit;
+              If Result And (Key <> K_ALT) Then Exit;
             End;
         End;
       Dec(i);
@@ -385,23 +385,28 @@ Begin
 
   // Now, if we didn't trigger any overrides, we hand the key message to the active control. If that doesn't handle it,
   // we drop down through the hierarchy.
-
   If Assigned(FocusedControl) Then Begin
 
-    c := GetOwnerControl(FocusedControl);
+    Result := SendKey(FocusedControl);
 
-    While Not Result Do Begin
+    If Not Result Then Begin
 
-      AddComp(c);
-      If Down and c.Canfocus Then
-        c.SetFocus(True);
+      c := GetOwnerControl(FocusedControl);
 
-      Result := SendKey(c);
-      If Not Result Then
-        If Assigned(c.ChainControl) And Not IsCompInList(c.ChainControl) Then
-          c := c.ChainControl
-        Else
-          Exit;
+      While Not Result Do Begin
+
+        AddComp(c);
+        If Down and c.Canfocus Then
+          c.SetFocus(True);
+
+        Result := SendKey(c);
+        If Not Result Then
+          If Assigned(c.ChainControl) And Not IsCompInList(c.ChainControl) Then
+            c := c.ChainControl
+          Else
+            Exit;
+
+      End;
 
     End;
 

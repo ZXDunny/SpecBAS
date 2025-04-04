@@ -284,7 +284,7 @@ begin
       If CaptureControl.CanFocus Then
         CaptureControl.SetFocus(True);
       p := CaptureControl.ScreenToClient(Point(X, Y));
-      SP_BaseComponent(CaptureControl).MouseDown(p.X, p.Y, Btn);
+      SP_BaseComponent(CaptureControl).MouseDown(SP_BaseComponent(CaptureControl), p.X, p.Y, Btn);
       Handled := True;
     End Else Begin
       Win := WindowAtPoint(X, Y, ID);
@@ -298,12 +298,12 @@ begin
               CaptureControl := pSP_BaseComponent(Win)^;
               If CaptureControl.CanFocus Then
                 CaptureControl.SetFocus(True);
-              SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
+              SP_BaseComponent(CaptureControl).MouseDown(SP_BaseComponent(CaptureControl), X, Y, Btn);
               Handled := True;
             End;
           End Else Begin
             If Assigned(CaptureControl) Then
-              SP_BaseComponent(CaptureControl).MouseDown(X, Y, Btn);
+              SP_BaseComponent(CaptureControl).MouseDown(SP_BaseComponent(CaptureControl), X, Y, Btn);
             If Assigned(FocusedControl) And (MODALWINDOW = -1) Then
               FocusedControl.SetFocus(False);
           End;
@@ -459,7 +459,7 @@ begin
     Handled := TestForWindowMenu(Nil, Shift);
     If Assigned(CaptureControl) Then Begin
       p := CaptureControl.ScreenToClient(Point(x, y));
-      CaptureControl.MouseUp(p.x, p.y, Btn);
+      CaptureControl.MouseUp(CaptureControl, p.x, p.y, Btn);
       If Not ForceCapture Then
         CaptureControl := Nil;
       Handled := True;
@@ -468,7 +468,7 @@ begin
       If Assigned(Win) Then Begin
         Win := ControlAtPoint(Win, X, Y);
         If Assigned(Win) And pSP_BaseComponent(Win)^.Enabled Then Begin
-          pSP_BaseComponent(Win)^.MouseUp(X, Y, Btn);
+          pSP_BaseComponent(Win)^.MouseUp(pSP_BaseComponent(Win)^, X, Y, Btn);
           Handled := True;
         End;
       End;
@@ -962,13 +962,13 @@ begin
 
   If Assigned(CaptureControl) Then Begin
     p := CaptureControl.ScreenToClient(Point(x, y));
-    CaptureControl.MouseMove(p.x, p.y, Btn);
+    CaptureControl.MouseMove(CaptureControl, p.x, p.y, Btn);
   End Else Begin
     Win := WindowAtPoint(X, Y, ID);
     If Assigned(Win) Then Begin
       Win := ControlAtPoint(Win, X, Y);
       If Assigned(Win) Then Begin
-        pSP_BaseComponent(Win)^.MouseWheel(X, Y, Btn, 1);
+        pSP_BaseComponent(Win)^.MouseWheel(pSP_BaseComponent(Win)^, X, Y, Btn, 1);
         Handled := True;
       End;
     End;
@@ -999,13 +999,13 @@ begin
 
   If Assigned(CaptureControl) Then Begin
     p := CaptureControl.ScreenToClient(Point(x, y));
-    CaptureControl.MouseMove(p.x, p.y, Btn);
+    CaptureControl.MouseMove(CaptureControl, p.x, p.y, Btn);
   End Else Begin
     Win := WindowAtPoint(X, Y, ID);
     If Assigned(Win) Then Begin
       Win := ControlAtPoint(Win, X, Y);
       If Assigned(Win) Then Begin
-        pSP_BaseComponent(Win)^.MouseWheel(X, Y, Btn, -1);
+        pSP_BaseComponent(Win)^.MouseWheel(pSP_BaseComponent(Win)^, X, Y, Btn, -1);
         Handled := True;
       End;
     End;

@@ -1567,6 +1567,9 @@ Finish:
         CompilerLock.Enter;
         Listing.Clear;
         SyntaxListing.Clear;
+        FPShowingFindResults := False;
+        FPShowingSearchResults := False;
+        SetLength(FPFindResults, 0);
         For Idx := 0 To Length(NewProg) -1 Do Begin
           s := NewProg[Idx]; i := 1;
           While (i < Length(s)) And (s[i] = #9) Do Inc(i);

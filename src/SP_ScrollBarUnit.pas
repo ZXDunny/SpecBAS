@@ -53,12 +53,12 @@ SP_ScrollBar = Class(SP_BaseComponent)
     Procedure SetKind(k: SP_ScrollBarKind);
     Function  SetUIElements: Boolean;
     Procedure SetShowButtons(b: Boolean);
-    Procedure Resize;
+    Procedure Resize(Sender: SP_BaseComponent);
     Function  GetBorder: Boolean;
 
-    Procedure UpBtnMouseDown(X, Y, Btn: Integer);
-    Procedure DnBtnMouseDown(X, Y, Btn: Integer);
-    Procedure BtnMouseUp(X, Y, Btn: Integer);
+    Procedure UpBtnMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+    Procedure DnBtnMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+    Procedure BtnMouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
     Procedure ClickTimer(p: Pointer);
     Procedure ScrollTimer(p: Pointer);
 
@@ -85,10 +85,10 @@ SP_ScrollBar = Class(SP_BaseComponent)
     Property Border:      Boolean          read GetBorder    write SetBorder;
     Property ShowButtons: Boolean          read fShowButtons write SetShowButtons;
 
-    Procedure MouseDown(X, Y, Btn: Integer); Override;
-    Procedure MouseUp(X, Y, Btn: Integer); Override;
-    Procedure MouseMove(X, Y, Btn: Integer); Override;
-    Procedure MouseWheel(X, Y, Btn, Delta: Integer); Override;
+    Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseWheel(Sender: SP_BaseComponent; Mx, My, Btn, Delta: Integer); Override;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -457,7 +457,7 @@ Begin
 
 End;
 
-Procedure SP_ScrollBar.MouseDown(X, Y, Btn: Integer);
+Procedure SP_ScrollBar.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   SP_PlaySystem(CLICKCHAN, CLICKBANK);
@@ -489,7 +489,7 @@ Begin
 
 End;
 
-Procedure SP_ScrollBar.MouseUp(X, Y, Btn: Integer);
+Procedure SP_ScrollBar.MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   fMousePos := Point(X, Y);
@@ -498,7 +498,7 @@ Begin
 
 End;
 
-Procedure SP_ScrollBar.MouseMove(X, Y, Btn: Integer);
+Procedure SP_ScrollBar.MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Var
   Delta: Integer;
   m: aFloat;
@@ -524,7 +524,7 @@ Begin
 
 End;
 
-Procedure SP_ScrollBar.UpBtnMouseDown(X, Y, Btn: Integer);
+Procedure SP_ScrollBar.UpBtnMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   Pos := Pos - fStep;
@@ -534,7 +534,7 @@ Begin
 
 End;
 
-Procedure SP_ScrollBar.DnBtnMouseDown(X, Y, Btn: Integer);
+Procedure SP_ScrollBar.DnBtnMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   Pos := Pos + fStep;
@@ -544,14 +544,14 @@ Begin
 
 End;
 
-Procedure SP_ScrollBar.BtnMouseUp(X, Y, Btn: Integer);
+Procedure SP_ScrollBar.BtnMouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   RemoveTimer(fMouseTimer);
 
 End;
 
-Procedure SP_ScrollBar.MouseWheel(X, Y, Btn, Delta: Integer);
+Procedure SP_ScrollBar.MouseWheel(Sender: SP_BaseComponent; MX, MY, Btn, Delta: Integer);
 Begin
 
   Pos := fTargetPos + (Delta * fWheelStep);

@@ -865,7 +865,7 @@ Begin
   Win^.CaptionHeight := FPCaptionHeight;
   SP_CreateEditorMenu;
   //SP_CreateEditorTabBar;
-//  SP_CreateEditorSearchbar;
+  //SP_CreateEditorSearchbar;
   fwEditor := FPWIndowID;
 
   // Dimensions. Client area is the inner part of the window excluding border ( 1 pixel ) and caption.
@@ -1307,7 +1307,7 @@ End;
 
 Procedure SP_DrawScrollBar(ScrollBarID: Integer);
 Var
-  Idx, Font, Window: Integer;
+  Idx, Font, Window, i, y: Integer;
   UpChar, DownChar: aChar;
   ScrollBar: pSP_ScrollBar;
   Err: TSP_ErrorCode;
@@ -1364,6 +1364,22 @@ Begin
     If ThumbEnabled Then
       With ThumbRect Do
         SP_FillRect(Left, Top, Right - Left, Bottom - Top, scrollThumb);
+
+    // Find/search results
+
+    If Kind = scVertical Then Begin
+
+      If FPShowingSearchResults then
+        for i := 0 To Length(FPFindResults) -1 Do Begin
+          Idx := FPFindResults[i].Line;
+          If ThumbEnabled Then
+            y := Round(((TrackRect.Bottom - TrackRect.Top - 4) / (Listing.Count * FPFh)) * ((Idx * FPFh) + FPFh/2))
+          Else
+            y := Idx * FPFh + FPFh Div 2;
+          SP_FillRect(TrackRect.Left + 1, TrackRect.Top + y + 1, TrackRect.Right - TrackRect.Left - 2, 2, Ord(SearchClr[2]));
+        End;
+
+    End;
 
   End;
 
@@ -2218,6 +2234,7 @@ Begin
   If FPGutterChangedSize Then Begin
     Line := -1;
     If Not EDITORWRAP Then SP_FPUpdateHorzScrollBar;
+    If Assigned(FPSearchPanel) Then SP_ResizeSearchPanel;
     FPGutterChangedSize := False;
   End;
 
@@ -3793,7 +3810,7 @@ Begin
 
         Idx := Sel.StartL +1;
         While Sel.EndL >= Idx Do Begin
-          SP_DeleteLine(Idx);
+          SP_DeleteLine(Idx, False);
           Dec(Sel.EndL);
         End;
         Listing.Flags[Sel.StartL].ReturnType := Flag;
@@ -5106,7 +5123,7 @@ Begin
                       Listing[Listing.FPCLine] := Listing[Listing.FPCLine] + Listing[Listing.FPCLine +1];
                     End;
                     Listing.Flags[Listing.FPCLine].ReturnType := Listing.Flags[Listing.FPCLine +1].ReturnType;
-                    SP_DeleteLine(Listing.FPCLine +1);
+                    SP_DeleteLine(Listing.FPCLine +1, False);
                     SP_FPWordWrapLine(Listing.FPCLine);
                     SP_FPApplyHighlighting(Listing.FPCLine);
                     SP_MarkAsDirty(Listing.FPCLine);
@@ -5183,7 +5200,7 @@ Begin
                     Listing[Listing.FPCLine] := Copy(Listing[Listing.FPCLine], 1, Listing.FPCPos -1);
                     Listing[Listing.FPCLine] := Listing[Listing.FPCLine] + Listing[Listing.FPCLine +1];
                     Listing.Flags[Listing.FPCLine].ReturnType := Listing.Flags[Listing.FPCLine +1].ReturnType;
-                    SP_DeleteLine(Listing.FPCLine +1);
+                    SP_DeleteLine(Listing.FPCLine +1, False);
                     SP_FPWordWrapLine(Listing.FPCLine);
                     SP_MarkAsDirty(Listing.FPCLine);
                     SP_FPApplyHighlighting(Listing.FPCLine);
@@ -5195,7 +5212,7 @@ Begin
               End Else Begin
                 If Listing.FPCLine < Listing.Count -1 Then Begin
                   Listing.Flags[Listing.FPCLine].ReturnType := Listing.Flags[Listing.FPCLine +1].ReturnType;
-                  SP_DeleteLine(Listing.FPCLine);
+                  SP_DeleteLine(Listing.FPCLine, False);
                   SP_MarkAsDirty(Listing.FPCLine);
                 End;
               End;
@@ -5416,7 +5433,7 @@ Begin
   SP_RefreshCursorLineAfterChange(Cy);
   UpdateStatusLabel;
 
-  SP_ScrollInView(False);
+ SP_ScrollInView(False);
 
 End;
 
@@ -5859,6 +5876,7 @@ Begin
     If Clear Then
       SetLength(FPFindResults, 0);
   End;
+  SP_DrawScrollBar(FPVertSc);
   SP_DisplayFPListing(-1);
 
 End;
@@ -5870,6 +5888,7 @@ Var
 Begin
 
   If Not FPShowingFindResults Then Begin
+
     FPShowingFindResults := True;
     l := Length(FPFindResults);
     If l > 0 Then Begin
@@ -5909,6 +5928,8 @@ Begin
       End;
       SetLength(FPFindResults, 0);
     End;
+
+  If Text = '' Then Exit;
 
   If soExpression in Options Then Begin
     Text := SP_FPExecuteAnyExpression(Text, Error);
@@ -7917,7 +7938,7 @@ Var
     Cnt := (Extents.y - Extents.x) +1;
     CompilerLock.Enter;
     While Cnt > 0 Do Begin
-      SP_DeleteLine(Extents.x);
+      SP_DeleteLine(Extents.x, False);
       Dec(Cnt);
     End;
     If Listing.Count = 0 Then Begin
@@ -8059,7 +8080,7 @@ Begin
                         LongWordToString(Length(Listing[0])) + Listing[0] +
                         LongWordToString(Length(SyntaxListing[0])) + SyntaxListing[0];
         NewList.Add(s);
-        SP_DeleteLine(0);
+        SP_DeleteLine(0, False);
       End Else
         LineNum := SP_GetLineNumberFromText(Listing[0]);
     End;
@@ -8094,7 +8115,7 @@ Begin
           NewList.Add(s)
         Else
           NewList.Insert(Idx, s);
-        SP_DeleteLine(nIdx);
+        SP_DeleteLine(nIdx, False);
       End;
 
     End;
@@ -8193,7 +8214,7 @@ Begin
   End;
   If fIdx = -1 Then fIdx := Listing.Count;
 
-  For Idx := sIdx To fIdx -1 Do SP_DeleteLine(sIdx);
+  For Idx := sIdx To fIdx -1 Do SP_DeleteLine(sIdx, False);
 
   // Take the remaining lines into a temporary storage ready to have the new lines merged in.
 
@@ -8206,7 +8227,7 @@ Begin
       s := '';
       For nIdx := Extents.x To Extents.y Do Begin
         s := s + LongWordToString(Listing.Flags[nIdx].ReturnType) + LongWordToString(Listing.Flags[nIdx].Indent) + LongWordToString(Length(Listing[Extents.x])) + Listing[Extents.x];
-        SP_DeleteLine(Extents.x);
+        SP_DeleteLine(Extents.x, False);
       End;
       OutList.Add(s);
     End Else
@@ -8417,9 +8438,9 @@ Begin
     Else
       LineNum := 0;
     If (LineNum >= Start) And (LineNum <= Finish) Then Begin
-      SP_DeleteLine(Idx);
+      SP_DeleteLine(Idx, False);
       While (Idx < Listing.Count) And (SP_LineHasNumber(Idx) = 0) Do
-        SP_DeleteLine(Idx);
+        SP_DeleteLine(Idx, False);
     End Else
       Inc(Idx);
   End;
@@ -9290,7 +9311,9 @@ Begin
   End;
 
   SP_AddSourceBreakpoint(Hidden, bpLine, bpSt, 0, '');
+  SP_DisplayFPListing(Idx -1);
   SP_DisplayFPListing(Idx);
+  SP_DisplayFPListing(Idx +1);
 
 End;
 

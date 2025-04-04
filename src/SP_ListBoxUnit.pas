@@ -88,10 +88,10 @@ SP_ListBox = Class(SP_BaseComponent)
     Procedure     SetSortedColumnClr(c: Integer);
     Procedure     HasSized; Override;
 
-    Procedure     MouseWheel(X, Y, Btn, Delta: Integer); Override;
-    Procedure     MouseDown(X, Y, Btn: Integer); Override;
-    Procedure     MouseMove(X, Y, Btn: Integer); Override;
-    Procedure     MouseUp(X, Y, Btn: Integer); Override;
+    Procedure     MouseWheel(Sender: SP_BaseComponent; X, Y, Btn, Delta: Integer); Override;
+    Procedure     MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure     MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure     MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure     DoubleClick(X, Y, Btn: Integer); Override;
     Procedure     Unlock; Override;
     Procedure     Add(Caption: aString);
@@ -887,7 +887,7 @@ Begin
 
 End;
 
-Procedure SP_ListBox.MouseWheel(X, Y, Btn, Delta: Integer);
+Procedure SP_ListBox.MouseWheel(Sender: SP_BaseComponent; X, Y, Btn, Delta: Integer);
 Begin
 
   Inherited;
@@ -897,7 +897,7 @@ Begin
 
 End;
 
-Procedure SP_ListBox.MouseMove(X, Y, Btn: Integer);
+Procedure SP_ListBox.MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 begin
 
   Inherited;
@@ -914,7 +914,7 @@ begin
 
 end;
 
-Procedure SP_ListBox.MouseUp(X, Y, Btn: Integer);
+Procedure SP_ListBox.MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   Inherited;
@@ -924,7 +924,7 @@ Begin
 
 End;
 
-Procedure SP_ListBox.MouseDown(X, Y, Btn: Integer);
+Procedure SP_ListBox.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Var
   i, j, oj: Integer;
 Begin
@@ -1165,7 +1165,7 @@ Begin
 
   If (Y < iFH) And fShowHeaders Then Exit;
   If Assigned(OnDblClick) and (fLastSelected <> -1) Then
-    OnDblClick(X, Y, Btn)
+    OnDblClick(Self, X, Y, Btn)
   Else
     If Assigned(OnChoose) and (fLastSelected <> -1) Then
       OnChoose(Self, fLastSelected, Copy(fStrings[fLastSelected], 1, Pos(#255, fStrings[fLastSelected]) -1));

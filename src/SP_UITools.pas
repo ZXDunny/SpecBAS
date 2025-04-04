@@ -20,7 +20,7 @@ Type
     Procedure searchEdtChange(Sender: SP_BaseComponent; Text: aString);
     Procedure Accept(Sender: SP_BaseComponent; s: aString);
     Procedure Abort(Sender: SP_BaseComponent);
-    Procedure expChkChange;
+    Procedure expChkChange(Sender: SP_BaseComponent);
   end;
 
   SP_FileRequester = Class
@@ -631,7 +631,7 @@ Begin
 
 End;
 
-Procedure SP_FindReplace.expChkChange;
+Procedure SP_FindReplace.expChkChange(Sender: SP_BaseComponent);
 Begin
 
   searchEdtChange(nil, searchEdt.Text);

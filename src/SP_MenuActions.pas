@@ -3,7 +3,7 @@ unit SP_MenuActions;
 interface
 
 Uses SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit,
-     SP_TabBarUnit, SP_LabelUnit, SP_EditUnit, SP_ContainerUnit, SP_Interpret_PostFix;
+     SP_TabBarUnit, SP_LabelUnit, SP_EditUnit, SP_ContainerUnit, SP_Interpret_PostFix, SP_Util;
 
 Type
 
@@ -51,32 +51,40 @@ Type
     Class Procedure FPMenu_AddWatch(Sender: SP_BaseComponent);
     Class Procedure FPMenu_FullScreen(Sender: SP_BaseComponent);
 
-    Class Procedure GrabberMouseDown(X, Y, Btn: Integer);
-    Class Procedure GrabberMouseMove(X, Y, Btn: Integer);
-    Class Procedure GrabberMouseUp(X, Y, Btn: Integer);
+    Class Procedure GrabberMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+    Class Procedure GrabberMouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+    Class Procedure GrabberMouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+
+    Class Procedure FPEditorSearchBarPaint(Control: SP_BaseComponent);
+    Class Procedure FPSearchBoxMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+    Class Procedure FPSearchBoxChange(Control: SP_BaseComponent; Text: aString);
 
   End;
 
   Procedure SP_CreateEditorMenu;
   Procedure SP_CreateEditorTabBar;
   Procedure SP_CreateEditorSearchBar;
+  Procedure SP_ResizeSearchPanel;
   Procedure UpdateStatusLabel;
 
 Var
 
   // Editor menu strip
-  FPMenu: SP_WindowMenu; FPTabBar: SP_TabBar; FPSearchBox: SP_Edit; FPSearchPanel: SP_Container;
+  FPMenu: SP_WindowMenu; FPTabBar: SP_TabBar;
   FPFileMenu, FPRecentMenu, FPEditMenu, FPMarkerMenu, FPViewMenu, FPRunMenu, FPToolsMenu, FPHelpMenu,
   FPSetMarkerMenu, FPJumpMarkerMenu: SP_PopupMenu;
 
   // Editor status label that sits to the right of the menu
   FPEditorStatusLabel, FPDirectStatusLabel: SP_Label;
 
+  // Editor searchbar
+  FPSearchBox: SP_Edit; FPSearchPanel: SP_Container; FPSearchLastWindow: integer;
+
 implementation
 
 Uses SP_BankManager, SP_BankFiling, SP_Errors, SP_Graphics, SP_FileIO, SP_Input,
-     SP_FPEditor, SP_SysVars, SP_Util, SP_ControlMsgs, SP_DebugPanel, SP_Main,
-     SP_Variables, SP_PreRun;
+     SP_FPEditor, SP_SysVars, SP_ControlMsgs, SP_DebugPanel, SP_Main,
+     SP_Variables, SP_PreRun, SP_Components;
 
 Var
 
@@ -93,6 +101,40 @@ Begin
   FPTabBar.Align := SP_AlignBottom;
 End;
 
+Class Procedure SP_MenuActionProcs.FPEditorSearchBarPaint(Control: SP_BaseComponent);
+Begin
+
+  With Control Do Begin
+    If Assigned(FPSearchBox) then
+      Print(FPSearchBox.Left - (FPFw * 4 + BSIZE), 5, 'Find', 0, -1, EdFontScaleX, EdFontScaleY, False, False, False, False);
+    DrawLine(0, 0, fWidth -1, 0, fBorderClr);
+    DrawLine(0, 1, fWidth -1, 1, 15);
+    DrawLine(0, fHeight -1, fWidth -1, fHeight -1, SP_UIShadow);
+  End;
+
+End;
+
+Class Procedure SP_MenuActionProcs.FPSearchBoxChange(Control: SP_BaseComponent; Text: aString);
+Var
+  Error: TSP_ErrorCode;
+Begin
+
+  FPSearchTerm := Text;
+  FPSearchOptions := [soForward];
+  FPShowingFindResults := False;
+  FPShowingSearchResults := True;
+  SP_FindAll(Text, FPSearchOptions, Error);
+  SP_ShowFindResults;
+
+End;
+
+Class Procedure SP_MenuActionProcs.FPSearchBoxMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+Begin
+
+  SP_SwitchFocus(fwNone);
+
+End;
+
 Procedure SP_CreateEditorSearchBar;
 Var
   FW, FH: Integer;
@@ -104,12 +146,23 @@ Begin
 
   SP_GetWindowDetails(FPWindowID, Win, Error);
   FPSearchPanel := SP_Container.Create(Win^.Component);
-  FPSearchPanel.Align := SP_AlignBottom;
+  FPSearchPanel.BackgroundClr := 251;
   FPSearchPanel.Border := False;
+  FPSearchPanel.OnPaintAfter := SP_MenuActionProcs.FPEditorSearchBarPaint;
+  FPSearchPanel.Height := Fh + 10;
+  FPSearchPanel.Align := SP_AlignBottom;
 
   FPSearchBox := SP_Edit.Create(FPSearchPanel);
-  FPSearchBox.Width := FW * 20 + 8;
-  FPSearchBox.Border := False;
+  FPSearchBox.Border := True;
+  FPSearchBox.OnMouseDown := SP_MenuActionProcs.FPSearchBoxMouseDown;
+  FPSearchBox.OnChange := SP_MenuActionProcs.FPSearchBoxChange;
+
+End;
+
+Procedure SP_ResizeSearchPanel;
+Begin
+  FPSearchBox.SetBounds(BSIZE + (FPGutterWidth * FPFw), 3, Fw * 32 + 4, Fh + 4);
+  FPSearchPanel.Paint;
 End;
 
 Procedure SP_CreateEditorMenu;
@@ -546,19 +599,19 @@ Begin
   AddControlMsg(clKeyPress, aChar(K_CONTROL) + aChar(K_W));
 End;
 
-Class Procedure SP_MenuActionProcs.GrabberMouseDown(X, Y, Btn: Integer);
+Class Procedure SP_MenuActionProcs.GrabberMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
   DisplaySection.Leave;
   AddControlMsg(clGrabberMouseDown, LongWordToString(MOUSEX));
 End;
 
-Class Procedure SP_MenuActionProcs.GrabberMouseMove(X, Y, Btn: Integer);
+Class Procedure SP_MenuActionProcs.GrabberMouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
   DisplaySection.Leave;
   AddControlMsg(clGrabberMouseMove, LongWordToString(MOUSEX));
 End;
 
-Class Procedure SP_MenuActionProcs.GrabberMouseUp(X, Y, Btn: Integer);
+Class Procedure SP_MenuActionProcs.GrabberMouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
   DisplaySection.Leave;
   AddControlMsg(clGrabberMouseUp, '');

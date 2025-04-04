@@ -69,9 +69,9 @@ SP_PopupMenu = Class(SP_BaseComponent)
     Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetSeparatorClr(c: Byte);
 
-    Procedure MouseDown(X, Y, Btn: Integer); Override;
-    Procedure MouseUp(X, Y, Btn: Integer); Override;
-    Procedure MouseMove(X, Y, Btn: Integer); Override;
+    Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure MouseExit; Override;
     Function  ItemAtPos(x, y: Integer): Integer;
     Function  AddItem(Item: SP_MenuItem): pSP_MenuItem;
@@ -474,7 +474,7 @@ Begin
 
 End;
 
-Procedure SP_PopUpMenu.MouseMove(X, Y, Btn: Integer);
+Procedure SP_PopUpMenu.MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Var
   i, old: Integer;
   p: TPoint;
@@ -505,10 +505,10 @@ Begin
     If Assigned(fParentMenu) Then Begin
       If fParentMenu is SP_PopUpMenu Then Begin
         p := fParentMenu.ScreenToClient(ClientToScreen(Point(X, Y)));
-        fParentMenu.MouseMove(p.x, p.y, Btn);
+        fParentMenu.MouseMove(fParentMenu, p.x, p.y, Btn);
       End Else Begin
         p := SP_WindowMenu(fParentMenu).ScreenToClient(ClientToScreen(Point(X, Y)));
-        SP_WindowMenu(fParentMenu).MouseMove(p.x, p.y, Btn);
+        SP_WindowMenu(fParentMenu).MouseMove(fParentMenu, p.x, p.y, Btn);
       End;
     End;
 
@@ -673,7 +673,7 @@ Begin
 
 End;
 
-Procedure SP_PopUpMenu.MouseDown(X, Y, Btn: Integer);
+Procedure SP_PopUpMenu.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Var
   p: TPoint;
   Item: Integer;
@@ -698,7 +698,7 @@ Begin
       CaptureControl := fParentMenu;
       ForceCapture := True;
       p := CaptureControl.ScreenToClient(ClientToScreen(Point(X, Y)));
-      CaptureControl.MouseDown(p.x, p.y, Btn);
+      CaptureControl.MouseDown(CaptureControl, p.x, p.y, Btn);
     End Else Begin
       SetFocus(False);
       Close;
@@ -742,7 +742,7 @@ Begin
 
 End;
 
-Procedure SP_PopUpMenu.MouseUp(X, Y, Btn: Integer);
+Procedure SP_PopUpMenu.MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Var
   i: Integer;
   item: Integer;

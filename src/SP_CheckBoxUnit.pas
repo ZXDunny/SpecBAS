@@ -24,7 +24,7 @@ SP_CheckBox = Class(SP_BaseComponent)
     Procedure SetCheckColor(c: Byte);
     Procedure Draw; Override;
 
-    Procedure MouseDown(X, Y, Btn: Integer); Override;
+    Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
 
     Property Caption: aString read fCaption write SetCaption;
     Property Checked: Boolean read fChecked write SetChecked;
@@ -78,7 +78,7 @@ Begin
   If fChecked <> b then Begin
     fChecked := b;
     If Assigned(fOnChecked) Then
-      fOnChecked;
+      fOnChecked(Self);
     Paint;
   End;
 
@@ -168,7 +168,7 @@ Begin
 
 End;
 
-Procedure SP_CheckBox.MouseDown(X, Y, Btn: Integer);
+Procedure SP_CheckBox.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   Inherited;

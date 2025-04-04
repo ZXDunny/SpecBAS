@@ -28,8 +28,8 @@ SP_WindowMenu = Class(SP_BaseComponent)
     Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetPermanent(b: Boolean);
     Procedure SetVisible(Value: Boolean); Override;
-    Procedure MouseDown(X, Y, Btn: Integer); Override;
-    Procedure MouseMove(X, Y, Btn: Integer); Override;
+    Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure MouseExit; Override;
     Function  ItemAtPos(x, y: Integer): Integer;
     Procedure AddItem(Item: SP_MenuItem);
@@ -319,7 +319,7 @@ Begin
 
 End;
 
-Procedure SP_WindowMenu.MouseMove(X, Y, Btn: Integer);
+Procedure SP_WindowMenu.MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Var
   e: TRect;
   i: Integer;
@@ -423,7 +423,7 @@ Begin
 
 End;
 
-Procedure SP_WindowMenu.MouseDown(X, Y, Btn: Integer);
+Procedure SP_WindowMenu.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Var
   i: Integer;
   p: TPoint;

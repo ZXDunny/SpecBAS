@@ -18,7 +18,7 @@ Type
     Class Procedure ButtonClick(Sender: SP_BaseComponent);
     Class Procedure SelectItem(Sender: SP_BaseComponent; Index: Integer);
     Class Procedure SetFocus(Sender: SP_BaseComponent; WillFocus: Boolean);
-    Class Procedure PaintGrabber;
+    Class Procedure PaintGrabber(Control: SP_BaseComponent);
 
   End;
 
@@ -796,12 +796,12 @@ Begin
 
 End;
 
-Class Procedure SP_DebugPanelActionProcs.PaintGrabber;
+Class Procedure SP_DebugPanelActionProcs.PaintGrabber(Control: SP_BaseComponent);
 var
   i, y, x: Integer;
 Begin
 
-  With FPSizeGrabber do Begin
+  With Control do Begin
     x := (Width Div 2) -2;
     y := (Height Div 2) - 5;
     for i := 0 to 2 do

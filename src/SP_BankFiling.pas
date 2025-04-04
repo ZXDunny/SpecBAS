@@ -178,6 +178,7 @@ Type
     TileHeight: Integer;    // Width and height of the tiles stored in the graphic.
     GraphicData: pByte;     // Pointer to the internal graphic data - nil if using a bank.
     GraphicWidth: Integer;  // Width of the tilemap's associated graphic
+    GraphicHeight: Integer; // Height of the tilemap's associated graphic
     GraphicTransparent: Word;
     Rotation,
     Scaling: aFloat;        // The last used rotation and scaling from the last issued DRAW command.

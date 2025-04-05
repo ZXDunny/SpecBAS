@@ -3946,7 +3946,7 @@ Begin
       SP_FPDeleteSelection(Sel);
 
     Strings := TAnsiStringlist.Create;
-    Strings.Text := ClipBoard.AsText;
+    Strings.Text := aString(ClipBoard.AsText);
 
     If Strings.Count > 0 Then Begin
       nCPos := Length(Strings[Strings.Count -1]);

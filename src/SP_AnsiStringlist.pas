@@ -253,7 +253,7 @@ End;
 
 Procedure TAnsiStringlist.SetText(s: AnsiString);
 Var
-  p, i: Integer;
+  p: Integer;
 Begin
   Clear;
   While s <> '' Do Begin

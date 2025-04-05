@@ -131,6 +131,8 @@ Function  SP_FindStrArray(const Name: aString): Integer;
 Procedure SP_InsertGlobalNumVar(Var Idx: Integer); inline;
 Procedure SP_InsertGlobalStrVar(Var Idx: Integer); inline;
 Function  SP_NewNumVar: Integer;
+Function  New_NumVarContent: pSP_NumVarContent; inline;
+Function  New_StrVarContent: pSP_StrVarContent; inline;
 Function  SP_UpdateNumVar(Idx: Integer; const Name: aString; Var Value: aFloat; Var Error: TSP_ErrorCode; Ptr: pLongWord): Integer;
 Procedure SP_UpdateNumVarIndex(Idx: Integer; Var Value: aFloat); inline;
 Function  SP_IncNumVar(Idx: Integer; const Name: aString; Var Value: aFloat; Var Error: TSP_ErrorCode; Ptr: pLongWord): Integer;
@@ -259,6 +261,30 @@ Const
 implementation
 
 Uses SP_Main, SP_Interpret_PostFix, SP_InfixToPostFix, SP_Graphics, SP_Streams, SP_BankManager, SP_FileIO, SP_Menu, SP_FPEditor, SP_PreRun;
+
+Function New_NumVarContent: pSP_NumVarContent; inline;
+Begin
+  Result := New(pSP_NumVarContent);
+  With Result^ Do Begin
+    FillChar(Result^, SizeOf(TSP_NumVarContent), 0);
+    VarType := SP_NumVar;
+    EachTokens := '';
+    Key := '';
+  End;
+End;
+
+Function New_StrVarContent: pSP_StrVarContent; inline;
+Begin
+  Result := New(pSP_StrVarContent);
+  With Result^ Do Begin
+    FillChar(Result^, SizeOf(TSP_NumVarContent), 0);
+    Value := '';
+    VarType := SP_NumVar;
+    EachTokens := '';
+    StructName := '';
+    Key := '';
+  End;
+End;
 
 Function SP_FindNumVar(const Name: aString): Integer; inline;
 Begin
@@ -991,7 +1017,7 @@ Begin
 
   SetLength(NumArrays[DstIdx].Values, NumArrays[SrcIdx].Size);
   For Idx := 0 To Length(NumArrays[SrcIdx].Values) -1 Do Begin
-    nVar := New(pSP_NumVarContent);
+    nVar := New_NumVarContent;
     CopyMem(@nVar^, @NumArrays[SrcIdx].Values[Idx]^, SizeOf(TSP_NumVarContent));
     nVar^.EachTokens := NumArrays[SrcIdx].Values[Idx]^.EachTokens;
     nVar^.Key := NumArrays[SrcIdx].Values[Idx]^.Key;
@@ -1104,7 +1130,7 @@ Begin
   NumArrays[Idx].LastSearchTerm := 0;
   SetLength(NumArrays[Idx].Values, IndexCount);
   For pIdx := 0 To IndexCount -1 Do Begin
-    NumArrays[Idx].Values[pIdx] := New(pSP_NumVarContent);
+    NumArrays[Idx].Values[pIdx] := New_NumVarContent;
     NumArrays[Idx].Values[pIdx]^.Value := 0;
   End;
   NumArrays[Idx].Base := Base;
@@ -1335,7 +1361,7 @@ Begin
       Inc(NumArrays[Idx].Size);
       SetLength(NumArrays[Idx].Values, NumArrays[Idx].Size);
       Offset := NumArrays[Idx].Size -1;
-      NumArrays[Idx].Values[Offset] := New(pSP_NumVarContent);
+      NumArrays[Idx].Values[Offset] := New_NumVarContent;
       NumArrays[Idx].Values[Offset]^.Value := Value;
       Result := Idx;
       LastPtr := nil;
@@ -1655,7 +1681,7 @@ Begin
   StrArrays[Idx].LastSearchTerm := '';
   SetLength(StrArrays[Idx].Strings, IndexCount);
   For pIdx := 0 To IndexCount -1 Do Begin
-    StrArrays[Idx].Strings[pIdx] := New(pSP_StrVarContent);
+    StrArrays[Idx].Strings[pIdx] := New_StrVarContent;
     StrArrays[Idx].Strings[pIdx]^.DLen := DLen;
     If DLen = 0 Then Begin
       If sIdx <> -1 Then Begin
@@ -1868,7 +1894,7 @@ Begin
     Inc(StrArrays[Idx].Size);
     SetLength(StrArrays[Idx].Strings, StrArrays[Idx].Size);
     Offset := StrArrays[Idx].Size -1;
-    StrArrays[Idx].Strings[Offset] := New(pSP_StrVarContent);
+    StrArrays[Idx].Strings[Offset] := New_StrVarContent;
     StrArrays[Idx].Strings[Offset]^.DLen := StrArrays[Idx].DLen;
     Result := Idx;
     LastPtr := nil;
@@ -2471,7 +2497,6 @@ Begin
             SaveData := SaveData + LongWordToString(Values[Idx]^.VarType) + LongWordToString(Values[Idx]^.LoopLine) + aFloatToString(Values[Idx]^.InitVal) +
                                    LongWordToString(Values[Idx]^.LoopStatement) + LongWordToString(Values[Idx]^.St) + aFloatToString(Values[Idx]^.EndAt) +
                                    aFloatToString(Values[Idx]^.Step) + aFloatToString(Values[Idx]^.Value) + LongWordToString(Values[Idx]^.Count);
-
           HashData := '';
           HashCount := 0;
           For Idx := 0 To 255 Do Begin
@@ -2851,7 +2876,7 @@ Begin
 
           SetLength(NumArrays[VarIdx].Values, NumArrays[VarIdx].Size);
           For Idx := 0 To NumArrays[VarIdx].Size -1 Do Begin
-            NumArrays[VarIdx].Values[Idx] := New(pSP_NumVarContent);
+            NumArrays[VarIdx].Values[Idx] := New_NumVarContent;
             SP_FileRead(SrcFile, @NV.VarType, SizeOf(NV_Template), Error);
             With NumArrays[VarIdx].Values[Idx]^ Do Begin
               VarType := NV.VarType;
@@ -2956,7 +2981,7 @@ Begin
 
             SetLength(StrArrays[VarIdx].Strings, StrArrays[VarIdx].Size);
             For Idx := 0 To StrArrays[VarIdx].Size -1 Do Begin
-              StrArrays[VarIdx].Strings[Idx] := New(pSP_StrVarContent);
+              StrArrays[VarIdx].Strings[Idx] := New_StrVarContent;
               SP_FileRead(SrcFile, @SV.SliceFrom, SizeOf(SV_Template), Error);
               With StrArrays[VarIdx].Strings[Idx]^ Do Begin
                 SliceFrom := SV.SliceFrom;

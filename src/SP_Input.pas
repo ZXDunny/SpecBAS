@@ -427,10 +427,11 @@ Begin
     Result := ActiveKeys[l -1].KeyChar;
     If Result = #0 Then
       Case ActiveKeys[l -1].KeyCode of
-        37: Result := aChar(8);
-        38: Result := aChar(11);
-        39: Result := aChar(9);
-        40: Result := aChar(10);
+        0..31: Result := aChar(ActiveKeys[l -1].KeyCode And $FF);
+        37:    Result := aChar(8);
+        38:    Result := aChar(11);
+        39:    Result := aChar(9);
+        40:    Result := aChar(10);
       Else
         Result := '';
       End;

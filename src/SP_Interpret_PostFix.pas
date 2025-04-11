@@ -21324,6 +21324,7 @@ Begin
   // Set the input format to nothing, so no mask. Set colours of cursor, and finally set position to bottom-left of the screen, infinite scroll.
 
   INFORMAT := '';
+  INFORMATSTRINGS.Clear;
   INPUTBACK := SP_GrabCurrentWindow;
   SP_Reset_Temp_Colours;
   If SCREENBPP = 8 Then Begin
@@ -21345,20 +21346,35 @@ End;
 
 Procedure SP_Interpret_INPUT_FORMAT(Var Info: pSP_iInfo);
 Var
-  Idx: Integer;
+  Idx, fmtGroup: Integer;
+  str, tStr: aString;
 Begin
 
   Idx := 1;
+  fmtGroup := 0;
   INFORMAT := '';
-  While Idx <= Length(SP_StackPtr^.Str) Do Begin
-    If SP_StackPtr^.Str[Idx] <> '\' Then
-      INFORMAT := INFORMAT + SP_StackPtr^.Str[Idx] + SP_StackPtr^.Str[Idx]
-    Else
-      If Idx < Length(SP_StackPtr^.Str) Then Begin
-        INFORMAT := INFORMAT + SP_StackPtr^.Str[Idx] + SP_StackPtr^.Str[Idx +1];
+  INFORMATSTRINGS.Clear;
+  str := SP_StackPtr^.Str;
+  While Idx <= Length(Str) Do Begin
+    If Str[Idx] = '[' Then Begin
+      tstr := '';
+      Inc(Idx);
+      while (Idx < Length(str)) And (str[Idx] <> ']') Do Begin
+        tStr := tStr + str[Idx];
         Inc(Idx);
-      End Else
-        INFORMAT := INFORMAT + SP_StackPtr^.Str[Idx] + SP_StackPtr^.Str[Idx];
+      End;
+      INFORMAT := INFORMAT + aChar(fmtGroup) + aChar(fmtGroup);
+      INFORMATSTRINGS.Add(tStr);
+      Inc(fmtGroup);
+    End Else
+      If Str[Idx] <> '\' Then
+        INFORMAT := INFORMAT + Str[Idx] + Str[Idx]
+      Else
+        If Idx < Length(Str) Then Begin
+          INFORMAT := INFORMAT + Str[Idx] + Str[Idx +1];
+          Inc(Idx);
+        End Else
+          INFORMAT := INFORMAT + Str[Idx] + Str[Idx];
     Inc(Idx);
   End;
   INFORMAT := INFORMAT + '**';
@@ -21426,6 +21442,7 @@ Begin
     CURSORPOS := 1;
     INPUTERRORHANDLED := False;
     INFORMAT := '';
+    INFORMATSTRINGS.Clear;
     PRPOSX := PRPOSX + (Length(INPUTLINE) * FONTWIDTH * T_SCALEX);
     While PRPOSX >= SCREENWIDTH Do Begin
       PRPOSY := PRPOSY - (FONTHEIGHT * T_SCALEY);
@@ -21464,12 +21481,13 @@ Begin
   CURSORPOS := 1;
   INPUTERRORHANDLED := False;
   INFORMAT := '';
-    PRPOSX := PRPOSX + (Length(INPUTLINE) * FONTWIDTH * T_SCALEX);
-    While PRPOSX >= SCREENWIDTH Do Begin
-      PRPOSY := PRPOSY - (FONTHEIGHT * T_SCALEY);
-      PRPOSX := PRPOSX - SCREENWIDTH;
-    End;
-    INPUTLINE := '';
+  INFORMATSTRINGS.Clear;
+  PRPOSX := PRPOSX + (Length(INPUTLINE) * FONTWIDTH * T_SCALEX);
+  While PRPOSX >= SCREENWIDTH Do Begin
+    PRPOSY := PRPOSY - (FONTHEIGHT * T_SCALEY);
+    PRPOSX := PRPOSX - SCREENWIDTH;
+  End;
+  INPUTLINE := '';
 
 End;
 

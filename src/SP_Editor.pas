@@ -39,6 +39,7 @@ Function  SP_ShowMenu(Var Options: aString; cX, cY: Integer): Integer;
 Var
 
   EditorSaveFPS: aFloat;
+  INFORMATSTRINGS: TAnsiStringlist;
 
 implementation
 
@@ -247,7 +248,7 @@ Begin
   INPUTLINE := SP_INPUTFromFORMAT;
   CURSORPOS := 1;
   If INFORMAT <> '' Then
-    While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
+    While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
 
   SYSTEMSTATE := SS_INPUT;
   Finished := False;
@@ -359,6 +360,7 @@ End;
 Procedure SP_PerformINPUT(Key: SP_KeyInfo);
 Var
   nChar: aChar;
+  fmtGroup: Integer;
 Begin
 
   If Key.KeyChar = #0 Then Begin
@@ -377,9 +379,9 @@ Begin
             End Else Begin
               Dec(CURSORPOS);
               If INFORMAT <> '' Then Begin
-                While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
+                While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
                 If CURSORPOS = 1 Then
-                  While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
+                  While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
               End;
             End;
           End;
@@ -395,9 +397,9 @@ Begin
             End Else Begin
               Inc(CURSORPOS);
               If INFORMAT <> '' Then Begin
-                While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
+                While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
                 If CURSORPOS = Length(INPUTLINE) Then
-                  While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
+                  While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
               End;
             End;
           End;
@@ -407,14 +409,14 @@ Begin
         Begin
           CURSORPOS := 1;
           If INFORMAT <> '' Then
-            While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
+            While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
         End;
 
       K_END:
         Begin
           If INFORMAT <> '' Then Begin
             CURSORPOS := Length(INPUTLINE) +1;
-            While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
+            While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
           End Else
             CURSORPOS := Length(INPUTLINE)+1;
         End;
@@ -427,9 +429,9 @@ Begin
               Dec(CURSORPOS);
             End Else Begin
               Dec(CURSORPOS);
-              While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
+              While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
               If CURSORPOS = 1 Then
-                While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
+                While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
               INPUTLINE[CURSORPOS] := ' ';
             End;
           End;
@@ -489,6 +491,12 @@ Begin
       nChar := Key.KeyChar;
       If INFORMAT[(CURSORPOS *2) -1] <> '\' Then
         Case INFORMAT[CURSORPOS *2] of
+          #0..#31:
+            Begin
+              fmtGroup := Ord(INFORMAT[(CURSORPOS *2) -1]);
+              If (fmtGroup >= INFORMATSTRINGS.Count) or (Pos(nChar, INFORMATSTRINGS[fmtGroup]) <= 0) Then
+                nChar := #0;
+            End;
           'A':
             If nChar in ['a'..'z'] Then
               nChar := aChar(Ord(nChar) - 32)
@@ -521,9 +529,9 @@ Begin
         INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + nChar + Copy(INPUTLINE, CURSORPOS +1, LENGTH(INPUTLINE));
         If CURSORPOS <= Length(INPUTLINE) Then Begin
           Inc(CURSORPOS);
-          While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
+          While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
           If CURSORPOS = Length(INPUTLINE) Then
-            While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in ['#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
+            While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
         End;
       End;
     End;
@@ -543,7 +551,7 @@ Begin
   While Idx <= Length(INFORMAT) -2 Do Begin
 
     Case INFORMAT[Idx] Of
-      '#', 'A', 'a', '<', '>', '&', '?', '*':
+      #0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*':
         Result := Result + ' ';
       '\':
         Begin
@@ -707,5 +715,13 @@ Begin
   OptionList.Free;
 
 End;
+
+Initialization
+
+  INFORMATSTRINGS := TAnsiStringList.Create;
+
+Finalization
+
+  INFORMATSTRINGS.Free;
 
 end.

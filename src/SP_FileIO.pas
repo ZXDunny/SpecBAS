@@ -346,6 +346,7 @@ Var
 Begin
 
   Result := -1;
+  LASTFILENAME := Filename;
 
   // Filename is in SpecBAS format.
 
@@ -469,6 +470,7 @@ Var
 Begin
 
   Result := -1;
+  LASTFILENAME := Filename;
 
   // Filename might be in SpecBAS format, but may also be a host-format filename.
 
@@ -1488,7 +1490,7 @@ Begin
                         If Lower(Copy(PlainCode, 1, 4)) = 'prog' Then Begin
                           if not DirtyFile then Begin
                             PlainCode := Copy(PlainCode, 5, Length(PlainCode));
-                            While Copy(PlainCode, 1, 1) <= ' ' Do
+                            While (PlainCode <> '') And (Copy(PlainCode, 1, 1) <= ' ') Do
                               PlainCode := Copy(PlainCode, 2, Length(PlainCode));
                             If isAutoSaved Then
                               pName := PlainCode;

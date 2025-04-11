@@ -324,6 +324,8 @@ Var
   HELPBANK:                 Integer;      // The Bank-ID of the help file.
   HELPWINDOW:               Integer;      // The Window-ID of the help window in the editor.
 
+  LASTFILENAME:             aString;      // The last file that was opened for loading or saving
+
   BackClr:                  aString;
   noClr:                    aString;
   kwdClr:                   aString;
@@ -1601,7 +1603,7 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3));
 
-  SysVars: Array[0..256] of TSysVar =
+  SysVars: Array[0..257] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
@@ -1863,7 +1865,9 @@ Const
    (Name: 'FPSHISTSIZE'; svType: svInteger; Size: 4; Data: @FPSHISTSIZE),
    (Name: 'FPSSTR'; svType: svString; Size: 0; Data: @FPSSTRING),
    (Name: 'OSD'; svType: svString; Size: 0; Data: @OSD),
-   (Name: 'CAPTION'; svType: svString; Size: 0; Data: @WCAPTION));
+   (Name: 'CAPTION'; svType: svString; Size: 0; Data: @WCAPTION),
+
+   (Name: 'LASTFILENAME'; svType: svString; Size: 0; Data: @LASTFILENAME));
 
   Function  SP_GetSysVarN(ID: aString; Var Error: TSP_ErrorCode): aFloat;
   Function  SP_GetSysVarS(ID: aString; Var Error: TSP_ErrorCode): aString;

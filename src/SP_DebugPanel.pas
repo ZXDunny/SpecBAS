@@ -899,7 +899,7 @@ Begin
               lbl := lbl + '(';
               Inc(ps);
               bc := 0;
-              while (ps < Length(s)) and (s[ps] in ['_', '0'..'9', 'a'..'z', '(', ')', ',', ' ']) Do Begin
+              while (ps <= Length(s)) and (s[ps] in ['_', '0'..'9', 'a'..'z', '(', ')', ',', ' ']) Do Begin
                 if s[ps] = '(' then Begin
                   Inc(ps);
                   lbl := lbl + '(';

@@ -1235,7 +1235,8 @@ Begin
           Else
             SmoothMove := False;
         End Else Begin
-          If (Listing.FPCPos >= FPGutterWidth) And (SP_LineHasNumber(Listing.FPCLine) > 0) Then
+          nPos := SP_LineHasNumber(Listing.FPCLine);
+          If ((Listing.FPCPos >= FPGutterWidth) And (nPos > 0)) or (nPos = 0) Then
             Dec(CURSORX, Delta);
           SP_DisplayFPListing(-1);
         End;
@@ -2595,11 +2596,32 @@ Begin
 
 End;
 
+Function GetCursorXPos: Integer;
+Var
+  s: aString;
+  sl, ll: Integer;
+Begin
+  s := Listing[Listing.FPCLine];
+  sl := Length(s);
+  If (S <> '') And (s[1] in ['0'..'9']) And Not SP_WasPrevSoft(Listing.FPCLine) Then Begin
+    LL := 1;
+    While (LL <= sl) And (s[LL] in ['0'..'9']) Do
+      Inc(LL);
+    If Listing.FPCPos < LL Then
+      Result := ((FPGutterWidth - (LL-Listing.FPCPos)) * FPFw) + FPPaperLeft + 1
+    Else
+      Result := ((Listing.FPCPos - LL) * FPFw) + 1;
+  End Else Begin
+    Result := ((Listing.FPCPos -1) * FPFw) + 1;
+    Inc(Result, Listing.Flags[Listing.FPCLine].Indent * FPFw);
+  End;
+End;
+
 Function SP_ScrollInView(FromSearch: Boolean; Force: Boolean = False): Boolean;
 Var
   Extents: TPoint;
   VertSB, HorzSB: pSP_ScrollBar;
-  TenPercentW, TenPercentH, Cx, Cy, OfsX, mn, mx, tpx, tpy: Integer;
+  TenPercentW, TenPercentH, Cx, Cy, mn, mx, tpx, tpy: Integer;
   Direct: Boolean;
 Label
   Skip;
@@ -2610,30 +2632,16 @@ Begin
 
   SP_FPRethinkScrollBars;
 
+  HorzSB := nil;
   VertSB := @FPScrollBars[SP_FindScrollBar(FPVertSc)];
-  If Not EDITORWRAP Then
-    HorzSB := @FPScrollBars[SP_FindScrollBar(FPHorzSc)]
-  Else
-    HorzSB := nil;
-
   TenPercentH := VertSB.PageSize Div 4;
-  If Not EditorWrap Then
-    TenPercentW := HorzSB.PageSize Div 4
-  Else
-    TenPercentW := 0;
-
-  SP_CalculateFPCursorPos;
 
   mn := Round(VertSB.TargetPos + TenPercentH);
   mx := Round(VertSB.TargetPos + VertSB.PageSize - TenPercentH);
   Direct := False;
 
   If FocusedWindow = fwEditor Then Begin
-    If Not EDITORWRAP Then Begin
-      OfsX := -Trunc(HorzSB^.Position) + (FPGutterWidth * FPFw) + FPPaperLeft;
-      Cx := CURSORX - OfsX;
-    End Else
-      Cx := 0;
+    Cx := 0;
     Cy := Listing.FPCLine * FPFh;
   End Else Begin
     Extents := SP_GetLineExtents(SP_GetLineIndex(PROGLINE));
@@ -2645,10 +2653,7 @@ Begin
   // First, sort out the Y position.
 
   tpy := Trunc(VertSB.Position);
-  If Not EDITORWRAP then
-    tpx := Trunc(HorzSB.Position)
-  Else
-    tpx := 0;
+  tpx := 0;
 
   If Direct Then Begin
     Dec(mn, TenPercentH - FPFh);
@@ -2680,6 +2685,11 @@ Begin
   Skip:
 
   If Not EDITORWRAP Then Begin
+
+    HorzSB := @FPScrollBars[SP_FindScrollBar(FPHorzSc)];
+    TenPercentW := HorzSB.PageSize Div 4;
+    tpx := Trunc(HorzSB.Position);
+    Cx := GetCursorXPos;
 
     mn := Round(HorzSB.TargetPos + TenPercentW);
     mx := Round(HorzSB.TargetPos + HorzSB.PageSize - TenPercentW);
@@ -4886,14 +4896,20 @@ Begin
       K_LEFT:
         Begin  // CTRL - word jump. Shift - extend selection.
           If KEYSTATE[K_CONTROL] = 1 Then Begin
-            s := Listing[Listing.FPCLine];
-            If (s <> '') And (Listing.FPCPos > 1) Then Begin
-              If s[Listing.FPCPos -1] in Seps Then Listing.FPCPos := Listing.FPCPos -1;
-              While (Listing.FPCPos > 1) And ((Listing.FPCPos > Length(s)) Or (s[Listing.FPCPos] in Seps)) Do Listing.FPCPos := Listing.FPCPos -1;
-              While (Listing.FPCPos > 1) and (Not (s[Listing.FPCPos] in Seps)) Do Listing.FPCPos := Listing.FPCPos -1;
-              If Listing.FPCPos > 1 Then
-                Listing.FPCPos := Listing.FPCPos +1;
-            End;
+            If Listing.FPCPos > 1 Then Begin
+              s := Listing[Listing.FPCLine];
+              If (s <> '') And (Listing.FPCPos > 1) Then Begin
+                If s[Listing.FPCPos -1] in Seps Then Listing.FPCPos := Listing.FPCPos -1;
+                While (Listing.FPCPos > 1) And ((Listing.FPCPos > Length(s)) Or (s[Listing.FPCPos] in Seps)) Do Listing.FPCPos := Listing.FPCPos -1;
+                While (Listing.FPCPos > 1) and (Not (s[Listing.FPCPos] in Seps)) Do Listing.FPCPos := Listing.FPCPos -1;
+                If Listing.FPCPos > 1 Then
+                  Listing.FPCPos := Listing.FPCPos +1;
+              End;
+            End Else
+              If Listing.FPCLine > 0 Then Begin
+                Dec(Listing.FPCLine);
+                Listing.FPCPos := Length(Listing[Listing.FPCLine]) +1;
+              End;
           End Else Begin
             If Listing.FPCPos > 1 Then
               Listing.FPCPos := Listing.FPCPos -1
@@ -4915,16 +4931,21 @@ Begin
           If Listing.Flags[Listing.FPCLine].ReturnType <> spSoftReturn Then s := s + ' ';
           If KEYSTATE[K_CONTROL] = 1 Then Begin
             Idx := Listing.FPCPos;
-            If s[Idx] in Seps Then Begin
-              While (Idx < Length(s)) And (s[Idx] in Seps) Do
-                Inc(Idx);
+            If (Idx >= Length(s)) And (Listing.FPCLine < Listing.Count -1) Then Begin
+              Listing.FPCPos := 1;
+              Inc(Listing.FPCLine)
             End Else Begin
-              While (Idx < Length(s)) And Not (s[Idx] in Seps) Do
-                Inc(Idx);
-              While (Idx < Length(s)) And (s[Idx] in Seps) Do
-                Inc(Idx);
+              If s[Idx] in Seps Then Begin
+                While (Idx < Length(s)) And (s[Idx] in Seps) Do
+                  Inc(Idx);
+              End Else Begin
+                While (Idx < Length(s)) And Not (s[Idx] in Seps) Do
+                  Inc(Idx);
+                While (Idx < Length(s)) And (s[Idx] in Seps) Do
+                  Inc(Idx);
+              End;
+              Listing.FPCPos := Idx;
             End;
-            Listing.FPCPos := Idx;
           End Else Begin
             If Listing.FPCPos < Length(s) Then
               Listing.FPCPos := Listing.FPCPos +1
@@ -5019,15 +5040,17 @@ Begin
 
       K_PRIOR:
         Begin // Ctrl - Jump to first line on this page. Shift - extend selection
-          SB := @FPScrollBars[SP_FindScrollBar(FPVertSc)];
-          If KEYSTATE[K_CONTROL] = 1 Then Begin
-            Listing.FPCLine := Max(Trunc(SB^.Position/FPFh), 0);
-          End Else Begin
-            Listing.FPCLine := Max(0, (Listing.FPCLine - (SB^.PageSize Div FPFh)) +1);
+          If Listing.FPCLine > 0 Then Begin
+            SB := @FPScrollBars[SP_FindScrollBar(FPVertSc)];
+            If KEYSTATE[K_CONTROL] = 1 Then Begin
+              Listing.FPCLine := Max(Trunc(SB^.Position/FPFh), 0);
+            End Else Begin
+              Listing.FPCLine := Max(0, (Listing.FPCLine - (SB^.PageSize Div FPFh)) +1);
+            End;
+            Listing.FPCPos := SP_GetDesired;
+            SP_CalculateFPCursorPos;
+            FPCDes := Listing.FPCPos;
           End;
-          Listing.FPCPos := SP_GetDesired;
-          SP_CalculateFPCursorPos;
-          FPCDes := Listing.FPCPos;
           If KEYSTATE[K_SHIFT] = 0 Then SP_FPClearSelection(Sel);
           PlayClick;
         End;
@@ -5433,7 +5456,7 @@ Begin
   SP_RefreshCursorLineAfterChange(Cy);
   UpdateStatusLabel;
 
- SP_ScrollInView(False);
+  SP_ScrollInView(False);
 
 End;
 
@@ -9640,78 +9663,100 @@ Begin
       if t >= 0 Then Begin
         Result.Hint := #16#1#0#0#0 + AFloatToStr(SP_Constants[t].Value);
       End Else Begin
-        If Result.Hint[Length(Result.Hint)] = '$' Then Begin
-          Idx := SP_FindStrArray(Lower(Copy(Result.Hint, 1, Length(Result.Hint) -1)));
-          Idx2 := SP_FindStrVar(Lower(Copy(Result.Hint, 1, Length(Result.Hint) -1)));
-          If ((Idx > -1) And (s[j] = '(')) or ((Idx > -1) And (Idx2 = -1) And (s[j] <> '(')) Then Begin
-            Found := True;
-            Result.Hint := Result.Hint + '(';
-            For Idx2 := 0 To StrArrays[Idx].NumIndices -1 Do Begin
-              Result.Hint := Result.Hint + IntToString(StrArrays[Idx].Indices[Idx2]);
-              If Idx2 < StrArrays[Idx].NumIndices -1 Then
-                Result.Hint := Result.Hint + ',';
+        If Result.Hint[1] = '@' Then Begin
+          SP_FPUpdatePoIList;
+          For Idx := 0 To Length(FPPoIList) -1 Do
+            If (FPPoIList[Idx].PoI_Type = PoI_Label) And (FPPoIList[Idx].Name = Copy(Result.Hint, 2)) Then Begin
+              Found := True;
+              Result.Hint := Result.Hint + ' (' + IntToString(Listing.Flags[FPPoIList[Idx].Line].Line) + ':' + IntToString(FPPoIList[Idx].Statement) + ')';
+              Break;
             End;
-            Result.Hint := Result.Hint + ')=' + InsertLiterals(SP_StrArrayToString(Idx, -1));
+        End Else
+          If Result.Hint[Length(Result.Hint)] = '$' Then Begin
+            Idx := SP_FindStrArray(Lower(Copy(Result.Hint, 1, Length(Result.Hint) -1)));
+            Idx2 := SP_FindStrVar(Lower(Copy(Result.Hint, 1, Length(Result.Hint) -1)));
+            If ((Idx > -1) And (s[j] = '(')) or ((Idx > -1) And (Idx2 = -1) And (s[j] <> '(')) Then Begin
+              Found := True;
+              Result.Hint := Result.Hint + '(';
+              For Idx2 := 0 To StrArrays[Idx].NumIndices -1 Do Begin
+                Result.Hint := Result.Hint + IntToString(StrArrays[Idx].Indices[Idx2]);
+                If Idx2 < StrArrays[Idx].NumIndices -1 Then
+                  Result.Hint := Result.Hint + ',';
+              End;
+              Result.Hint := Result.Hint + ')=' + InsertLiterals(SP_StrArrayToString(Idx, -1));
+            End Else Begin
+              Idx := SP_FindStrVar(Lower(Copy(Result.Hint, 1, Length(Result.Hint) -1)));
+              If Idx > -1 Then Begin
+                Found := True;
+                Result.Hint := '';
+                sVar := StrVars[Idx]^.ContentPtr;
+                If StrVars[Idx]^.ProcVar Then
+                  For Idx2 := SP_ProcStackPtr DownTo 0 Do
+                    If Idx >= SP_ProcStack[Idx2].VarPosS Then Begin
+                      Result.Hint := '['+SP_ProcsList[SP_ProcStack[Idx2].ProcIndex].Name+']' + #13;
+                      Break;
+                    End;
+                tStr := sVar^.Value;
+                Result.Hint := Result.Hint + StrVars[Idx]^.Name + '$="' + InsertLiterals(tStr);
+                Result.Hint := Result.Hint + '"';
+              End;
+            End;
           End Else Begin
-            Idx := SP_FindStrVar(Lower(Copy(Result.Hint, 1, Length(Result.Hint) -1)));
-            If Idx > -1 Then Begin
+            Idx := SP_FindNumVar(Lower(Result.Hint));
+            If (Idx > -1) And (s[j] <> '(') Then Begin
               Found := True;
               Result.Hint := '';
-              sVar := StrVars[Idx]^.ContentPtr;
-              If StrVars[Idx]^.ProcVar Then
+              nVar := NumVars[Idx]^.ContentPtr;
+              If NumVars[Idx]^.ProcVar Then
                 For Idx2 := SP_ProcStackPtr DownTo 0 Do
-                  If Idx >= SP_ProcStack[Idx2].VarPosS Then Begin
+                  If Idx >= SP_ProcStack[Idx2].VarPosN Then Begin
                     Result.Hint := '['+SP_ProcsList[SP_ProcStack[Idx2].ProcIndex].Name+']' + #13;
                     Break;
                   End;
-              tStr := sVar^.Value;
-              Result.Hint := Result.Hint + StrVars[Idx]^.Name + '$="' + InsertLiterals(tStr);
-              Result.Hint := Result.Hint + '"';
-            End;
-          End;
-        End Else Begin
-          Idx := SP_FindNumVar(Lower(Result.Hint));
-          If (Idx > -1) And (s[j] <> '(') Then Begin
-            Found := True;
-            Result.Hint := '';
-            nVar := NumVars[Idx]^.ContentPtr;
-            If NumVars[Idx]^.ProcVar Then
-              For Idx2 := SP_ProcStackPtr DownTo 0 Do
-                If Idx >= SP_ProcStack[Idx2].VarPosN Then Begin
-                  Result.Hint := '['+SP_ProcsList[SP_ProcStack[Idx2].ProcIndex].Name+']' + #13;
-                  Break;
+              Result.Hint := Result.Hint + NumVars[Idx]^.Name + '=';
+              If nVar^.VarType = SP_FORVAR Then Begin
+                Result.Hint := Result.Hint + aString(aFloatToStr(nVar^.Value) + ', FOR ' + aFloatToStr(nVar^.InitVal) + ' TO ' + aFloatToStr(nVar^.EndAt));
+                If nVar^.Step <> 1 Then
+                  Result.Hint := Result.Hint + ' STEP ' + aString(aFloatToStr(nVar^.Step));
+                If (nVar^.LoopLine >= 0) And (nVar^.LoopLine < SP_Program_Count) Then
+                  Result.Hint := Result.Hint + ', NEXT at ' + IntToString(pInteger(@SP_Program[nVar^.LoopLine][2])^) + ':' + IntToString(nVar^.St)
+                Else
+                  Result.Hint := Result.Hint + ', NEXT Statement lost';
+              End Else
+                Result.Hint := Result.Hint + aString(aFloatToStr(nVar^.Value));
+            End Else Begin
+              Idx := SP_FindNumArray(Lower(Result.Hint));
+              If Idx > -1 Then Begin
+                Found := True;
+                Result.Hint := Result.Hint + '(';
+                For Idx2 := 0 To NumArrays[Idx].NumIndices -1 Do Begin
+                  Result.Hint := Result.Hint + IntToString(NumArrays[Idx].Indices[Idx2]);
+                  If Idx2 < NumArrays[Idx].NumIndices -1 Then
+                    Result.Hint := Result.Hint + ',';
                 End;
-            Result.Hint := Result.Hint + NumVars[Idx]^.Name + '=';
-            If nVar^.VarType = SP_FORVAR Then Begin
-              Result.Hint := Result.Hint + aString(aFloatToStr(nVar^.Value) + ', FOR ' + aFloatToStr(nVar^.InitVal) + ' TO ' + aFloatToStr(nVar^.EndAt));
-              If nVar^.Step <> 1 Then
-                Result.Hint := Result.Hint + ' STEP ' + aString(aFloatToStr(nVar^.Step));
-              If (nVar^.LoopLine >= 0) And (nVar^.LoopLine < SP_Program_Count) Then
-                Result.Hint := Result.Hint + ', NEXT at ' + IntToString(pInteger(@SP_Program[nVar^.LoopLine][2])^) + ':' + IntToString(nVar^.St)
-              Else
-                Result.Hint := Result.Hint + ', NEXT Statement lost';
-            End Else
-              Result.Hint := Result.Hint + aString(aFloatToStr(nVar^.Value));
-          End Else Begin
-            Idx := SP_FindNumArray(Lower(Result.Hint));
-            If Idx > -1 Then Begin
-              Found := True;
-              Result.Hint := Result.Hint + '(';
-              For Idx2 := 0 To NumArrays[Idx].NumIndices -1 Do Begin
-                Result.Hint := Result.Hint + IntToString(NumArrays[Idx].Indices[Idx2]);
-                If Idx2 < NumArrays[Idx].NumIndices -1 Then
-                  Result.Hint := Result.Hint + ',';
+                Result.Hint := Result.Hint + ')=' + SP_NumArrayToString(Idx, -1);
               End;
-              Result.Hint := Result.Hint + ')=' + SP_NumArrayToString(Idx, -1);
             End;
           End;
-        End;
 
         If Not Found Then Begin
-          If i > 1 Then
-            if s[i-1] in ['%', '$'] Then
-              Result.Hint := s[i-1] + Result.Hint;
-          EvaluateHint(Result);
+          SP_FPUpdatePoIList;
+          For Idx := 0 To Length(FPPoIList) -1 Do Begin
+            tStr := FPPoIList[Idx].Name;
+            If Pos('(', tStr) > 0 Then
+              tStr := Copy(tStr, 1, Pos('(', tStr) -1);
+            If (FPPoIList[Idx].PoI_Type in [PoI_Proc, PoI_Fn]) And (tStr = Result.Hint) Then Begin
+              Found := True;
+              Result.Hint := FPPoIList[Idx].Name + ' (' + IntToString(Listing.Flags[FPPoIList[Idx].Line].Line) + ':' + IntToString(FPPoIList[Idx].Statement) + ')';
+              Break;
+            End;
+          End;
+          If Not Found Then Begin
+            If i > 1 Then
+              if s[i-1] in ['%', '$'] Then
+                Result.Hint := s[i-1] + Result.Hint;
+            EvaluateHint(Result);
+          End;
         End;
 
       End;
@@ -9749,7 +9794,7 @@ Begin
     End;
     c := Lower(Listing[p.y][p.x])[1];
 
-    If c in ['0'..'9', '_', '$', 'a'..'z'] Then Begin
+    If c in ['0'..'9', '_', '$', 'a'..'z', '@'] Then Begin
       lMin := p.Y;
       While (lMin > 0) And SP_WasPrevSoft(lMin) Do Begin
         Dec(lMin);

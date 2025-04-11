@@ -967,6 +967,7 @@ Begin
       FILENAMED := True;
       FILECHANGED := False;
       SP_AddToRecentFiles(Filename, True);
+      LASTFILENAME := Filename;
     End;
 
     SaveBuffer := ASCIITAG + 'AUTO '+IntToString(AutoStart)+#13+#10;
@@ -1609,6 +1610,7 @@ Finish:
           PROGNAME := Lower(SP_ConvertPathToAssigns(pName));
           If Not INSTARTUP Then
             SP_AddToRecentFiles(PROGNAME, False);
+          LASTFILENAME := PROGNAME;
           FILENAMED := True;
         End Else Begin
           PROGNAME := SP_ExtractFilename(pName);

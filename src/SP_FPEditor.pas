@@ -1235,8 +1235,7 @@ Begin
           Else
             SmoothMove := False;
         End Else Begin
-          nPos := SP_LineHasNumber(Listing.FPCLine);
-          If ((Listing.FPCPos >= FPGutterWidth) And (nPos > 0)) or (nPos = 0) Then
+          If Listing.FPCPos >= SP_LineHasNumber(Listing.FPCLine) Then
             Dec(CURSORX, Delta);
           SP_DisplayFPListing(-1);
         End;
@@ -4177,6 +4176,8 @@ Function SP_LineHasNumber(Idx: Integer): Integer;
 Var
   CodeLine: aString;
 Begin
+
+  // Returns the size in characters of a possible line number at idx
 
   Result := 0;
   If (Idx >= 0) And (Idx < Listing.Count) Then Begin

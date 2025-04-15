@@ -880,6 +880,7 @@ begin
   kInfo.KeyChar := aStr[1];
   kInfo.KeyCode := Key And $7F;
   kInfo.NextFrameTime := FRAMES;
+  kInfo.WindowID := FocusedWindow;
 
   If ControlsAreInUse Then Begin
     DisplaySection.Enter;

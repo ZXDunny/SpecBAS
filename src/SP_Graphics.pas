@@ -2974,7 +2974,7 @@ Begin
       DRPOSX := X;
       DRPOSY := Y;
       xr := Round(X - T_STROKE / 2); yr := Round(Y - T_STROKE / 2);
-      SP_FillRect(xr, yr, Round(T_STROKE), Round(T_STROKE), Ink);
+      SP_FillRect(Max(xr, T_CLIPX1), Max(yr, T_CLIPY1), Max(0, Min(xr + Round(T_STROKE), T_CLIPX2) - Max(xr, T_CLIPX1)), Max(0, Min(yr + Round(T_STROKE), T_CLIPY2) - Max(yr, T_CLIPY1)), Ink);
     End Else Begin
       xr := Round(X); yr := Round(Y);
       Ptr := pByte(NativeUInt(SCREENPOINTER)+(LongWord(yr * SCREENSTRIDE) + LongWord(xr)));

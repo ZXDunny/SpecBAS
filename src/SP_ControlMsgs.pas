@@ -63,7 +63,8 @@ Begin
       clKeyPress:
         Begin
           With ControlMsgList[0] Do Begin
-            For i := 1 To Length(Data) Do Begin
+            Key.WindowID := OrD(Data[1]);
+            For i := 2 To Length(Data) Do Begin
               Key.KeyChar := Data[i];
               Key.IsKey := True;
               If (Key.KeyChar >= 'A') And (Key.KeyChar <= 'Z') Then Begin

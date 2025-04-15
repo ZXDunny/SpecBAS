@@ -94,7 +94,7 @@ Var
 
 implementation
 
-Uses SP_Main, SP_FPEditor, SP_Input, MainForm, SP_Interpret_PostFix;
+Uses SP_Main, SP_FPEditor, SP_Input, MainForm, SP_Interpret_PostFix, SP_MenuActions;
 
 Var
 
@@ -628,6 +628,10 @@ Begin
     OkBtn.Enabled := b And (SearchEdt.Text <> '');
     allBtn.Enabled := OkBtn.Enabled;
   End;
+
+  If (OkBtn.Enabled or (SearchEdt.Text = '')) And FPSearchPanel.Visible Then
+    FPSearchBox.Text := SearchEdt.Text;
+
 
 End;
 

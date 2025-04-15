@@ -14,7 +14,7 @@ SP_Edit = Class(SP_BaseComponent)
     fCursorPos: Integer;
     fSelStart: Integer;
     fFlashTimer: Integer;
-    fCursFG, fCursBG, fCursUnfocusedFG, fCursUnfocusedBG: Integer;
+    fCursFG, fCursBG, fCursUnfocusedFG, fCursUnfocusedBG, fGfxCursFg, fGfxCursBg: Integer;
     fGfxMode, fGfxLock: Integer;
     fMouseIsDown: Boolean;
     fAccepted: Boolean;
@@ -51,6 +51,7 @@ SP_Edit = Class(SP_BaseComponent)
     Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure DoubleClick(X, Y, Btn: Integer); Override;
     Procedure SetBounds(x, y, w, h: Integer); Override;
+    Procedure SetTextNoUpdate(s: aString);
 
     Property Text: aString read fText Write SetText;
     Property CursorPos: Integer read fCursorPos write SetCursorPos;
@@ -93,6 +94,8 @@ Begin
   fSelStart := 1;
   fCursFg := 9;
   fCursBg := 15;
+  fGfxCursFg := 0;
+  fGfxCursBg := 6;
   fCursUnfocusedFG := 236;
   fCursUnfocusedBG := 244;
   fCanFocus := True;
@@ -107,6 +110,7 @@ Begin
   fAllowLiterals := False;
   fUndoList := TStringList.Create;
   fRedoList := TStringList.Create;
+  AddOverrideControl(Self);
 
   fFlashTimer := AddTimer(Self, FLASHINTERVAL, FlashTimer, False)^.ID;
 
@@ -220,7 +224,11 @@ Begin
         s := c;
 
       If SP_SysVars.FOCUSED Then Begin
-        Fg := fCursFg; Bg := fCursBg;
+        If fGfxLock = 0 Then Begin
+          Fg := fCursFg; Bg := fCursBg;
+        End Else Begin
+          Fg := fGfxCursFg; Bg := fGfxCursBg;
+        End;
       End Else Begin
         Fg := fCursUnfocusedFG; Bg := fCursUnfocusedBG;
       End;
@@ -301,11 +309,6 @@ Begin
   If (NewChar = 0) And (cLastKeyChar = 0) Then Begin
 
     Case cLastKey of
-
-      K_SHIFT, K_CONTROL:
-        Begin
-          Handled := True;
-        End;
 
       K_ESCAPE:
         Begin
@@ -462,6 +465,12 @@ Begin
       Handled := True;
     End Else Begin
       Case aChar(NewChar) of
+        '9':
+          Begin
+            fGfxLock := 1-fGfxLock;
+            SP_PlaySystem(CLICKCHAN, CLICKBANK);
+            Handled := True;
+          End;
         'z':
           Begin
             If cKEYSTATE[K_ALT] = 0 Then
@@ -729,6 +738,20 @@ Procedure SP_Edit.SetText(s: aString);
 Begin
 
   If fText <> s Then Begin
+
+    SetTextNoUpdate(s);
+    If Assigned(fOnChange) Then
+      fOnChange(Self, fText);
+
+  End;
+
+End;
+
+Procedure SP_Edit.SetTextNoUpdate(s: aString);
+Begin
+
+  If fText <> s Then Begin
+
     StoreUndo;
     fText := s;
     CursorPos := Length(s) +1;
@@ -744,12 +767,10 @@ Begin
     end;
     Paint;
 
-    If Assigned(fOnChange) Then
-      fOnChange(Self, fText);
-
   End;
 
 End;
+
 
 Procedure SP_Edit.SetCursorPos(v: Integer);
 Var
@@ -782,6 +803,9 @@ Begin
     t := fCursUnfocusedFg;
     fCursUnfocusedFg := fCursUnfocusedBg;
     fCursUnfocusedBg := t;
+    t := fGfxCursFg;
+    fGfxCursFg := fGfxCursBg;
+    fGfxCursBg := t;
   End;
   Paint;
 

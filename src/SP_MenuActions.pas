@@ -2,7 +2,7 @@ unit SP_MenuActions;
 
 interface
 
-Uses SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit,
+Uses SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_ButtonUnit,
      SP_TabBarUnit, SP_LabelUnit, SP_EditUnit, SP_ContainerUnit, SP_Interpret_PostFix, SP_Util;
 
 Type
@@ -11,45 +11,46 @@ Type
 
   Public
 
-    Class Procedure FPMenu_NEW(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_LOADQQ(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_MERGEQQ(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_SAVE(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_SAVEQQ(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_QUIT(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_Recent(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_Undo(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_Redo(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_Cut(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_Copy(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_Paste(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_Delete(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_SelAll(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_SelNone(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_Find(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_FindNext(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_Replace(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_GOTOLine(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_GOTOError(Sender: SP_BaseComponent);
+    Class Procedure FPMenu_NEW(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_LOADQQ(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_MERGEQQ(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_SAVE(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_SAVEQQ(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_QUIT(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_Recent(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_Undo(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_Redo(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_Cut(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_Copy(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_Paste(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_Delete(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_SelAll(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_SelNone(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_Find(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_Find_Advanced(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_FindNext(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_Replace(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_GOTOLine(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_GOTOError(Sender: SP_BaseComponent; ItemIndex: Integer);
     Class Procedure FPMenu_Edit_PopUp(Sender: SP_BaseComponent);
     Class Procedure FPMenu_MarkerSetPopUp(Sender: SP_BaseComponent);
     Class Procedure FPMenu_MarkerJumpPopUp(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_SetMarker(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_JumpMarker(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_ClearMarkers(Sender: SP_BaseComponent);
+    Class Procedure FPMenu_SetMarker(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_JumpMarker(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_ClearMarkers(Sender: SP_BaseComponent; ItemIndex: Integer);
     Class Procedure FPMenu_View_Popup(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_Switch(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_ShowScreen(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_RUN(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_CONTINUE(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_GOTO(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_SingleStep(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_StepOver(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_CONTINUE_Cursor(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_DebugPanel(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_BreakpointAdd(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_AddWatch(Sender: SP_BaseComponent);
-    Class Procedure FPMenu_FullScreen(Sender: SP_BaseComponent);
+    Class Procedure FPMenu_Switch(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_ShowScreen(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_RUN(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_CONTINUE(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_GOTO(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_SingleStep(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_StepOver(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_CONTINUE_Cursor(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_DebugPanel(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_BreakpointAdd(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_AddWatch(Sender: SP_BaseComponent; ItemIndex: Integer);
+    Class Procedure FPMenu_FullScreen(Sender: SP_BaseComponent; ItemIndex: Integer);
 
     Class Procedure GrabberMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
     Class Procedure GrabberMouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
@@ -58,13 +59,16 @@ Type
     Class Procedure FPEditorSearchBarPaint(Control: SP_BaseComponent);
     Class Procedure FPSearchBoxMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
     Class Procedure FPSearchBoxChange(Control: SP_BaseComponent; Text: aString);
+    Class Procedure SP_SearchBtnClick(Sender: SP_BaseComponent);
 
   End;
 
   Procedure SP_CreateEditorMenu;
   Procedure SP_CreateEditorTabBar;
   Procedure SP_CreateEditorSearchBar;
+  Procedure SP_SwitchQuickSearch;
   Procedure SP_ResizeSearchPanel;
+  procedure SP_SearchKeyDown(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean);
   Procedure UpdateStatusLabel;
 
 Var
@@ -79,6 +83,7 @@ Var
 
   // Editor searchbar
   FPSearchBox: SP_Edit; FPSearchPanel: SP_Container; FPSearchLastWindow: integer;
+  FPNextBtn, FPPrevBtn: SP_Button;
 
 implementation
 
@@ -99,6 +104,73 @@ Begin
   SP_GetWindowDetails(FPWindowID, Win, Error);
   FPTabBar := SP_TabBar.Create(Win^.Component);
   FPTabBar.Align := SP_AlignBottom;
+End;
+
+Procedure SP_SwitchQuickSearch;
+Begin
+
+  If FocusedWindow <> fwNone Then
+    FPSearchLastWindow := FocusedWindow;
+
+  If Not FPSearchPanel.Visible Then Begin
+    FPSearchPanel.Visible := True;
+  End Else
+    If FocusedWindow = -1 Then
+      FPSearchPanel.Visible := False;
+
+  SP_FPResizeWindow(FPWindowHeight);
+
+  If FPSearchPanel.Visible Then Begin
+    SP_ResizeSearchPanel;
+    FPSearchBox.SetFocus(True);
+    If FPSearchBox.Text <> '' Then
+      SP_MenuActionProcs.FPSearchBoxChange(Nil, FPSearchBox.Text);
+    SP_SwitchFocus(fwNone);
+  End Else Begin
+    SP_SwitchFocus(FPSearchLastWindow);
+    HideSearchResults;
+  End;
+
+End;
+
+procedure SP_SearchKeyDown(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean);
+Begin
+
+  If Key = K_ESCAPE Then Begin
+    Handled := True;
+    SP_SwitchQuickSearch;
+  End Else
+    If Key in [K_RETURN, K_F3, k_TAB] Then Begin
+      If (FPSearchBox.Text <> '') and (Key <> K_TAB) Then Begin
+        Listing.FPCLine := 0;
+        Listing.FPCPos := 1;
+        SP_MenuActionProcs.SP_SearchBtnClick(FPNextBtn);
+      End;
+      cLastKey := Key;
+      cKEYSTATE[Key] := 0;
+      FPSearchBox.KeyUp(Key, Handled);
+      If Handled Then Begin
+        cLastKeyChar := 0;
+        cLastKey := 0;
+      End;
+      FPSearchBox.SetFocus(False);
+      If Key = K_TAB Then SP_SwitchFocus(FPSearchLastWindow);
+    End;
+
+End;
+
+Class Procedure SP_MenuActionProcs.SP_SearchBtnClick(Sender: SP_BaseComponent);
+Begin
+
+  If Sender.Tag > 0 Then Begin
+    FPSearchOptions := FPSearchOptions + [soForward];
+    FindNext(True);
+  End Else Begin
+    FPSearchOptions := FPSearchOptions - [soForward];
+    FindNext(True);
+  End;
+  SP_SwitchFocus(fwEditor);
+
 End;
 
 Class Procedure SP_MenuActionProcs.FPEditorSearchBarPaint(Control: SP_BaseComponent);
@@ -151,17 +223,35 @@ Begin
   FPSearchPanel.OnPaintAfter := SP_MenuActionProcs.FPEditorSearchBarPaint;
   FPSearchPanel.Height := Fh + 10;
   FPSearchPanel.Align := SP_AlignBottom;
+  FPSearchPanel.Visible := False;
 
   FPSearchBox := SP_Edit.Create(FPSearchPanel);
   FPSearchBox.Border := True;
   FPSearchBox.OnMouseDown := SP_MenuActionProcs.FPSearchBoxMouseDown;
   FPSearchBox.OnChange := SP_MenuActionProcs.FPSearchBoxChange;
+  FPSearchBox.OnKeyDown := SP_SearchKeyDown;
+
+  FPNextBtn := SP_Button.Create(FPSearchPanel);
+  FPNextBtn.Caption := #252;
+  FPNextBtn.CentreCaption;
+  FPNextBtn.OnClick := SP_MenuActionProcs.SP_SearchBtnClick;
+  FPNextBtn.Tag := 1;
+
+  FPPrevBtn := SP_Button.Create(FPSearchPanel);
+  FPPrevBtn.Caption := #251;
+  FPPrevBtn.CentreCaption;
+  FPPrevBtn.OnClick := SP_MenuActionProcs.SP_SearchBtnClick;
+  FPPrevBtn.Tag := -1;
 
 End;
 
 Procedure SP_ResizeSearchPanel;
 Begin
   FPSearchBox.SetBounds(BSIZE + (FPGutterWidth * FPFw), 3, Fw * 32 + 4, Fh + 4);
+  FPNextBtn.SetBounds(FPSearchBox.Left + FPSearchBox.Width + BSIZE, FPSearchBox.Top, FPSearchBox.Height, FPSearchBox.Height);
+  FPPrevBtn.SetBounds(FPNextBtn.Left + FPNextBtn.Width + BSIZE, FPSearchBox.Top, FPSearchBox.Height, FPSearchBox.Height);
+  FPNextBtn.CentreCaption;
+  FPPrevBtn.CentreCaption;
   FPSearchPanel.Paint;
 End;
 
@@ -247,6 +337,7 @@ Begin
   FPEditMenu.AddItem(CreateItem('Select &none', True, True, False, False, 'K_CTRL,K_D', Nil, SP_MenuActionProcs.FPMenu_SelNone));
   FPEditMenu.AddItem(CreateItem('-', True, True, False, False, '', Nil, Nil));
   FPEditMenu.AddItem(CreateItem('&Find...', True, True, False, False, 'K_CTRL,K_F', Nil, SP_MenuActionProcs.FPMenu_Find));
+  FPEditMenu.AddItem(CreateItem('&Find Advanced...', True, True, False, False, 'K_CTRL,K_SHIFT,K_F', Nil, SP_MenuActionProcs.FPMenu_Find));
   FPEditMenu.AddItem(CreateItem('&Replace...', True, True, False, False, 'K_CTRL,K_R', Nil, SP_MenuActionProcs.FPMenu_Replace));
   SP_FindNextItem := CreateItem('Find ne&xt', True, True, False, False, 'K_F3', Nil, SP_MenuActionProcs.FPMenu_FindNext);
   FPEditMenu.AddItem(SP_FindNextItem);
@@ -390,104 +481,109 @@ Begin
   SP_GotoErrorItem.Enabled := LASTERRORLINE >= 0;
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_NEW(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_NEW(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
   AddControlMsg(clInterpretCommand, 'NEW');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_LOADQQ(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_LOADQQ(Sender: SP_BaseComponent; ItemIndex: Integer);
 begin
   AddControlMsg(clInterpretCommand, 'LOAD ""');
 end;
 
-Class Procedure SP_MenuActionProcs.FPMenu_MERGEQQ(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_MERGEQQ(Sender: SP_BaseComponent; ItemIndex: Integer);
 begin
   AddControlMsg(clInterpretCommand, 'MERGE ""');
 end;
 
-Class Procedure SP_MenuActionProcs.FPMenu_SAVE(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_SAVE(Sender: SP_BaseComponent; ItemIndex: Integer);
 begin
   AddControlMsg(clInterpretCommand, 'SAVE "' + PROGNAME + '"');
 end;
 
-Class Procedure SP_MenuActionProcs.FPMenu_SAVEQQ(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_SAVEQQ(Sender: SP_BaseComponent; ItemIndex: Integer);
 begin
   AddControlMsg(clInterpretCommand, 'SAVE ""');
 end;
 
-Class Procedure SP_MenuActionProcs.FPMenu_QUIT(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_QUIT(Sender: SP_BaseComponent; ItemIndex: Integer);
 begin
   AddControlMsg(clInterpretCommand, 'QUIT');
 end;
 
-Class Procedure SP_MenuActionProcs.FPMenu_Recent(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Recent(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clInterpretCommand, 'LOAD "' + SP_RecentFiles[SP_MenuItem(Sender).Tag] + '"');
+  AddControlMsg(clInterpretCommand, 'LOAD "' + SP_RecentFiles[SP_PopupMenu(Sender).fItems[ItemIndex].Tag] + '"');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_Undo(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Undo(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+'Z');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+'Z');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_Redo(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Redo(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+aChar(K_SHIFT)+'Z');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+aChar(K_SHIFT)+'Z');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_Cut(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Cut(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+'X');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+'X');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_Copy(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Copy(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+'C');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+'C');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_Paste(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Paste(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+'V');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+'V');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_Delete(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Delete(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_DELETE));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_DELETE));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_SelAll(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_SelAll(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+'A');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+'A');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_SelNone(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_SelNone(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+'N');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+'N');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_Find(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Find(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+'F');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+'F');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_FindNext(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Find_Advanced(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_F3));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+aChar(K_SHIFT)+'F');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_Replace(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_FindNext(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+'R');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_F3));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_GOTOLine(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Replace(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+'G');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+'R');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_GOTOError(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_GOTOLine(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+aChar(K_SHIFT)+'G');
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+'G');
+End;
+
+Class Procedure SP_MenuActionProcs.FPMenu_GOTOError(Sender: SP_BaseComponent; ItemIndex: Integer);
+Begin
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+aChar(K_SHIFT)+'G');
 End;
 
 Class Procedure SP_MenuActionProcs.FPMenu_MarkerSetPopUp(Sender: SP_BaseComponent);
@@ -508,18 +604,18 @@ Begin
       MenuItems[i].Enabled := EditorMarks[i] <> 0;
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_SetMarker(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_SetMarker(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  SP_ToggleEditorMark(SP_MenuItem(Sender).Tag);
+  SP_ToggleEditorMark(SP_PopupMenu(Sender).fItems[ItemIndex].Tag);
   SP_DisplayFPListing(-1);
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_JumpMarker(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_JumpMarker(Sender: SP_BaseComponent; ItemIndex: Integer);
 Var
   Cy: Integer;
 Begin
   cy := Listing.FPCLine;
-  SP_JumpToMark(SP_MenuItem(Sender).Tag);
+  SP_JumpToMark(SP_PopupMenu(Sender).fItems[ItemIndex].Tag);
   SP_CalculateFPCursorPos;
   SP_CursorPosChanged;
   SP_DrawGraphicsID;
@@ -527,7 +623,7 @@ Begin
   SP_ScrollInView(True);
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_ClearMarkers(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_ClearMarkers(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
   SP_ClearEditorMarks;
 End;
@@ -544,59 +640,59 @@ Begin
     SP_DebugPanelItem.Caption := 'Show &debug panel';
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_Switch(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_Switch(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_ESCAPE));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_ESCAPE));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_ShowScreen(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_ShowScreen(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL)+aChar(K_SHIFT)+aChar(K_RETURN));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL)+aChar(K_SHIFT)+aChar(K_RETURN));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_RUN(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_RUN(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_F9));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_F9));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_CONTINUE(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_CONTINUE(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_SHIFT)+aChar(K_F9));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_SHIFT)+aChar(K_F9));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_GOTO(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_GOTO(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_SHIFT)+aChar(K_F10));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_SHIFT)+aChar(K_F10));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_SingleStep(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_SingleStep(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_F7));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_F7));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_StepOver(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_StepOver(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_F8));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_F8));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_CONTINUE_Cursor(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_CONTINUE_Cursor(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_SHIFT) + aChar(K_F4));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_SHIFT) + aChar(K_F4));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_DebugPanel(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_DebugPanel(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL) + aChar(K_B));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL) + aChar(K_B));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_BreakpointAdd(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_BreakpointAdd(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL) + aChar(K_N));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL) + aChar(K_N));
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_AddWatch(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_AddWatch(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
-  AddControlMsg(clKeyPress, aChar(K_CONTROL) + aChar(K_W));
+  AddControlMsg(clKeyPress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL) + aChar(K_W));
 End;
 
 Class Procedure SP_MenuActionProcs.GrabberMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
@@ -617,7 +713,7 @@ Begin
   AddControlMsg(clGrabberMouseUp, '');
 End;
 
-Class Procedure SP_MenuActionProcs.FPMenu_FullScreen(Sender: SP_BaseComponent);
+Class Procedure SP_MenuActionProcs.FPMenu_FullScreen(Sender: SP_BaseComponent; ItemIndex: Integer);
 Begin
   If SPFULLSCREEN Then Begin
     SP_FullScreenMenuItem.Caption := 'Full screen';

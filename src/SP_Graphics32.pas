@@ -896,19 +896,20 @@ Begin
     Ink := T_INK
   Else
     Ink := T_PAPER;
+
   If (X >= T_CLIPX1) And (X < T_CLIPX2) And (Y >= T_CLIPY1) And (Y < T_CLIPY2) Then
     If T_STROKE > 1 Then Begin
       DRPOSX := X;
       DRPOSY := Y;
       xr := Round(X - T_STROKE / 2); yr := Round(Y - T_STROKE / 2);
-      SP_FillRect32(xr, yr, Round(T_STROKE), Round(T_STROKE), Ink);
+      SP_FillRect32(Max(xr, T_CLIPX1), Max(yr, T_CLIPY1), Max(0, Min(xr + Round(T_STROKE), T_CLIPX2) - Max(xr, T_CLIPX1)), Max(0, Min(yr + Round(T_STROKE), T_CLIPY2) - Max(yr, T_CLIPY1)), Ink);
     End Else
-      pLongWord(NativeUInt(SCREENPOINTER)+(LongWord(Round(Y) * SCREENSTRIDE) + LongWord(Round(X) * SizeOf(RGBA))))^ := Ink;
+      pLongWord(NativeUInt(SCREENPOINTER)+(LongWord(Round(Y)) * NativeUInt(SCREENSTRIDE))+(LongWord(Round(X)) * SizeOf(RGBA)))^ := Ink;
 
   DRPOSX := X;
   DRPOSY := Y;
-
 End;
+
 
 Procedure SP_SetPixelPtr32(Ptr: pLongWord); Inline;
 Begin

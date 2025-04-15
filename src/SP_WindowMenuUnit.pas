@@ -375,6 +375,7 @@ Begin
   For i := l DownTo Index +1 Do
     fItems[i] := fItems[i -1];
   fItems[Index] := Item;
+  fItems[Index].Owner := Self;
   if fSelected >= Index then inc(fSelected);
   CalculateSizes;
   Paint;
@@ -404,6 +405,7 @@ Begin
   if fSelected = Index then
     fSelected := -1;
   fItems[Index] := MenuItem;
+  fItems[Index].Owner := Self;
   CalculateSizes;
 
 End;
@@ -578,7 +580,7 @@ Begin
             If fItems[fSelected].Checkable Then
               fItems[fSelected].Checked := Not fItems[fSelected].Checked;
             If fItems[fSelected].Enabled And Assigned(fItems[fSelected].OnClick) Then Begin
-              fItems[fSelected].OnClick(Self);
+              fItems[fSelected].OnClick(Self, fSelected);
               CancelSelection;
               SetFocus(False);
               fActivated := False;

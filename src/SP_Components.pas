@@ -287,6 +287,24 @@ Begin
 
 End;
 
+Function IsVisible(Ctrl: SP_BaseComponent): Boolean;
+Var
+  Win: pSP_Window_Info;
+  Error: TSP_ErrorCode;
+Begin
+
+  If not ctrl.Visible Then
+    Result := False
+  Else
+    If ctrl.fParentType = spControl then
+      Result := IsVisible(ctrl.fParentControl)
+    Else Begin
+      SP_GetWindowDetails(ctrl.fParentWindowID, Win, Error);
+      Result := Win^.Visible;
+    End;
+
+End;
+
 Function ControlKeyEvent(aStr: aString; Key: Integer; Down, IsKey: Boolean): Boolean;
 Var
   i, j, w: Integer;
@@ -324,20 +342,22 @@ Var
 
   Function SendKey(var ctrl: SP_BaseComponent): Boolean;
   Begin
-    If Down Then Begin
-      cLastKeyChar := Ord(aStr[1]);
-      cLastKey := Key;
-      If IsKey Then cKEYSTATE[Key] := 1;
-      ctrl.KeyDown(Key, Result);
-    End Else Begin
-      cLastKey := Key;
-      If IsKey then cKEYSTATE[Key] := 0;
-      ctrl.KeyUp(Key, Result);
-      If Result Then Begin
-        cLastKeyChar := 0;
-        cLastKey := 0;
+    Result := False;
+    If IsVisible(ctrl) And (ctrl = focusedcontrol) then
+      If Down Then Begin
+        cLastKeyChar := Ord(aStr[1]);
+        cLastKey := Key;
+        If IsKey Then cKEYSTATE[Key] := 1;
+        ctrl.KeyDown(Key, Result);
+      End Else Begin
+        cLastKey := Key;
+        If IsKey then cKEYSTATE[Key] := 0;
+        ctrl.KeyUp(Key, Result);
+        If Result Then Begin
+          cLastKeyChar := 0;
+          cLastKey := 0;
+        End;
       End;
-    End;
   End;
 
 Begin
@@ -396,8 +416,8 @@ Begin
       While Not Result Do Begin
 
         AddComp(c);
-        If Down and c.Canfocus Then
-          c.SetFocus(True);
+{        If Down and c.Canfocus Then
+          c.SetFocus(True);}
 
         Result := SendKey(c);
         If Not Result Then

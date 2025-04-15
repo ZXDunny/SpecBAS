@@ -20,7 +20,7 @@ SP_ComboBox = Class(SP_BaseComponent)
     fOnChange: SP_EditEvent;
     Procedure PlaceItems;
     Procedure OnBtnClick(Sender: SP_BaseComponent);
-    Procedure OnMenuSelect(Sender: SP_BaseComponent);
+    Procedure OnMenuSelect(Sender: SP_BaseComponent; ItemIndex: Integer);
     Function  GetBorder: Boolean;
     Procedure SetBorder(b: Boolean);
     Procedure SetItemIndex(i: Integer);
@@ -81,7 +81,6 @@ Begin
 
   Inherited;
 
-  Menu := SP_PopUpMenu.Create(Owner, nil);
   Edit := SP_Edit.Create(Self);
   Edit.Visible := False;
   fEditable := False;
@@ -89,6 +88,7 @@ Begin
   Labl.OnMouseDown := LabMouseDown;
   Labl.OnMouseUp := LabMouseUp;
   Labl.fAlign := 0;
+  Menu := SP_PopUpMenu.Create(Owner, nil);
   ChainControl := Edit;
   Edit.ChainControl := Self;
   Edit.OnAccept := EditAccept;
@@ -264,11 +264,15 @@ End;
 Procedure SP_ComboBox.SetBounds(x, y, w, h: Integer);
 Begin
 
-  h := Max(ifH, Edit.Height);
-  Menu.MinWidth := w;
-  Inherited;
+  If Assigned(Menu) Then Begin
 
-  PlaceItems;
+    h := Max(ifH, Edit.Height);
+    Menu.MinWidth := w;
+    Inherited;
+
+    PlaceItems;
+
+  End;
 
 End;
 
@@ -315,7 +319,7 @@ begin
 
 end;
 
-Procedure SP_ComboBox.OnMenuSelect(Sender: SP_BaseComponent);
+Procedure SP_ComboBox.OnMenuSelect(Sender: SP_BaseComponent; ItemIndex: Integer);
 begin
 
   Text := Menu.fItems[Menu.fSelected].Caption;

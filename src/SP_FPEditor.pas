@@ -67,7 +67,7 @@ Uses Types, Classes, Clipbrd, SyncObjs, SysUtils, Math{$IFNDEF FPC}, Windows{$EN
 Type
 
   pSP_EditorEvent = Pointer;
-  SP_SearchOptions = Set Of (soStart, soCursorPos, soForward, soBackwards, soInREM, soInString, soMatchCase, soLoop, soInSelection, soCondenseSpaces, soInEditLine, soWholeWords, soExpression, soAll, soNoClear);
+  SP_SearchOptions = Set Of (soStart, soCursorPos, soForward, soBackwards, soInREM, soInString, soMatchCase, soLoop, soInSelection, soCondenseSpaces, soInEditLine, soWholeWords, soExpression, soAll, soNoClear, soClearBar);
   SP_EventData = Record Pos, Key, Button, X, Y, tsData: Integer; ObjectPtr: Pointer; End;
   SP_EventHandler = Procedure(Var Data: SP_EventData);
   SP_EventOnLaunch = Procedure(Event: pSP_EditorEvent);
@@ -115,7 +115,8 @@ Function  SP_GetLineExtents(Idx: Integer; FindStart: Boolean = False): TPoint;
 Function  SP_GetLineY(Line: Integer): Integer;
 Function  SP_LineFlags(Index: Integer): pLineFlags;
 Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1);
-Procedure SP_CreateMetrics;
+Procedure SP_CreateFontMetrics;
+Procedure SP_SetFPClientMetrics;
 Procedure SP_CreateFPWindow;
 Procedure SP_CreateDirectWindow;
 Procedure SP_FPCycleEditorWindows(HideMode: Integer);
@@ -175,6 +176,7 @@ Procedure SP_FPEditorPerformEdit(Key: pSP_KeyInfo);
 Procedure SP_FPBringToEditor(LineNum, Statement: Integer; Var Error: TSP_ErrorCode; DoEdit: Boolean = True);
 Procedure SP_FindAll(Text: aString; Const Options: SP_SearchOptions; Var Error: TSP_ErrorCode);
 Function  SP_FindText(Text: aString; StartAtL, StartAtP: Integer; const Options: SP_SearchOptions): TPoint;
+Procedure SP_CheckSearch(Idx: Integer);
 Procedure SP_DWPerformEdit(Key: pSP_KeyInfo);
 Procedure SP_DWStoreLine(Line: aString);
 Procedure SP_EditorDisplayEditLine;
@@ -318,7 +320,7 @@ Var
 Const
 
   FPMarginSize = 2; // Gap between buttons and track in scrollbars
-  FPMinGutterWidth = 2;
+  FPMinGutterWidth = 5;
 
   scVertical = 0;
   scHorizontal = 1;
@@ -403,6 +405,11 @@ Begin
     2: // Added line
       AddCompileLine(Index);
   End;
+
+  // If showing search results, check if they need to be updated
+
+  SP_CheckSearch(Index);
+
   c := FILECHANGED;
   FILECHANGED := True;
   If Not c And (FPWindowID > -1) Then
@@ -440,7 +447,7 @@ Begin
   FPGutterWidth := FPMinGutterWidth;
 
   HistoryPos := 0;
-  SP_CreateMetrics;
+  SP_CreateFontMetrics;
   SP_SetFPEditorFont;
   EDITORMENU := CURMENU;
 
@@ -600,11 +607,11 @@ Begin
   SP_SetSystemFont(EDITORFONT, Err);
   EdSc := #25 + aFloatToString(EDFONTSCALEX) + aFloatToString(EDFONTSCALEY);
   EdCSc := #25 + aFloatToString(1) + aFloatToString(1);
-  SP_CreateMetrics;
+  SP_CreateFontMetrics;
 
 End;
 
-Procedure SP_CreateMetrics;
+Procedure SP_CreateFontMetrics;
 Begin
 
   FPFw := Trunc(FONTWIDTH * EDFONTSCALEX);
@@ -846,6 +853,30 @@ Begin
 
 End;
 
+Procedure SP_SetFPClientMetrics;
+Var
+  Win: pSP_Window_Info;
+  Error: TSP_ErrorCode;
+Begin
+
+  SP_GetWindowDetails(FPWindowID, Win, Error);
+
+  // Dimensions. Client area is the inner part of the window excluding border ( 1 pixel ) and caption.
+  // Page area is the area that the text is rendered to.
+
+  FPCaptionHeight := FPFh + 2;
+  FPClientHeight := Win^.Component.fClientRect.Height;
+  FPClientWidth := Win^.Component.fClientRect.Width;
+  FPClientLeft := Win^.Component.fClientRect.Left;
+  FPClientTop := Win^.Component.fClientRect.Top;
+
+  FPPaperLeft := BSize + FPClientLeft;
+  FPPaperTop := BSize + FPClientTop;
+  FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
+  FPPaperHeight := FPClientHeight - (BSize * 2) - (Ord(Not EDITORWRAP) * (BSize + Fh));
+
+End;
+
 Procedure SP_CreateFPWindow;
 Var
   Idx: Integer;
@@ -865,22 +896,10 @@ Begin
   Win^.CaptionHeight := FPCaptionHeight;
   SP_CreateEditorMenu;
   //SP_CreateEditorTabBar;
-  //SP_CreateEditorSearchbar;
+  SP_CreateEditorSearchbar;
   fwEditor := FPWIndowID;
 
-  // Dimensions. Client area is the inner part of the window excluding border ( 1 pixel ) and caption.
-  // Page area is the area that the text is rendered to.
-
-  FPCaptionHeight := FPFh + 2;
-  FPClientHeight := Win^.Component.fClientRect.Height;
-  FPClientWidth := Win^.Component.fClientRect.Width;
-  FPClientLeft := Win^.Component.fClientRect.Left;
-  FPClientTop := Win^.Component.fClientRect.Top;
-
-  FPPaperLeft := BSize + FPClientLeft;
-  FPPaperTop := BSize + FPClientTop;
-  FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
-  FPPaperHeight := FPClientHeight - (BSize * 2) - (Ord(Not EDITORWRAP) * (BSize + Fh));
+  SP_SetFPClientMetrics;
 
   SP_SetDrawingWindow(FPWindowID);
   For Idx := 0 To 255 Do Win^.Palette[Idx] := DefaultPalette[Idx];
@@ -2234,7 +2253,8 @@ Begin
   If FPGutterChangedSize Then Begin
     Line := -1;
     If Not EDITORWRAP Then SP_FPUpdateHorzScrollBar;
-    If Assigned(FPSearchPanel) Then SP_ResizeSearchPanel;
+    If Assigned(FPSearchPanel) And FPSearchPanel.Visible Then
+      SP_ResizeSearchPanel;
     FPGutterChangedSize := False;
   End;
 
@@ -3112,10 +3132,10 @@ Begin
 
     SP_FPWaitForUserEvent(KeyInfo, LocalFlashState);
     If Assigned(KeyInfo) Then Begin
-      If (FocusedWindow = fwEditor) or (FocusedWindow = fwDebugPanel) Then
+      If (KeyInfo^.WIndowID = fwEditor) or (KeyInfo^.WIndowID = fwDebugPanel) Then
         SP_FPEditorPerformEdit(KeyInfo)
       Else
-        If FocusedWindow = fwDirect Then
+        If KeyInfo^.WIndowID = fwDirect Then
           SP_DWPerformEdit(KeyInfo);
       KeyInfo := nil;
     End;
@@ -3965,6 +3985,8 @@ Begin
         ProcessTabs(t);
         txt := Copy(txt, 1, Listing.FPCPos -1) + t + Copy(Txt, Listing.FPCPos);
         Listing[Listing.FPCLine] := txt;
+        Listing.Flags[Listing.FPCLine].Indent := 0;
+        Listing.Flags[Listing.FPCLine].GutterSize := 0;
         Listing.FPCPos := Listing.FPCPos + nCPos;
         SP_FPWordWrapLine(Listing.FPCLine);
         SP_MarkAsDirty(Listing.FPCLine);
@@ -3978,6 +4000,8 @@ Begin
         ProcessTabs(t);
         txt := Copy(txt, 1, Listing.FPCPos -1) + t;
         Listing[Listing.FPCLine] := txt;
+        Listing.Flags[Listing.FPCLine].Indent := 0;
+        Listing.Flags[Listing.FPCLine].GutterSize := 0;
         For Idx := Strings.Count -1 DownTo 1 Do Begin
           t := Strings[Idx];
           ProcessTabs(t);
@@ -5260,7 +5284,10 @@ Begin
 
       K_ESCAPE:
         Begin // No idea. Switch to Direct command?
-          SP_SwitchFocus(fwDirect);
+          If FPSearchPanel.Visible And (FocusedWindow = fwNone) Then
+            SP_SwitchQuickSearch
+          Else
+            SP_SwitchFocus(fwDirect);
           PlayClick;
         End;
 
@@ -5382,7 +5409,10 @@ Begin
         'f':
           Begin
             // Find
-            StartFindOp(True);
+            If KEYSTATE[K_SHIFT] = 1 Then
+              StartFindOp(True)
+            Else
+              SP_SwitchQuickSearch;
           End;
         'g':
           Begin
@@ -5729,7 +5759,9 @@ Begin
   FPWindowHeight := NewH;
 
   FPCaptionHeight := FPFh + 2;
-  FPClientWidth := FPWindowWidth - 2;
+  SP_SetFPClientMetrics;
+
+{  FPClientWidth := FPWindowWidth - 2;
   FPClientHeight := FPWindowHeight - FPCaptionHeight - 1;
   FPClientLeft := 1;
   FPClientTop := FPCaptionHeight;
@@ -5742,7 +5774,7 @@ Begin
   FPPaperLeft := BSize + FPClientLeft;
   FPPaperTop := BSize + FPClientTop;
   FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
-  FPPaperHeight := FPClientHeight - (BSize * 2) - (Ord(Not EDITORWRAP) * (BSize + Fh));
+  FPPaperHeight := FPClientHeight - (BSize * 2) - (Ord(Not EDITORWRAP) * (BSize + Fh));}
 
   SP_ResizeWindow(FPWindowID, FPWindowWidth, FPWindowHeight, 8, False, Err);
   SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, FocusedWindow = fwEditor);
@@ -5895,8 +5927,10 @@ Begin
   l := Length(FPFindResults);
   If l > 0 Then Begin
     For i := 0 To l -1 Do
-      If (i = 0) or (FPFindResults[i].Line <> FPFindResults[i-1].Line) Then
+      If (i = 0) or (FPFindResults[i].Line <> FPFindResults[i-1].Line) Then Begin
         SP_FPApplyHighlighting(FPFindResults[i].Line);
+        AddDirtyLine(FPFindResults[i].Line);
+      End;
     If Clear Then
       SetLength(FPFindResults, 0);
   End;
@@ -5917,22 +5951,40 @@ Begin
     l := Length(FPFindResults);
     If l > 0 Then Begin
       For i := 0 To l -1 Do
-        If (i = 0) or (FPFindResults[i].Line <> FPFindResults[i-1].Line) Then
+        If (i = 0) or (FPFindResults[i].Line <> FPFindResults[i-1].Line) Then Begin
           SP_FPApplyHighlighting(FPFindResults[i].Line);
-      SP_DisplayFPListing(-1);
+          AddDirtyLine(FPFindResults[i].Line);
+        End;
     End Else Begin
       SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
       If Length(FPFindResults) > 0 Then
         SP_ShowFindResults;
     End;
+
+    SP_DisplayFPListing(-1);
+
+  End;
+
+End;
+
+Procedure SP_CheckSearch(Idx: Integer);
+Var
+  Error: TSP_ErrorCode;
+Begin
+
+  If FPShowingFindResults then Begin
+    SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
+    FPShowingFindResults := False;
+    SP_ShowFindResults;
   End;
 
 End;
 
 Procedure SP_FindAll(Text: aString; Const Options: SP_SearchOptions; Var Error: TSP_ErrorCode);
 Var
-  e, f, i, j, k, l, fl, tl, rs, StartL, FinishL, StartP, FinishP, p1, p2, l1, l2, t, ol: Integer;
+  e, f, i, j, k, l, fl, tl, rs, StartL, FinishL, StartP, FinishP, p1, p2, l1, l2, t, ol, lnc, clrLinePtr: Integer;
   InString, InREM, Match, b: Boolean;
+  clrLines: Array of Integer;
   Sel: SP_SelectionInfo;
   ps, pd: pByte;
   s: aString;
@@ -5944,13 +5996,24 @@ Begin
 
   If Not (soNoClear in Options) Then
     If Length(FPFindResults) > 0 Then Begin
+      clrLinePtr := 0;
+      SetLength(clrLines, Length(FPFindResults));
       For i := 0 to Length(FPFindResults) -1 Do Begin
         l := FPFindResults[i].Line;
         FPFindResults[i].Line := -1;
-        SP_FPApplyHighlighting(l);
-        AddDirtyLine(l);
+        For j := 0 To clrLinePtr -1 Do
+          if ClrLines[j] = l then
+            break;
+        If j >= clrLinePtr Then Begin
+          clrLines[clrLinePtr] := l;
+          Inc(clrLinePtr);
+        End;
       End;
       SetLength(FPFindResults, 0);
+      For i := 0 To ClrLinePtr -1 Do Begin
+        SP_FPApplyHighlighting(ClrLines[i]);
+        AddDirtyLine(ClrLines[i]);
+      End;
     End;
 
   If Text = '' Then Exit;
@@ -5962,6 +6025,11 @@ Begin
 
   If Not (soMatchCase in Options) Then
     Text := Lower(Text);
+
+  If FPSearchPanel.Visible And (soClearBar in Options) Then
+    FPSearchBox.SetTextNoUpdate('')
+  Else
+    FPSearchBox.SetTextNoUpdate(Text);
 
   tl := Length(Text);
 
@@ -6014,6 +6082,8 @@ Begin
   rs := 1;
   For i := StartL To FinishL Do Begin
     s := Listing[i];
+    lnc := SP_LineHasNumber(i);
+    if lnc > 0 then s := Copy(s, lnc +1);
     l := Length(s);
     If i < Listing.Count -1 Then
       s := s + Listing[i +1];
@@ -6050,7 +6120,7 @@ Begin
                 if p1 > p2 then begin t := p1; p1 := p2; p2 := t; End;
                 if l1 > l2 then begin t := l1; l1 := l2; l2 := t; End;
                 if (p1 <= l2) and (l1 >= p2) then begin
-                  Position := Min(p1, p2);
+                  Position := Min(p1, p2) + lnc;
                   Length := (Max(l1, l2) - Position) +1;
                   b := True;
                   Break;
@@ -6070,7 +6140,7 @@ Begin
           if not b then Begin
             SetLength(FPFindResults, fl +1);
             FPFindResults[fl].Line := i;
-            FPFindResults[fl].Position := k;
+            FPFindResults[fl].Position := k + lnc;
             If k + tl -1 > e Then Begin
               FPFindResults[fl].Length := (e - k) + 1;
               FPFindResults[fl].Split := True;
@@ -6903,13 +6973,16 @@ Begin
       K_ESCAPE:
         Begin
           // Switch? Clear the edit line? I dunno yet.
-          If EDITLINE <> '' Then Begin
-            DWStoreEditorState;
-            EDITLINE := '';
-            DWSELP := 1;
-            CURSORPOS := 1;
-          End Else
-            SP_SwitchFocus(fwEditor);
+          If FPSearchPanel.Visible And (FocusedWindow = fwNone) Then
+            SP_SwitchQuickSearch
+          Else
+            If EDITLINE <> '' Then Begin
+              DWStoreEditorState;
+              EDITLINE := '';
+              DWSELP := 1;
+              CURSORPOS := 1;
+            End Else
+              SP_SwitchFocus(fwEditor);
           PlayClick;
         End;
 
@@ -7000,7 +7073,10 @@ Begin
         'f':
           Begin
             // Find
-            StartFindOp(True);
+            If KEYSTATE[K_SHIFT] = 1 Then
+              StartFindOp(True)
+            Else
+              SP_SwitchQuickSearch;
           End;
         'g':
           Begin
@@ -8845,7 +8921,7 @@ Label
   Wrap, LastOne;
 Begin
 
-  If Assigned(FindWindow) And (FPSearchTerm <> '') Then Begin
+  If (Assigned(FindWindow) Or FPSearchPanel.Visible) And (FPSearchTerm <> '') Then Begin
 
     SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
     FPShowingSearchResults := True;
@@ -8985,7 +9061,7 @@ Var
   i, j: Integer;
 Begin
 
-  If FPShowingSearchResults Then Begin
+  If FPShowingSearchResults and Not FPSearchPanel.Visible Then Begin
 
     j := -1;
     FPShowingSearchResults := False;

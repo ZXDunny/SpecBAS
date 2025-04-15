@@ -92,8 +92,9 @@ Begin
   Mxg := 0;
   For Idx := 0 To Listing.Count -1 Do
     Mxg := Max(Listing.Flags[Idx].GutterSize, Mxg);
-  If Mxg + FPMinGutterWidth <> FPGutterWidth Then Begin
-    FPGutterWidth := Mxg + FPMinGutterWidth;
+  Mxg := Max(Mxg, FPMinGutterWidth);
+  If Mxg <> FPGutterWidth Then Begin
+    FPGutterWidth := Mxg;
     FPGutterChangedSize := True;
     If EDITORREADY Then SP_FPWrapProgram;
   End;

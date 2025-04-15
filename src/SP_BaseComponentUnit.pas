@@ -18,7 +18,7 @@ SP_BaseComponent = Class;
 
 SP_MouseEvent = Procedure(Sender: SP_BaseComponent; Mx, My, Button: Integer) of Object;
 SP_MouseWheelEvent = Procedure(Sender: SP_BaseComponent; Mx, My, Button, Delta: Integer) of Object;
-SP_KeyEvent = Procedure(Sender: SP_BaseComponent; Key: Integer; Down: Boolean);
+SP_KeyEvent = Procedure(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean);
 SP_PaintEvent = Procedure(Control: SP_BaseComponent) of Object;
 SP_ResizeEvent = Procedure(Sender: SP_BaseComponent) of Object;
 SP_TimerProc = Procedure(evt: Pointer) of Object;
@@ -30,7 +30,7 @@ SP_EditEvent = Procedure(Sender: SP_BaseComponent; Text: aString) of Object;
 SP_ClickEvent = Procedure(Sender: SP_BaseComponent) of Object;
 SP_CheckEvent = Procedure(Sender: SP_BaseComponent) Of Object;
 SP_AbortEvent = Procedure(Sender: SP_BaseComponent) Of Object;
-SP_MenuClickEvent = Procedure(Sender: SP_BaseComponent) Of Object;
+SP_MenuClickEvent = Procedure(Sender: SP_BaseComponent; Item: Integer) Of Object;
 SP_ExitEvent = Procedure(Sender: SP_BaseComponent) of Object;
 SP_EnterEvent = Procedure(Sender: SP_BaseComponent; X, Y: Integer) of Object;
 SP_VisibleEvent = Procedure(Sender: SP_BaseComponent) of Object;
@@ -127,6 +127,7 @@ SP_BaseComponent = Class
     fCurFontID: Integer;
     fHint: aString;
     fClientRect: TRect;
+    fTag: Integer;
     User_OnMouseMove: aString;
     User_OnMouseDown: aString;
     User_OnMouseUp: aString;
@@ -167,6 +168,7 @@ SP_BaseComponent = Class
     Aligning: Boolean;
     fProperties: Array of SP_Property;
 
+    Function  GetParentControl: SP_BaseComponent;
     Procedure SetVisible(Value: Boolean); Virtual;
     Procedure SetTransparent(Value: Boolean);
     Procedure SetWidth(w: Integer);
@@ -242,6 +244,7 @@ SP_BaseComponent = Class
     Procedure ChangeFont;
     Procedure SetChainControl(c: SP_BaseComponent); Virtual;
     Function  GetFocused: Boolean;
+    Function  GetParentWindowID: Integer;
     Procedure SetProperty(Name, Value: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
     Function  GetProperty(Name: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode): aString;
     Procedure RegisterProperty(Name: aString; Getter: SP_PropertyGetter; Setter: SP_PropertySetter);
@@ -269,6 +272,7 @@ SP_BaseComponent = Class
     Function  Get_Canvas: aString;
     Procedure Set_Transparent(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Transparent: aString;
     Procedure Set_Hint(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Hint: aString;
+    Procedure Set_Tag(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Tag: aString;
 
     Procedure Set_OnMouseMove(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseMove: aString;
     Procedure Set_OnMouseDown(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseDown: aString;
@@ -340,6 +344,7 @@ SP_BaseComponent = Class
     Property Font: Integer                      read fCurFontID     write SetFont;
     Property ParentWindowID: Integer            read fParentWindowID;
     Property Hint: aString                      read GetHint        write fHint;
+    Property Tag: Integer                       read fTag           write fTag;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -461,11 +466,26 @@ Begin
 
 End;
 
+Function SP_BaseComponent.GetParentControl: SP_BaseComponent;
+Var
+  Win: pSP_Window_Info;
+  Error: TSP_ErrorCode;
+Begin
+
+  If fParentType = spWindow Then Begin
+
+    SP_GetWindowDetails(fParentWindowID, Win, Error);
+    Result := Win^.Component;
+
+  End Else
+
+    Result := fParentControl;
+
+End;
+
 Procedure SP_BaseComponent.SetAlign(newAlign: Integer);
 var
   cp: SP_BaseComponent;
-  Win: pSP_Window_Info;
-  Error: TSP_ErrorCode;
 begin
 
   If fAlign <> newAlign Then Begin
@@ -473,15 +493,7 @@ begin
     Lock;
     fAlign := newAlign;
 
-    If fParentType = spWindow Then Begin
-
-      SP_GetWindowDetails(fParentWindowID, Win, Error);
-      cp := Win^.Component;
-
-    End Else
-
-      cp := fParentControl;
-
+    cp := GetParentControl;
     cp.AlignChildren;
 
     UnLock;
@@ -1179,6 +1191,16 @@ Begin
 
 End;
 
+Function SP_BaseComponent.GetParentWindowID: Integer;
+Begin
+
+  If fParentType = spWindow Then
+    Result := fParentWindowID
+  Else
+    Result := fParentControl.GetParentWindowID;
+
+End;
+
 Constructor SP_BaseComponent.Create(Owner: SP_BaseComponent);
 Var
   l: Integer;
@@ -1257,9 +1279,7 @@ End;
 Destructor SP_BaseComponent.Destroy;
 Var
   Idx, Idx2: Integer;
-  Win: pSP_Window_Info;
   cp: SP_BaseComponent;
-  Error: TSP_ErrorCode;
 Begin
 
   DisplaySection.Enter;
@@ -1297,14 +1317,7 @@ Begin
 
   // And remove ourselves from the parent control's list.
 
-  If fParentType = spWindow Then Begin
-
-    SP_GetWindowDetails(fParentWindowID, Win, Error);
-    cp := Win^.Component;
-
-  End Else
-
-    cp := fParentControl;
+  cp := GetParentControl;
 
   Idx := 0;
   While Idx < Length(cp.fComponentList) Do
@@ -2016,7 +2029,7 @@ Begin
   PerformKeyDown(Handled);
 
   If Assigned(fOnKeyDown) Then
-    fOnKeyDown(Self, Key, Handled);
+    fOnKeyDown(Self, Key, True, Handled);
 
 End;
 
@@ -2161,7 +2174,7 @@ Begin
   PerformKeyUp(Handled);
 
   If Assigned(fOnKeyUp) Then
-    fOnKeyUp(Self, Key, Handled);
+    fOnKeyUp(Self, Key, False, Handled);
 
 End;
 
@@ -2255,6 +2268,9 @@ Begin
 
   If fVisible <> Value Then Begin
     fVisible := Value;
+
+    GetParentControl.AlignChildren;
+
     If fVisible Then Begin
       If Assigned(fOnShow) Then
         fOnShow(Self);
@@ -2300,6 +2316,7 @@ Begin
   RegisterProperty('minheight', Get_MinHeight , Set_MinHeight);
   RegisterProperty('maxwidth', Get_MaxWidth , Set_MaxWidth);
   RegisterProperty('maxheight', Get_MaxHeight , Set_MaxHeight);
+  RegisterProperty('tag', Get_Tag , Set_Tag);
   RegisterProperty('canvas', Get_Canvas , nil);
   RegisterProperty('transparent', Get_Transparent , Set_Transparent);
   RegisterProperty('onmousemove', Get_OnMouseMove, Set_OnMouseMove);
@@ -2416,6 +2433,16 @@ End;
 Function SP_BaseComponent.Get_Hint: aString;
 Begin
   Result := fHint;
+End;
+
+Procedure SP_BaseComponent.Set_Tag(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Width := StringToInt(s, fTag);
+End;
+
+Function SP_BaseComponent.Get_Tag: aString;
+Begin
+  Result := IntToString(fTag);
 End;
 
 Function  SP_BaseComponent.Get_OnMouseMove: aString;

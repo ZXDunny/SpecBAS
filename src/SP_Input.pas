@@ -36,6 +36,7 @@ Type
     Repeating: Boolean;       // Has the key started to repeat yet?
     CanRepeat: Boolean;       // Some keys (such as alt-xxx keys) cannot repeat
     IsKey: Boolean;           // Was this triggered by a key event or an ALT-nnn sequence?
+    WindowID: Integer;        // Window this was intended for
   End;
   pSP_KeyInfo = ^SP_KeyInfo;
 
@@ -44,6 +45,7 @@ Type
     KeyCode: Word;
     KeyChar: aChar;
     Flags: Byte;
+    WindowID: Integer;
   End;
 
   TSP_Zone = Packed Record
@@ -339,7 +341,8 @@ Begin
   End;
   KeyInfo.Repeating := False;
   CopyMem(@ActiveKeys[l - 1].KeyChar, @KeyInfo.KeyChar, SizeOf(SP_KeyInfo));
-  If KeyInfo.IsKey Then KeyState[KeyInfo.KeyCode] := 1;
+  If KeyInfo.IsKey Then
+    KeyState[KeyInfo.KeyCode] := 1;
   KeyLock.Leave;
 End;
 
@@ -509,6 +512,7 @@ Begin
   KeyBuffer[KeyBufferPos].Event := Event;
   KeyBuffer[KeyBufferPos].KeyCode := Key^.KeyCode;
   KeyBuffer[KeyBufferPos].Flags := Flags;
+  KeyBuffer[KeyBufferPos].WindowID := Key^.WindowID;
   Inc(KeyBufferPos);
   KeyLock.Leave;
 End;
@@ -537,6 +541,7 @@ Begin
           Key.Repeating := False;
           Key.NextFrameTime := FRAMES;
           Key.IsKey := True;
+          Key.WindowID := KeyBuffer[0].WindowID;
           SP_AddKey(Key);
         End;
       1: // KeyUp
@@ -550,6 +555,7 @@ Begin
       KeyBuffer[Idx].Event := KeyBuffer[Idx +1].Event;
       KeyBuffer[Idx].KeyCode := KeyBuffer[Idx +1].KeyCode;
       KeyBuffer[Idx].Flags := KeyBuffer[Idx +1].Flags;
+      KeyBuffer[Idx].WindowID := KeyBUffer[Idx +1].WindowID;
     End;
   End;
   KeyLock.Leave;

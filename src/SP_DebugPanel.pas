@@ -653,7 +653,7 @@ Begin
     3: // Labels - highlight all @Label instances
       Begin
         FPSearchTerm := '@' + FPPoIList[Index].Name;
-        FPSearchOptions := [soForward, soStart];
+        FPSearchOptions := [soForward, soStart, soClearBar];
         SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
         FPShowingSearchResults := True;
         j := -1;
@@ -675,7 +675,7 @@ Begin
           FPSearchTerm := 'fn ' + s
         else
           FPSearchTerm := 'proc ' + s;
-        FPSearchOptions := [soForward, soStart];
+        FPSearchOptions := [soForward, soStart, soClearBar];
         SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
         FPSearchTerm := 'def ' + FPSearchTerm;
         FPSearchOptions := FPSearchOptions + [soNoClear];
@@ -762,7 +762,7 @@ Begin
           AddControlMsg(clEditWatch, LongWordToString(FPDebugPanel.SelectedIndex));
         End Else
           If Sender = FPDebugBPAdd Then Begin
-            AddControlMsg(clKeypress, aChar(K_CONTROL) + aChar(K_W));
+            AddControlMsg(clKeypress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL) + aChar(K_W));
           End Else
             If Sender = FPDebugBPDel Then Begin
               SP_DeleteWatch(FPDebugPanel.SelectedIndex);
@@ -774,7 +774,7 @@ Begin
           SP_EditBreakPoint(FPDebugPanel.SelectedIndex, False);
         End Else
           If Sender = FPDebugBPAdd Then Begin
-            AddControlMsg(clKeypress, aChar(K_CONTROL) + aChar(K_N));
+            AddControlMsg(clKeypress, aChar(Sender.GetParentWindowID)+aChar(K_CONTROL) + aChar(K_N));
           End Else
             If Sender = FPDebugBPDel Then Begin
               SP_EditBreakPoint(FPDebugPanel.SelectedIndex, True);

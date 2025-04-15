@@ -108,7 +108,7 @@ Function ShortCutToString(i: Integer): aString;
 
 implementation
 
-Uses Math, SP_WindowMenuUnit, SP_BankFiling, SP_Components, SP_Graphics, SP_Input, SP_SysVars, SP_Sound;
+Uses Math, SP_WindowMenuUnit, SP_BankFiling, SP_Components, SP_Graphics, SP_Input, SP_SysVars, SP_Sound, SP_FPEditor, SP_Tokenise;
 
 // SP_PopupMenu
 
@@ -157,7 +157,7 @@ Begin
             if (MenuItems[i].GroupID = gi) and MenuItems[i].fChecked Then Begin
               MenuItems[i].fChecked := False;
               If MenuItems[i].Enabled And Assigned(MenuItems[i].OnClick) Then
-                MenuItems[i].OnClick(SP_BaseComponent(MenuItems[i]));
+                MenuItems[i].OnClick(Self.Owner, i);
             End;
       End;
     End;
@@ -374,7 +374,7 @@ Begin
         ic := fDisabledFontClr;
       End;
       If Selected Then Begin
-        e := Rect(2, Extents.Top, Width -4, Extents.Bottom +1);
+        e := Rect(2, Extents.Top, fWidth -4, Extents.Bottom +1);
         FillRect(e, c);
         MouseInSubMenu := Assigned(SubMenu) And SubMenu.Visible And PtInRect(Rect(0, 0, SubMenu.Width, SubMenu.Height), SubMenu.ScreenToClient(mp));
         If (Focused or PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp)) And Not MouseInSubMenu Then Begin
@@ -542,7 +542,7 @@ Begin
   SetLength(fItems, l+1);
   fItems[l] := Item;
   Result := @fItems[l];
-  Result.Owner := Self;
+  Result^.Owner := Self;
   Result.IsWindowMenu := False;
   CalculateSizes;
   Paint;
@@ -560,6 +560,7 @@ Begin
     fItems[i] := fItems[i -1];
   fItems[Index] := Item;
   Result := @fItems[Index];
+  Result^.Owner := Self;
   if fSelected >= Index then inc(fSelected);
   CalculateSizes;
   Paint;
@@ -590,6 +591,7 @@ Begin
     if fSelected = Index then
       fSelected := -1;
     fItems[Index] := MenuItem;
+    fItems[Index].Owner := Self;
     CalculateSizes;
   End;
 
@@ -759,7 +761,7 @@ Begin
       If (Item <> -1) and (fItems[Item].Caption <> '-') Then Begin
         CloseAll;
         If fItems[i].Enabled And Assigned(fItems[i].OnClick) Then
-          fItems[i].OnClick(SP_BaseComponent(fItems[i]));
+          fItems[i].OnClick(Self, i);
       End;
     End Else
       If ((Item <> -1) and (fItems[Item].Caption <> '-')) or (Item = -1) Then
@@ -794,12 +796,24 @@ Begin
 End;
 
 Procedure SP_PopUpMenu.ExecuteItem(Item: Integer);
+Var
+  oPW, wID: Integer;
 Begin
   If fItems[Item].Checkable Then
     fItems[Item].Checked := Not fItems[Item].Checked;
   CloseAll;
-  If Assigned(fItems[Item].OnClick) And fItems[Item].Enabled Then
-    fItems[Item].OnClick(SP_BaseComponent(fItems[Item]));
+  If Assigned(fItems[Item].OnClick) And fItems[Item].Enabled Then Begin
+    wID := GetParentWindowID;
+    If PROGSTATE <> SP_PR_RUN Then Begin
+      If (wID = fwEditor) or (wID = fwDirect) Then
+        if FocusedWindow <> fwNone Then
+          wID := FocusedWindow;
+    End;
+    oPW := fParentWindowID;
+    fParentWindowID := wID;
+    fItems[Item].OnClick(Self, Item);
+    fParentWindowID := oPW;
+  End;
   Paint;
 End;
 

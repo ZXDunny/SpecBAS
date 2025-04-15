@@ -5480,7 +5480,7 @@ End;
 Procedure SP_Interpret_FN_FNAME(Var Info: pSP_iInfo);
 Begin
 
-  SP_StackPtr^.Str := aString(ExtractFileName(String(SP_StackPtr^.Str)));
+  SP_StackPtr^.Str := aString(SP_ExtractFileName(SP_StackPtr^.Str));
 
 End;
 

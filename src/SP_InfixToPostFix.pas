@@ -1257,7 +1257,7 @@ Begin
 
             // Functions that take one String parameter and return a numeric:
 
-            SP_FN_CODE, SP_FN_DCODE, SP_FN_QCODE, SP_FN_FCODE, SP_FN_VAL, SP_FN_LEN, SP_FN_GETOPT, SP_FN_FEXISTS, SP_FN_IVAL:
+            SP_FN_CODE, SP_FN_DCODE, SP_FN_QCODE, SP_FN_FCODE, SP_FN_VAL, SP_FN_LEN, SP_FN_GETOPT, SP_FN_FEXISTS, SP_FN_IVAL, SP_FN_DEXISTS:
               Begin
                 If (StackPtr < 0) Or (Stack[StackPtr] <> SP_STRING) Then Begin
                   Error.Code := SP_ERR_MISSING_STREXPR;
@@ -3116,7 +3116,7 @@ Begin
             SP_FN_GETOPT, SP_FN_GETOPTS, SP_FN_NUBMODE, SP_FN_NUBX, SP_FN_NUBY, SP_FN_FEXISTS, SP_FN_FPATH, SP_FN_FNAME, SP_FN_LTOPX,
             SP_FN_LTOPY, SP_FN_PTOLX, SP_FN_PTOLY, SP_FN_INV, SP_FN_SPFRAME, SP_FN_SPCOLL, SP_FN_TEXTURES, SP_FN_IVAL, SP_FN_MEMRD,
             SP_FN_DMEMRD, SP_FN_QMEMRD, SP_FN_FMEMRD, SP_FN_DATADDR, SP_FN_WINADDR, SP_FN_MILLISECONDS, SP_FN_PAR, SP_FN_SINH,
-            SP_FN_COSH, SP_FN_TANH, SP_FN_ASNH, SP_FN_ACSH, SP_FN_ATNH, SP_FN_PARAMS, SP_FN_REVS, SP_FN_BITCNT, SP_FN_HIBIT:
+            SP_FN_COSH, SP_FN_TANH, SP_FN_ASNH, SP_FN_ACSH, SP_FN_ATNH, SP_FN_PARAMS, SP_FN_REVS, SP_FN_BITCNT, SP_FN_HIBIT, SP_FN_DEXISTS:
               Begin
                 Inc(Position, SizeOf(LongWord));
                 FnResult := SP_Convert_Expr(Tokens, Position, Error, 14);

@@ -83,7 +83,7 @@ Var
 
   // Editor searchbar
   FPSearchBox: SP_Edit; FPSearchPanel: SP_Container; FPSearchLastWindow: integer;
-  FPNextBtn, FPPrevBtn: SP_Button;
+  FPNextBtn, FPPrevBtn, FPCloseBtn: SP_Button;
 
 implementation
 
@@ -165,11 +165,14 @@ Begin
   If Sender.Tag > 0 Then Begin
     FPSearchOptions := FPSearchOptions + [soForward];
     FindNext(True);
-  End Else Begin
-    FPSearchOptions := FPSearchOptions - [soForward];
-    FindNext(True);
-  End;
-  SP_SwitchFocus(fwEditor);
+    SP_SwitchFocus(fwEditor);
+  End Else
+    If Sender.Tag < 0 Then Begin
+      FPSearchOptions := FPSearchOptions - [soForward];
+      FindNext(True);
+      SP_SwitchFocus(fwEditor);
+    End Else
+      SP_SwitchQuickSearch;
 
 End;
 
@@ -243,6 +246,12 @@ Begin
   FPPrevBtn.OnClick := SP_MenuActionProcs.SP_SearchBtnClick;
   FPPrevBtn.Tag := -1;
 
+  FPCloseBtn := SP_Button.Create(FPSearchPanel);
+  FPCloseBtn.Caption := #244;
+  FPCloseBtn.CentreCaption;
+  FPCloseBtn.OnClick := SP_MenuActionProcs.SP_SearchBtnClick;
+  FPCloseBtn.Tag := 0;
+
 End;
 
 Procedure SP_ResizeSearchPanel;
@@ -250,8 +259,10 @@ Begin
   FPSearchBox.SetBounds(BSIZE + (FPGutterWidth * FPFw), 3, Fw * 32 + 4, Fh + 4);
   FPNextBtn.SetBounds(FPSearchBox.Left + FPSearchBox.Width + BSIZE, FPSearchBox.Top, FPSearchBox.Height, FPSearchBox.Height);
   FPPrevBtn.SetBounds(FPNextBtn.Left + FPNextBtn.Width + BSIZE, FPSearchBox.Top, FPSearchBox.Height, FPSearchBox.Height);
+  FPCloseBtn.SetBounds(FPPrevBtn.Left + FPPrevBtn.Width + BSIZE, FPSearchBox.Top, FPSearchBox.Height, FPSearchBox.Height);
   FPNextBtn.CentreCaption;
   FPPrevBtn.CentreCaption;
+  FPCloseBtn.CentreCaption;
   FPSearchPanel.Paint;
 End;
 

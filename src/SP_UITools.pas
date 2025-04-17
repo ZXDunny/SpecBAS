@@ -39,6 +39,7 @@ Type
     Procedure AcceptDir(Sender: SP_BaseComponent; s: aString);
     Procedure ChangeFilename(Sender: SP_BaseComponent; s: aString);
     Procedure Abort(Sender: SP_BaseComponent);
+    Procedure OnKeyDown(Sender: SP_BaseComponent; Key: integer; Down: boolean; Var Handled: Boolean);
   end;
 
   SP_TextRequester = Class
@@ -241,16 +242,15 @@ Begin
     If Copy(p, Length(p), 1) <> '/' Then
       p := p + '/';
     s := FilesList.Items[i];
-    If FocusedControl <> FileNameEdt Then
-      FilenameEdt.Text := Copy(s, 2, Pos(#255, s) -2)
-    Else
-      FilenameEdt.GhostText := Copy(s, 2, Pos(#255, s) -2);
+//    If FocusedControl <> FileNameEdt Then
+      FilenameEdt.Text := Copy(s, 2, Pos(#255, s) -2);
+{    Else
+      FilenameEdt.GhostText := Copy(s, 2, Pos(#255, s) -2);}
     okBtn.Enabled := SP_FileExists(p + FilenameEdt.Text) or (ToolMode = 2);
   End Else Begin
     FileNameEdt.Text := '';
     okBtn.Enabled := False;
   End;
-
 
 End;
 
@@ -293,6 +293,16 @@ Begin
     okBtn.Enabled := SP_FileExists(s) or (ToolMode = 2);
   End Else
     okBtn.Enabled := False;
+
+End;
+
+Procedure SP_FileRequester.OnKeyDown(Sender: SP_BaseComponent; Key: integer; Down: boolean; Var Handled: Boolean);
+Begin
+
+  Case Key of
+    K_UP, K_DOWN, K_HOME, K_END, K_NEXT, K_PRIOR:
+      FilesList.PerformKeyDown(Handled);
+  End;
 
 End;
 
@@ -345,6 +355,7 @@ Begin
   End;
   PathEdt.RightJustify := True;
   PathEdt.Text := SP_DecomposePathWithAssigns(Str);
+  PathEdt.OnKeyDown := OnKeyDown;
   PathEdt.SetFocus(False);
 
   caBtn := SP_Button.Create(Win^.Component);
@@ -366,6 +377,7 @@ Begin
     FilenameEdt.Text := SP_ExtractFileName(Filename)
   Else
     FilenameEdt.Text := '';
+  FilenameEdt.OnKeyDown := OnKeyDown;
   okBtn.Enabled := SP_FileExists(Filename) or ((ToolMode = 2) And (FilenameEdt.Text <> ''));
 
   FilesList := SP_FileListBox.Create(Win^.Component);

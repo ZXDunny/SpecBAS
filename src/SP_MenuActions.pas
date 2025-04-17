@@ -60,6 +60,7 @@ Type
     Class Procedure FPSearchBoxMouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
     Class Procedure FPSearchBoxChange(Control: SP_BaseComponent; Text: aString);
     Class Procedure SP_SearchBtnClick(Sender: SP_BaseComponent);
+    Class Procedure SP_SearchKeyDown(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean);
 
   End;
 
@@ -68,7 +69,6 @@ Type
   Procedure SP_CreateEditorSearchBar;
   Procedure SP_SwitchQuickSearch;
   Procedure SP_ResizeSearchPanel;
-  procedure SP_SearchKeyDown(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean);
   Procedure UpdateStatusLabel;
 
 Var
@@ -133,7 +133,7 @@ Begin
 
 End;
 
-procedure SP_SearchKeyDown(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean);
+Class Procedure SP_MenuActionProcs.SP_SearchKeyDown(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean);
 Begin
 
   If Key = K_ESCAPE Then Begin
@@ -232,7 +232,7 @@ Begin
   FPSearchBox.Border := True;
   FPSearchBox.OnMouseDown := SP_MenuActionProcs.FPSearchBoxMouseDown;
   FPSearchBox.OnChange := SP_MenuActionProcs.FPSearchBoxChange;
-  FPSearchBox.OnKeyDown := SP_SearchKeyDown;
+  FPSearchBox.OnKeyDown := SP_MenuActionProcs.SP_SearchKeyDown;
 
   FPNextBtn := SP_Button.Create(FPSearchPanel);
   FPNextBtn.Caption := #252;

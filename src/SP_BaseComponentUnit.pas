@@ -18,7 +18,7 @@ SP_BaseComponent = Class;
 
 SP_MouseEvent = Procedure(Sender: SP_BaseComponent; Mx, My, Button: Integer) of Object;
 SP_MouseWheelEvent = Procedure(Sender: SP_BaseComponent; Mx, My, Button, Delta: Integer) of Object;
-SP_KeyEvent = Procedure(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean);
+SP_KeyEvent = Procedure(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean) of Object;
 SP_PaintEvent = Procedure(Control: SP_BaseComponent) of Object;
 SP_ResizeEvent = Procedure(Sender: SP_BaseComponent) of Object;
 SP_TimerProc = Procedure(evt: Pointer) of Object;

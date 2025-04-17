@@ -25,7 +25,7 @@ unit SP_Editor;
 
 interface
 
-Uses Math, SP_SysVars, SysUtils, SP_Util, SP_Graphics, SP_BankManager, SP_Tokenise, SP_Errors, SP_Input,
+Uses Windows, Types, Math, SP_SysVars, SysUtils, SP_Util, SP_Graphics, SP_BankManager, SP_Tokenise, SP_Errors, SP_Input,
      Classes, SP_InfixToPostFix, SP_Interpret_PostFix, SP_Variables, SP_Sound, SP_Package, SP_FileIO,
      SP_Graphics32, SP_BankFiling, SP_AnsiStringlist, RunTimeCompiler;
 
@@ -572,18 +572,67 @@ End;
 Function  SP_ShowMenu(Var Options: aString; cX, cY: Integer): Integer;
 Var
   NumOptions, MaxWidth, WinX, WinY, WinW, WinH, Offset, Idx, StrLen,
-  Window, WindowID, yOff, CurOption, bWidth, bHeight, fW, fH: Integer;
+  Window, WindowID, yOff, CurOption, bWidth, bHeight, fW, fH, oOpt, mOpt: Integer;
   OptionList: TAnsiStringList;
   cBlack, cWhite, cCyan: Byte;
   Err: TSP_ErrorCode;
   Win: pSP_Window_Info;
-  Done: Boolean;
+  Done, Update: Boolean;
   Key: pSP_KeyInfo;
+
+  Function GetOptionAt(X, Y: Integer): Integer;
+  Var
+    i: Integer;
+  Begin
+    X := Round(SP_ConvertToScreenX(MOUSEX - SCREENX));
+    Y := Round(SP_ConvertToScreenY(MOUSEY - SCREENY));
+    Result := -1;
+    For i := 1 To OptionList.Count -1 Do Begin
+      If PtInRect(Rect(bWidth +1, yOff + (i * fH), bWidth + 1 + (WinW - ((bWidth * 2) + 2)), yOff + (i * fH) + fH), Point(X, Y)) Then Begin
+        Result := I;
+        Exit;
+      End;
+    End;
+  End;
+
+  Procedure SP_MenuHandleMouseMove(Mx, My: Integer);
+  Var
+    Idx: Integer;
+  Begin
+
+    Idx := GetOptionAt(Mx, My);
+    If Idx <> -1 Then Begin
+      Update := CurOption <> Idx;
+      CurOption := Idx;
+    End;
+    M_MOVEFLAG := False;
+
+  End;
+
+  Procedure SP_MenuHandleMouseDown(Mx, My: Integer);
+  Begin
+
+    M_DOWNFLAG := False;
+    mOpt := CurOption;
+
+  End;
+
+  Procedure SP_MenuHandleMouseUp(Mx, My: Integer; Var Done: Boolean);
+  Begin
+
+    Done := mOpt = GetOptionAt(Mx, My);
+    If Done Then Result := mOpt;
+    M_UPFLAG := False;
+
+  End;
+
+
 Begin
 
   EditorSaveFPS := FPS;
 
   Result := -1;
+  Update := True;
 
   // Options in the string, in format length,string...
   // Centre the box on cX, cY in the current window.
@@ -669,42 +718,53 @@ Begin
   CurOption := 1;
   Repeat
 
-    For Idx := 1 to OptionList.Count -1 Do Begin
-      If Idx = CurOption Then Begin
-        SP_FillRect(bWidth +1, yOff + (Idx * fH), WinW - ((bWidth * 2) + 2), fH, cCyan);
-        SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cCyan, True)
-      End Else Begin
-        SP_FillRect(bWidth +1, yOff + (Idx * fH), WinW - ((bWidth * 2) + 2), fH, cWhite);
-        SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cWhite, True);
+    If Update Then Begin
+      For Idx := 1 to OptionList.Count -1 Do Begin
+        If Idx = CurOption Then Begin
+          SP_FillRect(bWidth +1, yOff + (Idx * fH), WinW - ((bWidth * 2) + 2), fH, cCyan);
+          SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cCyan, True)
+        End Else Begin
+          SP_FillRect(bWidth +1, yOff + (Idx * fH), WinW - ((bWidth * 2) + 2), fH, cWhite);
+          SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cWhite, True);
+        End;
       End;
+      Update := False;
     End;
 
     Repeat
       CB_Yield;
       Key := SP_GetNextKey(FRAMES);
-    Until Assigned(Key) or QUITMSG;
+    Until Assigned(Key) or M_DOWNFLAG or M_UPFLAG or M_MOVEFLAG or QUITMSG;
     If QUITMSG Then Exit;
 
-    If Key.KeyCode in [K_RETURN, K_ESCAPE] Then Begin
-      If Key.KeyCode = K_RETURN Then
-        Result := integer(BASE) + CurOption -1
-      Else Begin
-        Result := -1;
-      End;
-      Done := True;
-    End Else
-      If Key.KeyChar = #0 Then Begin
-        Case Key.KeyCode of
-          K_UP:
-            If CurOption > 1 Then Dec(CurOption) Else CurOption := Numoptions -1;
-          K_DOWN:
-            If CurOption < NumOptions -1 Then Inc(CurOption) Else CurOption := 1;
-          K_HOME:
-            CurOption := 1;
-          K_END:
-            CurOption := NumOptions -1;
+    If M_DOWNFLAG Then SP_MenuHandleMouseDown(MOUSEX, MOUSEY);
+    If M_UPFLAG Then SP_MenuHandleMouseUp(MOUSEX, MOUSEY, Done);
+    If M_MOVEFLAG Then SP_MenuHandleMouseMove(MOUSEX, MOUSEY);
+
+    If Assigned(Key) Then
+      If Key.KeyCode in [K_RETURN, K_ESCAPE] Then Begin
+        If Key.KeyCode = K_RETURN Then
+          Result := integer(BASE) + CurOption -1
+        Else Begin
+          Result := -1;
         End;
-        SP_PlaySystem(CLICKCHAN, CLICKBANK);
+        Done := True;
+      End Else Begin
+        oOpt := curOption;
+        If Key.KeyChar = #0 Then Begin
+          Case Key.KeyCode of
+            K_UP:
+              If CurOption > 1 Then Dec(CurOption) Else CurOption := Numoptions -1;
+            K_DOWN:
+              If CurOption < NumOptions -1 Then Inc(CurOption) Else CurOption := 1;
+            K_HOME:
+              CurOption := 1;
+            K_END:
+              CurOption := NumOptions -1;
+          End;
+          SP_PlaySystem(CLICKCHAN, CLICKBANK);
+        End;
+        Update := oOpt <> CurOption;
       End;
 
   Until Done;

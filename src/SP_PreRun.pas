@@ -152,6 +152,7 @@ Begin
     SP_CaseListPtr := -1;
     SP_ProcsListPtr := -1;
     SP_ProcStackPtr := -1;
+    SP_ONCtrlListPtr := -1;
     SP_DeleteAllStreams(Error);
     SetLength(FillQueue, 0);
     SP_DeleteAllMenus;

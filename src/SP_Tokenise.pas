@@ -109,7 +109,7 @@ Const
      'COLLIDE ', 'WRAP ', 'ZONE ', 'USING ', 'SPLIT ', ' BPP ', ' ALPHA ', ' DEPTH ', 'UNDIM ',
      'BOLD ', 'ITALIC ', 'FILTER ', 'INSERT ', 'MENUITEM ', 'MEMWRT ', 'MEMWRTD ', 'MEMWRTQ ',
      'MEMWRT$ ', 'REPEAT', 'PARTICLE ', 'FRICTION ', 'GRAVITY ', 'FORCE ', 'INSTALL', 'MEMWRTF ',
-     'PRESS', 'TURNS', 'GRADIANS', 'EGA', 'CGA', 'ADDCTRL', 'CTRL', 'PROP$ ', 'OLD', ' ASYNC',
+     'PRESS', 'TURNS', 'GRADIANS', 'EGA', 'CGA', 'ADDCTRL', 'CTRL', 'PROP ', 'OLD', ' ASYNC',
      'COMPILE ', 'APPLEHGR', 'APPLELGR', 'CPC', 'ENUM ', 'STROKE ', 'LLIST ', ' TILE ');
 
   // Constants used to quickly identify keywords when in token form. Each keyword listed
@@ -362,7 +362,7 @@ Const
   SP_KW_CGA                 = 1242;
   SP_KW_ADDCTRL             = 1243;
   SP_KW_CTRL                = 1244;
-  SP_KW_PROPS               = 1245;
+  SP_KW_PROP                = 1245;
   SP_KW_OLD                 = 1246;
   SP_KW_ASYNC               = 1247;
   SP_KW_COMPILE             = 1248;
@@ -748,10 +748,13 @@ Const
   SP_KW_DRAW_FOUR           = 4418;
   SP_KW_ADRAW_FOUR          = 4419;
   SP_KW_TILEMAP_DRAW_TILE   = 4420;
+  SP_KW_CTRL_NEW            = 4421;
+  SP_KW_CTRL_PROP           = 4422;
+  SP_KW_CTRL_DO             = 4423;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..369] of aString =
+  SP_Keyword_Names: Array[0..372] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -803,12 +806,13 @@ Const
      'WINDOW ADD CONTROL', 'ORIGIN FLIP', 'WIN ORG FLIP', 'PLAY STOP', 'MOUSE TO ', 'PALETTE APPLE LGR',
      'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN', 'A-RECTANGLE TO', 'A-RECTFILL TO', 'RECTANGLE TO',
      'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING', 'ENUM BASE', 'ORG DIM', 'DRAW GML', 'WIN ORG DIM', 'GFX ORG DIM',
-     'STREAM READ FILE', 'RAINBOW HSV', 'PR STROKE', 'DRAW CDELTA', 'A-DRAW CDELTA', 'TILEMAP DRAW TILE');
+     'STREAM READ FILE', 'RAINBOW HSV', 'PR STROKE', 'DRAW CDELTA', 'A-DRAW CDELTA', 'TILEMAP DRAW TILE', 'CTRL NEW',
+     'CTRL PROP', 'CTRL DO');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.
 
-  SP_FUNCTIONS_EXTRA: Array[0..279] of aString =
+  SP_FUNCTIONS_EXTRA: Array[0..280] of aString =
     ('nRND', 'nINKEY$', 'oPI', 'nVAL$ ', 'oCODE ', 'oVAL ', 'oLEN ', 'nSIN ', 'nCOS ',
      'nTAN ', 'nASN ', 'nACS ', 'nATN ', 'oLN ', 'oEXP ', 'oINT ', 'oSQR ', 'oSGN ', 'oABS ', 'n IN ',
      'nUSR ', 'oSTR$ ','oCHR$ ', 'nPEEK ', 'oNOT ', 'o OR ', 'o AND ', 'o MOD ', 'o XOR ', 'o SHL ',
@@ -840,7 +844,7 @@ Const
      'oTAU', 'nMILLISECONDS', 'oBINV', 'oBREV', 'oINTERP', 'oMIN$', 'oMAX$', 'nFMEMRD', 'nTXTw', 'nTXTh',
      'nNOISE', 'nOCTNOISE', 'oPAR ', 'oMAP', 'o EQV ', 'o IMP ', 'oSINH ', 'oCOSH ', 'oTANH ', 'oASNH ',
      'oACSH ', 'oATNH ', 'oMID', 'nPARAM$', 'nSTK', 'nSTK$', 'oREV$ ', 'nCLIP$', 'oINSTR', 'oFMOD',
-     'oBITCNT', 'oHIBIT', 'oCPAD$', 'nINKEY');
+     'oBITCNT', 'oHIBIT', 'oCPAD$', 'nINKEY', 'nFILEREQ');
 
   // Constants, like above, for identifying Functions in token form
 
@@ -1126,6 +1130,7 @@ Const
   SP_FN_HIBIT               = 2277;
   SP_FN_CPADS               = 2278;
   SP_FN_INKEY               = 2279;
+  SP_FN_FILEREQ             = 2280;
 
   // Meta-functions
 
@@ -1853,7 +1858,7 @@ Begin
         Exit;
       End Else Begin
         ss := Line[1] + Line[2];
-        if (ss = 'KE') or (ss = 'FO') or (ss = 'DT') or (ss = 'tp') or (ss = 'nu') Then
+        if (ss = 'KE') or (ss = 'FO') or (ss = 'DT') or (ss = 'TP') or (ss = 'NU') or (ss = 'SP') Then
           For Idx := 0 To High(SP_CONSTANTS) Do
             If Upper(SP_CONSTANTS[Idx].Name) = Line Then Begin
               Result := Idx;
@@ -2593,10 +2598,8 @@ Begin
       Result := CondenseString(Result + CodeLine + PrevSyntax);
       Exit;
     End Else
-      If PrevSyntax = StrClr Then Begin
-        Idx2 := 1;
+      If PrevSyntax = StrClr Then
         Goto ProcessString;
-      End;
   End;
   Wd := '';
 
@@ -2815,9 +2818,9 @@ Begin
                   NewSyntax := RemClr;
                 End Else
                   If CodeLine[Idx] = '"' Then Begin // String constant
+                    ProcessString:
                     Idx2 := Idx +1;
                     StringDone := False;
-                    ProcessString:
                     While (Idx2 <= L) Do Begin
                       If CodeLine[Idx2] = '"' Then Begin
                         StringDone := True;

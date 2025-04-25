@@ -20,8 +20,8 @@ unit SP_Components;
 
 interface
 
-Uses Types, SysUtils, Classes, SyncObjs, Math, ClipBrd, SP_SysVars, SP_FileIO, SP_Util,
-     SP_ButtonUnit, SP_BaseComponentUnit;
+Uses Types, SysUtils, System.Generics.Collections, Classes, SyncObjs, Math, ClipBrd, SP_SysVars, SP_FileIO, SP_Util,
+     SP_ButtonUnit, SP_BaseComponentUnit, SP_Errors;
 
 // A collection of UI elements for building UI apps. Based on Windows controls.
 
@@ -72,9 +72,14 @@ Function  ControlAtPoint(Window: Pointer; Var x, y: Integer): pSP_BaseComponent;
 Function  TestForWindowMenu(Win: Pointer; Var Shift: TShiftState): Boolean;
 
 Procedure DoTimerEvents;
+Procedure ClearTimerEvents;
 Function  AddTimer(Sender: TObject; Interval: Integer; ObjProc: SP_TimerProc; DoNow: Boolean): pSP_TimerEvent;
 Procedure RemoveTimer(Sender: TObject); Overload;
 Procedure RemoveTimer(Var ID: Integer); Overload;
+
+Function  SP_CreateControl(ParentID, cClass, X, Y, W, H: Integer; Var Error: TSP_ErrorCode): Integer;
+Procedure SP_HaltAllControls;
+Function  SP_CanInteract(C: SP_BaseComponent): Boolean;
 
 Const
 
@@ -122,13 +127,23 @@ Var
   GlobalControlCount: Integer;
   OverrideControls: Array of SP_BaseComponent;
   cKEYSTATE: Array[0..255] of Byte;
-
+  ControlRegistry: TDictionary<Cardinal, SP_BaseComponent>;
+  NextControlID: LongWord;
 
 implementation
 
-Uses SP_Main, SP_Sound, SP_Errors, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Graphics32, SP_Input, SP_PopupMenuUnit, SP_WindowMenuUnit;
+Uses SP_Main, SP_Sound, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Graphics32, SP_Input, SP_PopupMenuUnit, SP_WindowMenuUnit, SP_Tokenise;
 
 // Timer Functions
+
+Procedure ClearTimerEvents;
+Begin
+
+  TimerSection.Enter;
+  SetLength(TimerList, 0);
+  TimerSection.Leave;
+
+End;
 
 Procedure DoTimerEvents;
 Var
@@ -343,7 +358,7 @@ Var
   Function SendKey(var ctrl: SP_BaseComponent): Boolean;
   Begin
     Result := False;
-    If IsVisible(ctrl) And (ctrl = focusedcontrol) then
+    If IsVisible(ctrl) And (ctrl = focusedcontrol) And SP_CanInteract(ctrl) then
       If Down Then Begin
         cLastKeyChar := Ord(aStr[1]);
         cLastKey := Key;
@@ -388,7 +403,7 @@ Begin
       w := c.ParentWindowID;
       For j := 0 To High(windows) do
         If w = Windows[j] Then Begin
-          if c is SP_PopupMenu Then
+          if (c is SP_PopupMenu) And SP_CanInteract(c) Then
             Result := SP_PopUpMenu(c).CheckShortcuts;
           If Result Then
             Exit
@@ -601,18 +616,90 @@ Begin
 
 End;
 
-// SP_Memo
+// User runtime control management
 
+Function SP_GetNextControlID: LongWord;
+Begin
+
+  Result := NextControlID;
+  Inc(NextControlID);
+
+End;
+
+Procedure SP_HaltAllControls;
+Var
+  i: Integer;
+Begin
+
+  ClearTimerEvents;
+  For i := 0 To High(cKEYSTATE) Do
+    cKEYSTATE[i] := 0;
+  cLastKey := 0;
+  cLastKeyChar := 0;
+
+End;
+
+Function SP_CanInteract(C: SP_BaseComponent): Boolean;
+Var
+  Control: SP_BaseComponent;
+Begin
+
+  Result := True;
+  If ControlRegistry.TryGetValue(c.fIDNumber, Control) Then
+    Result := PROGSTATE = SP_PR_RUN;
+
+End;
+
+Function SP_CreateControl(ParentID, cClass, X, Y, W, H: Integer; Var Error: TSP_ErrorCode): Integer;
+Var
+  Control, Parent: SP_BaseComponent;
+  Win: pSP_Window_Info;
+Begin
+
+  Result := -1;
+  Control := nil;
+
+  If ParentID <= 0 Then Begin
+    // negative (or 0) parentID is a window, but negative
+    If ParentID = -65535 Then
+      SP_GetWindowDetails(SCREENBANK, Win, Error)
+    Else
+      SP_GetWindowDetails(-ParentID, Win, Error);
+    Parent := Win^.Component;
+  End Else
+    // positive parentID is another control.
+    If Not ControlRegistry.TryGetValue(ParentID, Parent) Then
+      Error.Code := SP_ERR_INVALID_COMPONENT;
+
+  If Error.Code = SP_ERR_OK Then Begin
+    Case cClass of
+      spButton:
+        Begin
+          Control := SP_Button.Create(Parent);
+        End;
+    End;
+    If Assigned(Control) Then Begin
+      Control.fIDNumber := SP_GetNextControlID;
+      Control.SetBounds(x, y, w, h);
+      Result := Control.fIDNumber;
+      ControlRegistry.Add(Result, Control);
+    End;
+  End;
+
+End;
 
 Initialization
 
   ControlSection := TCriticalSection.Create;
   TimerSection := TCriticalSection.Create;
   GlobalControlCount := 0;
+  NextControlID := 1;
+  ControlRegistry := TDictionary<Cardinal, SP_BaseComponent>.Create;
 
 Finalization
 
   ControlSection.Free;
   TimerSection.Free;
+  ControlRegistry.Free;
 
 end.

@@ -30,7 +30,7 @@ SP_WindowMenu = Class(SP_BaseComponent)
     Procedure SetVisible(Value: Boolean); Override;
     Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
-    Procedure MouseExit; Override;
+    Procedure MouseLeave; Override;
     Function  ItemAtPos(x, y: Integer): Integer;
     Procedure AddItem(Item: SP_MenuItem);
     Procedure InsertItem(Item: SP_MenuItem; Index: Integer);
@@ -309,7 +309,7 @@ Begin
 
 End;
 
-Procedure SP_WindowMenu.MouseExit;
+Procedure SP_WindowMenu.MouseLeave;
 Begin
 
   if Not fActivated Then

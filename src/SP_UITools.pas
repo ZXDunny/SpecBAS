@@ -242,10 +242,10 @@ Begin
     If Copy(p, Length(p), 1) <> '/' Then
       p := p + '/';
     s := FilesList.Items[i];
-//    If FocusedControl <> FileNameEdt Then
-      FilenameEdt.Text := Copy(s, 2, Pos(#255, s) -2);
-{    Else
-      FilenameEdt.GhostText := Copy(s, 2, Pos(#255, s) -2);}
+    If FocusedControl <> FileNameEdt Then
+      FilenameEdt.Text := Copy(s, 2, Pos(#255, s) -2)
+    Else
+      FilenameEdt.GhostText := Copy(s, 2, Pos(#255, s) -2);
     okBtn.Enabled := SP_FileExists(p + FilenameEdt.Text) or (ToolMode = 2);
   End Else Begin
     FileNameEdt.Text := '';
@@ -300,8 +300,11 @@ Procedure SP_FileRequester.OnKeyDown(Sender: SP_BaseComponent; Key: integer; Dow
 Begin
 
   Case Key of
-    K_UP, K_DOWN, K_HOME, K_END, K_NEXT, K_PRIOR:
-      FilesList.PerformKeyDown(Handled);
+    K_UP, K_DOWN, K_NEXT, K_PRIOR:
+      Begin
+        FilesList.SetFocus(True);
+        FilesList.PerformKeyDown(Handled);
+      End;
   End;
 
 End;
@@ -387,9 +390,9 @@ Begin
   FilesList.Transparent := False;
   FilesList.Find(SP_ExtractFilename(Filename));
 
-  FilenameEdt.ChainControl := FilesList;
   PathEdt.ChainControl := FilesList;
   FilesList.ChainControl := FilenameEdt;
+  FilenameEdt.ChainControl := PathEdt;
   FilesList.CanFocus := True;
   FilenameEdt.SetFocus(True);
 

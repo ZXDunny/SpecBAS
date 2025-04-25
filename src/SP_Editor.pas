@@ -487,54 +487,55 @@ Begin
         End;
         Inc(CURSORPOS);
       End;
-    End Else If CURSORPOS <= Length(INPUTLINE) Then Begin
-      nChar := Key.KeyChar;
-      If INFORMAT[(CURSORPOS *2) -1] <> '\' Then
-        Case INFORMAT[CURSORPOS *2] of
-          #0..#31:
-            Begin
-              fmtGroup := Ord(INFORMAT[(CURSORPOS *2) -1]);
-              If (fmtGroup >= INFORMATSTRINGS.Count) or (Pos(nChar, INFORMATSTRINGS[fmtGroup]) <= 0) Then
+    End Else
+      If CURSORPOS <= Length(INPUTLINE) Then Begin
+        nChar := Key.KeyChar;
+        If INFORMAT[(CURSORPOS *2) -1] <> '\' Then
+          Case INFORMAT[CURSORPOS *2] of
+            #0..#31:
+              Begin
+                fmtGroup := Ord(INFORMAT[(CURSORPOS *2) -1]);
+                If (fmtGroup >= INFORMATSTRINGS.Count) or (Pos(nChar, INFORMATSTRINGS[fmtGroup]) <= 0) Then
+                  nChar := #0;
+              End;
+            'A':
+              If nChar in ['a'..'z'] Then
+                nChar := aChar(Ord(nChar) - 32)
+              Else
+                If Not (nChar in ['A'..'Z']) Then
+                  nChar := #0;
+            'a':
+              If nChar in ['A'..'Z'] Then
+                nChar := aChar(Byte(nChar) + 32)
+              Else
+                If Not (nChar in ['a'..'z']) Then
+                  nChar := #0;
+            '#':
+              If Not (nChar in ['0'..'9']) Then
                 nChar := #0;
-            End;
-          'A':
-            If nChar in ['a'..'z'] Then
-              nChar := aChar(Ord(nChar) - 32)
-            Else
-              If Not (nChar in ['A'..'Z']) Then
+            '<':
+              If nChar in ['A'..'Z'] Then
+                nChar := aChar(Ord(nChar) + 32);
+            '>':
+              If nChar in ['a'..'z'] Then
+                nChar := aChar(Ord(nChar) - 32);
+            '&':
+              If Not (nChar in ['A'..'Z', 'a'..'z']) Then
                 nChar := #0;
-          'a':
-            If nChar in ['A'..'Z'] Then
-              nChar := aChar(Byte(nChar) + 32)
-            Else
-              If Not (nChar in ['a'..'z']) Then
+            '?':
+              If Not (nChar in ['A'..'Z', 'a'..'z', '0'..'9']) Then
                 nChar := #0;
-          '#':
-            If Not (nChar in ['0'..'9']) Then
-              nChar := #0;
-          '<':
-            If nChar in ['A'..'Z'] Then
-              nChar := aChar(Ord(nChar) + 32);
-          '>':
-            If nChar in ['a'..'z'] Then
-              nChar := aChar(Ord(nChar) - 32);
-          '&':
-            If Not (nChar in ['A'..'Z', 'a'..'z']) Then
-              nChar := #0;
-          '?':
-            If Not (nChar in ['A'..'Z', 'a'..'z', '0'..'9']) Then
-              nChar := #0;
-        End;
-      If nChar <> #0 Then Begin
-        INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + nChar + Copy(INPUTLINE, CURSORPOS +1, LENGTH(INPUTLINE));
-        If CURSORPOS <= Length(INPUTLINE) Then Begin
-          Inc(CURSORPOS);
-          While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
-          If CURSORPOS = Length(INPUTLINE) Then
-            While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
+         End;
+        If nChar <> #0 Then Begin
+          INPUTLINE := Copy(INPUTLINE, 1, CURSORPOS -1) + nChar + Copy(INPUTLINE, CURSORPOS +1, LENGTH(INPUTLINE));
+          If CURSORPOS <= Length(INPUTLINE) Then Begin
+            Inc(CURSORPOS);
+            While (CURSORPOS <= Length(INPUTLINE)) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Inc(CURSORPOS);
+            If CURSORPOS = Length(INPUTLINE) Then
+              While (CURSORPOS > 1) And Not ((INFORMAT[CURSORPOS *2] in [#0..#31, '#', 'A', 'a', '<', '>', '&', '?', '*']) And (INFORMAT[(CURSORPOS *2)-1] <> '\')) Do Dec(CURSORPOS);
+          End;
         End;
       End;
-    End;
 
   End;
 

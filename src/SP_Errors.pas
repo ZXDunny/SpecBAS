@@ -210,8 +210,10 @@ Const
   SP_ERR_CLIPBOARD_ERROR = 163;
   SP_ERR_INVALID_ERRNUM = 164;
   SP_ERR_FOR_WITHOUT_NEXT = 165;
+  SP_ERR_INVALID_COMPONENT = 166;
+  SP_ERR_INVALID_METHOD_NAME = 167;
 
-  MAXERROR = 165;
+  MAXERROR = 167;
 
   // Runtime error codes.
 
@@ -383,12 +385,14 @@ Const
      'Installation finished',
      'Invalid window',
      'Breakpoint reached',
-     'Invalid property',
-     'Invalid property value',
+     'Invalid attribute',
+     'Invalid attribute value',
      'Too many brackets',
      'Clipboard error',
      'Invalid error number',
-     'FOR without NEXT');
+     'FOR without NEXT',
+     'Invalid component',
+     'Invalid method');
 
 Var
 

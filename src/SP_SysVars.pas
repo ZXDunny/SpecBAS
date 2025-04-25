@@ -1478,7 +1478,9 @@ Const
    svPointer = 6;
    svByte = 7;
 
-   SP_Constants: Array[0..117] of TConstant =
+   spButton = 0;
+
+   SP_Constants: Array[0..118] of TConstant =
    ((Name: 'TRUE'; Value: 1),
     (Name: 'FALSE'; Value: 0),
 
@@ -1601,7 +1603,11 @@ Const
     (Name: 'nubMOUSE'; Value: 0),
     (Name: 'nubSTICK'; Value: 1),
     (Name: 'nubSCROLL'; Value: 2),
-    (Name: 'nubBUTTONS'; Value: 3));
+    (Name: 'nubBUTTONS'; Value: 3),
+
+    (Name: 'SP_BUTTON'; Value: spButton)
+
+    );
 
   SysVars: Array[0..257] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),

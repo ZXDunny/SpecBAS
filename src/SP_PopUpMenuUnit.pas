@@ -72,7 +72,7 @@ SP_PopupMenu = Class(SP_BaseComponent)
     Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
-    Procedure MouseExit; Override;
+    Procedure MouseLeave; Override;
     Function  ItemAtPos(x, y: Integer): Integer;
     Function  AddItem(Item: SP_MenuItem): pSP_MenuItem;
     Function  InsertItem(Item: SP_MenuItem; Index: Integer): pSP_MenuItem;
@@ -517,7 +517,7 @@ Begin
 
 End;
 
-Procedure SP_PopUpMenu.MouseExit;
+Procedure SP_PopUpMenu.MouseLeave;
 Var
   i: Integer;
   SubOpen: Boolean;

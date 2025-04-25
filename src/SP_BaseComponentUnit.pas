@@ -14,59 +14,68 @@ Uses SysUtils, Types, Math, SyncObjs,
 
 Type
 
-SP_BaseComponent = Class;
+  SP_BaseComponent = Class;
 
-SP_MouseEvent = Procedure(Sender: SP_BaseComponent; Mx, My, Button: Integer) of Object;
-SP_MouseWheelEvent = Procedure(Sender: SP_BaseComponent; Mx, My, Button, Delta: Integer) of Object;
-SP_KeyEvent = Procedure(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean) of Object;
-SP_PaintEvent = Procedure(Control: SP_BaseComponent) of Object;
-SP_ResizeEvent = Procedure(Sender: SP_BaseComponent) of Object;
-SP_TimerProc = Procedure(evt: Pointer) of Object;
-SP_LBSelectEvent = Procedure(Sender: SP_BaseComponent; Index: Integer) of Object;
-SP_LBChooseEvent = Procedure(Sender: SP_BaseComponent; Index: Integer; s: aString) of Object;
-SP_SortEvent = Function(Val1, Val2: aString): Integer of Object;
-SP_TextPrepare = Function(s: aString; c, i: Integer): aString of Object;
-SP_EditEvent = Procedure(Sender: SP_BaseComponent; Text: aString) of Object;
-SP_ClickEvent = Procedure(Sender: SP_BaseComponent) of Object;
-SP_CheckEvent = Procedure(Sender: SP_BaseComponent) Of Object;
-SP_AbortEvent = Procedure(Sender: SP_BaseComponent) Of Object;
-SP_MenuClickEvent = Procedure(Sender: SP_BaseComponent; Item: Integer) Of Object;
-SP_ExitEvent = Procedure(Sender: SP_BaseComponent) of Object;
-SP_EnterEvent = Procedure(Sender: SP_BaseComponent; X, Y: Integer) of Object;
-SP_VisibleEvent = Procedure(Sender: SP_BaseComponent) of Object;
-SP_PopUpEvent = Procedure(Sender: SP_BaseComponent) of Object;
-SP_ActivateEvent = Procedure(Sender: SP_BaseComponent) of Object;
-SP_DeactivateEvent = Procedure(Sender: SP_BaseComponent) of Object;
-SP_FocusEvent = Procedure(Sender: SP_BaseComponent; WillFocus: Boolean) of Object;
-SP_ChangeEvent = Procedure(Sender: SP_BaseComponent) of Object;
+  SP_BaseEvent = Procedure(Sender: SP_BaseComponent) of Object;
+  SP_MouseEvent = Procedure(Sender: SP_BaseComponent; Mx, My, Button: Integer) of Object;
+  SP_MouseWheelEvent = Procedure(Sender: SP_BaseComponent; Mx, My, Button, Delta: Integer) of Object;
+  SP_KeyEvent = Procedure(Sender: SP_BaseComponent; Key: Integer; Down: Boolean; Var Handled: Boolean) of Object;
+  SP_PaintEvent = Procedure(Control: SP_BaseComponent) of Object;
+  SP_ResizeEvent = Procedure(Sender: SP_BaseComponent) of Object;
+  SP_TimerProc = Procedure(evt: Pointer) of Object;
+  SP_LBSelectEvent = Procedure(Sender: SP_BaseComponent; Index: Integer) of Object;
+  SP_LBChooseEvent = Procedure(Sender: SP_BaseComponent; Index: Integer; s: aString) of Object;
+  SP_SortEvent = Function(Val1, Val2: aString): Integer of Object;
+  SP_TextPrepare = Function(s: aString; c, i: Integer): aString of Object;
+  SP_EditEvent = Procedure(Sender: SP_BaseComponent; Text: aString) of Object;
+  SP_ClickEvent = Procedure(Sender: SP_BaseComponent) of Object;
+  SP_CheckEvent = Procedure(Sender: SP_BaseComponent) Of Object;
+  SP_AbortEvent = Procedure(Sender: SP_BaseComponent) Of Object;
+  SP_MenuClickEvent = Procedure(Sender: SP_BaseComponent; Item: Integer) Of Object;
+  SP_ExitEvent = Procedure(Sender: SP_BaseComponent) of Object;
+  SP_EnterEvent = Procedure(Sender: SP_BaseComponent; X, Y: Integer) of Object;
+  SP_VisibleEvent = Procedure(Sender: SP_BaseComponent) of Object;
+  SP_PopUpEvent = Procedure(Sender: SP_BaseComponent) of Object;
+  SP_ActivateEvent = Procedure(Sender: SP_BaseComponent) of Object;
+  SP_DeactivateEvent = Procedure(Sender: SP_BaseComponent) of Object;
+  SP_FocusEvent = Procedure(Sender: SP_BaseComponent; WillFocus: Boolean) of Object;
+  SP_ChangeEvent = Procedure(Sender: SP_BaseComponent) of Object;
 
-SP_ParentType = (spControl, spWindow);
-SP_TabPosition = (spTop, spBottom);
+  SP_ParentType = (spControl, spWindow);
+  SP_TabPosition = (spTop, spBottom);
 
-SP_Anchor = (aLeft, aTop, aRight, aBottom);
-SP_AnchorSet = Set of SP_Anchor;
+  SP_Anchor = (aLeft, aTop, aRight, aBottom);
+  SP_AnchorSet = Set of SP_Anchor;
 
-SP_PropertySetter = Procedure(Value: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode) of Object;
-SP_PropertyGetter = Function: aString of Object;
-SP_Property = Record
-  Name: aString;
-  Getter: SP_PropertyGetter;
-  Setter: SP_PropertySetter;
-End;
+  SP_MethodFunction = aString;
+  SP_MethodHandler = Procedure(Params: Array of aString; Var Error: TSP_ErrorCode) of Object;
+  SP_Method = Record
+    Name, ParamTemplate: aString;
+    Handler: SP_MethodHandler;
+  End;
+
+  SP_PropertySetter = Procedure(Value: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode) of Object;
+  SP_PropertyGetter = Function: aString of Object;
+  SP_Property = Record
+    Name: aString;
+    Getter: SP_PropertyGetter;
+    Setter: SP_PropertySetter;
+  End;
 
 SP_BaseComponent = Class
 
   Public
-
+    fIDNumber, fNextID: Integer;
     fPrevFocus: SP_BaseComponent;
     fLeft, fTop, fWidth, fHeight: Integer;
     fAnchors: SP_AnchorSet;
     fAlign: Integer;
+    fOwnerIndex: Integer;
     fOnMouseMove,
     fOnMouseDown,
-    fOnMouseUp,
+    fOnMouseUp: SP_MouseEvent;
     fOnMouseEnter,
-    fOnMouseLeave: SP_MouseEvent;
+    fOnMouseLeave: SP_BaseEvent;
     fOnMouseWheel: SP_MouseWheelEvent;
     fOnPaintBefore,
     fOnPaintAfter: SP_PaintEvent;
@@ -107,8 +116,6 @@ SP_BaseComponent = Class
     fFocused: Boolean;
     fOnClick: SP_ClickEvent;
     fOnAbort: SP_AbortEvent;
-    fOnEnter: SP_EnterEvent;
-    fOnExit:  SP_ExitEvent;
     fOnShow:  SP_VisibleEvent;
     fOnHide:  SP_VisibleEvent;
     fOnFocus: SP_FocusEvent;
@@ -128,6 +135,7 @@ SP_BaseComponent = Class
     fHint: aString;
     fClientRect: TRect;
     fTag: Integer;
+    fWantTab: Boolean;
     User_OnMouseMove: aString;
     User_OnMouseDown: aString;
     User_OnMouseUp: aString;
@@ -141,8 +149,6 @@ SP_BaseComponent = Class
     User_OnDblClick: aString;
     User_OnClick: aString;
     User_OnAbort: aString;
-    User_OnEnter: aString;
-    User_OnExit: aString;
     User_OnShow: aString;
     User_OnHide: aString;
     User_OnResize: aString;
@@ -159,16 +165,16 @@ SP_BaseComponent = Class
     Compiled_OnDblClick: aString;
     Compiled_OnClick: aString;
     Compiled_OnAbort: aString;
-    Compiled_OnEnter: aString;
-    Compiled_OnExit: aString;
     Compiled_OnShow: aString;
     Compiled_OnHide: aString;
     Compiled_OnResize: aString;
 
     Aligning: Boolean;
     fProperties: Array of SP_Property;
+    fMethods: Array of SP_Method;
 
     Function  GetParentControl: SP_BaseComponent;
+    Procedure UpdateBackground;
     Procedure SetVisible(Value: Boolean); Virtual;
     Procedure SetTransparent(Value: Boolean);
     Procedure SetWidth(w: Integer);
@@ -212,6 +218,7 @@ SP_BaseComponent = Class
     Procedure Paint; Virtual;
     Procedure Render(Dst: pByte; dW, dH: Integer);
     Procedure BringToFront;
+    Procedure SendToBack;
     Procedure SetBounds(x, y, w, h: Integer); Virtual;
     Procedure SetPosition(x, y: Integer); Virtual;
     Procedure DrawLine(x1, y1, x2, y2: Integer; Ink: Byte);
@@ -237,14 +244,17 @@ SP_BaseComponent = Class
     Function  ScreenToClient(p: TPoint): TPoint;
     Function  Owner: SP_BaseComponent;
     Procedure SetFocus(b: Boolean); virtual;
-    Procedure MouseExit; Virtual;
+    Procedure MouseLeave; Virtual;
     Procedure MouseEnter(X, Y: Integer); Virtual;
     Procedure Lock; Virtual;
     Procedure Unlock; Virtual;
     Procedure ChangeFont;
     Procedure SetChainControl(c: SP_BaseComponent); Virtual;
     Function  GetFocused: Boolean;
+    Function  GetNextChildID: Integer;
     Function  GetParentWindowID: Integer;
+    Procedure RegisterMethod(Name, Params: aString; MethodHandler: SP_MethodHandler);
+    Procedure DoMethod(Name: aString; Params: Array of aString; Var Error: TSP_ErrorCode);
     Procedure SetProperty(Name, Value: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
     Function  GetProperty(Name: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode): aString;
     Procedure RegisterProperty(Name: aString; Getter: SP_PropertyGetter; Setter: SP_PropertySetter);
@@ -287,10 +297,20 @@ SP_BaseComponent = Class
     Procedure Set_OnDblClick(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnDblClick: aString;
     Procedure Set_OnClick(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnClick: aString;
     Procedure Set_OnAbort(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnAbort: aString;
-    Procedure Set_OnEnter(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnEnter: aString;
-    Procedure Set_OnExit(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnExit: aString;
     Procedure Set_OnShow(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnShow: aString;
     Procedure Set_OnHide(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnHide: aString;
+
+    {User Methods}
+    Procedure RegisterMethods; Virtual;
+    Procedure Method_BringToFront(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_SendToBack(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_SetBounds(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_SetPosition(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_SetFocus(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Lock(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Unlock(Params: Array of aString; Var Error: TSP_ErrorCode);
+
+    {Properties}
 
     Property Align:         Integer             read fAlign         write SetAlign;
     Property Anchors:       SP_AnchorSet        read fAnchors       write fAnchors;
@@ -299,8 +319,8 @@ SP_BaseComponent = Class
     Property OnMouseMove:   SP_MouseEvent       read fOnMouseMove   write fOnMouseMove;
     Property OnMouseDown:   SP_MouseEvent       read fOnMouseDown   write fOnMouseDown;
     Property OnMouseUp:     SP_MouseEvent       read fOnMouseUp     write fOnMouseUp;
-    Property OnMouseEnter:  SP_MouseEvent       read fOnMouseEnter  write fOnMouseEnter;
-    Property OnMouseLeave:  SP_MouseEvent       read fOnMouseLeave  write fOnMouseLeave;
+    Property OnMouseEnter:  SP_BaseEvent        read fOnMouseEnter  write fOnMouseEnter;
+    Property OnMouseLeave:  SP_BaseEvent        read fOnMouseLeave  write fOnMouseLeave;
     Property OnMouseWheel:  SP_MouseWheelEvent  read fOnMouseWheel  write fOnMouseWheel;
     Property OnKeyDown:     SP_KeyEvent         read fOnKeyDown     write fOnKeyDown;
     Property OnKeyUp:       SP_KeyEvent         read fOnKeyUp       write fOnKeyUp;
@@ -311,8 +331,8 @@ SP_BaseComponent = Class
     Property ErrorClr:      Byte                read fErrorClr      write SetErrorClr;
     Property Width:         Integer             read fWidth         write SetWidth;
     Property Height:        Integer             read fHeight        write SetHeight;
-    Property Left:          Integer             read fLeft          write fLeft;
-    Property Top:           Integer             read fTop           write fTop;
+    Property Left:          Integer             read fLeft          write SetLeft;
+    Property Top:           Integer             read fTop           write SetTop;
     Property WindowID:      Integer             read fWindowID      write SetWindowID;
     Property OnResize:      SP_ResizeEvent      read fOnResize      write fOnResize;
     Property Enabled:       Boolean             read fEnabled       write SetEnabled;
@@ -323,8 +343,6 @@ SP_BaseComponent = Class
     Property ChainControl:  SP_BaseComponent    read fChainControl  write SetChainControl;
     Property OnClick:       SP_ClickEvent       read fOnClick       write fOnClick;
     Property OnAbort:       SP_AbortEvent       read fOnAbort       write fOnAbort;
-    Property OnEnter:       SP_EnterEvent       read fOnEnter       write fOnEnter;
-    Property OnExit:        SP_ExitEvent        read fOnExit        write fOnExit;
     Property OnShow:        SP_VisibleEvent     read fOnShow        write fOnShow;
     Property OnHide:        SP_VisibleEvent     read fOnHide        write fOnHide;
     Property BoundsRect:    TRect               read fBoundsrect;
@@ -344,6 +362,7 @@ SP_BaseComponent = Class
     Property Font: Integer                      read fCurFontID     write SetFont;
     Property ParentWindowID: Integer            read fParentWindowID;
     Property Hint: aString                      read GetHint        write fHint;
+    Property WantTAB: Boolean                   read fWantTAB       write fWantTAB;
     Property Tag: Integer                       read fTag           write fTag;
 
     Constructor Create(Owner: SP_BaseComponent);
@@ -375,7 +394,7 @@ Uses
   SP_Main, SP_Input, SP_Graphics, SP_BankFiling, SP_BankManager, SP_SysVars,
   SP_PopUpMenuUnit, SP_Components, SP_Interpret_PostFix, SP_ToolTipWindow;
 
-// All controls should register their extra properties via this routine in the base class.
+// All controls should register their extra properties and methods via this routine in the base class.
 // These are properties that the user can change or read.
 
 // All properties, methods and event handlers can be registered through here.
@@ -403,6 +422,47 @@ Begin
   fProperties[i].Name := Name;
   fProperties[i].Getter := Getter;
   fProperties[i].Setter := Setter;
+
+End;
+
+Procedure SP_BaseComponent.RegisterMethod(Name, Params: aString; MethodHandler: SP_MethodHandler);
+Var
+  i, l: Integer;
+  Found: Boolean;
+Begin
+
+  Found := False;
+  Name := Lower(Name);
+  l := Length(fMethods);
+  For i := 0 To l -1 Do
+    If fMethods[i].Name = Name Then Begin
+      Found := True;
+      Break;
+    End;
+
+  If Not Found Then Begin
+    SetLength(fMethods, l +1);
+    i := l;
+  End;
+
+  fMethods[i].Name := Name;
+  fMethods[i].ParamTemplate := Params;
+  fMethods[i].Handler := MethodHandler;
+
+End;
+
+Procedure SP_BaseComponent.DoMethod(Name: aString; Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  Idx: Integer;
+Begin
+
+  For Idx := 0 To Length(fMethods) -1 Do
+    If (Name = fMethods[Idx].Name) And Assigned(fMethods[Idx].Handler) Then Begin
+      fMethods[Idx].Handler(Params, Error);
+      Exit;
+    End;
+
+  Error.Code := SP_ERR_INVALID_METHOD_NAME;
 
 End;
 
@@ -1208,6 +1268,8 @@ Begin
 
   Aligning := False;
   RegisterProperties;
+  RegisterMethods;
+  fWantTab := False;
 
   ChangeFont;
   If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then
@@ -1215,8 +1277,9 @@ Begin
   Else
     fCurFontID := FONTBANKID;
 
-  Inc(GlobalControlID);
   ControlID := GlobalControlID;
+  Inc(GlobalControlID);
+
   fNumComponents := 0;
 
   fWindowID := -1;
@@ -1229,9 +1292,12 @@ Begin
     l := Length(Owner.fComponentList);
     SetLength(Owner.fComponentList, l +1);
     Owner.fComponentList[l] := Self;
+    fOwnerIndex := l;
     Inc(Owner.fNumComponents);
     fParentWindowID := Owner.fParentWindowID;
+    fIDNumber := 0;
   End Else Begin
+    fOwnerIndex := 0;
     fParentType := spWindow;
     fParentControl := nil;
   End;
@@ -1336,9 +1402,20 @@ Begin
 
   DeleteOverrideControl(Self);
 
+  If fIDNumber <> 0 Then
+    ControlRegistry.Remove(fIDNumber);
+
   Inherited;
 
   DisplaySection.Leave;
+
+End;
+
+Function SP_BaseComponent.GetNextChildID: Integer;
+Begin
+
+  Inc(fNextID);
+  Result := fNextID;
 
 End;
 
@@ -1357,7 +1434,26 @@ Begin
     fParentControl.fComponentList[j] := fParentControl.fComponentList[j -1];
   fParentControl.fComponentList[0] := c;
 
-  Paint;
+  fParentControl.Paint;
+
+End;
+
+Procedure SP_BaseComponent.SendToBack;
+Var
+  i, j: Integer;
+  c: SP_BaseComponent;
+Begin
+
+  i := 0;
+  While fParentControl.fComponentList[i] <> Self Do
+    Inc(i);
+
+  c := fParentControl.fComponentList[i];
+  For j := i To Length(fParentControl.fComponentList) -2 Do
+    fParentControl.fComponentList[j] := fParentControl.fComponentList[j +1];
+  fParentControl.fComponentList[Length(fParentControl.fComponentList) -1] := c;
+
+  fParentControl.Paint;
 
 End;
 
@@ -1379,9 +1475,11 @@ End;
 Procedure SP_BaseComponent.Abort;
 Begin
 
-  If Assigned(OnAbort) Then
-    OnAbort(Self)
-  Else
+  If Assigned(OnAbort) Then Begin
+    OnAbort(Self);
+    If Compiled_OnAbort <> '' Then
+      SP_AddOnEvent(Compiled_OnAbort);
+  End Else
     If Assigned(fParentControl) Then
       fParentControl.Abort;
 
@@ -1405,19 +1503,23 @@ Begin
 End;
 
 
-Procedure SP_BaseComponent.MouseExit;
+Procedure SP_BaseComponent.MouseLeave;
 Begin
 
-  If Assigned(OnExit) Then
-    OnExit(Self);
+  If Assigned(OnMouseLeave) Then
+    OnMouseLeave(Self);
+  If Compiled_OnMouseLeave <> '' Then
+    SP_AddOnEvent(Compiled_OnMouseLeave);
 
 End;
 
 Procedure SP_BaseComponent.MouseEnter(X, Y: Integer);
 Begin
 
-  If Assigned(OnEnter) Then
-    fOnEnter(Self, X, Y);
+  If Assigned(OnMouseEnter) Then
+    fOnMouseEnter(Self);
+  If Compiled_OnMouseEnter <> '' Then
+    SP_AddOnEvent(Compiled_OnMouseEnter);
 
 End;
 
@@ -1575,11 +1677,15 @@ Begin
 
     If Assigned(fOnPaintBefore) Then
       fOnPaintBefore(Self);
+    If Compiled_OnPaintBefore <> '' Then
+      SP_AddOnEvent(Compiled_OnPaintBefore);
 
     Draw;
 
     If Assigned(fOnPaintAfter) Then
       fOnPaintAfter(Self);
+    If Compiled_OnPaintAfter <> '' Then
+      SP_AddOnEvent(Compiled_OnPaintAfter);
 
     p := ClientToScreen(Point(0, 0));
     SP_SetDirtyRect(p.x, p.y, p.x + Width, p.y + Height);
@@ -1654,6 +1760,19 @@ Begin
 
 End;
 
+Procedure SP_BaseComponent.UpdateBackground;
+Var
+  p: TPoint;
+Begin
+
+  p := ClientToScreen(Point(0, 0));
+  p.X := Max(p.X, 0);
+  p.Y := Max(p.Y, 0);
+  SP_SetDirtyRect(p.x, p.y, p.x + Width, p.y + Height);
+
+End;
+
+
 Procedure SP_BaseComponent.SetWidth(w: Integer);
 Var
   OldWidth: Integer;
@@ -1661,6 +1780,7 @@ Begin
 
   DisplaySection.Enter;
 
+  UpdateBackground;
   OldWidth := Width;
   w := Min(Max(w, fMinWidth), fMaxWidth);
   If aRight in fAnchors Then Begin
@@ -1680,6 +1800,8 @@ Begin
 
   DisplaySection.Leave;
 
+  Paint;
+
   If OldWidth <> Width Then
     DoResize(Width - OldWidth, 0);
 
@@ -1692,6 +1814,7 @@ Begin
 
   DisplaySection.Enter;
 
+  UpdateBackground;
   OldHeight := Height;
   h := Min(Max(h, fMinHeight), fMaxHeight);
   If aBottom in fAnchors then Begin
@@ -1711,6 +1834,8 @@ Begin
 
   DisplaySection.Leave;
 
+  Paint;
+
   If OldHeight <> Height Then
     DoResize(0, Height - OldHeight);
 
@@ -1719,28 +1844,42 @@ End;
 Procedure SP_BaseComponent.SetLeft(X: Integer);
 Begin
 
-  If aRight in fAnchors Then Begin
+  DisplaySection.Enter;
+
+  UpdateBackground;
+{  If aRight in fAnchors Then Begin
     fWidth := Width - (X - fLeft);
     fSetWidth := fWidth;
-  End;
+  End;}
   fLeft := X;
   fSetLeft := fLeft;
   SetAlign(fAlign);
   fBoundsRect.Left := fLeft;
+
+  DisplaySection.Leave;
+
+  Paint;
 
 End;
 
 Procedure SP_BaseComponent.SetTop(Y: Integer);
 Begin
 
-  If aTop in fAnchors Then Begin
+  DisplaySection.Enter;
+
+  UpdateBackground;
+{  If aBottom in fAnchors Then Begin
     fHeight := Height - (Y - fTop);
     fSetHeight := Height;
-  End;
+  End; }
   fTop := Y;
   fSetTop := fTop;
   SetAlign(fAlign);
   fBoundsRect.Top := Y;
+
+  DisplaySection.Leave;
+
+  Paint;
 
 End;
 
@@ -1959,6 +2098,8 @@ begin
 
   If Assigned(fOnResize) Then
     fOnResize(Self);
+  If Compiled_OnResize <> '' Then
+    SP_AddOnEvent(Compiled_OnResize);
 
 end;
 
@@ -1977,6 +2118,7 @@ Begin
     Lock;
     DisplaySection.Enter;
 
+    UpdateBackground;
     OldWidth := Width; OldHeight := Height;
     fWidth := Min(Max(w, fMinWidth), fMaxWidth);
     fHeight := Min(Max(h, fMinHeight), fMaxHeight);
@@ -2016,20 +2158,44 @@ Begin
 End;
 
 Procedure SP_BaseComponent.KeyDown(Key: Integer; Var Handled: Boolean);
+Var
+  i: integer;
 Begin
 
   fLastKeyChar := cLastKeyChar;
   fLastKey := cLastKey;
-  If Not (Key in [K_CONTROL, K_SHIFT, K_ALT, K_ALTGR]) Then Begin
+  If Not (Key in [K_CONTROL, K_SHIFT, K_ALT, K_ALTGR, K_TAB]) Then Begin
     if cKeyRepeat >= 0 Then
       RemoveTimer(cKeyRepeat);
     cKeyRepeat := AddTimer(Self, REPDEL, KeyRepeat, False)^.ID;
-  End;
+  End Else
+    If Not fWantTab And (Key = K_TAB) Then Begin
+      If Assigned(chainControl) then
+        ChainControl.SetFocus(True)
+      Else Begin
+        If cKEYSTATE[K_SHIFT] = 0 Then Begin
+          If fOwnerIndex < Length(Owner.fComponentList) -1 Then
+            i := fOwnerIndex +1
+          Else
+            i := 0;
+        End Else Begin
+          If fOwnerIndex > 0 Then
+            i := fOwnerindex -1
+          Else
+            i := Length(Owner.fComponentList) -1;
+        End;
+        Owner.fComponentList[i].SetFocus(True);
+      End;
+      Handled := True;
+      Exit;
+    End;
 
   PerformKeyDown(Handled);
 
   If Assigned(fOnKeyDown) Then
     fOnKeyDown(Self, Key, True, Handled);
+  If Compiled_OnKeyDown <> '' Then
+    SP_AddOnEvent(Compiled_OnKeyDown);
 
 End;
 
@@ -2175,6 +2341,9 @@ Begin
 
   If Assigned(fOnKeyUp) Then
     fOnKeyUp(Self, Key, False, Handled);
+  If Compiled_OnKeyUp <> '' Then
+    SP_AddOnEvent(Compiled_OnKeyUp);
+
 
 End;
 
@@ -2202,6 +2371,8 @@ Begin
 
     If Assigned(fOnMouseDown) And Not Dbl Then
       fOnMouseDown(Self, X, Y, Btn);
+    If Compiled_OnMouseDown <> '' Then
+      SP_AddOnEvent(Compiled_OnMouseDown);
 
   End;
 
@@ -2212,6 +2383,9 @@ Begin
 
   If Assigned(OnDblClick) Then
     OnDblClick(Self, X, Y, Btn);
+  If Compiled_OnDblClick <> '' Then
+    SP_AddOnEvent(Compiled_OnDblClick);
+
 
 End;
 
@@ -2222,10 +2396,15 @@ Begin
     fCanClick := False;
     If Assigned(OnClick) And Not Assigned(fOnDblClick) Then
       OnClick(Self);
+    If Compiled_OnClick <> '' Then
+      SP_AddOnEvent(Compiled_OnClick);
   End;
 
   If Assigned(fOnMouseUp) Then
     fOnMouseUp(Self, X, Y, Btn);
+  If Compiled_OnMouseUp <> '' Then
+    SP_AddOnEvent(Compiled_OnMouseUp);
+
 
 End;
 
@@ -2248,6 +2427,8 @@ Begin
 
   If Assigned(fOnMouseMove) Then
     fOnMouseMove(Self, X, Y, Btn);
+  If Compiled_OnMouseMove <> '' Then
+    SP_AddOnEvent(Compiled_OnMouseMove);
 
 End;
 
@@ -2258,6 +2439,9 @@ Begin
 
   If Assigned(fOnMouseWheel) Then
     fOnMouseWheel(Self, X, Y, Btn, Delta);
+  If Compiled_OnMouseWheel <> '' Then
+    SP_AddOnEvent(Compiled_OnMouseWheel);
+
 
 End;
 
@@ -2274,10 +2458,14 @@ Begin
     If fVisible Then Begin
       If Assigned(fOnShow) Then
         fOnShow(Self);
+    If Compiled_OnShow <> '' Then
+      SP_AddOnEvent(Compiled_OnShow);
       Paint;
     End Else Begin
       If Assigned(fOnHide) Then
         fOnHide(Self);
+      If Compiled_OnHide <> '' Then
+        SP_AddOnEvent(Compiled_OnHide);
       p := ClientToScreen(Point(0, 0));
       SP_SetDirtyRect(p.x, p.y, p.x + Width, p.y + Height);
       SP_NeedDisplayUpdate := True;
@@ -2332,8 +2520,6 @@ Begin
   RegisterProperty('onresize', Get_OnResize , Set_OnResize);
   RegisterProperty('ondblclick', Get_OnDblClick , Set_OnDblClick);
   RegisterProperty('onclick', Get_OnClick , Set_OnClick);
-  RegisterProperty('onenter', Get_OnEnter , Set_OnEnter);
-  RegisterProperty('onexit', Get_OnExit , Set_OnExit);
   RegisterProperty('onabort', Get_OnAbort , Set_OnAbort);
   RegisterProperty('onshow', Get_OnShow , Set_OnShow);
   RegisterProperty('onhide', Get_Onhide , Set_OnHide);
@@ -2341,6 +2527,7 @@ End;
 
 Procedure SP_BaseComponent.Set_Align(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
+  s := Lower(s);
   if s = 'top' then
     Align := SP_AlignTop
   else
@@ -2386,7 +2573,7 @@ Procedure SP_BaseComponent.Set_Anchors(s: aString; Var Handled: Boolean; Var Err
 Var
   Anchor: SP_AnchorSet;
 Begin
-
+  s := lower(s);
   Anchor := [];
   While s <> '' Do Begin
     Case s[1] of
@@ -2696,30 +2883,6 @@ Begin
   Result := User_OnAbort;
 End;
 
-Procedure SP_BaseComponent.Set_OnEnter(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
-Begin
-  Compiled_OnEnter := SP_ConvertToTokens(s, Error);
-  If Compiled_OnEnter <> '' Then
-    User_OnEnter := s;
-End;
-
-Function  SP_BaseComponent.Get_OnEnter: aString;
-Begin
-  Result := User_OnEnter;
-End;
-
-Procedure SP_BaseComponent.Set_OnExit(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
-Begin
-  Compiled_OnExit := SP_ConvertToTokens(s, Error);
-  If Compiled_OnExit <> '' Then
-    User_OnExit := s;
-End;
-
-Function  SP_BaseComponent.Get_OnExit: aString;
-Begin
-  Result := User_OnExit;
-End;
-
 Procedure SP_BaseComponent.Set_OnShow(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
   Compiled_OnShow := SP_ConvertToTokens(s, Error);
@@ -2808,5 +2971,71 @@ Function  SP_BaseComponent.Get_Transparent: aString;
 Begin
   Result := IntToString(Ord(fTransparent));
 End;
+
+{Methods}
+
+Procedure SP_BaseComponent.RegisterMethods;
+Begin
+
+  RegisterMethod('bringtofront', '', Method_BringToFront);
+  RegisterMethod('sendtoback', '', Method_SendToBack);
+  RegisterMethod('setbounds', 'nnnn', Method_SetBounds);
+  RegisterMethod('setpos', 'nn', Method_SetPosition);
+  RegisterMethod('setfocus', 'n', Method_SetFocus);
+  RegisterMethod('lock', '', Method_Lock);
+  RegisterMethod('unlock', '', Method_UnLock);
+
+End;
+
+
+Procedure SP_BaseComponent.Method_BringToFront(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  BringToFront;
+
+End;
+
+Procedure SP_BaseComponent.Method_SendToBack(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  SendToBack;
+
+End;
+
+Procedure SP_BaseComponent.Method_SetBounds(Params: Array of aString; Var Error: TSP_ErrorCode); // (x, y, w, h: Integer);
+Begin
+
+  SetBounds(StringToInt(Params[0]), StringToInt(Params[1]), StringToInt(Params[2]), StringToInt(Params[3]));
+
+End;
+
+Procedure SP_BaseComponent.Method_SetPosition(Params: Array of aString; Var Error: TSP_ErrorCode); // (x, y: Integer);
+Begin
+
+  SetPosition(StringToInt(Params[0]), StringToInt(Params[1]));
+
+End;
+
+Procedure SP_BaseComponent.Method_SetFocus(Params: Array of aString; Var Error: TSP_ErrorCode); //(b: Boolean);
+Begin
+
+  SetFocus(StringToInt(Params[0]) <> 0);
+
+End;
+
+Procedure SP_BaseComponent.Method_Lock(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Lock;
+
+End;
+
+Procedure SP_BaseComponent.Method_Unlock(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Unlock;
+
+End;
+
 
 end.

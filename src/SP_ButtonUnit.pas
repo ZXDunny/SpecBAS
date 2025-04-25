@@ -2,7 +2,7 @@ unit SP_ButtonUnit;
 
 interface
 
-Uses Classes, SysUtils, Types, SP_Util, SP_BaseComponentUnit;
+Uses Classes, SysUtils, Types, SP_Util, SP_BaseComponentUnit, SP_Errors;
 
 Type
 
@@ -34,6 +34,13 @@ SP_Button = Class(SP_BaseComponent)
     Property  State:      SP_ButtonState   read fState       write SetState;
 
     Constructor Create(Owner: SP_BaseComponent);
+
+    // User Properties
+
+    Procedure RegisterProperties; Override;
+    Procedure Set_Caption(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Caption: aString;
+    Procedure Set_CaptionPos(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_CaptionPos: aString;
+    Procedure Set_State(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_State: aString;
 
 End;
 
@@ -68,6 +75,7 @@ Begin
 
   If fCaption <> s Then Begin
     fCaption := s;
+    CentreCaption;
     Paint;
   End;
 
@@ -208,5 +216,65 @@ Begin
 
 End;
 
+// User properties
+
+Procedure SP_Button.RegisterProperties;
+Begin
+
+  Inherited;
+
+  RegisterProperty('caption', Get_Caption, Set_Caption);
+  RegisterProperty('captionpos', Get_CaptionPos, Set_CaptionPos);
+  RegisterProperty('state', Get_State, Set_State);
+
+End;
+
+Procedure SP_Button.Set_Caption(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Caption := s;
+End;
+
+Function SP_Button.Get_Caption: aString;
+Begin
+  Result := fCaption;
+End;
+
+Procedure SP_Button.Set_CaptionPos(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  xs, ys: aString;
+  p: Integer;
+Begin
+  p := Pos(',', s);
+  If p > 0 Then Begin
+    xs := Copy(s, 1, p -1);
+    ys := Copy(s, p +1);
+    CaptionPos := Point(StringToInt(xs), StringToInt(ys));
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+End;
+
+Function SP_Button.Get_CaptionPos: aString;
+Begin
+  Result := IntToString(CaptionPos.x) + ',' + IntToString(CaptionPos.y);
+End;
+
+Procedure SP_Button.Set_State(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  If s = 'normal' Then
+    State := spNormal
+  Else
+    If s = 'pressed' Then
+      State := spPressed
+    Else
+      Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+End;
+
+Function SP_Button.Get_State: aString;
+Begin
+  If State = spPressed Then
+    Result := 'pressed'
+  Else
+    Result := 'normal';
+End;
 
 end.

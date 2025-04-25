@@ -1000,8 +1000,12 @@ Begin
         If (p^ >= 48) and (p^ <= 57) Then
           Result := Result * 10 + (p^ - 48)
         Else Begin
-          Result := Default;
-          Exit;
+          If aChar(p^) = '.' Then
+            Exit
+          Else Begin
+            Result := Default;
+            Exit;
+          End;
         End;
       Inc(p);
     End;

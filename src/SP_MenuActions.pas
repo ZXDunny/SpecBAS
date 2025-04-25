@@ -212,11 +212,10 @@ End;
 
 Procedure SP_CreateEditorSearchBar;
 Var
-  FW, FH: Integer;
+  FH: Integer;
   Win: pSP_Window_Info;
   Error: TSP_ErrorCode;
 Begin
-  FW := Trunc(FONTWIDTH * EDFONTSCALEX);
   FH := Trunc(FONTHEIGHT * EDFONTSCALEY);
 
   SP_GetWindowDetails(FPWindowID, Win, Error);
@@ -233,6 +232,7 @@ Begin
   FPSearchBox.OnMouseDown := SP_MenuActionProcs.FPSearchBoxMouseDown;
   FPSearchBox.OnChange := SP_MenuActionProcs.FPSearchBoxChange;
   FPSearchBox.OnKeyDown := SP_MenuActionProcs.SP_SearchKeyDown;
+  FPSearchBox.WantTAB := True;
 
   FPNextBtn := SP_Button.Create(FPSearchPanel);
   FPNextBtn.Caption := #252;

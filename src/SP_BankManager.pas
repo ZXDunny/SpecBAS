@@ -1115,11 +1115,10 @@ Begin
   Window^.AlphaEnabled := Alpha = 1;
   Window^.FontTrans := False;
   Window^.CaptionHeight := 0;
-  If Assigned(Window^.Component) then
-    Window^.Component.Free;
+  Window^.ID := Bank^.ID;
+  If Assigned(Window^.Component) then Window^.Component.Free;
   Window^.Component := SP_BaseComponent.Create(Nil);
   Window^.Component.WindowID := Bank^.ID;
-  Window^.ID := Bank^.ID;
 
   CopyMem(@Window^.Palette[0], Pal, SizeOf(TP_Colour) * 256);
 

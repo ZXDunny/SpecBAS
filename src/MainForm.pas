@@ -284,7 +284,8 @@ begin
       If CaptureControl.CanFocus Then
         CaptureControl.SetFocus(True);
       p := CaptureControl.ScreenToClient(Point(X, Y));
-      SP_BaseComponent(CaptureControl).MouseDown(SP_BaseComponent(CaptureControl), p.X, p.Y, Btn);
+      If SP_CanInteract(CaptureControl) Then
+        SP_BaseComponent(CaptureControl).MouseDown(SP_BaseComponent(CaptureControl), p.X, p.Y, Btn);
       Handled := True;
     End Else Begin
       Win := WindowAtPoint(X, Y, ID);
@@ -298,11 +299,12 @@ begin
               CaptureControl := pSP_BaseComponent(Win)^;
               If CaptureControl.CanFocus Then
                 CaptureControl.SetFocus(True);
-              SP_BaseComponent(CaptureControl).MouseDown(SP_BaseComponent(CaptureControl), X, Y, Btn);
+              If SP_CanInteract(CaptureControl) Then
+                SP_BaseComponent(CaptureControl).MouseDown(SP_BaseComponent(CaptureControl), X, Y, Btn);
               Handled := True;
             End;
           End Else Begin
-            If Assigned(CaptureControl) Then
+            If Assigned(CaptureControl) And SP_CanInteract(CaptureControl) Then
               SP_BaseComponent(CaptureControl).MouseDown(SP_BaseComponent(CaptureControl), X, Y, Btn);
             If Assigned(FocusedControl) And (MODALWINDOW = -1) Then
               FocusedControl.SetFocus(False);
@@ -381,24 +383,27 @@ begin
         If Assigned(Win) Then Begin
           Win := ControlAtPoint(Win, tX, tY);
           If Assigned(Win) And (MouseControl <> pSP_BaseComponent(Win)^) Then
-            If Assigned(MouseControl) Then
-              MouseControl.MouseExit;
+            If Assigned(MouseControl) And SP_CanInteract(MouseControl) Then
+              MouseControl.MouseLeave;
         End;
         If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
           p := CaptureControl.ScreenToClient(Point(x, y));
-          CaptureControl.PreMouseMove(p.x, p.y, Btn);
+          If SP_CanInteract(CaptureControl) Then
+            CaptureControl.PreMouseMove(p.x, p.y, Btn);
         End Else Begin
           If Assigned(Win) And pSP_BaseComponent(Win)^.Enabled Then Begin
             If MouseControl <> pSP_BaseComponent(Win)^ Then Begin
               MouseControl := pSP_BaseComponent(Win)^;
               p := MouseControl.ScreenToClient(Point(tX, tY));
-              MouseControl.MouseEnter(p.X, p.Y);
+              If SP_CanInteract(MouseControl) Then
+                MouseControl.MouseEnter(p.X, p.Y);
             End;
-            pSP_BaseComponent(Win)^.PreMouseMove(tX, tY, Btn);
+            If SP_CanInteract(pSP_BaseComponent(Win)^) Then
+              pSP_BaseComponent(Win)^.PreMouseMove(tX, tY, Btn);
             Handled := True;
           End Else
-            If Assigned(MouseControl) Then
-              MouseControl.MouseExit;
+            If Assigned(MouseControl) And SP_CanInteract(MouseControl) Then
+              MouseControl.MouseLeave;
         End;
 
       End;
@@ -459,7 +464,8 @@ begin
     Handled := TestForWindowMenu(Nil, Shift);
     If Assigned(CaptureControl) Then Begin
       p := CaptureControl.ScreenToClient(Point(x, y));
-      CaptureControl.MouseUp(CaptureControl, p.x, p.y, Btn);
+      If SP_CanInteract(CaptureControl) Then
+        CaptureControl.MouseUp(CaptureControl, p.x, p.y, Btn);
       If Not ForceCapture Then
         CaptureControl := Nil;
       Handled := True;
@@ -467,7 +473,7 @@ begin
       Win := WindowAtPoint(X, Y, ID);
       If Assigned(Win) Then Begin
         Win := ControlAtPoint(Win, X, Y);
-        If Assigned(Win) And pSP_BaseComponent(Win)^.Enabled Then Begin
+        If Assigned(Win) And pSP_BaseComponent(Win)^.Enabled And SP_CanInteract(pSP_BaseComponent(Win)^) Then Begin
           pSP_BaseComponent(Win)^.MouseUp(pSP_BaseComponent(Win)^, X, Y, Btn);
           Handled := True;
         End;

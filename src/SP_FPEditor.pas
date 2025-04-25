@@ -863,9 +863,15 @@ Begin
 
   // Dimensions. Client area is the inner part of the window excluding border ( 1 pixel ) and caption.
   // Page area is the area that the text is rendered to.
+  // The window component contains the menu so remove the menu from the height.
 
   FPCaptionHeight := FPFh + 2;
-  FPClientHeight := Win^.Component.fClientRect.Height;
+  FPClientHeight := FPWindowHeight - FPCaptionHeight - 1;
+  If Assigned(FPMenu) Then Begin
+    Dec(FPClientHeight, FPMenu.Height);
+    Inc(FPClientTop, FPMenu.Height);
+  End;
+
   FPClientWidth := Win^.Component.fClientRect.Width;
   FPClientLeft := Win^.Component.fClientRect.Left;
   FPClientTop := Win^.Component.fClientRect.Top;
@@ -1540,10 +1546,10 @@ Begin
           AddedStartChars := Listing[i] + AddedStartChars;
         Until (i = 0) Or SP_LineHasNumber_Fast(i);
     End Else
-      If (Line > 0) And (CodeLine <> '') And (CodeLine[1] in ['a'..'z', 'A'..'Z', '$', '0'..'9']) And (Listing.Flags[Line -1].ReturnType = spSoftReturn) Then Begin
+      If (Line > 0) And (CodeLine <> '') And (CodeLine[1] in ['a'..'z', 'A'..'Z', '$', '0'..'9', '"']) And (Listing.Flags[Line -1].ReturnType = spSoftReturn) Then Begin
         t := Listing[Line -1];
         AddedStartChars := '';
-        While (t <> '') And (t[Length(t)] in ['a'..'z', 'A'..'Z', '$', '@']) Do Begin
+        While (t <> '') And (t[Length(t)] in ['a'..'z', 'A'..'Z', '$', '@', '"']) Do Begin
           AddedStartChars := t[Length(t)] + AddedStartChars;
           t := Copy(t, 1, Length(t) -1);
         End;
@@ -1556,9 +1562,11 @@ Begin
       If Not CanShowBraces Then
         If Not ((CodeLine[1] in ['0'..'9']) And Not SP_WasPrevSoft(Line)) Then Begin
           Ink := -1; Paper := -1; Italic := -1; Bold := -1;
-          If Line > 0 Then
+          If Line > 0 Then Begin
+            If SyntaxListing[Line -1] = '' Then
+              SP_FPApplyHighlighting(Line -1);
             s := SyntaxListing[Line -1]
-          else
+          End Else
             s := '';
           i := 1;
           While i < Length(s) Do Begin
@@ -4272,7 +4280,7 @@ Procedure SP_FPCycleEditorWindows(HideMode: Integer);
 Var
   t, t3: LongWord;
   DTop, LTop, LHeight, DMove, LMove, LSize, t2: aFloat;
-  EditorTargetY, EditorTargetHeight, CmdTargetY: Integer;
+  EditorTargetY, EditorTargetHeight, CmdTargetY, SwitchTo: Integer;
   SizeEditor, MoveEditor, MoveCmd: Boolean;
   ListWin, ComWin: pSP_Window_Info;
   Error: TSP_ErrorCode;
@@ -4287,13 +4295,15 @@ Begin
   MoveEditor := False;
   MoveCmd := False;
 
+  SwitchTo := FocusedWindow;
+
   If HideMode = -1 Then Begin
 
     Case FPWindowMode of
       0: // Command window only - bring in the editor, full size
         Begin
           // Resize the Editor to fill the screen and remove the command window
-          SP_SwitchFocus(fwEditor);
+          SwitchTo := fwEditor;
           EditorTargetHeight := DISPLAYHEIGHT - (BSize * 2) +1;
           SizeEditor := True;
           MoveEditor := True;
@@ -4304,7 +4314,7 @@ Begin
         End;
       1: // Editor only - bring in the command window and resize the Editor
         Begin
-          SP_SwitchFocus(fwDirect);
+          SwitchTo := fwDirect;
           EditorTargetHeight := DISPLAYHEIGHT - (BSize * 3) - DWWindowHeight;
           CmdTargetY := DISPLAYHEIGHT - BSize - DWWindowHeight;
           MoveCmd := True;
@@ -4313,14 +4323,14 @@ Begin
         End;
       2: // Editor + Cmd - Move the editor off-screen
         Begin
-          SP_SwitchFocus(fwDirect);
+          SwitchTo := fwDirect;
           EditorTargetY := - FPWindowHeight;
           MoveEditor := True;
           FPWindowMode := 0;
         End;
       3: // Command window only - bring in Editor.
         Begin
-          SP_SwitchFocus(fwDirect);
+          SwitchTo := fwDirect;
           EditorTargetHeight := DISPLAYHEIGHT - (BSize * 3) - DWWindowHeight +1;
           EditorTargetY := BSize -1;
           MoveEditor := True;
@@ -4393,17 +4403,14 @@ Begin
         ListWin^.Height := EditorTargetHeight;
     End;
     DisplaySection.Leave;
-    If SizeEditor Then Begin
+    If SizeEditor Then
       SP_FPResizeWindow(ListWin^.Height);
-    End;
     SP_InvalidateWholeDisplay;
     SP_WaitForSync;
   Until (t3 - t) >= LongWord(ANIMSPEED);
 
-  If SizeEditor Then
-    SP_FPResizeWindow(ListWin^.Height)
-  Else
-    SP_DisplayFPListing(-1);
+  SP_FPResizeWindow(ListWin^.Height);
+  SP_SwitchFocus(SwitchTo);
   SP_InvalidateWholeDisplay;
 
 End;
@@ -5760,7 +5767,7 @@ Begin
 
   FPCaptionHeight := FPFh + 2;
   SP_SetFPClientMetrics;
-
+//
 {  FPClientWidth := FPWindowWidth - 2;
   FPClientHeight := FPWindowHeight - FPCaptionHeight - 1;
   FPClientLeft := 1;
@@ -5774,7 +5781,9 @@ Begin
   FPPaperLeft := BSize + FPClientLeft;
   FPPaperTop := BSize + FPClientTop;
   FPPaperWidth := FPClientWidth - (BSize * 3) - Fw - ((FPDebugPanelWidth + BSize) * Ord(FPDebugPanelVisible));
-  FPPaperHeight := FPClientHeight - (BSize * 2) - (Ord(Not EDITORWRAP) * (BSize + Fh));}
+  FPPaperHeight := FPClientHeight - (BSize * 2) - (Ord(Not EDITORWRAP) * (BSize + Fh));
+}
+  //
 
   SP_ResizeWindow(FPWindowID, FPWindowWidth, FPWindowHeight, 8, False, Err);
   SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, FocusedWindow = fwEditor);
@@ -7169,6 +7178,7 @@ Const
 Begin
 
   WasTab := False;
+  SP_HaltAllControls;
 
   SP_Interpreter_Ready := True;
   CB_YIELD;

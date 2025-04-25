@@ -112,6 +112,7 @@ Type
   pSP_InterpretProc = ^TSP_InterpretProc;
 
 Procedure SP_Execute(Line: aString; InitInterpreter: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_Execute_Compiled(Line: aString; InitInterpreter: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_Interpreter(Var Tokens: paString; Var Position: Integer; Var Error: TSP_ErrorCode; PreParseErrorCode: Integer; Continue: Boolean = False);
 
 Procedure DoPeriodicalEvents(var Error: TSP_ErrorCode);
@@ -130,6 +131,8 @@ Procedure SP_AddSourceBreakPoint(Hidden: Boolean; Line, Statement, Passes: Integ
 Procedure SP_AddConditionalBreakpoint(BpIndex, Passes: Integer; Condition: aString; IsData: Boolean);
 Procedure SP_MakeListVarOutput(Var List: TAnsiStringlist; UseLiterals: Boolean);
 Function  SP_ConvertToTokens(Const s: aString; Var Error: TSP_ErrorCode): aString;
+Procedure SP_AddONEvent(s: aString);
+Procedure SP_ExecuteONCtrl(Var Error: TSP_ErrorCode);
 
 Procedure SP_InterpretCONTSafe(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_Interpret(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
@@ -975,6 +978,8 @@ Procedure SP_Interpret_SP_RESTORECOLOURS(Var Info: pSP_iInfo);
 
 Var
 
+  SP_ONCtrlList: Array[0..MAXDEPTH -1] of aString;
+  SP_ONCtrlListPtr: Integer;
   SP_CaseList: Array[0..MAXDEPTH -1] of TSP_CaseItem;
   SP_CaseListPtr: Integer;
   SP_ProcsList: Array [0..MAXDEPTH -1] of TSP_ProcItem;
@@ -1013,6 +1018,8 @@ Var
   OnActive: Word;
   LastRand: aFloat;
   FN_Recursion_Count: LongWord;
+  ONCtrlLock: TCriticalSection;
+  DoingOnCtrl: Boolean;
 
 Const
 
@@ -1042,9 +1049,9 @@ Const
 
 implementation
 
-Uses SP_Compiler, SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, RunTimeCompiler, SP_Util2, SP_Display;
+Uses SP_Compiler, SP_Main, SP_Editor, SP_FPEditor, SP_DebugPanel, RunTimeCompiler, SP_Util2, SP_Display, SP_BaseComponentUnit;
 
-Procedure SP_Execute(Line: aString; InitInterpreter: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_Execute_Compiled(Line: aString; InitInterpreter: Boolean; Var Error: TSP_ErrorCode);
 Var
   Tokens: paString;
   aSave: Boolean;
@@ -1053,11 +1060,6 @@ Begin
   aSave := AUTOSAVE;
   AUTOSAVE := False;
 
-  Error.Line := -1;
-  Error.Statement := 1;
-  Error.Position := 1;
-  Line := SP_TokeniseLine(Line, False, False) + #255#255#255#255;
-  SP_Convert_ToPostFix(Line, Error.Position, Error);
   Tokens := @Line;
   Error.Position := SP_FindStatement(@Line, 1);
   Error.Code := SP_ERR_OK;
@@ -1065,11 +1067,24 @@ Begin
   NXTSTATEMENT := -1;
   NXTLINE := -1;
   SP_StackPtr := SP_StackStart;
-  SP_PreParse(InitInterpreter, InitInterpreter, Error, Tokens^);
+  If InitInterpreter Then
+    SP_PreParse(True, True, Error, Tokens^);
   PROGSTATE := SP_PR_RUN;
   SP_Interpreter(Tokens, Error.Position, Error, Error.Code);
 
   AUTOSAVE := aSave;
+
+End;
+
+Procedure SP_Execute(Line: aString; InitInterpreter: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Error.Line := -1;
+  Error.Statement := 1;
+  Error.Position := 1;
+  Line := SP_TokeniseLine(Line, False, False) + #255#255#255#255;
+  SP_Convert_ToPostFix(Line, Error.Position, Error);
+  SP_Execute_Compiled(Line, InitInterpreter, Error);
 
 End;
 
@@ -1258,6 +1273,45 @@ Begin
     s.Free; }
     {$ENDIF}
   End;
+
+End;
+
+Procedure SP_AddONEvent(s: aString);
+Begin
+
+  ONCtrlLock.Enter;
+
+  If SP_ONCtrlListPtr < MAXDEPTH Then Begin
+    Inc(SP_ONCtrlListPtr);
+    SP_ONCtrlList[SP_ONCtrlListPtr] := s;
+  End;
+
+  ONCtrlLock.Leave;
+
+End;
+
+Procedure SP_ExecuteONCtrl(Var Error: TSP_ErrorCode);
+Var
+  s: aString;
+  nPos: Integer;
+Begin
+
+  ONCtrlLock.Enter;
+
+  If Not DoingOnCtrl And (SP_ONCtrlListPtr >= 0) Then Begin
+    DoingONCtrl := True;
+    nPos := Error.Position;
+    s := SP_ONCtrlList[SP_ONCtrlListPtr];
+    Dec(SP_ONCtrlListPtr);
+    DoingONCtrl := False;
+    ONCtrlLock.Leave;
+
+    SP_Execute_Compiled(s, False, Error);
+    If Error.Code = SP_ERR_OK Then
+      Error.Position := nPos;
+
+  End Else
+    ONCtrlLock.Leave;
 
 End;
 
@@ -3905,6 +3959,7 @@ Begin
 
   If OnActive > 0 Then SP_CheckONConditions(Error);
   If ControlsAreInUse Then DoTimerEvents;
+  SP_ExecuteONCtrl(Error);
 
 End;
 
@@ -3962,6 +4017,8 @@ Var
 Label
   Next_Statement;
 Begin
+
+  DoPeriodicalEvents(Error);
 
   If Error.Code <> SP_ERR_OK Then Begin
     ppError := Error.Code;
@@ -4173,7 +4230,6 @@ Begin
       // If an error in INPUT occured, then we do not want the error handler (or the ON ERROR) handler to get to it.
       INPUTERROR := False;
       Error^.Code := SP_ERR_OK;
-      DoPeriodicalEvents(Error^);
       Goto Next_Statement;
     End;
 
@@ -8259,6 +8315,7 @@ Begin
   Inc(SP_StackPtr);
   SP_StackPtr^.Str := s;
   iInfo := @info;
+  Info.Error := @Error;
   SP_Interpret_FN_TOKENS(iInfo);
   Error.Code := Info.Error.Code;
   If Error.Code = SP_ERR_OK Then
@@ -8530,6 +8587,22 @@ Begin
   St := SP_StackPtr^.Val;
 
   SP_StackPtr^.Val := St + (Amt * (Ed-St));
+
+End;
+
+Procedure SP_Interpret_FN_FILEREQ(Var Info: pSP_iInfo);
+Var
+  Caption, Dir, Mask: aString;
+Begin
+
+  Mask := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+
+  Dir := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+
+  Caption := SP_StackPtr^.Str;
+  SP_StackPtr^.Str := OpenFileReq(Caption, Dir, Mask, False, Info^.Error^);
 
 End;
 
@@ -12298,7 +12371,8 @@ Begin
   If SP_ExtractFilename(Filename) <> '' Then Begin
     FILECHANGED := False;
     SP_SaveProgram(Filename, LineStart, Info^.Error^);
-  End;
+  End Else
+    LASTFILENAME := '';
 
 End;
 
@@ -12322,7 +12396,9 @@ Begin
   If SP_ExtractFilename(Filename) <> '' Then Begin
     FILECHANGED := False;
     SP_SaveProgram(Filename, LineStart, Info^.Error^);
-  End;
+  End Else
+    LASTFILENAME := '';
+
 
 End;
 
@@ -12416,7 +12492,8 @@ Begin
       SP_ScrollInView(True);
       SP_ClearEditorMarks;
     End;
-  End;
+  End Else
+    LASTFILENAME := '';
 
 End;
 
@@ -12432,7 +12509,10 @@ Begin
     Filename := OpenFileReq('Merge program', PROGNAME, '10:ZXASCII', False, Info^.Error^);
 
   If Filename <> '' Then
-    SP_LoadProgram(Filename, True, False, nil, Info^.Error^);
+    SP_LoadProgram(Filename, True, False, nil, Info^.Error^)
+  Else
+    LASTFILENAME := '';
+
 
 End;
 
@@ -15893,7 +15973,10 @@ Begin
   If Filename = '' Then
     Filename := OpenFileReq('Load file', '', '', False, Info^.Error^);
 
-  SP_LoadBank(Filename, BankNum, Info^.Error^);
+  If Filename <> '' Then
+    SP_LoadBank(Filename, BankNum, Info^.Error^)
+  Else
+    LASTFILENAME := '';
 
 End;
 
@@ -15906,8 +15989,13 @@ Begin
   If Filename = '' Then
     Filename := OpenFileReq('Load file', '', '', False, Info^.Error^);
 
-  SP_StackPtr^.Val := SP_LoadBank(Filename, -1, Info^.Error^);
-  SP_StackPtr^.OpType := SP_VALUE;
+  If Filename <> '' Then Begin
+    SP_StackPtr^.Val := SP_LoadBank(Filename, -1, Info^.Error^);
+    SP_StackPtr^.OpType := SP_VALUE;
+  End Else Begin
+    SP_StackPtr^.Val := -1;
+    SP_StackPtr^.OpType := SP_VALUE;
+  End;
 
 End;
 
@@ -20804,15 +20892,23 @@ Begin
   Filename := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
 
-  VarName := SP_StackPtr^.Str;
-  If SP_StackPtr^.OpType = SP_STRVAR Then
-    VarName := VarName + '$';
-  Dec(SP_StackPtr);
+  If Filename = '' Then
+    Filename := OpenFileReq('Save file', '', '', True, Info^.Error^);
 
-  IsArray := SP_StackPtr^.Val = 1;
-  Dec(SP_StackPtr);
+  If Filename <> '' Then Begin
+    VarName := SP_StackPtr^.Str;
+    If SP_StackPtr^.OpType = SP_STRVAR Then
+      VarName := VarName + '$';
+    Dec(SP_StackPtr);
 
-  SP_SaveVar(Filename, VarName, IsArray, Info^.Error^);
+    IsArray := SP_StackPtr^.Val = 1;
+    Dec(SP_StackPtr);
+
+    SP_SaveVar(Filename, VarName, IsArray, Info^.Error^);
+  End Else Begin
+    Dec(SP_StackPtr, 2);
+    LASTFILENAME := '';
+  End;
 
 End;
 
@@ -20827,13 +20923,18 @@ Begin
   If Filename = '' Then
     Filename := OpenFileReq('Load file', '', '', False, Info^.Error^);
 
-  VarName := SP_StackPtr^.Str;
-  If VarName <> '' Then
-    If SP_StackPtr^.OpType = SP_STRVAR Then
-      VarName := VarName + '$';
-  Dec(SP_StackPtr);
+  If Filename <> '' Then Begin
+    VarName := SP_StackPtr^.Str;
+    If VarName <> '' Then
+      If SP_StackPtr^.OpType = SP_STRVAR Then
+        VarName := VarName + '$';
+    Dec(SP_StackPtr);
 
-  SP_LoadVar(Filename, VarName, Info^.Error^);
+    SP_LoadVar(Filename, VarName, Info^.Error^);
+  End Else Begin
+    Dec(SP_StackPtr);
+    LASTFILENAME := '';
+  End;
 
 End;
 
@@ -27310,7 +27411,162 @@ Begin
 
 End;
 
+Procedure SP_Interpret_CTRL_NEW(Var Info: pSP_iInfo);
+Var
+  cID, cClass, cX, cY, cW, cH, cParent, numProps: Integer;
+  PropName, PropValue: aString;
+  ctrl: SP_BaseComponent;
+  Handled: Boolean;
+Begin
+
+  cClass := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  cX := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  cY := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  cW := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  cH := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+  cParent := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  cID := SP_CreateControl(cParent, cClass, cX, cY, cW, cH, Info^.Error^);
+
+  If Info^.Error.Code = SP_ERR_OK Then Begin
+
+    ctrl := ControlRegistry[cID];
+    ctrl.Lock;
+
+    numProps := Round(SP_StackPtr^.Val);
+    Dec(SP_StackPtr);
+
+    While numProps > 0 Do Begin
+
+      PropName := SP_StackPtr^.Str;
+      Dec(SP_StackPtr);
+      PropValue := SP_StackPtr^.Str;
+      Dec(SP_StackPtr);
+
+      ctrl.SetProperty(PropName, PropValue, Handled, Info^.Error^);
+      If Info^.Error^.Code <> SP_ERR_OK Then Exit;
+
+      Dec(numProps);
+
+    End;
+
+    ctrl.Unlock;
+
+    // And leave the id on the stack for the incoming LET
+
+    Inc(SP_StackPtr);
+    SP_StackPtr^.Val := cID;
+    SP_StackPtr^.OpType := SP_VALUE;
+
+  End;
+
+End;
+
+Procedure SP_Interpret_CTRL_PROP(Var Info: pSP_iInfo);
+Var
+  ID, NumProps: Integer;
+  PropName, PropValue: aString;
+  Control: SP_BaseComponent;
+  Handled: Boolean;
+Begin
+
+  ID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  If ControlRegistry.TryGetValue(ID, Control) Then Begin
+
+    Control.Lock;
+
+    numProps := Round(SP_StackPtr^.Val);
+    Dec(SP_StackPtr);
+
+    While numProps > 0 Do Begin
+
+      Handled := True;
+      PropName := SP_StackPtr^.Str;
+      Dec(SP_StackPtr);
+      PropValue := SP_StackPtr^.Str;
+      Dec(SP_StackPtr);
+
+      Control.SetProperty(PropName, PropValue, Handled, Info^.Error^);
+      If Info^.Error^.Code <> SP_ERR_OK Then Exit;
+
+      Dec(numProps);
+
+    End;
+
+    Control.UnLock;
+
+  End Else
+
+    Info^.Error^.Code := SP_ERR_INVALID_COMPONENT;
+
+end;
+
+Procedure SP_Interpret_CTRL_DO(Var Info: pSP_iInfo);
+Var
+  ID, Idx, NumParams: Integer;
+  MethodName, curParam: aString;
+  Params: Array of aString;
+  Control: SP_BaseComponent;
+Begin
+
+  ID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  MethodName := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+
+  If ControlRegistry.TryGetValue(ID, Control) Then Begin
+
+    Control.Lock;
+
+    numParams := Round(SP_StackPtr^.Val);
+    Dec(SP_StackPtr);
+
+    SetLength(Params, numParams);
+
+    Idx := 0;
+    While numParams > 0 Do Begin
+
+      Case SP_StackPtr^.OpType Of
+        SP_Value: curParam := aFloatToStr(SP_StackPtr^.Val);
+        SP_String: curParam := SP_StackPtr^.Str;
+      Else
+        Begin
+          Info^.Error^.Code := SP_ERR_PARAMETER_ERROR;
+          Exit;
+        End;
+      End;
+      Dec(SP_StackPtr);
+      Dec(numParams);
+
+      Params[Idx] := curParam;
+      Inc(Idx);
+
+    End;
+
+    Control.DoMethod(MethodName, Params, Info^.Error^);
+    If Info^.Error^.Code <> SP_ERR_OK Then Exit;
+
+    Control.UnLock;
+
+  End Else
+
+    Info^.Error^.Code := SP_ERR_INVALID_COMPONENT;
+
+end;
+
+
 Initialization
+
+  ONCtrlLock := TCriticalSection.Create;
 
   For Il := 0 To 9999 Do InterpretProcs[Il] := @SP_Interpret_UNHANDLED;
 
@@ -27804,6 +28060,9 @@ Initialization
   InterpretProcs[SP_KW_DRAW_GW] := @SP_Interpret_DRAW_GW;
   InterpretProcs[SP_KW_STROKE] := @SP_Interpret_STROKE;
   InterpretProcs[SP_KW_PR_STROKE] := @SP_Interpret_PR_STROKE;
+  InterpretProcs[SP_KW_CTRL_NEW] := @SP_Interpret_CTRL_NEW;
+  InterpretProcs[SP_KW_CTRL_PROP] := @SP_Interpret_CTRL_PROP;
+  InterpretProcs[SP_KW_CTRL_DO] := @SP_Interpret_CTRL_DO;
 
   // Functions
 
@@ -28079,6 +28338,7 @@ Initialization
   InterpretProcs[SP_FN_BREV] := @SP_Interpret_FN_BREV;
   InterpretProcs[SP_FN_INTERP] := @SP_Interpret_FN_INTERP;
   InterpretProcs[SP_FN_PAR] := @SP_Interpret_FN_PAR;
+  InterpretProcs[SP_FN_FILEREQ] := @SP_Interpret_FN_FILEREQ;
 
   // Tokens
 
@@ -28227,5 +28487,9 @@ Initialization
   Dec(SP_StackStart);
 
   SP_StackPtr := SP_StackStart;
+
+Finalization
+
+  ONCtrlLock.Free;
 
 End.

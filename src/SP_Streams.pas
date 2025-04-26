@@ -292,7 +292,7 @@ Begin
     If Stream^.BankID > -1 Then Begin
       Bank := SP_BankList[SP_FindBankID(Stream^.BankID)];
       If Stream^.Position + Count -1 >= Length(Bank^.Memory) Then
-        SetLength(Bank^.Memory, Stream^.Position + Count -1);
+        SetLength(Bank^.Memory, Stream^.Position + Count);
       For Idx := 1 to Count Do Begin
         Bank^.Memory[Stream^.Position] := pByte(Buffer)^;
         Inc(pByte(Buffer));

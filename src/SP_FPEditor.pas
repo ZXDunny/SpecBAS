@@ -872,6 +872,9 @@ Begin
     Inc(FPClientTop, FPMenu.Height);
   End;
 
+  If Assigned(FPSearchPanel) And FPSearchPanel.Visible Then
+    Dec(FPClientHeight, FPSearchPanel.Height);
+
   FPClientWidth := Win^.Component.fClientRect.Width;
   FPClientLeft := Win^.Component.fClientRect.Left;
   FPClientTop := Win^.Component.fClientRect.Top;
@@ -1151,43 +1154,51 @@ Begin
 
   If d > 0 Then Begin // Down, so scroll up
 
-    dPtr := pByte(NativeUInt(SCREENPOINTER) + (FPPaperTop  * WinW) + FPPaperLeft);
-    sPtr := pByte(NativeUInt(dPtr) + (d * WinW));
+    If (ltm > 0) and (ltm < FPPaperHeight Div FPFh) Then Begin
 
-    For i := 1 to ltm Do Begin
-      CopyMem(dPtr, sPtr, w);
-      Inc(sPtr, WinW);
-      Inc(dPtr, WinW);
-    End;
+      dPtr := pByte(NativeUInt(SCREENPOINTER) + (FPPaperTop  * WinW) + FPPaperLeft);
+      sPtr := pByte(NativeUInt(dPtr) + (d * WinW));
 
-    // Now draw the bottom lines.
+      For i := 1 to ltm Do Begin
+        CopyMem(dPtr, sPtr, w);
+        Inc(sPtr, WinW);
+        Inc(dPtr, WinW);
+      End;
 
-    i := (Trunc(VertSB^.Position + FPFh) Div FPFh) + (h Div FPFh);
-    While d >= -FPFh*(2) Do Begin
-      SP_DisplayFPListing(i);
-      Dec(i);
-      Dec(d, FPFh);
-    End;
+      i := (Trunc(VertSB^.Position + FPFh) Div FPFh) + (h Div FPFh);
+      While d >= -FPFh*(2) Do Begin
+        SP_DisplayFPListing(i);
+        Dec(i);
+        Dec(d, FPFh);
+      End;
+
+    End Else
+      SP_DisplayFPListing(-1)
 
   End Else Begin // Up - scroll down
 
-    dPtr := pByte(NativeInt(SCREENPOINTER) + ((h + FPPaperTop -1) * WinW) + FPPaperLeft);
-    sPtr := pByte(NativeInt(dPtr) + (d * WinW));
+    If (ltm > 0) and (ltm < FPPaperHeight Div FPFh) Then Begin
 
-    For i := 1 to ltm Do Begin
-      CopyMem(dPtr, sPtr, w);
-      Dec(sPtr, WinW);
-      Dec(dPtr, WinW);
-    End;
+      dPtr := pByte(NativeInt(SCREENPOINTER) + ((h + FPPaperTop -1) * WinW) + FPPaperLeft);
+      sPtr := pByte(NativeInt(dPtr) + (d * WinW));
 
-    // Now draw the top lines
+      For i := 1 to ltm Do Begin
+        CopyMem(dPtr, sPtr, w);
+        Dec(sPtr, WinW);
+        Dec(dPtr, WinW);
+      End;
 
-    i := (Trunc(VertSB^.Position) Div FPFh);
-    While d <= FPFh Do Begin
-      SP_DisplayFPListing(i);
-      Inc(i);
-      Inc(d, FPFh);
-    End;
+      // Now draw the top lines
+
+      i := (Trunc(VertSB^.Position) Div FPFh);
+      While d <= FPFh Do Begin
+        SP_DisplayFPListing(i);
+        Inc(i);
+        Inc(d, FPFh);
+      End;
+
+    End Else
+      SP_DisplayFPListing(-1);
 
   End;
 
@@ -6036,10 +6047,7 @@ Begin
     Text := Lower(Text);
 
   If FPSearchPanel.Visible And (soClearBar in Options) Then
-    FPSearchBox.SetTextNoUpdate('')
-  Else
-    FPSearchBox.SetTextNoUpdate(Text);
-
+    FPSearchBox.SetTextNoUpdate('');
   tl := Length(Text);
 
   SP_GetSelectionInfo(Sel);
@@ -9023,12 +9031,12 @@ Begin
       End Else
         SP_FPClearSelection(Sel);
 
-      If FocusedWindow = fwDirect Then Begin
+//   If FocusedWindow in [fwEditor, fwDirect] Then Begin
         i := Listing.FPCLine;
         PROGLINE := SP_GetLineNumberFromIndex(i);
         SP_ScrollInView(True, True);
         SP_DisplayFPListing(-1);
-      End;
+//    End;
 
     End;
 

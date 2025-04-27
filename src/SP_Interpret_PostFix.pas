@@ -8625,29 +8625,30 @@ End;
 
 Procedure SP_Interpret_PR_AT(Var Info: pSP_iInfo);
 Var
-  X, Y, aX, aY: Integer;
+  X, Y, aX, aY: aFloat;
 Begin
 
   // AT numexpr,numexpr
 
-  X := Round(SP_StackPtr^.Val);
+  X := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-  Y := Round(SP_StackPtr^.Val);
+  Y := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
   IF T_CENTRE Then SP_FlushCentreBuffer(Info);
 
   IF OUTSET Then Begin
 
-    OUTBUFFER := OUTBUFFER + aChar(22) + IntegerToString(Y) + IntegerToString(X);
+    OUTBUFFER := OUTBUFFER + aChar(22) + IntegerToString(Round(Y)) + IntegerToString(Round(X));
 
   End Else Begin
 
-    aX := 0; aY := 0;
-    SP_ConvertToOrigin_i(aX, aY);
+    aX := Round(FONTWIDTH * X * T_SCALEX);
+    aY := Round(FONTHEIGHT * Y * T_SCALEY);
+    SP_ConvertToOrigin_d(aX, aY);
 
-    PRPOSX := aX + Round(FONTWIDTH * X * T_SCALEX);
-    PRPOSY := aY + Round(FONTHEIGHT * Y * T_SCALEY);
+    PRPOSX := aX;
+    PRPOSY := aY;
 
   End;
 
@@ -8723,9 +8724,9 @@ Begin
 
   End Else Begin
 
-    PRPOSY := Round(SP_StackPtr^.Val);
+    PRPOSY := SP_StackPtr^.Val;
     Dec(SP_StackPtr);
-    PRPOSX := Round(SP_StackPtr^.Val);
+    PRPOSX := SP_StackPtr^.Val;
     Dec(SP_StackPtr);
     SP_ConvertToOrigin_d(PRPOSX, PRPOSY);
     If WINFLIPPED Then PRPOSY := (SCREENHEIGHT - 1) - PRPOSY;
@@ -10350,7 +10351,7 @@ Begin
     If (NXTLINE > INCLUDEFROM) And (Info^.Error^.Line < INCLUDEFROM) Then NXTLINE := -1;
     pLongWord(Info^.StrPtr)^ := LongWord(NXTLINE);
   End Else
-    NXTLINE := pLongWord(Info^.StrPtr)^;
+    NXTLINE := pInteger(Info^.StrPtr)^;
 
   NXTSTATEMENT := -1;
   Dec(Info^.StrPtr, SizeOf(LongWord));
@@ -10370,7 +10371,7 @@ Begin
     If (NXTLINE > INCLUDEFROM) And (Info^.Error^.Line < INCLUDEFROM) Then NXTLINE := -1;
     pLongWord(Info^.StrPtr)^ := LongWord(NXTLINE);
   End Else
-    NXTLINE := pLongWord(Info^.StrPtr)^;
+    NXTLINE := pInteger(Info^.StrPtr)^;
 
   NXTSTATEMENT := -1;
   Dec(Info^.StrPtr, SizeOf(LongWord));
@@ -11473,7 +11474,11 @@ Begin
 
   Sp1 := SP_StackPtr;
   Dec(Sp1);
-  SP_ConvertToOrigin_d(Sp1^.Val, SP_StackPtr^.Val);
+
+  If WINSCALE Then Begin
+    Sp1^.Val := Sp1^.Val / WINSCALEX;
+    SP_StackPtr^.Val := SP_StackPtr^.Val / WINSCALEY;
+  End;
 
   YPos := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
@@ -11747,7 +11752,10 @@ Begin
               dX := NumArrays[Idx].Values[vIdx]^.Value;
               dY := NumArrays[Idx].Values[vIdx + 1]^.Value;
               Inc(vIdx, iSize);
-              SP_ConvertToOrigin_d(dX, dY);
+              If WINSCALE Then Begin
+                dX := dX / WINSCALEX;
+                dY := dY / WINSCALEY;
+              End;
               If WINFLIPPED Then dY := -dy;
               If SCREENBPP = 8 Then
                 SP_DrawLine(dX, dY)
@@ -11764,7 +11772,10 @@ Begin
                 dY := NumArrays[Idx].Values[vIdx + 1]^.Value;
                 dZ := NumArrays[Idx].Values[vIdx + 2]^.Value;
                 Inc(vIdx, iSize);
-                SP_ConvertToOrigin_d(dX, dY);
+                If WINSCALE Then Begin
+                  dX := dX / WINSCALEX;
+                  dY := dY / WINSCALEY;
+                End;
                 If WINFLIPPED Then Begin
                   dY := -dY;
                   dZ := -dZ;
@@ -21110,8 +21121,8 @@ End;
 
 Procedure SP_Interpret_TILEMAP_DRAW_TILE(Var Info: pSP_iInfo);
 Var
-  TileMapID, TileID, X, Y: Integer;
-  Rotate, Scale: aFloat;
+  TileMapID, TileID: Integer;
+  Rotate, Scale, X, Y: aFloat;
 Begin
 
   TileMapID := Round(SP_StackPtr^.Val);
@@ -21119,10 +21130,12 @@ Begin
   TileID := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  X := Round(SP_StackPtr^.Val);
+  X := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
-  Y := Round(SP_StackPtr^.Val);
+  Y := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
+
+  SP_ConvertToOrigin_d(X, Y);
 
   Rotate := SP_StackPtr^.Val;
   SP_AngleToRad(Rotate);
@@ -21131,7 +21144,7 @@ Begin
   Scale  := SP_StackPtr^.Val;
   Dec(SP_StackPtr);
 
-  SP_TileMap_Draw_Tile(TileMapID, TileID, X, Y, Rotate, Scale, Info^.Error^);
+  SP_TileMap_Draw_Tile(TileMapID, TileID, Round(X), Round(Y), Rotate, Scale, Info^.Error^);
 
 End;
 
@@ -27563,6 +27576,26 @@ Begin
 
 end;
 
+Procedure SP_Interpret_FN_CTRLATTR(Var Info: pSP_iInfo);
+Var
+  ID: Integer;
+  PropID: aString;
+  Handled: Boolean;
+  Control: SP_BaseComponent;
+Begin
+
+  PropID := SP_StackPtr^.Str;
+  Dec(SP_StackPtr);
+
+  ID := Round(SP_StackPtr^.Val);
+
+  If ControlRegistry.TryGetValue(ID, Control) Then Begin
+    SP_StackPtr^.OpType := SP_STRING;
+    SP_StackPtr^.Str := Control.GetProperty(PropID, Handled, Info^.Error^);
+  End Else
+    Info^.Error^.Code := SP_ERR_INVALID_COMPONENT;
+
+End;
 
 Initialization
 
@@ -28339,6 +28372,7 @@ Initialization
   InterpretProcs[SP_FN_INTERP] := @SP_Interpret_FN_INTERP;
   InterpretProcs[SP_FN_PAR] := @SP_Interpret_FN_PAR;
   InterpretProcs[SP_FN_FILEREQ] := @SP_Interpret_FN_FILEREQ;
+  InterpretProcs[SP_FN_CTRLATTR] := @SP_Interpret_FN_CTRLATTR;
 
   // Tokens
 

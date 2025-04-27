@@ -77,9 +77,12 @@ SP_PopupMenu = Class(SP_BaseComponent)
     Function  AddItem(Item: SP_MenuItem): pSP_MenuItem;
     Function  InsertItem(Item: SP_MenuItem; Index: Integer): pSP_MenuItem;
     Procedure DeleteItem(Index: Integer);
+    Procedure MoveItem(Item1, Item2: Integer);
+    Procedure Clear;
     Procedure SetItem(Index: Integer; MenuItem: SP_MenuItem);
     Function  GetItem(Index: Integer): SP_MenuItem;
     Procedure SelectItem(i: Integer; ShowSubMenu: Boolean);
+    Function  Find(text: aString): Integer;
     Procedure CancelSelection;
     Procedure PopUp(x, y: Integer);
     Procedure SetSubMenu(Index: Integer; SubMenu: SP_PopUpMenu);
@@ -580,6 +583,14 @@ Begin
   Else
     if fSelected > index Then
       inc(fSelected);
+  CalculateSizes;
+
+End;
+
+Procedure SP_PopUpMenu.Clear;
+Begin
+
+  SetLength(fItems, 0);
   CalculateSizes;
 
 End;
@@ -1087,6 +1098,30 @@ Begin
         End;
       End;
     End;
+End;
+
+Function SP_PopUpMenu.Find(text: aString): Integer;
+Var
+  i: integer;
+Begin
+
+  Result := -1;
+  text := Lower(text);
+  For i := 0 To Count -1 Do
+    If Lower(fItems[i].Caption) = text Then Begin
+      Result := i;
+      Break;
+    End;
+
+End;
+
+Procedure SP_PopUpMenu.MoveItem(Item1, Item2: Integer);
+Begin
+
+  InsertItem(fItems[Item1], Item2);
+  If Item1 > Item2 Then Inc(Item1);
+  DeleteItem(Item1);
+
 End;
 
 end.

@@ -1593,7 +1593,7 @@ Begin
               End;
 
             // Functions that take one numeric, one string and returns a string.
-            SP_FN_DATES, SP_FN_TIMES:
+            SP_FN_DATES, SP_FN_TIMES, SP_FN_CTRLATTR:
               Begin
                 If StackPtr > 0 Then Begin
                   If Stack[StackPtr] <> SP_STRING Then Begin
@@ -3610,7 +3610,7 @@ Begin
 
             // Two Parameters - one numeric, one string.
 
-            SP_FN_DATES, SP_FN_TIMES:
+            SP_FN_DATES, SP_FN_TIMES, SP_FN_CTRLATTR:
               Begin
                 Inc(Position, SizeOf(LongWord));
                 If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = '(') Then Begin
@@ -18759,7 +18759,7 @@ Begin
           numProps := 0;
           PropExpr := '';
           Done := False;
-          If (Byte(Tokens[Position]) = SP_FUNCTION) And (pLongWord(@Tokens[Position +1])^ = SP_FN_ATTR) Then Begin
+          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_SET) Then Begin
             Inc(Position, SizeOf(LongWord) +1);
             While not Done Do Begin
               PropExpr := SP_Convert_Expr(Tokens, Position, Error, -1) + PropExpr; // PropName
@@ -18792,7 +18792,7 @@ Begin
     End Else
       Error.Code := SP_ERR_MISSING_VARIABLE;
   End Else
-    If (Byte(Tokens[Position]) = SP_FUNCTION) And (pLongWord(@Tokens[Position +1])^ = SP_FN_ATTR) Then Begin
+    If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_SET) Then Begin
       Inc(Position, SizeOf(LongWord) +1);
       Result := SP_Convert_Expr(Tokens, Position, Error, -1); // id
       If Error.Code <> SP_ERR_OK Then Exit;

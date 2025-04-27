@@ -807,12 +807,12 @@ Const
      'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN', 'A-RECTANGLE TO', 'A-RECTFILL TO', 'RECTANGLE TO',
      'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING', 'ENUM BASE', 'ORG DIM', 'DRAW GML', 'WIN ORG DIM', 'GFX ORG DIM',
      'STREAM READ FILE', 'RAINBOW HSV', 'PR STROKE', 'DRAW CDELTA', 'A-DRAW CDELTA', 'TILEMAP DRAW TILE', 'CTRL NEW',
-     'CTRL PROP', 'CTRL DO');
+     'CTRL SET', 'CTRL DO');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.
 
-  SP_FUNCTIONS_EXTRA: Array[0..280] of aString =
+  SP_FUNCTIONS_EXTRA: Array[0..281] of aString =
     ('nRND', 'nINKEY$', 'oPI', 'nVAL$ ', 'oCODE ', 'oVAL ', 'oLEN ', 'nSIN ', 'nCOS ',
      'nTAN ', 'nASN ', 'nACS ', 'nATN ', 'oLN ', 'oEXP ', 'oINT ', 'oSQR ', 'oSGN ', 'oABS ', 'n IN ',
      'nUSR ', 'oSTR$ ','oCHR$ ', 'nPEEK ', 'oNOT ', 'o OR ', 'o AND ', 'o MOD ', 'o XOR ', 'o SHL ',
@@ -844,7 +844,7 @@ Const
      'oTAU', 'nMILLISECONDS', 'oBINV', 'oBREV', 'oINTERP', 'oMIN$', 'oMAX$', 'nFMEMRD', 'nTXTw', 'nTXTh',
      'nNOISE', 'nOCTNOISE', 'oPAR ', 'oMAP', 'o EQV ', 'o IMP ', 'oSINH ', 'oCOSH ', 'oTANH ', 'oASNH ',
      'oACSH ', 'oATNH ', 'oMID', 'nPARAM$', 'nSTK', 'nSTK$', 'oREV$ ', 'nCLIP$', 'oINSTR', 'oFMOD',
-     'oBITCNT', 'oHIBIT', 'oCPAD$', 'nINKEY', 'nFILEREQ');
+     'oBITCNT', 'oHIBIT', 'oCPAD$', 'nINKEY', 'nFILEREQ', 'nCTRLGET');
 
   // Constants, like above, for identifying Functions in token form
 
@@ -1131,6 +1131,7 @@ Const
   SP_FN_CPADS               = 2278;
   SP_FN_INKEY               = 2279;
   SP_FN_FILEREQ             = 2280;
+  SP_FN_CTRLATTR            = 2281;
 
   // Meta-functions
 

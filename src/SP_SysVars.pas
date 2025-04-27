@@ -1479,8 +1479,10 @@ Const
    svByte = 7;
 
    spButton = 0;
+   spCheckBox = 1;
+   spComboBox = 2;
 
-   SP_Constants: Array[0..118] of TConstant =
+   SP_Constants: Array[0..120] of TConstant =
    ((Name: 'TRUE'; Value: 1),
     (Name: 'FALSE'; Value: 0),
 
@@ -1605,7 +1607,9 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3),
 
-    (Name: 'SP_BUTTON'; Value: spButton)
+    (Name: 'SP_BUTTON'; Value: spButton),
+    (Name: 'SP_CHECK'; Value: spCheckBox),
+    (Name: 'SP_DROPDOWN'; Value: spComboBox)
 
     );
 

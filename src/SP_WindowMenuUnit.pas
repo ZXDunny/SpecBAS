@@ -35,6 +35,7 @@ SP_WindowMenu = Class(SP_BaseComponent)
     Procedure AddItem(Item: SP_MenuItem);
     Procedure InsertItem(Item: SP_MenuItem; Index: Integer);
     Procedure DeleteItem(Index: Integer);
+    Procedure Clear;
     Procedure SetItem(Index: Integer; MenuItem: SP_MenuItem);
     Function  GetItem(Index: Integer): SP_MenuItem;
     Procedure SelectItem(i: Integer; ShowSubMenu: Boolean);
@@ -42,6 +43,8 @@ SP_WindowMenu = Class(SP_BaseComponent)
     Procedure SetSubMenu(Index: Integer; SubMenu: SP_PopUpMenu);
     Function  GetCount: Integer;
     Function  IsAccelerator(Chr: aChar): Integer;
+    Function  Find(text: aString): Integer;
+    Procedure MoveItem(Item1, Item2: Integer);
 
     Property  MenuItems[Index: Integer]: SP_MenuItem read GetItem write SetItem;
     Property  HightlightColour: Byte read fHighlightClr write SetHighlightClr;
@@ -624,5 +627,38 @@ Begin
     Handled := True;
 
 End;
+
+Function SP_WindowMenu.Find(text: aString): Integer;
+Var
+  i: integer;
+Begin
+
+  Result := -1;
+  text := Lower(text);
+  For i := 0 To Count -1 Do
+    If Lower(fItems[i].Caption) = text Then Begin
+      Result := i;
+      Break;
+    End;
+
+End;
+
+Procedure SP_WindowMenu.Clear;
+Begin
+
+  SetLength(fItems, 0);
+  CalculateSizes;
+
+End;
+
+Procedure SP_WindowMenu.MoveItem(Item1, Item2: Integer);
+Begin
+
+  InsertItem(fItems[Item1], Item2);
+  If Item1 > Item2 Then Inc(Item1);
+  DeleteItem(Item1);
+
+End;
+
 
 end.

@@ -2,7 +2,7 @@ unit SP_CheckBoxUnit;
 
 interface
 
-Uses SP_BaseComponentUnit, SP_Util;
+Uses SP_BaseComponentUnit, SP_Util, SP_Errors;
 
 Type
 
@@ -16,6 +16,10 @@ SP_CheckBox = Class(SP_BaseComponent)
     fType: Integer;
     fGroupIndex: Integer;
     fCheckColor: Byte;
+
+    User_OnChecked: aString;
+    Compiled_OnChecked: aString;
+
     Procedure SetChecked(b: Boolean);
     Procedure SetCaption(s: aString);
     Procedure SetType(t: Integer);
@@ -35,11 +39,20 @@ SP_CheckBox = Class(SP_BaseComponent)
 
     Constructor Create(Owner: SP_BaseComponent);
 
+    // User Properties
+
+    Procedure RegisterProperties; Override;
+    Procedure Set_Caption(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Caption: aString;
+    Procedure Set_Checked(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Checked: aString;
+    Procedure Set_OnChecked(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnChecked: aString;
+    Procedure Set_GroupIndex(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_GroupIndex: aString;
+    Procedure Set_CheckColor(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_CheckColor: aString;
+
 End;
 
 implementation
 
-Uses Math, SP_Input, SP_Components, SP_Sound, SP_SysVars;
+Uses Math, SP_Interpret_PostFix, SP_Input, SP_Components, SP_Sound, SP_SysVars;
 
 // SP_CheckBox
 
@@ -79,6 +92,8 @@ Begin
     fChecked := b;
     If Assigned(fOnChecked) Then
       fOnChecked(Self);
+    If Compiled_OnChecked <> '' Then
+      SP_AddOnEvent(Compiled_OnChecked);
     Paint;
   End;
 
@@ -179,5 +194,93 @@ Begin
   End;
 
 End;
+
+// User Properties
+
+Procedure SP_CheckBox.RegisterProperties;
+Begin
+
+  Inherited;
+
+  RegisterProperty('caption', Get_Caption, Set_Caption);
+  RegisterProperty('checked', Get_Checked, Set_Checked);
+  RegisterProperty('oncheck', Get_OnChecked, Set_OnChecked);
+  RegisterProperty('groupindex', Get_GroupIndex, Set_GroupIndex);
+  RegisterProperty('checkclr', Get_CheckColor, Set_CheckColor);
+
+End;
+
+Procedure SP_CheckBox.Set_Caption(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Caption := s;
+
+End;
+
+Function  SP_CheckBox.Get_Caption: aString;
+Begin
+
+  Result := Caption;
+
+End;
+
+Procedure SP_CheckBox.Set_Checked(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Checked := StringToInt(s) <> 0;
+
+End;
+
+Function  SP_CheckBox.Get_Checked: aString;
+Begin
+
+  Result := IntToString(Ord(Checked));
+
+End;
+
+Procedure SP_CheckBox.Set_OnChecked(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Compiled_OnChecked := SP_ConvertToTokens(s, Error);
+  If Compiled_OnChecked <> '' Then
+    User_OnChecked := s;
+
+End;
+
+Function  SP_CheckBox.Get_OnChecked: aString;
+Begin
+
+  Result := User_OnChecked;
+
+End;
+
+Procedure SP_CheckBox.Set_GroupIndex(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  GroupIndex := StringToInt(s);
+
+End;
+
+Function  SP_CheckBox.Get_GroupIndex: aString;
+Begin
+
+  Result := IntToString(GroupIndex);
+
+End;
+
+Procedure SP_CheckBox.Set_CheckColor(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  CheckColour := StringToInt(s);
+
+End;
+
+Function  SP_CheckBox.Get_CheckColor: aString;
+Begin
+
+  Result := IntToString(CheckColour);
+
+End;
+
 
 end.

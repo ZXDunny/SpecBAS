@@ -2,7 +2,7 @@ unit SP_ComboBoxUnit;
 
 interface
 
-Uses SP_Components, SP_BaseComponentUnit, SP_Util, SP_PopUpMenuUnit, SP_EditUnit, SP_LabelUnit, SP_ButtonUnit, SP_SysVars;
+Uses SP_Components, SP_BaseComponentUnit, SP_Util, SP_PopUpMenuUnit, SP_EditUnit, SP_LabelUnit, SP_ButtonUnit, SP_SysVars, SP_Errors;
 
 Type
 
@@ -18,6 +18,12 @@ SP_ComboBox = Class(SP_BaseComponent)
     fEditable: Boolean;
     fOnAccept: SP_EditEvent;
     fOnChange: SP_EditEvent;
+
+    User_OnAccept,
+    User_OnChange,
+    Compiled_OnAccept,
+    Compiled_OnChange: aString;
+
     Procedure PlaceItems;
     Procedure OnBtnClick(Sender: SP_BaseComponent);
     Procedure OnMenuSelect(Sender: SP_BaseComponent; ItemIndex: Integer);
@@ -54,8 +60,10 @@ SP_ComboBox = Class(SP_BaseComponent)
     Procedure Clear;
     Procedure SetBounds(x, y, w, h: Integer); Override;
     Procedure SetFocus(b: Boolean); Override;
+    Function  GetCount: Integer;
 
     Property  Border:     Boolean            read GetBorder        write SetBorder;
+    Property  Count:      Integer            read GetCount;
     Property  Items[Index: Integer]: aString read GetCaption       write SetCaption;
     Property  ItemIndex:  Integer            read fItemIndex       write SetItemIndex;
     Property  Editable:   Boolean            read fEditable        write SetEditable;
@@ -68,11 +76,30 @@ SP_ComboBox = Class(SP_BaseComponent)
     Constructor Create(Owner: SP_BaseComponent);
     Destructor Destroy; Override;
 
+    Procedure RegisterProperties; Override;
+    Procedure Set_Border(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Border: aString;
+    Function  Get_Count: aString;
+    Function  Get_IndexOf: aString;
+    Procedure Set_Item(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Item: aString;
+    Procedure Set_Index(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Index: aString;
+    Procedure Set_Editable(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Editable: aString;
+    Procedure Set_Text(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Text: aString;
+    Procedure Set_OnAccept(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnAccept: aString;
+    Procedure Set_OnChange(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnChange: aString;
+    Procedure Set_HilightClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_HilightClr: aString;
+
+    Procedure RegisterMethods; Override;
+    Procedure Method_AddItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_InsertItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_EraseItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Clear(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_MoveItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+
 End;
 
 implementation
 
-Uses Math, SP_Input, SP_Sound;
+Uses Math, SP_Interpret_PostFix, SP_Input, SP_Sound;
 
 // SP_Combobox
 
@@ -110,6 +137,14 @@ Begin
   Inherited;
 
 End;
+
+Function  SP_ComboBox.GetCount: Integer;
+Begin
+
+  Result := Length(Menu.fItems);
+
+End;
+
 
 Procedure SP_ComboBox.SetAllowLiterals(b: Boolean);
 Begin
@@ -400,6 +435,8 @@ begin
 
   If Assigned(fOnAccept) Then
     fOnAccept(Self, Edit.Text);
+  If Compiled_OnAccept <> '' Then
+    SP_AddOnEvent(Compiled_OnAccept);
 
 end;
 
@@ -408,6 +445,8 @@ begin
 
   If Assigned(fOnChange) Then
     fOnChange(Self, Edit.Text);
+  If Compiled_OnChange <> '' Then
+    SP_AddOnEvent(Compiled_OnChange);
 
 end;
 
@@ -462,5 +501,230 @@ begin
 
 end;
 
+// User properties
+
+Procedure SP_ComboBox.RegisterProperties;
+Begin
+
+  Inherited;
+
+  RegisterProperty('border', Get_Border, Set_Border);
+  RegisterProperty('count', Get_Count, nil);
+  RegisterProperty('item', Get_Item, Set_Item);
+  RegisterProperty('index', Get_Index, Set_Index);
+  RegisterProperty('editable', Get_Editable, Set_Editable);
+  RegisterProperty('text', Get_Text, Set_Text);
+  RegisterProperty('onaccept', Get_OnAccept, Set_OnAccept);
+  RegisterProperty('onchange', Get_OnChange, Set_OnChange);
+  RegisterProperty('hilightclr', Get_HilightClr, Set_HiLightClr);
+  RegisterProperty('find', Get_IndexOf, nil);
+
+End;
+
+Procedure SP_ComboBox.Set_Border(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Border := StringToInt(s) <> 0;
+
+End;
+
+Function SP_ComboBox.Get_Border: aString;
+Begin
+
+  Result := IntToString(Ord(Border));
+
+End;
+
+Procedure SP_ComboBox.Set_Item(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx: Integer;
+Begin
+
+  Idx := Pos(':', s);
+  If Idx >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, Idx -1));
+    s := Copy(s, Idx);
+    If (Idx >= 0) And (Idx < Count) Then
+
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_ComboBox.Get_Item: aString;
+Begin
+
+  Result := GetCaption(StringToInt(fUserParam));
+
+End;
+
+Function SP_ComboBox.Get_IndexOf: aString;
+Begin
+
+  Result := IntToString(Menu.Find(fUserParam));
+
+End;
+
+Procedure SP_ComboBox.Set_Index(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  ItemIndex := StringToInt(s);
+
+End;
+
+Function SP_ComboBox.Get_Index: aString;
+Begin
+
+  Result := IntToString(ItemIndex);
+
+End;
+
+Procedure SP_ComboBox.Set_Editable(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Editable := StringToInt(s) <> 0;
+
+End;
+
+Function SP_ComboBox.Get_Editable: aString;
+Begin
+
+  Result := IntToString(Ord(Editable));
+
+End;
+
+Procedure SP_ComboBox.Set_Text(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Text := s;
+
+End;
+
+Function SP_ComboBox.Get_Text: aString;
+Begin
+
+  Result := Text;
+
+End;
+
+Procedure SP_ComboBox.Set_OnAccept(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Compiled_OnAccept := SP_ConvertToTokens(s, Error);
+  If Compiled_OnAccept <> '' Then
+    User_OnAccept := s;
+
+End;
+
+Function SP_ComboBox.Get_OnAccept: aString;
+Begin
+
+  Result := user_OnAccept;
+
+End;
+
+Procedure SP_ComboBox.Set_OnChange(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Compiled_OnChange := SP_ConvertToTokens(s, Error);
+  If Compiled_OnChange <> '' Then
+    User_OnChange := s;
+
+End;
+
+Function SP_ComboBox.Get_OnChange: aString;
+Begin
+
+  Result := User_OnChange;
+
+End;
+
+Procedure SP_ComboBox.Set_HilightClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  HightlightColour := StringToInt(s);
+
+End;
+
+Function SP_ComboBox.Get_HilightClr: aString;
+Begin
+
+  Result := IntToString(HightlightColour);
+
+End;
+
+Function SP_ComboBox.Get_Count: aString;
+Begin
+
+  Result := IntToString(Count);
+
+End;
+
+
+// User Methods
+
+Procedure SP_ComboBox.RegisterMethods;
+Begin
+
+  Inherited;
+  RegisterMethod('add', 's', Method_AddItem);
+  RegisterMethod('insert', 'ns', Method_InsertItem);
+  RegisterMethod('erase', 'n', Method_EraseItem);
+  RegisterMethod('clear', '', Method_Clear);
+  RegisterMethod('move', 'nn', Method_MoveItem);
+
+End;
+
+Procedure SP_ComboBox.Method_AddItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  AddItem(Params[0]);
+
+End;
+
+Procedure SP_ComboBox.Method_InsertItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+Begin
+
+  i := StringToInt(Params[0], -1);
+  If (i >= 0) And (i < Menu.Count) then
+    InsertItem(Params[1], i)
+  Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_ComboBox.Method_EraseItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+Begin
+
+  i := StringToInt(Params[0], -1);
+  If (i >= 0) And (i < Menu.Count) then
+    Menu.DeleteItem(i)
+  Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_ComboBox.Method_Clear(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Menu.Clear;
+
+End;
+
+Procedure SP_ComboBox.Method_MoveItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i, j: Integer;
+Begin
+
+  i := StringToInt(Params[0], -1);
+  j := StringToInt(Params[1], -1);
+  If (i >= 0) And (i < Menu.Count) And (j >= 0) And (j < Menu.Count) Then
+    Menu.MoveItem(i, j);
+
+End;
 
 end.

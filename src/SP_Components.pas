@@ -103,7 +103,7 @@ Const
   SP_UIScrollTrack                = 8;
   SP_UIScrollBtn                  = 0;
   SP_UIWindowBack                 = 244;
-  SP_FocusTextClr                 = 1;
+  SP_FocusTextClr                 = 0;
 
   SP_ScrollWheelValue             = 3;
 
@@ -132,7 +132,8 @@ Var
 
 implementation
 
-Uses SP_Main, SP_Sound, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Graphics32, SP_Input, SP_PopupMenuUnit, SP_WindowMenuUnit, SP_Tokenise;
+Uses SP_Main, SP_Sound, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Graphics32, SP_Input, SP_Tokenise,
+     SP_PopupMenuUnit, SP_WindowMenuUnit, SP_CheckBoxUnit, SP_ComboBoxUnit;
 
 // Timer Functions
 
@@ -676,6 +677,14 @@ Begin
       spButton:
         Begin
           Control := SP_Button.Create(Parent);
+        End;
+      spCheckBox:
+        Begin
+          Control := SP_CheckBox.Create(Parent);
+        End;
+      spComboBox:
+        Begin
+          Control := SP_ComboBox.Create(Parent);
         End;
     End;
     If Assigned(Control) Then Begin

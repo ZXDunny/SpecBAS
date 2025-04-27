@@ -136,6 +136,7 @@ SP_BaseComponent = Class
     fClientRect: TRect;
     fTag: Integer;
     fWantTab: Boolean;
+    fUserParam: aString;
     User_OnMouseMove: aString;
     User_OnMouseDown: aString;
     User_OnMouseUp: aString;
@@ -309,6 +310,11 @@ SP_BaseComponent = Class
     Procedure Method_SetFocus(Params: Array of aString; Var Error: TSP_ErrorCode);
     Procedure Method_Lock(Params: Array of aString; Var Error: TSP_ErrorCode);
     Procedure Method_Unlock(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Paint(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Disable(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Enable(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Show(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Hide(Params: Array of aString; Var Error: TSP_ErrorCode);
 
     {Properties}
 
@@ -456,8 +462,9 @@ Var
   Idx: Integer;
 Begin
 
+  Name := Lower(Name);
   For Idx := 0 To Length(fMethods) -1 Do
-    If (Name = fMethods[Idx].Name) And Assigned(fMethods[Idx].Handler) Then Begin
+    If (Name = fMethods[Idx].Name) And Assigned(fMethods[Idx].Handler) And (Length(Params) = Length(fMethods[Idx].ParamTemplate)) Then Begin
       fMethods[Idx].Handler(Params, Error);
       Exit;
     End;
@@ -472,6 +479,13 @@ Var
 Begin
 
   Handled := False;
+  Name := Lower(Name);
+
+  Idx := Pos(':', Name);
+  If Idx > 0 Then Begin
+    Value := Value + Copy(Name, Idx);
+    Name := Copy(Name, 1, Idx -1);
+  End;
 
   For Idx := 0 To Length(fProperties) -1 Do
     If (Name = fProperties[Idx].Name) And Assigned(fProperties[Idx].Setter) Then Begin
@@ -489,6 +503,13 @@ Var
 Begin
 
   Handled := False;
+  Name := Lower(Name);
+
+  Idx := Pos(':', Name);
+  If Idx > 0 Then Begin
+    fUserParam := Copy(Name, Idx +1);
+    Name := Copy(Name, 1, Idx -1);
+  End;
 
   For Idx := 0 To Length(fProperties) -1 Do
     If (Name = fProperties[Idx].Name) and Assigned(fProperties[Idx].Getter) Then Begin
@@ -2984,6 +3005,46 @@ Begin
   RegisterMethod('setfocus', 'n', Method_SetFocus);
   RegisterMethod('lock', '', Method_Lock);
   RegisterMethod('unlock', '', Method_UnLock);
+  RegisterMethod('paint', '', Method_Paint);
+  RegisterMethod('Disable', '', Method_Disable);
+  RegisterMethod('Enable', '', Method_Enable);
+  RegisterMethod('Show', '', Method_Show);
+  RegisterMethod('Hide', '', Method_Hide);
+
+End;
+
+Procedure SP_BaseComponent.Method_Paint(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Paint;
+
+End;
+
+Procedure SP_BaseComponent.Method_Disable(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Enabled := False;
+
+End;
+
+Procedure SP_BaseComponent.Method_Enable(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Enabled := True;
+
+End;
+
+Procedure SP_BaseComponent.Method_Show(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Visible := True;
+
+End;
+
+Procedure SP_BaseComponent.Method_Hide(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Visible := False;
 
 End;
 

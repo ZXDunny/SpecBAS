@@ -2441,7 +2441,7 @@ Begin
               End;
               If Idx = Sel.EndL Then Begin // Line ends the selection?
                 Ps := SP_GetCharPos(CodeLine, Sel.EndP);
-                if ps < Length(CodeLine) Then
+                if ps <= Length(CodeLine) Then
                   Inc(ps, 1 + Ord(CodeLine[Ps] = #5));
                 If Not Sel.Multiline And (Idx = Listing.FPCLine) Then
                   CodeLine := Copy(CodeLine, 1, Ps -1) + #17 + aChar(lineClr) + #0#0#0 + Copy(CodeLine, Ps)
@@ -4751,12 +4751,13 @@ Begin
                 If Not SP_WasPrevSoft(Listing.FPCLine) Then
                   While (c < Length(Prev)) And (Prev[c] in ['0'..'9']) Do Inc(c);
                 n := c;
-                If StripSpaces(Prev) = '' Then
-                  c := Length(Prev) +1
-                Else Begin
-                  While (c < Length(Prev)) And (Prev[c] <= ' ') Do Inc(c);
-                  Inc(c, Listing.Flags[Listing.FPCLine].Indent);
-                End;
+                If Listing.FPCPos > c then
+                  If StripSpaces(Prev) = '' Then
+                    c := Length(Prev) +1
+                  Else Begin
+                    While (c < Length(Prev)) And (Prev[c] <= ' ') Do Inc(c);
+                    Inc(c, Listing.Flags[Listing.FPCLine].Indent);
+                  End;
                 Dec(c, n);
                 If Listing.FPCPos = 1 Then
                   c := 0;
@@ -8368,7 +8369,7 @@ Begin
     e := Copy(s, kw + 5);
     s := Copy(s, 5, kw);
     l := Length(s);
-    While (nIdx < l) and (s[nIdx] in ['0'..'9']) Do Inc(nIdx);
+    While (nIdx <= l) and (s[nIdx] in ['0'..'9']) Do Inc(nIdx);
     ChangeList[Idx].Org := StringToLong(Copy(s, 1, nIdx -1));
     ChangeList[Idx].New := CurLineNum;
     ChangeList[Idx].Flag := f;

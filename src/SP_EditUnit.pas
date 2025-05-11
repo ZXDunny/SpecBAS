@@ -2,7 +2,7 @@ unit SP_EditUnit;
 
 interface
 
-Uses SP_BaseComponentUnit, SP_Util;
+Uses SP_BaseComponentUnit, SP_Util, SP_Errors;
 
 Type
 
@@ -27,6 +27,8 @@ SP_Edit = Class(SP_BaseComponent)
     fValidText: Boolean;
     fGhostText: aString;
     fAllowLiterals: Boolean;
+
+    Compiled_OnChange, User_OnChange: aString;
 
     Procedure SetText(s: aString);
     Procedure SetEditable(b: Boolean);
@@ -75,11 +77,23 @@ SP_Edit = Class(SP_BaseComponent)
     Procedure SelectNone;
     Procedure SelectWord;
 
+    procedure RegisterProperties; Override;
+
+    Procedure Set_Text(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Text: aString;
+    Procedure Set_Editable(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Editable: aString;
+    Procedure Set_CursorPos(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_CursorPos: aString;
+    Procedure Set_Justify(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Justify: aString;
+    Procedure Set_OnChange(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnChange: aString;
+
+    Procedure RegisterMethods; Override;
+
+    Procedure Method_Clear(Params: Array of aString; Var Error: TSP_ErrorCode);
+
 End;
 
 implementation
 
-Uses Math, SysUtils, SP_Components, SP_SysVars, SP_Input, SP_Sound, ClipBrd;
+Uses Math, SysUtils, SP_Components, SP_SysVars, SP_Input, SP_Sound, ClipBrd, SP_Interpret_PostFix;
 
 // SP_Edit
 
@@ -87,6 +101,8 @@ Constructor SP_Edit.Create(Owner: SP_BaseComponent);
 Begin
 
   Inherited;
+
+  fTypeName := 'spEdit';
 
   fText := '';
   xoff := 0;
@@ -112,7 +128,7 @@ Begin
   fRedoList := TStringList.Create;
   AddOverrideControl(Self);
 
-  fFlashTimer := AddTimer(Self, FLASHINTERVAL, FlashTimer, False)^.ID;
+  fFlashTimer := AddTimer(Self, FLASHINTERVAL, FlashTimer, False, False)^.ID;
 
 End;
 
@@ -163,14 +179,14 @@ End;
 Procedure SP_Edit.SetBounds(x, y, w, h: Integer);
 Begin
 
-  h := IfH + (Ord(fBorder) * 4);
+  h := Round(IfH * iSY) + (Ord(fBorder) * 4);
   Inherited;
 
 End;
 
 Procedure SP_Edit.Draw;
 Var
-  tl, ss, sc, p, Clr, fg, bg: Integer;
+  tl, ss, sc, p, Clr, fg, bg, yOfs: Integer;
   s: aString;
   c: aChar;
 Begin
@@ -181,6 +197,8 @@ Begin
   Else
     c := ' ';
 
+  yOfs := (Height - Round(iFH * iSY)) Div 2;
+
   If fEnabled Then Begin
     If fValidText Then
       Clr := fFontClr
@@ -188,14 +206,14 @@ Begin
       Clr := fErrorClr;
     If (fGhostText <> '') And (Copy(fGhostText, 1, Length(fText)) = fText) Then Begin
       s := InsertLiterals(fGhostText);
-      Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, SP_UITextDisabled, -1, iSX, iSY, False, False, False, False)
+      Print(-xoff + (Ord(fBorder) * 2), yOfs, s, SP_UITextDisabled, -1, iSX, iSY, False, False, False, False)
     End Else
       fGhostText := '';
   End Else
     Clr := SP_UITextDisabled;
 
   s := InsertLiterals(fText);
-  Print(-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Clr, -1, iSX, iSY, False, False, False, False);
+  Print(-xoff + (Ord(fBorder) * 2), yOfs, s, Clr, -1, iSX, iSY, False, False, False, False);
 
   If fBorder Then Begin
     DrawRect(0, 0, Width -1, Height -1, fBorderClr);
@@ -210,7 +228,7 @@ Begin
       ss := Min(fSelStart, fCursorPos);
       sc := (Max(fSelStart, fCursorPos) - ss) +1;
       s := InsertLiterals(Copy(fText, ss, sc));
-      Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Clr, p, iSX, iSY, False, False, False, False);
+      Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), yOfs, s, Clr, p, iSX, iSY, False, False, False, False);
     End;
 
     If Focused Then Begin
@@ -232,10 +250,10 @@ Begin
       End Else Begin
         Fg := fCursUnfocusedFG; Bg := fCursUnfocusedBG;
       End;
-      Print(((fCursorPos -1)*iFW)-xoff + (Ord(fBorder) * 2), (Height - iFH) Div 2, s, Fg, Bg, iSX, iSY, False, False, False, False);
+
+      Print(((fCursorPos -1)* Round(iFW * iSX)) - xoff + (Ord(fBorder) * 2), yOfs, s, Fg, Bg, iSX, iSY, False, False, False, False);
 
     End;
-
 
   End;
 
@@ -519,9 +537,12 @@ Begin
   CursorPos := fCursorPos;
   Paint;
 
-  If oText <> fText Then
+  If oText <> fText Then Begin
     If Assigned(OnChange) Then
       OnChange(Self, fText);
+  If Not Locked And (Compiled_OnChange <> '') Then
+    SP_AddOnEvent(Compiled_OnChange);
+  End;
 
 End;
 
@@ -729,7 +750,7 @@ End;
 Procedure SP_Edit.SetRightJustify(b: Boolean);
 begin
 
-  fRightJustify := True;
+  fRightJustify := b;
   SetText(fText);
 
 end;
@@ -742,6 +763,8 @@ Begin
     SetTextNoUpdate(s);
     If Assigned(fOnChange) Then
       fOnChange(Self, fText);
+    If Not Locked And (Compiled_OnChange <> '') Then
+      SP_AddOnEvent(Compiled_OnChange);
 
   End;
 
@@ -810,5 +833,116 @@ Begin
   Paint;
 
 End;
+
+// User Properties and stuff
+
+Procedure SP_Edit.RegisterProperties;
+Begin
+
+  RegisterProperty('text', Get_Text, Set_Text, ':s|s');
+  RegisterProperty('readonly', Get_Editable, Set_Editable, ':v|v');
+  RegisterProperty('pos', Get_CursorPos, Set_CursorPos, ':v|v');
+  RegisterProperty('justify', Get_Justify, Set_Justify, ':v|v');
+  RegisterProperty('onchange', Get_OnChange, Set_OnChange, ':s|s');
+
+End;
+
+Procedure SP_Edit.Set_Text(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Text := s;
+
+End;
+
+Function SP_Edit.Get_Text: aString;
+Begin
+
+  Result := Text;
+
+End;
+
+Procedure SP_Edit.Set_Editable(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Editable := StringToInt(s) <> 0;
+
+End;
+
+Function SP_Edit.Get_Editable: aString;
+Begin
+
+  Result := IntToString(Ord(fEditable));
+
+End;
+
+Procedure SP_Edit.Set_CursorPos(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  CursorPos := StringToInt(s);
+
+End;
+
+Function SP_Edit.Get_CursorPos: aString;
+Begin
+
+  Result := IntToString(CursorPos);
+
+End;
+
+Procedure SP_Edit.Set_Justify(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  j: Integer;
+Begin
+
+  j := StringToInt(s);
+  If j = -1 Then
+    RightJustify := False
+  Else
+    If j = 1 Then
+      RightJustify := True;
+
+End;
+
+Function SP_Edit.Get_Justify: aString;
+Begin
+
+  If RightJustify then
+    Result := '1'
+  Else
+    Result := '-1';
+
+End;
+
+Procedure SP_Edit.Set_OnChange(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Compiled_OnChange := SP_ConvertToTokens(s, Error);
+  If Compiled_OnChange <> '' Then
+    User_OnChange := s;
+
+End;
+
+Function SP_Edit.Get_OnChange: aString;
+Begin
+
+  Result := User_OnChange;
+
+End;
+
+Procedure SP_Edit.RegisterMethods;
+Begin
+
+  Inherited;
+  RegisterMethod('clear', '', Method_Clear);
+
+End;
+
+Procedure SP_Edit.Method_Clear(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Text := '';
+
+End;
+
 
 end.

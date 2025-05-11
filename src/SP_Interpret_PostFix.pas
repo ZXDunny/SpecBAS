@@ -132,7 +132,9 @@ Procedure SP_AddConditionalBreakpoint(BpIndex, Passes: Integer; Condition: aStri
 Procedure SP_MakeListVarOutput(Var List: TAnsiStringlist; UseLiterals: Boolean);
 Function  SP_ConvertToTokens(Const s: aString; Var Error: TSP_ErrorCode): aString;
 Procedure SP_AddONEvent(s: aString);
+Procedure SP_ClearOnEvents;
 Procedure SP_ExecuteONCtrl(Var Error: TSP_ErrorCode);
+Procedure SP_ReplaceAll(Const Host, Find, Rep: aString; var OutStr: aString);
 
 Procedure SP_InterpretCONTSafe(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_Interpret(Const Tokens: paString; Var nPosition: Integer; Var Error: TSP_ErrorCode);
@@ -1286,6 +1288,15 @@ Begin
     SP_ONCtrlList[SP_ONCtrlListPtr] := s;
   End;
 
+  ONCtrlLock.Leave;
+
+End;
+
+Procedure SP_ClearOnEvents;
+Begin
+
+  ONCtrlLock.Enter;
+  SP_ONCtrlListPtr := -1;
   ONCtrlLock.Leave;
 
 End;
@@ -8643,8 +8654,8 @@ Begin
 
   End Else Begin
 
-    aX := Round(FONTWIDTH * X * T_SCALEX);
-    aY := Round(FONTHEIGHT * Y * T_SCALEY);
+    aX := Round(FONTWIDTH * X);
+    aY := Round(FONTHEIGHT * Y);
     SP_ConvertToOrigin_d(aX, aY);
 
     PRPOSX := aX;
@@ -8670,7 +8681,7 @@ Begin
   End Else Begin
 
     Y := Round(PRPOSY);
-    Cw := Round(FONTWIDTH * T_SCALEX);
+    Cw := Round(FONTWIDTH);
     nx := Round(PRPOSX) Div Cw; // current pos
     tc := Round(SP_StackPtr^.Val) mod (SCREENWIDTH Div Cw);
     If tc < nx Then Inc(tc, SCREENWIDTH Div Cw);
@@ -27597,6 +27608,57 @@ Begin
 
 End;
 
+Procedure SP_Interpret_CTRL_LOCK(Var Info: pSP_iInfo);
+Var
+  ID: Integer;
+  Control: SP_BaseComponent;
+Begin
+
+  ID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  If ControlRegistry.TryGetValue(ID, Control) Then
+    Control.Lock
+  Else
+    Info^.Error^.Code := SP_ERR_INVALID_COMPONENT;
+
+End;
+
+Procedure SP_Interpret_CTRL_UNLOCK(Var Info: pSP_iInfo);
+Var
+  ID: Integer;
+  Control: SP_BaseComponent;
+Begin
+
+  ID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  If ControlRegistry.TryGetValue(ID, Control) Then
+    Control.UnLock
+  Else
+    Info^.Error^.Code := SP_ERR_INVALID_COMPONENT;
+
+End;
+
+Procedure SP_Interpret_CTRL_LIST(Var Info: pSP_iInfo);
+Var
+  s: aString;
+  ID: Integer;
+  Control: SP_BaseComponent;
+Begin
+
+  ID := Round(SP_StackPtr^.Val);
+
+  If ControlRegistry.TryGetValue(ID, Control) Then Begin
+    s := Control.fTypeName + ':' + #13#13 + Control.ListProperties + #13 + Control.ListMethods;
+    SP_StackPtr^.OpType := SP_STRING;
+    SP_StackPtr^.Str := s;
+    SP_Interpret_PRINT(Info);
+  End Else
+    Info^.Error^.Code := SP_ERR_INVALID_COMPONENT;
+
+End;
+
 Initialization
 
   ONCtrlLock := TCriticalSection.Create;
@@ -28096,6 +28158,9 @@ Initialization
   InterpretProcs[SP_KW_CTRL_NEW] := @SP_Interpret_CTRL_NEW;
   InterpretProcs[SP_KW_CTRL_PROP] := @SP_Interpret_CTRL_PROP;
   InterpretProcs[SP_KW_CTRL_DO] := @SP_Interpret_CTRL_DO;
+  InterpretProcs[SP_KW_CTRL_LOCK] := @SP_Interpret_CTRL_LOCK;
+  InterpretProcs[SP_KW_CTRL_UNLOCK] := @SP_Interpret_CTRL_UNLOCK;
+  InterpretProcs[SP_KW_CTRL_LIST] := @SP_Interpret_CTRL_LIST;
 
   // Functions
 

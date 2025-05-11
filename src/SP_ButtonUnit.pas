@@ -55,6 +55,8 @@ Begin
 
   Inherited;
 
+  fTypeName := 'spButton';
+
   If Owner is SP_ScrollBar Then Begin
     iSX := 1;
     iSY := 1;
@@ -87,11 +89,11 @@ Var
 Begin
 
   If fOverrideScl Then Begin
-    w := fW;
-    h := fH;
+    w := Round(fW * iSX);
+    h := Round(fH * iSY);
   End Else Begin
-    w := iFW;
-    h := iFH;
+    w := Round(iFW * iSX);
+    h := Round(iFH * iSY);
   End;
 
   fCaptionPos.x := (fWidth - (Length(fCaption) * w)) Div 2;
@@ -223,9 +225,9 @@ Begin
 
   Inherited;
 
-  RegisterProperty('caption', Get_Caption, Set_Caption);
-  RegisterProperty('captionpos', Get_CaptionPos, Set_CaptionPos);
-  RegisterProperty('state', Get_State, Set_State);
+  RegisterProperty('caption', Get_Caption, Set_Caption, ':s|s');
+  RegisterProperty('captionpos', Get_CaptionPos, Set_CaptionPos, ':v,v|v,v');
+  RegisterProperty('state', Get_State, Set_State, ':v|v');
 
 End;
 

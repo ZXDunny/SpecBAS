@@ -62,6 +62,8 @@ Begin
 
   Inherited;
 
+  fTypeName := 'spProgress';
+
   fMin := 0;
   fMax := 0;
   fPosition := 0;

@@ -55,6 +55,7 @@ SP_TimerEvent = Record
 
   ID: Integer;
   Sender: TObject;
+  OneShot: Boolean;
   Interval: Integer;
   NextFrameTime: Integer;
   ObjectProc: SP_TimerProc;
@@ -72,13 +73,14 @@ Function  ControlAtPoint(Window: Pointer; Var x, y: Integer): pSP_BaseComponent;
 Function  TestForWindowMenu(Win: Pointer; Var Shift: TShiftState): Boolean;
 
 Procedure DoTimerEvents;
-Procedure ClearTimerEvents;
-Function  AddTimer(Sender: TObject; Interval: Integer; ObjProc: SP_TimerProc; DoNow: Boolean): pSP_TimerEvent;
+Procedure ClearTimerEvents(InRegistry: Boolean = False);
+Function  AddTimer(Sender: TObject; Interval: Integer; ObjProc: SP_TimerProc; DoNow, OneShot: Boolean): pSP_TimerEvent;
 Procedure RemoveTimer(Sender: TObject); Overload;
 Procedure RemoveTimer(Var ID: Integer); Overload;
 
 Function  SP_CreateControl(ParentID, cClass, X, Y, W, H: Integer; Var Error: TSP_ErrorCode): Integer;
 Procedure SP_HaltAllControls;
+Function  SP_IsInRegistry(C: SP_BaseComponent): Boolean;
 Function  SP_CanInteract(C: SP_BaseComponent): Boolean;
 
 Const
@@ -132,16 +134,27 @@ Var
 
 implementation
 
-Uses SP_Main, SP_Sound, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Graphics32, SP_Input, SP_Tokenise,
-     SP_PopupMenuUnit, SP_WindowMenuUnit, SP_CheckBoxUnit, SP_ComboBoxUnit;
+Uses SP_Main, SP_Sound, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Graphics32, SP_Input, SP_Tokenise, SP_Interpret_PostFix,
+     SP_PopupMenuUnit, SP_WindowMenuUnit, SP_CheckBoxUnit, SP_ComboBoxUnit, SP_RadioGroupUnit, SP_CheckListUnit, SP_ContainerUnit, SP_EditUnit;
 
 // Timer Functions
 
-Procedure ClearTimerEvents;
+Procedure ClearTimerEvents(InRegistry: Boolean);
+Var
+  i: Integer;
 Begin
 
   TimerSection.Enter;
-  SetLength(TimerList, 0);
+  If InRegistry Then Begin
+    i := 0;
+    While i < Length(TimerList) Do
+      If Assigned(TimerList[i].Sender) And (TimerList[i].Sender is SP_BaseComponent) And
+         SP_IsInRegistry(SP_BaseComponent(TimerList[i].Sender)) Then
+        RemoveTimer(TimerList[i].Sender)
+      Else
+        Inc(i);
+  End Else
+    SetLength(TimerList, 0);
   TimerSection.Leave;
 
 End;
@@ -156,8 +169,11 @@ Begin
   i := 0;
   While i < Length(TimerList) Do Begin
     With TimerList[i] Do Begin
-      If NextFrameTime <= Integer(FRAMES) Then Begin
-        Inc(NextFrameTime, Interval);
+      If (NextFrameTime > 0) And (NextFrameTime <= Integer(FRAMES)) Then Begin
+        If OneShot Then
+          NextFrameTime := 0
+        Else
+          Inc(NextFrameTime, Interval);
         If Assigned(ObjectProc) Then Begin
           TimerSection.Leave;
           ObjectProc(@TimerList[i]);
@@ -172,7 +188,7 @@ Begin
 
 End;
 
-Function AddTimer(Sender: TObject; Interval: Integer; ObjProc: SP_TimerProc; DoNow: Boolean): pSP_TimerEvent;
+Function AddTimer(Sender: TObject; Interval: Integer; ObjProc: SP_TimerProc; DoNow, OneShot: Boolean): pSP_TimerEvent;
 Var
   l, Id, i: Integer;
 Begin
@@ -185,6 +201,7 @@ Begin
   TimerList[l].Sender := Sender;
   TimerList[l].Interval := Interval;
   TimerList[l].NextFrameTime := Integer(FRAMES) + Interval;
+  TimerList[l].OneShot := OneShot;
   TimerList[l].ObjectProc := ObjProc;
 
   Id := 0;
@@ -632,7 +649,8 @@ Var
   i: Integer;
 Begin
 
-  ClearTimerEvents;
+  SP_ClearOnEvents;
+  ClearTimerEvents(True);
   For i := 0 To High(cKEYSTATE) Do
     cKEYSTATE[i] := 0;
   cLastKey := 0;
@@ -640,13 +658,24 @@ Begin
 
 End;
 
-Function SP_CanInteract(C: SP_BaseComponent): Boolean;
+Function SP_IsInRegistry(C: SP_BaseComponent): Boolean;
 Var
   Control: SP_BaseComponent;
 Begin
 
+  Result := ControlRegistry.TryGetValue(c.fIDNumber, Control);
+  If Not Result Then
+    If C.fParentType = spControl then
+      Result := SP_IsInRegistry(C.fParentControl);
+
+End;
+
+Function SP_CanInteract(C: SP_BaseComponent): Boolean;
+Begin
+
   Result := True;
-  If ControlRegistry.TryGetValue(c.fIDNumber, Control) Then
+
+  If SP_IsInRegistry(C) Then
     Result := PROGSTATE = SP_PR_RUN;
 
 End;
@@ -685,6 +714,22 @@ Begin
       spComboBox:
         Begin
           Control := SP_ComboBox.Create(Parent);
+        End;
+      spRadioGroup:
+        Begin
+          Control := SP_RadioGroup.Create(Parent);
+        End;
+      spCheckList:
+        Begin
+          Control := SP_CheckList.Create(Parent);
+        End;
+      spContainer:
+        Begin
+          Control := SP_Container.Create(Parent);
+        End;
+      spEdit:
+        Begin
+          Control := SP_Edit.Create(Parent);
         End;
     End;
     If Assigned(Control) Then Begin

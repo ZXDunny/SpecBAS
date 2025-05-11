@@ -1481,8 +1481,12 @@ Const
    spButton = 0;
    spCheckBox = 1;
    spComboBox = 2;
+   spRadioGroup = 3;
+   spCheckList = 4;
+   spContainer = 5;
+   spEdit = 6;
 
-   SP_Constants: Array[0..120] of TConstant =
+   SP_Constants: Array[0..124] of TConstant =
    ((Name: 'TRUE'; Value: 1),
     (Name: 'FALSE'; Value: 0),
 
@@ -1607,10 +1611,13 @@ Const
     (Name: 'nubSCROLL'; Value: 2),
     (Name: 'nubBUTTONS'; Value: 3),
 
-    (Name: 'SP_BUTTON'; Value: spButton),
-    (Name: 'SP_CHECK'; Value: spCheckBox),
-    (Name: 'SP_DROPDOWN'; Value: spComboBox)
-
+    (Name: 'SPBUTTON'; Value: spButton),
+    (Name: 'SPCHECK'; Value: spCheckBox),
+    (Name: 'SPDROPDOWN'; Value: spComboBox),
+    (Name: 'SPGROUP'; Value: spRadioGroup),
+    (Name: 'SPCHECKLIST'; Value: spCheckList),
+    (Name: 'SPCONTAINER'; Value: spContainer),
+    (Name: 'SPEDIT'; Value: spEdit)
     );
 
   SysVars: Array[0..257] of TSysVar =

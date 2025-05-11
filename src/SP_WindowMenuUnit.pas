@@ -74,6 +74,8 @@ Begin
 
   Inherited;
 
+  fTypeName := 'spBarMenu';
+
   fCanFocus := True;
   fSelected := -1;
   fActivated := False;

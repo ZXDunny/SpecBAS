@@ -2,7 +2,7 @@ unit SP_ContainerUnit;
 
 interface
 
-Uses SP_BaseComponentUnit, SP_Util;
+Uses SP_BaseComponentUnit, SP_Util, SP_Errors;
 
 Type
 
@@ -16,7 +16,13 @@ SP_Container = Class(SP_BaseComponent)
   Public
 
     Procedure Draw; Override;
+
+    Procedure RegisterProperties; Override;
+    Procedure Set_Caption(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+    Function  Get_Caption: aString;
+
     Property Caption: aString read fCaption write SetCaption;
+
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
 
@@ -60,6 +66,9 @@ Constructor SP_Container.Create(Owner: SP_BaseComponent);
 Begin
 
   Inherited;
+
+  fTypeName := 'spContainer';
+
   fCaption := '';
   fErase := True;
 
@@ -73,29 +82,12 @@ Begin
 End;
 
 Procedure SP_Container.Draw;
-Var
-  yo, c: Integer;
 Begin
 
-  FillRect(0, 0, fWidth -1, fHeight -1, fBackgroundClr);
+  If Not fTransparent Then
+    FillRect(0, 0, fWidth -1, fHeight -1, fBackgroundClr);
 
-  If fEnabled Then
-    c := fFontClr
-  Else
-    c := fDisabledFontClr;
-
-  If fBorder Then Begin
-    If fCaption <> '' Then
-      yo := 0
-    Else
-      yo := Round(iFH/2);
-    DrawRect(0, yo, Width -1, Height -1, fBorderClr);
-    If fCaption <> '' Then
-      PRINT(ifW, 0, ' '+fCaption+' ', c, fBackgroundClr, iSX, iSY, False, False, False, False);
-  End Else Begin
-    If fCaption <> '' Then
-      PRINT(0, 0, ' '+fCaption+' ', c, -1, iSX, iSY, False, False, False, False);
-  End;
+  DrawGroupBorder(Caption);
 
 End;
 
@@ -107,11 +99,37 @@ Begin
 
 End;
 
+Procedure SP_Container.RegisterProperties;
+Begin
+
+  Inherited;
+  RegisterProperty('caption', Get_Caption, Set_Caption, ':s|s');
+
+End;
+
+Procedure SP_Container.Set_Caption(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Caption := s;
+
+End;
+
+Function  SP_Container.Get_Caption: aString;
+Begin
+
+  Result := Caption;
+
+End;
+
+
 // SP_ContainerCollection
 
 Constructor SP_ContainerCollection.Create(Owner: SP_BaseComponent);
 Begin
 
+  Inherited;
+
+  fTypeName := 'spPages';
   SetLength(fContainers, 0);
 
 End;

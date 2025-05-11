@@ -58,12 +58,13 @@ Const
   dbgBreakpoints = 4;
   dbgLabels = 8;
   dbgProcs = 16;
-  dbgDisassembly = 32;
-  dbgProgMap = 64;
+  dgbCharset = 32;
+  dbgDisassembly = 64;
+  dbgProgMap = 128;
 
 implementation
 
-Uses SP_FPEditor, SP_Errors, SP_Graphics, SP_BankManager, SP_BankFiling, SP_SysVars, SP_Components, SP_Variables, SP_AnsiStringList,
+Uses Vcl.ClipBrd, SP_FPEditor, SP_Errors, SP_Graphics, SP_BankManager, SP_BankFiling, SP_SysVars, SP_Components, SP_Variables, SP_AnsiStringList,
      SP_Interpret_PostFix, SP_FileIO, SP_Main, SP_MenuActions;
 
 Procedure SP_UpdateAfterDebug;
@@ -158,6 +159,7 @@ Begin
     AddItem('Breakpoints');
     AddItem('Labels');
     AddItem('Procedures/Functions');
+    AddItem('Character Set');
     CanFocus := False;
     FPDebugPanel.SetBounds(Left, Top + Height + BSize, Width, FPPaperHeight - (Height + BSize));
     FPDebugPanel.BackgroundClr := debugPanel;
@@ -553,11 +555,58 @@ Begin
               Enabled := False;
             End;
           End;
-        5: // Disassembly
+        5: // Character Set
+          Begin
+            Clear;
+            MaxW := 5;
+            MaxP := 13;
+            AddHeader(' Hex ', MaxW * iFW);
+            AddHeader(' Dec ', MaxW * IfW);
+            AddHeader(' Character ', MaxP * iFW);
+            For i := 0 to 255 Do Begin
+              vName := IntToString(i);
+              If i < 32 Then Begin
+                Case i Of
+                  6:  vContent := 'PRINT comma';
+                  8:  vContent := 'Cursor left';
+                  9:  vContent := 'Cursor right';
+                  10: vContent := 'Cursor down';
+                  11: vContent := 'Cursor up';
+                  13: vContent := 'Return';
+                  16: vContent := 'INK';
+                  17: vContent := 'PAPER';
+                  18: vContent := 'OVER';
+                  19: vContent := 'TRANSPARENT';
+                  20: vContent := 'INVERSE';
+                  21: vContent := 'MOVE';
+                  22: vContent := 'AT';
+                  23: vContent := 'TAB';
+                  24: vContent := 'CENTRE';
+                  25: vContent := 'SCALE';
+                  26: vContent := 'ITALIC';
+                  27: vContent := 'BOLD';
+                Else
+                  Begin
+                    vContent := aChar(5) + aChar(i And $FF);
+                  End;
+                End;
+              End Else
+                If i = 255 Then
+                  vContent := '\$FF'
+                Else
+                  vContent := aChar(i);
+              s := ' $' + IntToHex(i, 2) + #255 + ' ' + SP_Copy('000', 1, 3 - Length(vName)) + vName + #255 + ' ' + vContent;
+              Add(s);
+              Objects[Count -1] := TObject(i);
+            End;
+            Enabled := True;
+            Sort(0);
+          End;
+        6: // Disassembly
           Begin
 
           End;
-        6: // Map
+        7: // Map
           Begin
 
           End;
@@ -717,6 +766,7 @@ End;
 Class Procedure SP_DebugPanelActionProcs.DblClick(Sender: SP_BaseComponent; Index: Integer; Text: aString);
 Var
   s: aString;
+  kInfo: SP_KeyInfo;
   Error: TSP_ErrorCode;
 Begin
 
@@ -744,6 +794,21 @@ Begin
       End;
     4: // Procs and FNs - jump to declaration
       Begin
+      End;
+    5: // Character set - paste character at cursor pos
+      Begin
+        kInfo.KeyCode := Integer(FPDebugPanel.Objects[Index]);
+        kInfo.keyChar := aChar(kInfo.KeyCode);
+        kInfo.CanRepeat := False;
+        kInfo.IsKey := False;
+        If DebugCurWindow = fwEditor Then Begin
+          SP_FPEditorPerformEdit(@kInfo);
+          SP_SwitchFocus(fwEditor);
+        End Else
+          If DebugCurWindow = fwDirect Then Begin
+            SP_DWPerformEdit(@kInfo);
+            SP_SwitchFocus(fwDirect);
+          End;
       End;
   End;
 

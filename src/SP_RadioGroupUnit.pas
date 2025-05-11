@@ -2,7 +2,7 @@ unit SP_RadioGroupUnit;
 
 interface
 
-Uses SP_Util, SP_BaseComponentUnit, SP_CheckBoxUnit;
+Uses SP_Util, SP_BaseComponentUnit, SP_CheckBoxUnit, SP_Errors;
 
 Type
 
@@ -16,6 +16,11 @@ SP_RadioGroup = Class(SP_BaseComponent)
     fItemIndex: Integer;
     fCheckColor: Byte;
     IsRadioGroup: Boolean;
+
+    Compiled_OnSelect,
+    User_OnSelect: aString;
+
+    Function  GetCount: Integer;
     Procedure PlaceItems;
     Procedure SetCaption(s: aString);
     Function  GetItemCaption(Index: Integer): aString;
@@ -30,21 +35,42 @@ SP_RadioGroup = Class(SP_BaseComponent)
     Procedure AddItem(Caption: aString);
     Procedure InsertItem(Caption: aString; Index: Integer);
     Procedure DeleteItem(Index: Integer);
+    Procedure MoveItem(Item1, Item2: Integer);
     Procedure Clear;
 
+    Property  Count: Integer read GetCount;
     Property  ItemIndex: Integer read fItemIndex write SetItemIndex;
     Property  Caption: aString read fCaption write SetCaption;
     Property  Items[Index: Integer]: aString read GetItemCaption write SetItemCaption;
     Property  OnSelect: SP_LBSelectEvent read fOnSelect write fOnSelect;
     Property  CheckColour: Byte read fCheckColor write SetCheckColor;
+
     Constructor Create(Owner: SP_BaseComponent);
     Destructor Destroy; Override;
+
+    // User Properties
+
+    Procedure RegisterProperties; Override;
+    Procedure Set_Caption(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Caption: aString;
+    Procedure Set_OnSelect(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnSelect: aString;
+    Procedure Set_CheckColor(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_CheckColor: aString;
+    Procedure Set_Index(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Index: aString;
+    Procedure Set_Item(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Item: aString;
+    Function  Get_Count: aString;
+    Function  Get_IndexOf: aString;
+
+    Procedure RegisterMethods; Override;
+    Procedure Method_AddItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_InsertItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_EraseItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Clear(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_MoveItem(Params: Array of aString; Var Error: TSP_ErrorCode);
 
 End;
 
 implementation
 
-Uses SP_Components;
+Uses SP_Components, SP_Interpret_PostFix;
 
 // SP_RadioGroup
 
@@ -52,6 +78,9 @@ Constructor SP_RadioGroup.Create(Owner: SP_BaseComponent);
 Begin
 
   Inherited;
+
+  fTypeName := 'spGroup';
+
   fCaption := '';
   fTransparent := True;
   IsRadioGroup := True;
@@ -65,29 +94,42 @@ Begin
 
 End;
 
+Function SP_RadioGroup.GetCount: Integer;
+Begin
+
+  Result := Length(fItems);
+
+End;
+
 Procedure SP_RadioGroup.PlaceItems;
 Var
-  y, i, ht, hm, ni: Integer;
+  iy, y, i, ht, hm: Integer;
   sp: aFloat;
 Begin
 
-  If fBorder or (Caption <> '') Then
-    ht := Height - Round(iFH * 2)
-  Else
+  iy := iFH;
+  If fBorder Then Begin
+    If IsRadioGroup And (Caption <> '') Then Begin
+      ht := Height - Round(iFH * 2.5);
+      Inc(iY, Round(iFH / 2));
+    End Else Begin
+      ht := Height - Round(iFH * 2);
+    End;
+  End Else
     ht := Height;
 
-  ni := Length(fItems);
-  sp := ht/ni;
-  y := Round(sp/2) - (iFH Div 2);
-  if fCaption <> '' Then
-    Inc(y, Round(iFH * 1.25));
-  hm := Ord(Not IsRadioGroup) * 4;
-  For i := 0 To ni -1 Do Begin
-    If fBorder Then
-      fItems[i].SetBounds(iFW, y, Width - iFW -1, iFH + hm)
-    Else
-      fItems[i].SetBounds(0, y, Width -1, iFH + hm);
-    Inc(y, Round(sp));
+  If Count > 0 Then Begin
+
+    sp := (ht - (count * iFH)) / (count + 1);
+    hm := Ord(Not IsRadioGroup) * 4;
+    y := iy + Round(sp);
+    For i := 0 To Count -1 Do Begin
+      If fBorder Then
+        fItems[i].SetBounds(iFW, y, Width - iFW -1, iFH + hm)
+      Else
+        fItems[i].SetBounds(0, y, Width -1, iFH + hm);
+      Inc(y, Round(ifH + sp));
+    End;
   End;
 
 End;
@@ -133,6 +175,8 @@ Begin
       fItemIndex := i;
       If Assigned(fOnSelect) Then
         fOnSelect(Self, i);
+      If Not Locked And (Compiled_OnSelect <> '') Then
+        SP_AddOnEvent(Compiled_OnSelect);
     End;
     Inc(i);
   End;
@@ -152,6 +196,8 @@ Begin
       fItemIndex := i;
       If Assigned(fOnSelect) Then
         fOnSelect(Self, i);
+      If Not Locked And (Compiled_OnSelect <> '') Then
+        SP_AddOnEvent(Compiled_OnSelect);
     End Else
       fItems[i].Checked := False;
     Inc(i);
@@ -268,25 +314,221 @@ End;
 
 Procedure SP_RadioGroup.Draw;
 Var
-  yo, i: Integer;
+  i: Integer;
 Begin
 
-  If fBorder Then Begin
-    yo := Round(iFH/2);
-    Drawline(0, yo, iFW Div 2, yo, fBorderClr);
-    Drawline(((Length(fCaption) +1) * iFW) + (iFW Div 2), yo, Width -1, yo, fBorderClr);
-    Drawline(Width -1, yo, Width -1, Height -1, fBorderClr);
-    Drawline(0, Height -1, Width -1, Height -1, fBorderClr);
-    Drawline(0, yo, 0, Height -1, fBorderClr);
-    If fCaption <> '' Then
-      PRINT(ifW, 0, fCaption, fFontClr, -1, iSX, iSY, False, False, False, False);
-  End Else Begin
-    If fCaption <> '' Then
-      PRINT(0, 0, fCaption, fFontClr, -1, iSX, iSY, False, False, False, False);
-  End;
+  DrawGroupBorder(Caption);
 
   For i := 0 To Length(fItems) -1 Do
     fItems[i].Paint;
+
+End;
+
+Procedure SP_RadioGroup.MoveItem(Item1, Item2: Integer);
+Begin
+
+  InsertItem(fItems[Item1].Caption, Item2);
+  If Item1 > Item2 Then Inc(Item1);
+  DeleteItem(Item1);
+
+End;
+
+// User properties
+
+Procedure SP_RadioGroup.RegisterProperties;
+Begin
+
+  Inherited;
+
+  RegisterProperty('caption', Get_Caption, Set_Caption, ':s|s');
+  RegisterProperty('onselect', Get_OnSelect, Set_OnSelect, ':s|s');
+  RegisterProperty('checkclr', Get_CheckColor, Set_CheckColor, ':v|v');
+  RegisterProperty('count', Get_Count, nil, ':v');
+  RegisterProperty('item', Get_Item, Set_Item, 'v:s|v:s');
+  RegisterProperty('index', Get_Index, Set_Index, ':v|v');
+  RegisterProperty('find', Get_IndexOf, nil, 's:v');
+
+End;
+
+Procedure SP_RadioGroup.Set_Caption(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Caption := s;
+
+End;
+
+Function  SP_RadioGroup.Get_Caption: aString;
+Begin
+
+  Result := Caption;
+
+End;
+
+Procedure SP_RadioGroup.Set_CheckColor(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  CheckColour := StringToInt(s);
+
+End;
+
+Function  SP_RadioGroup.Get_CheckColor: aString;
+Begin
+
+  Result := IntToString(CheckColour);
+
+End;
+
+Procedure SP_RadioGroup.Set_Item(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx: Integer;
+Begin
+
+  Idx := Pos(':', s);
+  If Idx >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, Idx -1));
+    s := Copy(s, Idx);
+    If (Idx >= 0) And (Idx < Count) Then
+      fItems[Idx].Caption := s;
+    Paint;
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_RadioGroup.Get_Item: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam);
+  If (Idx >= 0) And (Idx < Count) Then
+    Result := fItems[Idx].Caption;
+
+End;
+
+Function SP_RadioGroup.Get_IndexOf: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Idx := 0;
+  Result := '-1';
+  fUserParam := Lower(fUserParam);
+  While Idx < Count Do Begin
+    If Lower(fItems[Idx].Caption) = fUserParam Then Begin
+      Result := IntToString(Idx);
+      Exit;
+    End Else
+      Inc(Idx);
+  End;
+
+End;
+
+Procedure SP_RadioGroup.Set_Index(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  ItemIndex := StringToInt(s);
+
+End;
+
+Function SP_RadioGroup.Get_Index: aString;
+Begin
+
+  Result := IntToString(ItemIndex);
+
+End;
+
+Procedure SP_RadioGroup.Set_OnSelect(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Compiled_OnSelect := SP_ConvertToTokens(s, Error);
+  If Compiled_OnSelect <> '' Then
+    User_OnSelect := s;
+
+End;
+
+Function SP_RadioGroup.Get_OnSelect: aString;
+Begin
+
+  Result := User_OnSelect;
+
+End;
+
+Function SP_RadioGroup.Get_Count: aString;
+Begin
+
+  Result := IntToString(Count);
+
+End;
+
+
+// User Methods
+
+Procedure SP_RadioGroup.RegisterMethods;
+Begin
+
+  Inherited;
+  RegisterMethod('add', 'S', Method_AddItem);
+  RegisterMethod('insert', 'ns', Method_InsertItem);
+  RegisterMethod('erase', 'n', Method_EraseItem);
+  RegisterMethod('clear', '', Method_Clear);
+  RegisterMethod('move', 'nn', Method_MoveItem);
+
+End;
+
+Procedure SP_RadioGroup.Method_AddItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+Begin
+
+  For i := 0 To Length(Params) -1 do
+    AddItem(Params[i]);
+
+End;
+
+Procedure SP_RadioGroup.Method_InsertItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+Begin
+
+  i := StringToInt(Params[0], -1);
+  If (i >= 0) And (i < Count) then
+    InsertItem(Params[1], i)
+  Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_RadioGroup.Method_EraseItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+Begin
+
+  i := StringToInt(Params[0], -1);
+  If (i >= 0) And (i < Count) then
+    DeleteItem(i)
+  Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_RadioGroup.Method_Clear(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Clear;
+
+End;
+
+Procedure SP_RadioGroup.Method_MoveItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i, j: Integer;
+Begin
+
+  i := StringToInt(Params[0], -1);
+  j := StringToInt(Params[1], -1);
+  If (i >= 0) And (i < Count) And (j >= 0) And (j < Count) Then
+    MoveItem(i, j);
 
 End;
 

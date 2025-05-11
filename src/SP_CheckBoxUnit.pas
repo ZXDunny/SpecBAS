@@ -61,6 +61,8 @@ Begin
 
   Inherited;
 
+  fTypeName := 'spCheck';
+
   fChecked := False;
   fCheckColor := SP_UIText;
   fCaption := '';
@@ -139,11 +141,11 @@ Begin
   End Else Begin
     iSC := Min(iSX, iSY);
     iH := Min(iFW, iFH);
+    PRINT(2, dy + ((iFH - iH) Div 2), #243, SP_UiBtnBack, -1, iSC, iSC, False, False, False, False);
     If Checked Then
       PRINT(2, dy + ((iFH - iH) Div 2), #241, cClr, -1, iSC, iSC, False, False, False, False)
     Else
       PRINT(2, dy + ((iFH - iH) Div 2), #242, cClr, -1, iSC, iSC, False, False, False, False);
-    Fill(4, dy + ((iFH - iH) Div 2) + 1, SP_UiBtnBack);
   End;
 
   PRINT(dx + (iFW Div 2), dy, Caption, capClr, -1, iSX, iSY, False, False, False, False);
@@ -202,11 +204,11 @@ Begin
 
   Inherited;
 
-  RegisterProperty('caption', Get_Caption, Set_Caption);
-  RegisterProperty('checked', Get_Checked, Set_Checked);
-  RegisterProperty('oncheck', Get_OnChecked, Set_OnChecked);
-  RegisterProperty('groupindex', Get_GroupIndex, Set_GroupIndex);
-  RegisterProperty('checkclr', Get_CheckColor, Set_CheckColor);
+  RegisterProperty('caption', Get_Caption, Set_Caption, ':s|s');
+  RegisterProperty('checked', Get_Checked, Set_Checked, 'v:v|v');
+  RegisterProperty('oncheck', Get_OnChecked, Set_OnChecked, 's|s');
+  RegisterProperty('groupindex', Get_GroupIndex, Set_GroupIndex, 's|s');
+  RegisterProperty('checkclr', Get_CheckColor, Set_CheckColor, 'v|v');
 
 End;
 

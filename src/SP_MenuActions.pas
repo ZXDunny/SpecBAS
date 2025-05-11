@@ -348,7 +348,7 @@ Begin
   FPEditMenu.AddItem(CreateItem('Select &none', True, True, False, False, 'K_CTRL,K_D', Nil, SP_MenuActionProcs.FPMenu_SelNone));
   FPEditMenu.AddItem(CreateItem('-', True, True, False, False, '', Nil, Nil));
   FPEditMenu.AddItem(CreateItem('&Find...', True, True, False, False, 'K_CTRL,K_F', Nil, SP_MenuActionProcs.FPMenu_Find));
-  FPEditMenu.AddItem(CreateItem('&Find Advanced...', True, True, False, False, 'K_CTRL,K_SHIFT,K_F', Nil, SP_MenuActionProcs.FPMenu_Find));
+  FPEditMenu.AddItem(CreateItem('&Find Advanced...', True, True, False, False, 'K_CTRL,K_SHIFT,K_F', Nil, SP_MenuActionProcs.FPMenu_Find_Advanced));
   FPEditMenu.AddItem(CreateItem('&Replace...', True, True, False, False, 'K_CTRL,K_R', Nil, SP_MenuActionProcs.FPMenu_Replace));
   SP_FindNextItem := CreateItem('Find ne&xt', True, True, False, False, 'K_F3', Nil, SP_MenuActionProcs.FPMenu_FindNext);
   FPEditMenu.AddItem(SP_FindNextItem);

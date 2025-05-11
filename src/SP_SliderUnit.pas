@@ -64,6 +64,8 @@ Begin
 
   Inherited;
 
+  fTypeName := 'spSlider';
+
   fMin := 0;
   fMax := 0;
   fStep := 1;

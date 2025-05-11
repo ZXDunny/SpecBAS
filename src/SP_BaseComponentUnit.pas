@@ -57,7 +57,7 @@ Type
   SP_PropertySetter = Procedure(Value: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode) of Object;
   SP_PropertyGetter = Function: aString of Object;
   SP_Property = Record
-    Name: aString;
+    Name, Help: aString;
     Getter: SP_PropertyGetter;
     Setter: SP_PropertySetter;
   End;
@@ -130,12 +130,12 @@ SP_BaseComponent = Class
     fLastKey: Byte;
     fOverrideScl: Boolean;
     ControlID: Integer;
-    Dbl: Boolean;
     fCurFontID: Integer;
     fHint: aString;
     fClientRect: TRect;
     fTag: Integer;
     fWantTab: Boolean;
+    fTypeName: aString;
     fUserParam: aString;
     User_OnMouseMove: aString;
     User_OnMouseDown: aString;
@@ -222,6 +222,7 @@ SP_BaseComponent = Class
     Procedure SendToBack;
     Procedure SetBounds(x, y, w, h: Integer); Virtual;
     Procedure SetPosition(x, y: Integer); Virtual;
+    Procedure DrawGroupBorder(Caption: aString);
     Procedure DrawLine(x1, y1, x2, y2: Integer; Ink: Byte);
     Procedure SetPixel(x, y: Integer; Ink: Byte); Inline;
     Procedure DrawRect(x1, y1, x2, y2: Integer; Ink: Byte); Overload;
@@ -254,11 +255,16 @@ SP_BaseComponent = Class
     Function  GetFocused: Boolean;
     Function  GetNextChildID: Integer;
     Function  GetParentWindowID: Integer;
+    Function  IsLocked: Boolean;
+    Procedure ChangeParent(NewParent: SP_BaseComponent);
+
     Procedure RegisterMethod(Name, Params: aString; MethodHandler: SP_MethodHandler);
     Procedure DoMethod(Name: aString; Params: Array of aString; Var Error: TSP_ErrorCode);
+    Function  ListMethods: aString;
     Procedure SetProperty(Name, Value: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
     Function  GetProperty(Name: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode): aString;
-    Procedure RegisterProperty(Name: aString; Getter: SP_PropertyGetter; Setter: SP_PropertySetter);
+    Procedure RegisterProperty(Name: aString; Getter: SP_PropertyGetter; Setter: SP_PropertySetter; Help: aString);
+    Function  ListProperties: aString;
 
     {User Properties}
 
@@ -284,6 +290,7 @@ SP_BaseComponent = Class
     Procedure Set_Transparent(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Transparent: aString;
     Procedure Set_Hint(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Hint: aString;
     Procedure Set_Tag(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Tag: aString;
+    Procedure Set_Parent(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Parent: aString;
 
     Procedure Set_OnMouseMove(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseMove: aString;
     Procedure Set_OnMouseDown(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseDown: aString;
@@ -370,6 +377,8 @@ SP_BaseComponent = Class
     Property Hint: aString                      read GetHint        write fHint;
     Property WantTAB: Boolean                   read fWantTAB       write fWantTAB;
     Property Tag: Integer                       read fTag           write fTag;
+    Property Locked: Boolean                    read IsLocked;
+    Property TypeName: aString                  read fTypeName;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -405,7 +414,7 @@ Uses
 
 // All properties, methods and event handlers can be registered through here.
 
-Procedure SP_BaseComponent.RegisterProperty(Name: aString; Getter: SP_PropertyGetter; Setter: SP_PropertySetter);
+Procedure SP_BaseComponent.RegisterProperty(Name: aString; Getter: SP_PropertyGetter; Setter: SP_PropertySetter; Help: aString);
 Var
   i, l: Integer;
   Found: Boolean;
@@ -428,6 +437,39 @@ Begin
   fProperties[i].Name := Name;
   fProperties[i].Getter := Getter;
   fProperties[i].Setter := Setter;
+  fProperties[i].Help := Help;
+
+End;
+
+Function SP_BaseComponent.ListProperties: aString;
+Var
+  i, p: integer;
+  s, t: aString;
+
+  Procedure Repl;
+  Begin
+    SP_ReplaceAll(s, ':', '=', t);   s := t;
+    SP_ReplaceAll(s, 'v', 'num', t); s := t;
+    SP_ReplaceAll(s, 's', 'str', t); s := t;
+  End;
+
+Begin
+
+  Result := '';
+  For i := 0 to Length(fProperties) -1 Do Begin
+    Result := Result + fProperties[i].Name + ' <';
+    p := Pos('|', fProperties[i].Help);
+    if p < 1 then p := length(fProperties[i].Help) +1;
+    s := Copy(fProperties[i].Help, 1, p -1);
+    Repl;
+    Result := Result + s;
+    s := Copy(fProperties[i].Help, p +1);
+    If s <> '' Then Begin
+      Repl;
+      Result := Result + '|' + s + '>' + #13;
+    End Else
+      Result := Result + '>' + #13;
+  End;
 
 End;
 
@@ -460,16 +502,52 @@ End;
 Procedure SP_BaseComponent.DoMethod(Name: aString; Params: Array of aString; Var Error: TSP_ErrorCode);
 Var
   Idx: Integer;
+  paramGood: Boolean;
 Begin
 
   Name := Lower(Name);
   For Idx := 0 To Length(fMethods) -1 Do
-    If (Name = fMethods[Idx].Name) And Assigned(fMethods[Idx].Handler) And (Length(Params) = Length(fMethods[Idx].ParamTemplate)) Then Begin
-      fMethods[Idx].Handler(Params, Error);
+    If (Name = fMethods[Idx].Name) And Assigned(fMethods[Idx].Handler) Then Begin
+      If (fMethods[idx].ParamTemplate <> 'S') And (fMethods[Idx].ParamTemplate <> 'N') then
+        ParamGood := (Length(Params) = Length(fMethods[Idx].ParamTemplate))
+      else
+        ParamGood := True;
+
+      If not ParamGood Then
+        Error.Code := SP_ERR_PARAMETER_ERROR
+      Else Begin
+        Lock;
+        fMethods[Idx].Handler(Params, Error);
+        Unlock;
+      End;
+
       Exit;
     End;
 
   Error.Code := SP_ERR_INVALID_METHOD_NAME;
+
+End;
+
+Function SP_BaseComponent.ListMethods: aString;
+Var
+  i, j: Integer;
+Begin
+
+  Result := '';
+  For i := 0 To Length(fMethods) -1 Do Begin
+    Result := Result + fMethods[i].Name + '(';
+    For j := 1 To Length(fMethods[i].ParamTemplate) Do Begin
+      Case fMethods[i].ParamTemplate[j] of
+        'S': Result := Result + 'str[,str...]';
+        's': Result := Result + 'str';
+        'N': Result := Result + 'num[,num...]';
+        'n': Result := Result + 'num';
+      End;
+      If j < Length(fMethods[i].ParamTemplate) then
+        Result := Result + ',';
+    End;
+    Result := Result + ')' + #13;
+  End;
 
 End;
 
@@ -693,6 +771,30 @@ Begin
     Result := NativeUInt(@fCanvas[0])
   Else
     Result := 0;
+
+End;
+
+Procedure SP_BaseComponent.DrawGroupBorder(Caption: aString);
+Var
+  yo: Integer;
+Begin
+
+  If fBorder Then Begin
+    yo := Round(iFH/2);
+    Drawline(0, yo, iFW Div 2, yo, fBorderClr);
+    if Caption <> '' then
+      Drawline(((Length(Caption) +1) * iFW) + (iFW Div 2), yo, Width -1, yo, fBorderClr)
+    else
+      Drawline(iFW Div 2, yo, Width -1, yo, fBorderClr);
+    Drawline(Width -1, yo, Width -1, Height -1, fBorderClr);
+    Drawline(0, Height -1, Width -1, Height -1, fBorderClr);
+    Drawline(0, yo, 0, Height -1, fBorderClr);
+    If Caption <> '' Then
+      PRINT(ifW, 0, Caption, fFontClr, -1, iSX, iSY, False, False, False, False);
+  End Else Begin
+    If Caption <> '' Then
+      PRINT(0, 0, Caption, fFontClr, -1, iSX, iSY, False, False, False, False);
+  End;
 
 End;
 
@@ -1282,6 +1384,14 @@ Begin
 
 End;
 
+Function SP_BaseComponent.IsLocked: Boolean;
+Begin
+
+  Result := fLockCount > 0;
+
+End;
+
+
 Constructor SP_BaseComponent.Create(Owner: SP_BaseComponent);
 Var
   l: Integer;
@@ -1303,6 +1413,7 @@ Begin
 
   fNumComponents := 0;
 
+  fIDNumber := 0;
   fWindowID := -1;
   If Assigned(Owner) Then Begin
     fParentControl := Owner;
@@ -1316,7 +1427,6 @@ Begin
     fOwnerIndex := l;
     Inc(Owner.fNumComponents);
     fParentWindowID := Owner.fParentWindowID;
-    fIDNumber := 0;
   End Else Begin
     fOwnerIndex := 0;
     fParentType := spWindow;
@@ -1456,6 +1566,7 @@ Begin
   fParentControl.fComponentList[0] := c;
 
   fParentControl.Paint;
+  Paint;
 
 End;
 
@@ -1475,6 +1586,7 @@ Begin
   fParentControl.fComponentList[Length(fParentControl.fComponentList) -1] := c;
 
   fParentControl.Paint;
+  Paint;
 
 End;
 
@@ -1498,7 +1610,7 @@ Begin
 
   If Assigned(OnAbort) Then Begin
     OnAbort(Self);
-    If Compiled_OnAbort <> '' Then
+    If Not IsLocked And (Compiled_OnAbort <> '') Then
       SP_AddOnEvent(Compiled_OnAbort);
   End Else
     If Assigned(fParentControl) Then
@@ -1529,7 +1641,7 @@ Begin
 
   If Assigned(OnMouseLeave) Then
     OnMouseLeave(Self);
-  If Compiled_OnMouseLeave <> '' Then
+  If Not IsLocked And (Compiled_OnMouseLeave <> '') Then
     SP_AddOnEvent(Compiled_OnMouseLeave);
 
 End;
@@ -1539,7 +1651,7 @@ Begin
 
   If Assigned(OnMouseEnter) Then
     fOnMouseEnter(Self);
-  If Compiled_OnMouseEnter <> '' Then
+  If Not IsLocked And (Compiled_OnMouseEnter <> '') Then
     SP_AddOnEvent(Compiled_OnMouseEnter);
 
 End;
@@ -1698,14 +1810,14 @@ Begin
 
     If Assigned(fOnPaintBefore) Then
       fOnPaintBefore(Self);
-    If Compiled_OnPaintBefore <> '' Then
+    If Not IsLocked And (Compiled_OnPaintBefore <> '') Then
       SP_AddOnEvent(Compiled_OnPaintBefore);
 
     Draw;
 
     If Assigned(fOnPaintAfter) Then
       fOnPaintAfter(Self);
-    If Compiled_OnPaintAfter <> '' Then
+    If Not IsLocked And (Compiled_OnPaintAfter <> '') Then
       SP_AddOnEvent(Compiled_OnPaintAfter);
 
     p := ClientToScreen(Point(0, 0));
@@ -2018,6 +2130,8 @@ Begin
 
   If Not Assigned(fParentControl) Then Begin
 
+    // a Window-attached control, don't render it, just its children
+
     If fNumComponents > 0 Then
       For Idx := fNumComponents -1 DownTo 0 Do
         fComponentList[Idx].Render(Dst, dW, dH);
@@ -2119,7 +2233,7 @@ begin
 
   If Assigned(fOnResize) Then
     fOnResize(Self);
-  If Compiled_OnResize <> '' Then
+  If Not IsLocked And (Compiled_OnResize <> '') Then
     SP_AddOnEvent(Compiled_OnResize);
 
 end;
@@ -2188,7 +2302,7 @@ Begin
   If Not (Key in [K_CONTROL, K_SHIFT, K_ALT, K_ALTGR, K_TAB]) Then Begin
     if cKeyRepeat >= 0 Then
       RemoveTimer(cKeyRepeat);
-    cKeyRepeat := AddTimer(Self, REPDEL, KeyRepeat, False)^.ID;
+    cKeyRepeat := AddTimer(Self, REPDEL, KeyRepeat, False, False)^.ID;
   End Else
     If Not fWantTab And (Key = K_TAB) Then Begin
       If Assigned(chainControl) then
@@ -2215,7 +2329,7 @@ Begin
 
   If Assigned(fOnKeyDown) Then
     fOnKeyDown(Self, Key, True, Handled);
-  If Compiled_OnKeyDown <> '' Then
+  If Not IsLocked And (Compiled_OnKeyDown <> '') Then
     SP_AddOnEvent(Compiled_OnKeyDown);
 
 End;
@@ -2362,7 +2476,7 @@ Begin
 
   If Assigned(fOnKeyUp) Then
     fOnKeyUp(Self, Key, False, Handled);
-  If Compiled_OnKeyUp <> '' Then
+  If Not IsLocked And (Compiled_OnKeyUp <> '') Then
     SP_AddOnEvent(Compiled_OnKeyUp);
 
 
@@ -2371,7 +2485,6 @@ End;
 Procedure SP_BaseComponent.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
-  Dbl := False;
   If Enabled Then Begin
 
     fCanClick := True;
@@ -2380,7 +2493,7 @@ Begin
       DoubleClick(X, Y, Btn);
       fMouseClickTime := -9999;
       fMouseClickPos := Point(-100, -100);
-      dbl := True;
+      Exit;
     End Else Begin
       fMouseClickPos := Point(X, Y);
       fMouseLastBtn := Btn;
@@ -2390,9 +2503,9 @@ Begin
     If fCanFocus Then
       SetFocus(True);
 
-    If Assigned(fOnMouseDown) And Not Dbl Then
+    If Assigned(fOnMouseDown) Then
       fOnMouseDown(Self, X, Y, Btn);
-    If Compiled_OnMouseDown <> '' Then
+    If Not IsLocked And (Compiled_OnMouseDown <> '') Then
       SP_AddOnEvent(Compiled_OnMouseDown);
 
   End;
@@ -2404,7 +2517,7 @@ Begin
 
   If Assigned(OnDblClick) Then
     OnDblClick(Self, X, Y, Btn);
-  If Compiled_OnDblClick <> '' Then
+  If Not IsLocked And (Compiled_OnDblClick <> '') Then
     SP_AddOnEvent(Compiled_OnDblClick);
 
 
@@ -2417,13 +2530,13 @@ Begin
     fCanClick := False;
     If Assigned(OnClick) And Not Assigned(fOnDblClick) Then
       OnClick(Self);
-    If Compiled_OnClick <> '' Then
+    If Not IsLocked And (Compiled_OnClick <> '') Then
       SP_AddOnEvent(Compiled_OnClick);
   End;
 
   If Assigned(fOnMouseUp) Then
     fOnMouseUp(Self, X, Y, Btn);
-  If Compiled_OnMouseUp <> '' Then
+  If Not IsLocked And (Compiled_OnMouseUp <> '') Then
     SP_AddOnEvent(Compiled_OnMouseUp);
 
 
@@ -2448,7 +2561,7 @@ Begin
 
   If Assigned(fOnMouseMove) Then
     fOnMouseMove(Self, X, Y, Btn);
-  If Compiled_OnMouseMove <> '' Then
+  If Not IsLocked And (Compiled_OnMouseMove <> '') Then
     SP_AddOnEvent(Compiled_OnMouseMove);
 
 End;
@@ -2460,7 +2573,7 @@ Begin
 
   If Assigned(fOnMouseWheel) Then
     fOnMouseWheel(Self, X, Y, Btn, Delta);
-  If Compiled_OnMouseWheel <> '' Then
+  If Not IsLocked And (Compiled_OnMouseWheel <> '') Then
     SP_AddOnEvent(Compiled_OnMouseWheel);
 
 
@@ -2479,13 +2592,13 @@ Begin
     If fVisible Then Begin
       If Assigned(fOnShow) Then
         fOnShow(Self);
-    If Compiled_OnShow <> '' Then
+    If Not IsLocked And (Compiled_OnShow <> '') Then
       SP_AddOnEvent(Compiled_OnShow);
       Paint;
     End Else Begin
       If Assigned(fOnHide) Then
         fOnHide(Self);
-      If Compiled_OnHide <> '' Then
+      If Not IsLocked And (Compiled_OnHide <> '') Then
         SP_AddOnEvent(Compiled_OnHide);
       p := ClientToScreen(Point(0, 0));
       SP_SetDirtyRect(p.x, p.y, p.x + Width, p.y + Height);
@@ -2505,66 +2618,99 @@ begin
 
 end;
 
+Procedure SP_BaseComponent.ChangeParent(NewParent: SP_BaseComponent);
+Var
+  i, i2: Integer;
+  curParent: SP_BaseComponent;
+Begin
+
+  curParent := GetParentControl;
+
+  If Assigned(curParent) Then Begin
+
+    i := 0;
+    While i < Length(curParent.fComponentList) Do
+      If (Assigned(curParent.fComponentList[i]) and (curParent.fComponentList[i].ControlID = Self.ControlID)) Then Begin
+        For i2 := i To Length(curParent.fComponentList) -2 Do
+          curParent.fComponentList[i2] := curParent.fComponentList[2 +1];
+        SetLength(curParent.fComponentList, Length(curParent.fComponentList) -1);
+        Dec(curParent.fNumComponents);
+        curParent.Paint;
+      End Else
+        Inc(i);
+
+  End;
+
+  fParentControl := NewParent;
+  i := Length(NewParent.fComponentList);
+  SetLength(NewParent.fComponentList, i +1);
+  NewParent.fComponentList[i] := Self;
+  NewParent.Paint;
+  Paint;
+
+End;
+
 // Property getters and setters
 
 Procedure SP_BaseComponent.RegisterProperties;
 Begin
-  RegisterProperty('align', Get_Align, Set_Align);
-  RegisterProperty('anchors', Get_Anchors, Set_Anchors);
-  RegisterProperty('backgroundclr', Get_BackgroundClr, Set_BackgroundClr);
-  RegisterProperty('fontclr', Get_FontClr, Set_FontClr);
-  RegisterProperty('errorclr', Get_ErrorClr , Set_ErrorClr);
-  RegisterProperty('width', Get_Width , Set_Width);
-  RegisterProperty('height', Get_Height , Set_Height);
-  RegisterProperty('left', Get_Left , Set_Left);
-  RegisterProperty('top', Get_Top , Set_Top);
-  RegisterProperty('border', Get_Border , Set_Border);
-  RegisterProperty('enabled', Get_Enabled , Set_Enabled);
-  RegisterProperty('visible', Get_Visible , Set_Visible);
-  RegisterProperty('minwidth', Get_MinWidth , Set_MinWidth);
-  RegisterProperty('minheight', Get_MinHeight , Set_MinHeight);
-  RegisterProperty('maxwidth', Get_MaxWidth , Set_MaxWidth);
-  RegisterProperty('maxheight', Get_MaxHeight , Set_MaxHeight);
-  RegisterProperty('tag', Get_Tag , Set_Tag);
-  RegisterProperty('canvas', Get_Canvas , nil);
-  RegisterProperty('transparent', Get_Transparent , Set_Transparent);
-  RegisterProperty('onmousemove', Get_OnMouseMove, Set_OnMouseMove);
-  RegisterProperty('onmousedown', Get_OnMouseDown, Set_OnMouseDown);
-  RegisterProperty('onmouseup', Get_OnMouseUp, Set_OnMouseUp);
-  RegisterProperty('onmouseenter', Get_OnMouseEnter, Set_OnMouseEnter);
-  RegisterProperty('onmouseleave', Get_OnMouseLeave, Set_OnMouseLeave);
-  RegisterProperty('onmousewheel', Get_OnMouseWheel, Set_OnMouseWheel);
-  RegisterProperty('onkeydown', Get_OnKeyDown, Set_OnKeyDown);
-  RegisterProperty('onkeyup', Get_OnKeyUp, Set_OnKeyUp);
-  RegisterProperty('onpaintbefore', Get_OnPaintBefore, Set_OnPaintBefore);
-  RegisterProperty('onpaintafter', Get_OnPaintAfter, Set_OnPainTAfter);
-  RegisterProperty('onresize', Get_OnResize , Set_OnResize);
-  RegisterProperty('ondblclick', Get_OnDblClick , Set_OnDblClick);
-  RegisterProperty('onclick', Get_OnClick , Set_OnClick);
-  RegisterProperty('onabort', Get_OnAbort , Set_OnAbort);
-  RegisterProperty('onshow', Get_OnShow , Set_OnShow);
-  RegisterProperty('onhide', Get_Onhide , Set_OnHide);
+  RegisterProperty('align', Get_Align, Set_Align, ':t/b/l/r/a/n|t/b/l/r/a/n');
+  RegisterProperty('anchors', Get_Anchors, Set_Anchors, ':lrtb|lrtb');
+  RegisterProperty('backgroundclr', Get_BackgroundClr, Set_BackgroundClr, ':v|v');
+  RegisterProperty('fontclr', Get_FontClr, Set_FontClr, ':v|v');
+  RegisterProperty('errorclr', Get_ErrorClr , Set_ErrorClr, ':v|v');
+  RegisterProperty('width', Get_Width , Set_Width, ':v|v');
+  RegisterProperty('height', Get_Height , Set_Height, ':v|v');
+  RegisterProperty('left', Get_Left , Set_Left, ':v|v');
+  RegisterProperty('top', Get_Top , Set_Top, ':v|v');
+  RegisterProperty('border', Get_Border , Set_Border, ':v|v');
+  RegisterProperty('enabled', Get_Enabled , Set_Enabled, ':v|v');
+  RegisterProperty('visible', Get_Visible , Set_Visible, ':v|v');
+  RegisterProperty('minwidth', Get_MinWidth , Set_MinWidth, ':v|v');
+  RegisterProperty('minheight', Get_MinHeight , Set_MinHeight, ':v|v');
+  RegisterProperty('maxwidth', Get_MaxWidth , Set_MaxWidth, ':v|v');
+  RegisterProperty('maxheight', Get_MaxHeight , Set_MaxHeight, ':v|v');
+  RegisterProperty('tag', Get_Tag , Set_Tag, ':v|v');
+  RegisterProperty('canvas', Get_Canvas , nil, ':v');
+  RegisterProperty('transparent', Get_Transparent , Set_Transparent, ':s|s');
+  RegisterProperty('onmousemove', Get_OnMouseMove, Set_OnMouseMove, ':s|s');
+  RegisterProperty('onmousedown', Get_OnMouseDown, Set_OnMouseDown, ':s|s');
+  RegisterProperty('onmouseup', Get_OnMouseUp, Set_OnMouseUp, ':s|s');
+  RegisterProperty('onmouseenter', Get_OnMouseEnter, Set_OnMouseEnter, ':s|s');
+  RegisterProperty('onmouseleave', Get_OnMouseLeave, Set_OnMouseLeave, ':s|s');
+  RegisterProperty('onmousewheel', Get_OnMouseWheel, Set_OnMouseWheel, ':s|s');
+  RegisterProperty('onkeydown', Get_OnKeyDown, Set_OnKeyDown, ':s|s');
+  RegisterProperty('onkeyup', Get_OnKeyUp, Set_OnKeyUp, ':s|s');
+  RegisterProperty('onpaintbefore', Get_OnPaintBefore, Set_OnPaintBefore, ':s|s');
+  RegisterProperty('onpaintafter', Get_OnPaintAfter, Set_OnPainTAfter, ':s|s');
+  RegisterProperty('onresize', Get_OnResize , Set_OnResize, ':s|s');
+  RegisterProperty('ondblclick', Get_OnDblClick , Set_OnDblClick, ':s|s');
+  RegisterProperty('onclick', Get_OnClick , Set_OnClick, ':s|s');
+  RegisterProperty('onabort', Get_OnAbort , Set_OnAbort, ':s|s');
+  RegisterProperty('onshow', Get_OnShow , Set_OnShow, ':s|s');
+  RegisterProperty('onhide', Get_Onhide , Set_OnHide, ':s|s');
+  RegisterProperty('parent', Get_Parent, Set_Parent, ':v|[w:]v');
 End;
 
 Procedure SP_BaseComponent.Set_Align(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
   s := Lower(s);
-  if s = 'top' then
+  if s = 't' then
     Align := SP_AlignTop
   else
-    if s = 'bottom' then
+    if s = 'b' then
       Align := SP_AlignBottom
     else
-      if s = 'left' then
+      if s = 'l' then
         Align := SP_AlignLeft
       else
-        if s = 'right' then
+        if s = 'r' then
           Align := SP_AlignRight
         else
-          if s = 'all' then
+          if s = 'a' then
             Align := SP_AlignAll
           else
-            if s = 'none' then
+            if s = 'n' then
               Align := SP_AlignNone
             else
               Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
@@ -2574,17 +2720,17 @@ Function  SP_BaseComponent.Get_Align: aString;
 Begin
   Case Align of
     SP_AlignTop:
-      Result := 'top';
+      Result := 't';
     SP_AlignBottom:
-      Result := 'bottom';
+      Result := 'b';
     SP_AlignLeft:
-      Result := 'left';
+      Result := 'l';
     SP_AlignRight:
-      Result := 'right';
+      Result := 'r';
     SP_AlignAll:
-      Result := 'all';
+      Result := 'a';
     SP_AlignNone:
-      Result := 'none';
+      Result := 'n';
   Else
     Result := '';
   End;
@@ -2624,6 +2770,81 @@ Begin
     Result := Result + 't';
   If aBottom in Anchors Then
     Result := Result + 'b';
+End;
+
+Procedure SP_BaseComponent.Set_Parent(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Id, i, i2: Integer;
+  curCtrl: SP_BaseComponent;
+  Win: pSP_Window_Info;
+
+  Procedure Update;
+  Begin
+    i := Length(CurCtrl.fComponentList);
+    SetLength(curCtrl.fComponentList, i +1);
+    Inc(curCtrl.fNumComponents);
+    Self.fParentControl := curCtrl;
+    curCtrl.fComponentList[i] := Self;
+    curCtrl.Paint;
+    Paint;
+  End;
+
+Begin
+
+  curCtrl := GetParentControl;
+
+  If Assigned(curCtrl) Then Begin
+
+    i := 0;
+    While i < Length(curCtrl.fComponentList) Do
+      If (Assigned(curCtrl.fComponentList[i]) and (curCtrl.fComponentList[i].ControlID = Self.ControlID)) Then Begin
+        For i2 := i To Length(curCtrl.fComponentList) -2 Do
+          curCtrl.fComponentList[i2] := curCtrl.fComponentList[i2 +1];
+        SetLength(curCtrl.fComponentList, Length(curCtrl.fComponentList) -1);
+        Dec(curCtrl.fNumComponents);
+        curCtrl.Paint;
+      End Else
+        Inc(i);
+
+  End Else Begin
+
+    Error.Code := SP_ERR_INVALID_COMPONENT;
+
+  End;
+
+  Id := Pos(':', s);
+  If Id > 0 Then Begin
+
+    Id := StringToInt(Copy(s, 1, Id -1), -1);
+    If Id >= 0 Then Begin
+
+      SP_GetWindowDetails(ID, Win, Error);
+      curCtrl := @Win^.Component;
+      Update;
+
+    End Else
+
+      Error.Code := SP_ERR_PARAMETER_ERROR;
+
+  End Else Begin
+
+    If ControlRegistry.TryGetValue(StringToInt(S), curCtrl) Then
+      Update
+    Else
+      Error.Code := SP_ERR_INVALID_COMPONENT;
+
+  End;
+
+End;
+
+Function SP_BaseComponent.Get_Parent: aString;
+Var
+  Ctrl: SP_BaseComponent;
+Begin
+
+  Ctrl := GetParentControl;
+  Result := IntToString(Ctrl.fIDNumber);
+
 End;
 
 Procedure SP_BaseComponent.Set_OnMouseMove(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
@@ -3006,10 +3227,10 @@ Begin
   RegisterMethod('lock', '', Method_Lock);
   RegisterMethod('unlock', '', Method_UnLock);
   RegisterMethod('paint', '', Method_Paint);
-  RegisterMethod('Disable', '', Method_Disable);
-  RegisterMethod('Enable', '', Method_Enable);
-  RegisterMethod('Show', '', Method_Show);
-  RegisterMethod('Hide', '', Method_Hide);
+  RegisterMethod('disable', '', Method_Disable);
+  RegisterMethod('enable', '', Method_Enable);
+  RegisterMethod('show', '', Method_Show);
+  RegisterMethod('hide', '', Method_Hide);
 
 End;
 

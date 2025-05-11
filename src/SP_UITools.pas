@@ -312,13 +312,13 @@ End;
 Function SP_FileRequester.Open(Caption, Filename, Filter: aString; Save: Boolean; Var Error: TSP_ErrorCode): aString;
 Var
   Win: pSP_Window_Info;
-  Font, cw, w, h, fw, fh: Integer;
+  cw, w, h, fw, fh, nbW, nbH: Integer;
   Str: aString;
 Begin
 
   DisplaySection.Enter;
 
-  Font := SP_SetFPEditorFont;
+  //Font := SP_SetFPEditorFont;
 
   ToolWindowDone := False;
   If Save Then ToolMode := 2 Else ToolMode := 1;
@@ -326,9 +326,13 @@ Begin
   If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then Begin
     FW := Trunc(FONTWIDTH * EDFONTSCALEX);
     FH := Trunc(FONTHEIGHT * EDFONTSCALEY);
+    nBW := Trunc(BW * EDFONTSCALEX);
+    nBH := Trunc(BH * EDFONTSCALEY);
   End Else Begin
-    FH := FONTHEIGHT;
-    FW := FONTWIDTH;
+    FH := Round(FONTHEIGHT * T_SCALEY);
+    FW := Round(FONTWIDTH * T_SCALEX);
+    nBW := Min(Round(BW * T_SCALEX), 8);
+    nBH := Min(Round(BH * T_SCALEY), 8);
   End;
 
   w := DISPLAYWIDTH - (DISPLAYWIDTH Div 8);
@@ -341,14 +345,14 @@ Begin
   // Add controls - parent button, path, file list, filename, ok, cancel
 
   pBtn := SP_Button.Create(Win^.Component);
-  pBtn.SetBounds(Bw + 1, FPCaptionHeight + Bh, Fw + 4, Fh + 4);
+  pBtn.SetBounds(nBw + 1, FPCaptionHeight + nBh, Fw + 4, Fh + 4);
   pBtn.OverrideScaling := True;
   pBtn.Caption := #251;
   pBtn.CentreCaption;
   pBtn.Enabled := True;
 
   PathEdt := SP_Edit.Create(Win^.Component);
-  PathEdt.SetBounds(pBtn.Left + pBtn.Width + Bw, pBtn.Top, w - pBtn.Width - (Bw * 3), Fh);
+  PathEdt.SetBounds(pBtn.Left + pBtn.Width + nBw, pBtn.Top, w - pBtn.Width - (nBw * 3), Fh);
   If PackageIsOpen Then
     Str := SP_GetPackageDir
   Else Begin
@@ -364,18 +368,18 @@ Begin
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(w - (cw + Bw) +1, h - (FH + 4) - Bh -1, cw, FH + 4);
+  caBtn.SetBounds(w - (cw + nBw) +1, h - (FH + 4) - nBh -1, cw, FH + 4);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
   okBtn := SP_Button.Create(Win^.Component);
   okBtn.Caption := 'Okay';
   cw := Fw * (Length(OkBtn.Caption) + 2);
-  okBtn.SetBounds(caBtn.Left - (cw + Bw), caBtn.Top, cw, FH + 4);
+  okBtn.SetBounds(caBtn.Left - (cw + nBw), caBtn.Top, cw, FH + 4);
   okBtn.CentreCaption;
 
   FilenameEdt := SP_Edit.Create(Win^.Component);
-  FilenameEdt.SetBounds(pBtn.Left, okBtn.Top - (Fh + 4 + Bh), pBtn.Width + Bw + PathEdt.Width, Fh);
+  FilenameEdt.SetBounds(pBtn.Left, okBtn.Top - (Fh + 4 + nBh), pBtn.Width + nBw + PathEdt.Width, Fh);
   If SP_FileExists(Filename) Then
     FilenameEdt.Text := SP_ExtractFileName(Filename)
   Else
@@ -384,7 +388,7 @@ Begin
   okBtn.Enabled := SP_FileExists(Filename) or ((ToolMode = 2) And (FilenameEdt.Text <> ''));
 
   FilesList := SP_FileListBox.Create(Win^.Component);
-  FilesList.SetBounds(FilenameEdt.Left, pBtn.Top + pBtn.Height + Bh, FilenameEdt.Width, FilenameEdt.Top - PathEdt.Top - FileNameEdt.Height - (Bh * 2));
+  FilesList.SetBounds(FilenameEdt.Left, pBtn.Top + pBtn.Height + nBh, FilenameEdt.Width, FilenameEdt.Top - PathEdt.Top - FileNameEdt.Height - (nBh * 2));
   FilesList.Filters := Filter;
   FilesList.Directory := PathEdt.Text;
   FilesList.Transparent := False;
@@ -424,7 +428,7 @@ Begin
 
   DisplaySection.Enter;
   Result := ToolStrResult;
-  SP_SetSystemFont(Font, Error);
+  // SP_SetSystemFont(Font, Error);
   SP_DeleteWindow(FDWindowID, Error);
   DisplaySection.Leave;
 

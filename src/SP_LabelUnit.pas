@@ -44,6 +44,8 @@ Begin
 
   Inherited;
 
+  fTypeName := 'spLabel';
+
   fJustify := -1;
   fAlign := -1;
   fCaption := '';

@@ -3976,12 +3976,20 @@ Var
   Procedure ProcessTabs(var s: aString);
   Var
     i: Integer;
+    InString: Boolean;
   Begin
-    Repeat
-      i := Pos(#9, s);
-      if i > 0 then
-        s := SP_Copy(s, 1, i -1) + SP_StringOfChar(' ', EDTABSIZE) + SP_Copy(s, i +1);
-    Until i = 0;
+    i := 1;
+    InString := False;
+    While i < Length(s) Do
+      If s[i] = '"' Then Begin
+        InString := Not InString;
+        Inc(i);
+      End Else
+        If (s[i] = #9) And Not InString Then Begin
+          s := SP_Copy(s, 1, i -1) + SP_StringOfChar(' ', EDTABSIZE) + SP_Copy(s, i +1);
+          Inc(i, EDTABSIZE);
+        End Else
+          Inc(i);
   End;
 
 Begin

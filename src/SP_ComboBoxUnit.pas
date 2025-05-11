@@ -108,6 +108,8 @@ Begin
 
   Inherited;
 
+  fTypeName := 'spDropDown';
+
   Edit := SP_Edit.Create(Self);
   Edit.Visible := False;
   fEditable := False;
@@ -115,6 +117,7 @@ Begin
   Labl.OnMouseDown := LabMouseDown;
   Labl.OnMouseUp := LabMouseUp;
   Labl.fAlign := 0;
+  Labl.Transparent := False;
   Menu := SP_PopUpMenu.Create(Owner, nil);
   ChainControl := Edit;
   Edit.ChainControl := Self;
@@ -145,15 +148,18 @@ Begin
 
 End;
 
-
 Procedure SP_ComboBox.SetAllowLiterals(b: Boolean);
 Begin
+
   Edit.AllowLiterals := b;
+
 End;
 
 Function  SP_ComboBox.GetAllowLiterals: Boolean;
 Begin
+
   Result := Edit.AllowLiterals;
+
 End;
 
 Procedure SP_ComboBox.SetOnFocus(e: SP_FocusEvent);
@@ -445,7 +451,7 @@ begin
 
   If Assigned(fOnChange) Then
     fOnChange(Self, Edit.Text);
-  If Compiled_OnChange <> '' Then
+  If Not Locked And (Compiled_OnChange <> '') Then
     SP_AddOnEvent(Compiled_OnChange);
 
 end;
@@ -508,16 +514,16 @@ Begin
 
   Inherited;
 
-  RegisterProperty('border', Get_Border, Set_Border);
-  RegisterProperty('count', Get_Count, nil);
-  RegisterProperty('item', Get_Item, Set_Item);
-  RegisterProperty('index', Get_Index, Set_Index);
-  RegisterProperty('editable', Get_Editable, Set_Editable);
-  RegisterProperty('text', Get_Text, Set_Text);
-  RegisterProperty('onaccept', Get_OnAccept, Set_OnAccept);
-  RegisterProperty('onchange', Get_OnChange, Set_OnChange);
-  RegisterProperty('hilightclr', Get_HilightClr, Set_HiLightClr);
-  RegisterProperty('find', Get_IndexOf, nil);
+  RegisterProperty('border', Get_Border, Set_Border, ':v|v');
+  RegisterProperty('count', Get_Count, nil, ':v');
+  RegisterProperty('item', Get_Item, Set_Item, 'v:s|v:s');
+  RegisterProperty('index', Get_Index, Set_Index, ':v|v');
+  RegisterProperty('editable', Get_Editable, Set_Editable, ':v|v');
+  RegisterProperty('text', Get_Text, Set_Text, ':s|s');
+  RegisterProperty('onaccept', Get_OnAccept, Set_OnAccept, ':s|s');
+  RegisterProperty('onchange', Get_OnChange, Set_OnChange, ':s|s');
+  RegisterProperty('hilightclr', Get_HilightClr, Set_HiLightClr, ':v|v');
+  RegisterProperty('find', Get_IndexOf, nil, 's:v');
 
 End;
 
@@ -545,7 +551,7 @@ Begin
     Idx := StringToInt(Copy(s, 1, Idx -1));
     s := Copy(s, Idx);
     If (Idx >= 0) And (Idx < Count) Then
-
+      Menu.SetItemCaption(Idx, s);
   End Else
     Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
 
@@ -667,7 +673,7 @@ Procedure SP_ComboBox.RegisterMethods;
 Begin
 
   Inherited;
-  RegisterMethod('add', 's', Method_AddItem);
+  RegisterMethod('add', 'S', Method_AddItem);
   RegisterMethod('insert', 'ns', Method_InsertItem);
   RegisterMethod('erase', 'n', Method_EraseItem);
   RegisterMethod('clear', '', Method_Clear);
@@ -676,9 +682,12 @@ Begin
 End;
 
 Procedure SP_ComboBox.Method_AddItem(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
 Begin
 
-  AddItem(Params[0]);
+  For i := 0 To Length(Params) -1 do
+    AddItem(Params[i]);
 
 End;
 

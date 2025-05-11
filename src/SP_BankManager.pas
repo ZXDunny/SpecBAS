@@ -586,6 +586,12 @@ Begin
         SP_RemoveSpriteFromWindowList(Sprite);
         If Sprite^.Enabled Then Dec(NUMSPRITES);
       End;
+      If EDITORFONT = Index Then Begin
+        Idx := 0;
+        While SP_BankList[Idx]^.DataType <> SP_FONT_BANK Do
+          Inc(Idx);
+        EDITORFONT := SP_BankList[Idx]^.ID;
+      End;
       If SCREENBANK = -SP_BankList[Index]^.ID Then Begin
         SCREENBANK := -1;
         SP_SetDrawingWindow(0);

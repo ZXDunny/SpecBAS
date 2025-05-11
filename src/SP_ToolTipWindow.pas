@@ -44,11 +44,11 @@ Begin
   If TipWindowID = -1 Then Begin
     If ((X <> TipMouseX) or (Y <> TipMouseY)) And (TipTimerID >= 0) Then Begin
       TimerSection.Enter;
-      TipEvent.NextFrameTime := Integer(FRAMES) + TipEvent.Interval;
+      TipEvent.NextFrameTime := Integer(FRAMES) + TipTime;
       TimerSection.Leave;
     End;
     If TipTimerID = -1 Then Begin
-      TipEvent := AddTimer(Nil, TipTime, SP_TipProcs.OnTipTimer, False);
+      TipEvent := AddTimer(Nil, TipTime, SP_TipProcs.OnTipTimer, False, True);
       TipTimerID := TipEvent^.ID;
     End;
     TipMouseX := X;

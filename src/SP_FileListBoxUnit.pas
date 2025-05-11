@@ -54,6 +54,8 @@ Begin
 
   Inherited;
 
+  fTypeName := 'spFileList';
+
   OnSort := SortProc;
   OnTextPrep := TextPrep;
   fCanUserSort := True;
@@ -106,24 +108,34 @@ Begin
   If s <> '' Then Repeat
     ps := Pos(';', s);
     If ps = 0 Then ps := Length(s) + 2;
-    If s[1] = '0' Then // File mask
-      Filter := #0 + Copy(s, 2, ps - 2)
-    Else
-      If s[1] = '1' Then Begin // File contents
-        s2 := Copy(s, 2, ps -2);
-        ps2 := Pos(':', s2);
-        If ps2 = 0 Then
-          Exit
-        Else Begin
-          i := StringToLong(Copy(s2, 1, ps2 - 1));
-          s2 := Copy(s2, ps2 + 1);
-          Filter := #1 + LongwordToString(i) + s2;
-          fHasContentFilter := True;
-          fMaxContentLen := SP_Max(i + Length(s2), fMaxContentLen);
+    Case s[1] of
+      '0':
+        Begin // File mask
+          Filter := #0 + Copy(s, 2, ps - 2);
+          fFilterList.Add(Filter);
         End;
+      '1':
+        Begin // File contents
+          s2 := Copy(s, 2, ps -2);
+          ps2 := Pos(':', s2);
+          If ps2 = 0 Then
+            Exit
+          Else Begin
+            i := StringToLong(Copy(s2, 1, ps2 - 1));
+            s2 := Copy(s2, ps2 + 1);
+            Filter := #1 + LongwordToString(i) + s2;
+            fHasContentFilter := True;
+            fMaxContentLen := SP_Max(i + Length(s2), fMaxContentLen);
+            fFilterList.Add(Filter);
+          End;
+        End;
+    Else
+      Begin
+        Filter := #0 + s;
+        fFilterList.Add(Filter);
       End;
+    End;
     s := Copy(s, ps + 1);
-    fFilterList.Add(Filter);
 
   Until s = '';
 
@@ -133,9 +145,9 @@ Procedure SP_FileListBox.Populate;
 Var
   Files, FileSizes: TStringlist;
   s, t, Buffer: aString;
+  i, j, f, cfW: Integer;
   Error: TSP_ErrorCode;
   Match, b: Boolean;
-  i, j, f: Integer;
 Begin
 
   Lock;
@@ -145,6 +157,8 @@ Begin
   Files := TStringlist.Create;
   FileSizes := TStringlist.Create;
   SP_GetFileList(s, Files, FileSizes, Error, False);
+
+  cfW:= Round(iFW * iSX);
 
   // Apply filters to the file list
 
@@ -206,9 +220,9 @@ Begin
 
     Enabled := True;
 
-    AddHeader(' Filename', ((Width Div Ifw) - 26) * iFW);
-    AddHeader(' Size', 12 * iFW);
-    AddHeader(' Date', 12 * iFW);
+    AddHeader(' Filename', ((Width Div cfw) - 26) * cFW);
+    AddHeader(' Size', 12 * cFW);
+    AddHeader(' Date', 12 * cFW);
     fHeaders[1].Justify := 1;
 
     For i := 0 To Files.Count -1 Do
@@ -400,10 +414,11 @@ End;
 
 Procedure SP_FileListBox.DoDoubleClick(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Var
-  i: Integer;
+  i, cfH: Integer;
 Begin
 
-  If Y >= iFH then Begin
+  cfH := Round(iFH * iSY);
+  If Y >= cFH then Begin
     i := fLastSelected;
     If fStrings[i][1] = #1 Then Begin
       If Copy(fDirectory, Length(fDirectory), 1) <> '/' Then

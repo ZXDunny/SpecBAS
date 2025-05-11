@@ -751,10 +751,13 @@ Const
   SP_KW_CTRL_NEW            = 4421;
   SP_KW_CTRL_PROP           = 4422;
   SP_KW_CTRL_DO             = 4423;
+  SP_KW_CTRL_LOCK           = 4424;
+  SP_KW_CTRL_UNLOCK         = 4425;
+  SP_KW_CTRL_LIST           = 4426;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..372] of aString =
+  SP_Keyword_Names: Array[0..375] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -807,7 +810,7 @@ Const
      'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN', 'A-RECTANGLE TO', 'A-RECTFILL TO', 'RECTANGLE TO',
      'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING', 'ENUM BASE', 'ORG DIM', 'DRAW GML', 'WIN ORG DIM', 'GFX ORG DIM',
      'STREAM READ FILE', 'RAINBOW HSV', 'PR STROKE', 'DRAW CDELTA', 'A-DRAW CDELTA', 'TILEMAP DRAW TILE', 'CTRL NEW',
-     'CTRL SET', 'CTRL DO');
+     'CTRL SET', 'CTRL DO', 'CTRL LOCK', 'CTRL UNLOCK', 'CTRL LIST');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.

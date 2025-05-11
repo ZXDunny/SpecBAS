@@ -50,6 +50,9 @@ Constructor SP_TabBar.Create(Owner: SP_BaseComponent);
 Begin
 
   Inherited;
+
+  fTypeName := 'spTabBar';
+
   fTabs := TStringlist.Create;
   fPosition := spTop;
   fActiveTab := -1;

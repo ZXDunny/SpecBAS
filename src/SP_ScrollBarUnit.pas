@@ -106,6 +106,8 @@ Begin
 
   Inherited;
 
+  fTypeName := 'spScrollbar';
+
   Kind := spVertical;
   fMin := 0;
   fMax := 100;
@@ -137,8 +139,6 @@ Begin
   SetUIElements;
   fScrollTimer := -1;
   fMouseTimer := -1;
-  iSX := 1; iSY := 1;
-  iFH := fH; iFW := fW;
   fCanFocus := False;
   Paint;
 
@@ -200,7 +200,7 @@ Begin
 
   fTargetPos := Math.Min(Math.Max(0, p), fMax - fPageSize);
   If fScrollTimer = -1 Then Begin
-    e := AddTimer(Self, 1, ScrollTimer, True);
+    e := AddTimer(Self, 1, ScrollTimer, True, False);
     fScrollTimer := e^.ID;
   End;
 
@@ -297,10 +297,13 @@ end;
 
 Function SP_ScrollBar.SetUIElements: Boolean;
 Var
-  op, m: Integer;
+  op, m, cfW, cfH: Integer;
   m2: aFloat;
   UpChar, DnChar: aChar;
 Begin
+
+  cfW := Round(iFW * iSX);
+  cfH := Round(iFH * iSY);
 
   Result := False;
   op := fPosition;
@@ -362,11 +365,11 @@ Begin
 
     fUpBtn.SetBounds(fUpRect.Left, fUpRect.Top, fUpRect.Right - fUpRect.Left, fUpRect.Bottom - fUpRect.Top);
     fUpBtn.Caption := UpChar;
-    fUpBtn.CaptionPos := Point((fUpBtn.Width - fW) Div 2, (fUpBtn.Height - fH) Div 2);
+    fUpBtn.CaptionPos := Point((fUpBtn.Width - cfW) Div 2, (fUpBtn.Height - cfH) Div 2);
 
     fDownBtn.SetBounds(fDownRect.Left, fDownRect.Top, fDownRect.Right - fDownRect.Left, fDownRect.Bottom - fDownRect.Top);
     fDownBtn.Caption := DnChar;
-    fDownBtn.CaptionPos := Point((fDownBtn.Width - fW) Div 2, (fDownBtn.Height - fH) Div 2);
+    fDownBtn.CaptionPos := Point((fDownBtn.Width - cfW) Div 2, (fDownBtn.Height - cfH) Div 2);
 
     Paint;
 
@@ -419,7 +422,11 @@ end;
 Procedure SP_ScrollBar.Draw;
 Var
   r: TRect;
+  cfW, cfH: Integer;
 Begin
+
+  cfw := Round(iFW * iSX);
+  cfH := Round(iFH * iSY);
 
   If fBorder Then Begin
     r.Left := fThumbRect.Left +2;
@@ -436,10 +443,10 @@ Begin
       r.left := fTrackRect.Left;
       r.Right := fTrackRect.Right;
       r.Top := fUpBtn.CaptionPos.y;
-      r.Bottom := r.Top + fH -1;
+      r.Bottom := r.Top + cfH -1;
     End Else Begin
       r.Left := fUpBtn.CaptionPos.x;
-      r.Right := r.Left + fW -1;
+      r.Right := r.Left + cfW -1;
       r.Top := fTrackRect.Top;
       r.Bottom := fTrackRect.Bottom;
     End;
@@ -481,7 +488,7 @@ Begin
         fClickDir := fPageSize;
 
       Pos := Pos + fClickDir;
-      fMouseTimer := AddTimer(Self, REPDEL, ClickTimer, False)^.ID;
+      fMouseTimer := AddTimer(Self, REPDEL, ClickTimer, False, False)^.ID;
 
     End;
 
@@ -530,7 +537,7 @@ Begin
   Pos := Pos - fStep;
   fClickDir := -fStep;
   fMousePos := Point(X, Y);
-  fMouseTimer := AddTimer(Self, REPDEL, ClickTimer, False)^.ID;
+  fMouseTimer := AddTimer(Self, REPDEL, ClickTimer, False, False)^.ID;
 
 End;
 
@@ -540,7 +547,7 @@ Begin
   Pos := Pos + fStep;
   fClickDir := fStep;
   fMousePos := Point(X, Y);
-  fMouseTimer := AddTimer(Self, REPDEL, ClickTimer, False)^.ID;
+  fMouseTimer := AddTimer(Self, REPDEL, ClickTimer, False, False)^.ID;
 
 End;
 

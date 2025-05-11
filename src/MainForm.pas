@@ -748,15 +748,15 @@ begin
   SP_Init_Sound;
 
   CORECOUNT := System.CPUCount;
-  Setpriorityclass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
-  SetProcessAffinityMask(GetCurrentProcess, $F);
+//  Setpriorityclass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+//  SetProcessAffinityMask(GetCurrentProcess, $F);
 
   BASThread := TSpecBAS_Thread.Create(True);
   {$IFNDEF FPC}
   Application.OnMessage := OnAppMessage;
   {$ENDIF}
-  SetThreadAffinityMask(GetCurrentThread(), 1);
-  SetThreadAffinityMask(BASThread.ThreadID, 2);
+//  SetThreadAffinityMask(GetCurrentThread(), 1);
+//  SetThreadAffinityMask(BASThread.ThreadID, 2);
   {$IFDEF RefreshThread}
   SetThreadAffinityMask(RefreshTimer.ThreadID, 4);
   {$ENDIF}

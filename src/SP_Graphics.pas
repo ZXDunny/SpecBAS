@@ -2376,12 +2376,11 @@ Begin
             End;
          22:
             Begin // AT control
-              X := 0; Y := 0;
+              Y := pInteger(@Text[Idx+1])^ * Ch;
+              Inc(Idx, SizeOf(Integer));
+              X := pInteger(@Text[Idx+1])^ * Cw;
+              Inc(Idx, SizeOf(Integer));
               SP_ConvertToOrigin_i(X, Y);
-              Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
-              Inc(Idx, SizeOf(Integer));
-              Inc(X, pInteger(@Text[Idx+1])^ * Cw);
-              Inc(Idx, SizeOf(Integer));
             End;
          23:
             Begin // TAB control

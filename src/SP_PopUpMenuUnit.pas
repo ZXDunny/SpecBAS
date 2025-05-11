@@ -74,6 +74,9 @@ SP_PopupMenu = Class(SP_BaseComponent)
     Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure MouseLeave; Override;
     Function  ItemAtPos(x, y: Integer): Integer;
+    Procedure SetItemCaption(Index: Integer; Caption: aString);
+    Function  GetItemCaption(Index: Integer): aString;
+
     Function  AddItem(Item: SP_MenuItem): pSP_MenuItem;
     Function  InsertItem(Item: SP_MenuItem; Index: Integer): pSP_MenuItem;
     Procedure DeleteItem(Index: Integer);
@@ -172,6 +175,8 @@ Constructor SP_PopUpMenu.Create(Owner: SP_BaseComponent; ParentMenu: SP_BaseComp
 Begin
 
   Inherited Create(Owner);
+
+  fTypeName := 'spFloatMenu';
 
   fTransparentClr := 3;
   PrevFocusedControl := FocusedControl;
@@ -592,6 +597,26 @@ Begin
 
   SetLength(fItems, 0);
   CalculateSizes;
+
+End;
+
+Procedure SP_PopUpMenu.SetItemCaption(Index: Integer; Caption: aString);
+Begin
+
+  If (Index >= 0) And (Index < fCount) Then Begin
+    fItems[Index].Caption := Caption;
+    CalculateSizes;
+    Paint;
+  End;
+
+End;
+
+Function SP_PopUpMenu.GetItemCaption(Index: Integer): aString;
+Begin
+
+  Result := '';
+  If (Index >= 0) And (Index < fCount) Then
+    Result := fItems[Index].Caption;
 
 End;
 

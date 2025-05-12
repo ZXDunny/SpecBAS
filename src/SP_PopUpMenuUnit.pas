@@ -257,7 +257,7 @@ End;
 
 Procedure SP_PopUpMenu.CalculateSizes;
 Var
-  x, y, w, h, mw, mx, i, ol, l, t, bs: Integer;
+  x, y, w, h, mw, mx, i, ol, l, t, bs, cfW, cfH: Integer;
   SubsPresent: Boolean;
   Win: pSP_Window_Info;
   r: TRect;
@@ -266,6 +266,9 @@ Begin
   Lock;
 
   // Iterate through this menu's items. Not submenus.
+
+  cfW := Round(iFW * iSX);
+  cfH := Round(iFH * iSY);
 
   y := 2;
   mw := 0;
@@ -281,42 +284,42 @@ Begin
           SubsPresent := True
         Else
           If Checkable Then Begin
-            Inc(w, iFW + 4);
-            Inc(x, iFW + 4);
+            Inc(w, cFW + 4);
+            Inc(x, cFW + 4);
           End Else Begin
-            Inc(w, iFW);
-            Inc(x, iFW);
+            Inc(w, cFW);
+            Inc(x, cFW);
           End;
-        Inc(w, StripLen(Caption) * iFW);
+        Inc(w, StripLen(Caption) * cFW);
         If Shortcut <> 0 Then Begin
           l := Length(ShortcutToString(ShortCut));
           fShortcutLen := Max(fShortcutLen, l);
         End;
-        if SP_Util.Pos('&', Caption) > 0 Then Dec(w, iFW);
+        if SP_Util.Pos('&', Caption) > 0 Then Dec(w, cFW);
         If x > mx Then mx := x;
         If w > mw Then mw := w;
       End;
     End;
   End;
   if fShortcutLen > 0 then
-    mw := mw + ((fShortcutLen +2) * iFW);
+    mw := mw + ((fShortcutLen +2) * cFW);
   For i := 0 To Length(fItems) -1 Do Begin
     With r do Begin
       Left := mx;
       Top := y;
       If fItems[i].Caption <> '-' Then Begin
         right := mx + mw;
-        Bottom := y + iFH;
-        inc(y, iFH + 2)
+        Bottom := y + cFH;
+        inc(y, cFH + 2)
       End Else Begin
-        right := mx + mw - (iFW * 2);
-        Bottom := y + iFH;
-        inc(y, iFH + 2);
+        right := mx + mw - (cFW * 2);
+        Bottom := y + cFH;
+        inc(y, cFH + 2);
       End;
       If SubsPresent Then
-        Inc(Right, iFW * 2)
+        Inc(Right, cFW * 2)
       Else
-        Inc(Right, iFW);
+        Inc(Right, cFW);
     End;
     fItems[i].Extents := r;
   End;
@@ -325,7 +328,7 @@ Begin
 
   l := Left; ol := l;
   t := Top;
-  w := mw + mx + iFW + (Ord(SubsPresent)*iFW) + bs;
+  w := mw + mx + cFW + (Ord(SubsPresent) * cFW) + bs;
   h := y + 2 + bs;
 
   Win := GetWindowDetails;
@@ -346,13 +349,15 @@ End;
 
 Procedure SP_PopUpMenu.Draw;
 Var
+  y, i, c, ic, cfW: Integer;
   MouseInSubMenu: Boolean;
-  y, i, c, ic: Integer;
   mp, rp: TPoint;
   cChar: aChar;
   s: aString;
   e: TRect;
 Begin
+
+  cfW := Round(iFW * iSX);
 
   FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
   if fBorder Then Begin
@@ -401,14 +406,14 @@ Begin
         PRINT(Extents.Left, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, True, fAltDown And fEnabled);
         If Shortcut <> 0 Then Begin
           s := ShortcutToString(Shortcut) + '  ';
-          PRINT(Extents.Right - iFW * Length(s), Extents.Top +1, s, fSepClr, -1, iSX, iSY, False, False, False, False);
+          PRINT(Extents.Right - cFW * Length(s), Extents.Top +1, s, fSepClr, -1, iSX, iSY, False, False, False, False);
         End;
       End Else Begin
         y := Trunc(((Extents.Bottom - Extents.Top)/2) + Extents.Top);
         DrawLine(Extents.Left, y, Extents.Right, y, fSepClr);
       End;
       If Assigned(SubMenu) Then
-        PRINT(Extents.Right - iFW * 2, Extents.Top +1, #247, ic, -1, iSX, iSY, False, False, FAlse, False);
+        PRINT(Extents.Right - cFW * 2, Extents.Top +1, #247, ic, -1, iSX, iSY, False, False, False, False);
 
     End;
 
@@ -418,11 +423,13 @@ End;
 
 Procedure SP_PopUpMenu.SelectItem(i: Integer; ShowSubMenu: Boolean);
 Var
-  j: Integer;
+  j, cfW: Integer;
   p: TPoint;
 Begin
   If fSelected <> i Then
     CancelSelection;
+
+  cfW := Round(iFW * iSX);
 
   If (fItems[i].Caption <> '-') And (fItems[i].Enabled) Then Begin
     fItems[i].Selected := True;
@@ -434,7 +441,7 @@ Begin
     CaptureControl := Self;
     MouseControl := Self;
     If fItems[i].Enabled And Assigned(fItems[i].SubMenu) And ShowSubMenu Then Begin
-      p := Point(fLeft + fItems[i].Extents.right - iFW * 2, fTop + fItems[i].Extents.Top + 4);
+      p := Point(fLeft + fItems[i].Extents.right - cFW * 2, fTop + fItems[i].Extents.Top + 4);
       fItems[i].SubMenu.fParentMenu := Self;
       fItems[i].SubMenu.fAltDown := fAltDown;
       fItems[i].SubMenu.PopUp(p.x, p.y);

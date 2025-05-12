@@ -722,12 +722,24 @@ Procedure SP_Decorate_Window(WindowID: Integer; Title: aString; Clear, SizeGrip,
 Var
   Win: pSP_Window_Info;
   Err: TSP_ErrorCode;
-  Font, Window, sp: Integer;
+  Window, sp: Integer;
   Stroke: aFloat;
+  iFPFh, iFPFw: Integer;
+  iEDSC: aString;
 Begin
 
   Window := SCREENBANK;
-  Font := SP_SetFPEditorFont;
+
+  If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then Begin
+    iFPFW := Trunc(FONTWIDTH * EDFONTSCALEX);
+    iFPFH := Trunc(FONTHEIGHT * EDFONTSCALEY);
+    iEdSc := #25 + aFloatToString(EDFONTSCALEX) + aFloatToString(EDFONTSCALEY);
+  End Else Begin
+    iFPFH := Round(FONTHEIGHT * T_SCALEY);
+    iFPFW := Round(FONTWIDTH * T_SCALEX);
+    iEdSc := #25 + aFloatToString(T_SCALEX) + aFloatToString(T_SCALEY);
+  End;
+
 
   SP_GetWindowDetails(WindowID, Win, Err);
   If Not Assigned(Win) Then Exit;
@@ -743,37 +755,36 @@ Begin
   T_CLIPY2 := Win^.Height;
 
   If Clear Then SP_FillRect(0, 0, Win^.Width, Win^.Height, winBack);
-  SP_FillRect(0, FPFh + 2, Win^.Width, 4, winBack); // 4 pixel border at the top
-  SP_FillRect(0, FPFh + 6, 4, Win^.Height, winBack); // And to the left
-  SP_FillRect(4, Win^.Height - (FPFh + 6), Win^.Width, FPFw + 6, winBack);
-  SP_FillRect(Win^.Width - (FPFw + 7), FPFh + 6, FPFw + 7, Win^.Height - (FPFh + 6), winBack);
-  SP_FillRect(0, 0, Win^.Width, FPFh +2, capBack);
+  SP_FillRect(0, iFPFh + 2, Win^.Width, 4, winBack); // 4 pixel border at the top
+  SP_FillRect(0, iFPFh + 6, 4, Win^.Height, winBack); // And to the left
+  SP_FillRect(4, Win^.Height - (iFPFh + 6), Win^.Width, iFPFw + 6, winBack);
+  SP_FillRect(Win^.Width - (iFPFw + 7), iFPFh + 6, iFPFw + 7, Win^.Height - (iFPFh + 6), winBack);
+  SP_FillRect(0, 0, Win^.Width, iFPFh +2, capBack);
 
-  Sp := (Win^.Width - ((FPFw * 4)) - FPFh *2) - FPFw;
-  If FPFw * Length(Title) > Sp Then
-    Title := SP_CopyClrs(Title, 1, Sp Div FPFw);
+  Sp := (Win^.Width - ((iFPFw * 4)) - iFPFh *2) - iFPFw;
+  If iFPFw * Length(Title) > Sp Then
+    Title := SP_CopyClrs(Title, 1, Sp Div iFPFw);
 
   Stroke := T_STROKE;
   T_STROKE := 1;
   If Focused Then T_INK := 0;
   SP_DrawRectangle(0, 0, Win^.Width -1, Win^.Height -1);
   If Focused Then
-    SP_TextOut(-1, FPFw Div 2, 1, EdSc + Title, capText, capBack, True)
+    SP_TextOut(-1, iFPFw Div 2, 1, iEdSc + Title, capText, capBack, True)
   Else
-    SP_TextOut(-1, FPFw Div 2, 1, EdSc + Title, capInactive, CapBack, True);
+    SP_TextOut(-1, iFPFw Div 2, 1, iEdSc + Title, capInactive, CapBack, True);
 
 
   If WindowID = DWWindowID Then
     SP_UpdateBatteryStatus
   else
-    SP_DrawStripe(Win^.Surface, Win^.Width, FPFw, FPFh, 100, Focused);
+    SP_DrawStripe(Win^.Surface, Win^.Width, iFPFw, iFPFh, 100, Focused);
 
   If SizeGrip Then
-    SP_TextOut(FONTBANKID, Win^.Width -(Fw + 6), Win^.Height - (Fh + 6), EdCSc + #250, gripClr, winBack, True);
+    SP_TextOut(FONTBANKID, Win^.Width -(iFPFw + 6), Win^.Height - (iFPFh + 6), EdCSc + #250, gripClr, winBack, True);
 
   SP_SetDirtyRect(Win^.Left, Win^.Top, Win^.Left + Win^.Width -1, Win^.Top + Win^.Height);
   SP_SetDrawingWindow(Window);
-  SP_SetSystemFont(Font, Err);
   T_STROKE := Stroke;
 
 End;

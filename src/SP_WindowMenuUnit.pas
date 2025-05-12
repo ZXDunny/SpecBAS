@@ -84,7 +84,7 @@ Begin
   fPermanent := True;
   AddOverrideControl(Self);
   fAltDown := False;
-  Height := iFH + 8;
+  Height := Round(iFH * iSY) + 8;
   fCapWidth := 0;
   fSubMenuClr := fBackgroundClr;
 
@@ -172,14 +172,17 @@ End;
 Procedure SP_WindowMenu.CalculateSizes;
 Var
   r: TRect;
-  x, i, l: Integer;
+  x, i, l, cFW, cFH: Integer;
   Win: pSP_Window_Info;
   Error: TSP_ErrorCode;
 Begin
 
   Lock;
 
-  x := iFW Div 2;
+  cfW := Round(iFW * iSX);
+  cfH := Round(iFH * iSY);
+
+  x := cFW Div 2;
   SP_GetWindowDetails(fParentWindowID, Win, Error);
 
   For i := 0 To Length(fItems) -1 Do Begin
@@ -188,12 +191,12 @@ Begin
     if SP_Util.Pos('&', fItems[i].Caption) > 0 Then Dec(l);
     With r Do Begin
       Left := x;
-      Right := x + (iFW * l);
+      Right := x + (cFW * l);
       Top := 2;
-      Bottom := iFH + 4;
+      Bottom := cFH + 4;
     End;
     fItems[i].Extents := r;
-    Inc(x, l * iFW);
+    Inc(x, l * cFW);
 
   End;
 
@@ -205,11 +208,13 @@ End;
 
 Procedure SP_WindowMenu.Draw;
 Var
-  i, c, ic: Integer;
+  i, c, ic, cfW: Integer;
   MouseInSubMenu: Boolean;
   mp, rp: TPoint;
   e: TRect;
 Begin
+
+  cfW := Round(iFW * iSX);
 
   FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
   DrawLine(0, fHeight -3, fWidth -1, fHeight -3, SP_UIHalfLight);
@@ -249,7 +254,7 @@ Begin
         End;
       End;
 
-      PRINT(Extents.Left + iFW -2, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, True, fAltDown And fEnabled);
+      PRINT(Extents.Left + cFW -2, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, True, fAltDown And fEnabled);
 
     End;
 

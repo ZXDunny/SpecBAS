@@ -318,8 +318,6 @@ Begin
 
   DisplaySection.Enter;
 
-  //Font := SP_SetFPEditorFont;
-
   ToolWindowDone := False;
   If Save Then ToolMode := 2 Else ToolMode := 1;
 
@@ -428,7 +426,6 @@ Begin
 
   DisplaySection.Enter;
   Result := ToolStrResult;
-  // SP_SetSystemFont(Font, Error);
   SP_DeleteWindow(FDWindowID, Error);
   DisplaySection.Leave;
 
@@ -438,7 +435,7 @@ End;
 
 Function SP_FindReplace.Open(Mode: Boolean): Integer;
 Var
-  Font, FW, FH, w, h, tp, cw: Integer;
+  FW, FH, w, h, tp, cw, nBW, nBH: Integer;
   Caption: aString;
   Win: pSP_Window_Info;
   Error: TSP_ErrorCode;
@@ -451,19 +448,22 @@ Begin
 
   ToolWindowDone := False;
 
-  Font := SP_SetFPEditorFont;
   If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then Begin
     FW := Trunc(FONTWIDTH * EDFONTSCALEX);
     FH := Trunc(FONTHEIGHT * EDFONTSCALEY);
+    nBW := Trunc(BW * EDFONTSCALEX);
+    nBH := Trunc(BH * EDFONTSCALEY);
   End Else Begin
-    FH := FONTHEIGHT;
-    FW := FONTWIDTH;
+    FH := Round(FONTHEIGHT * T_SCALEY);
+    FW := Round(FONTWIDTH * T_SCALEX);
+    nBW := Min(Round(BW * T_SCALEX), 8);
+    nBH := Min(Round(BH * T_SCALEY), 8);
   End;
 
   FindMode := Mode;
   If FindMode Then Caption := 'Find...' else Caption := 'Replace...';
 
-  w := 38 * FW; h := FPFh + 21 + (10 * FH) + (Ord(Not FindMode) * (bh + FH)) + (5 * bh);
+  w := 38 * FW; h := FPFh + 21 + (10 * FH) + (Ord(Not FindMode) * (nbh + FH)) + (5 * nbh);
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
   Dec(w, 1); // Account for the one-pixel border around the window when placing items
   SP_GetWindowDetails(FDWindowID, Win, Error);
@@ -477,47 +477,47 @@ Begin
 
   If FindMode Then Begin
     searchLbl.Caption := 'Find:';
-    searchLbl.SetBounds(Bw +1, FPCaptionHeight + 2 + Bh, FW * Length(searchLbl.Caption), FH);
+    searchLbl.SetBounds(nBw +1, FPCaptionHeight + 2 + nBh, FW * Length(searchLbl.Caption), FH);
     searchLbl.TextJustify := 1;
     searchEdt.AddStrings(SearchHistory);
     searchEdt.BackgroundClr := SP_UIBackground;
-    searchEdt.SetBounds(searchLbl.Left + searchLbl.Width + bw, searchLbl.Top -2, w - (searchLbl.Left + searchLbl.Width + (bw * 2)) +1, searchLbl.Height);
+    searchEdt.SetBounds(searchLbl.Left + searchLbl.Width + nbw, searchLbl.Top -2, w - (searchLbl.Left + searchLbl.Width + (nbw * 2)) +1, searchLbl.Height);
     searchEdt.Editable := True;
-    tp := searchEdt.Top + searchEdt.Height + bh;
+    tp := searchEdt.Top + searchEdt.Height + nbh;
   End Else Begin
     searchLbl.Caption := 'Replace:';
-    searchLbl.SetBounds(Bw +1, FPCaptionHeight + 2 + Bh, FW * Length(searchLbl.Caption), FH);
+    searchLbl.SetBounds(nBw +1, FPCaptionHeight + 2 + nBh, FW * Length(searchLbl.Caption), FH);
     searchLbl.TextJustify := 1;
     replaceLbl := SP_Label.Create(Win^.Component);
     replaceLbl.Caption := 'With:';
-    replaceLbl.SetBounds(7 + BSize, searchLbl.Top + searchLbl.Height + bh, FW * Length(searchLbl.Caption), FH);
+    replaceLbl.SetBounds(7 + BSize, searchLbl.Top + searchLbl.Height + nbh, FW * Length(searchLbl.Caption), FH);
     replaceLbl.TextJustify := 1;
     searchEdt.AddStrings(SearchHistory);
     searchEdt.BackgroundClr := SP_UIBackground;
-    searchEdt.SetBounds(searchLbl.Left + searchLbl.Width + bw, searchLbl.Top -2, w - (searchLbl.Left + searchLbl.Width + (bw * 2)), searchLbl.Height);
+    searchEdt.SetBounds(searchLbl.Left + searchLbl.Width + nbw, searchLbl.Top -2, w - (searchLbl.Left + searchLbl.Width + (nbw * 2)), searchLbl.Height);
     searchEdt.Editable := True;
     replaceEdt := SP_ComboBox.Create(Win^.Component);
     replaceEdt.AddStrings(ReplaceHistory);
-    replaceEdt.SetBounds(searchEdt.Left, searchLbl.Top + searchLbl.Height + bh, searchEdt.Width, searchLbl.Height);
+    replaceEdt.SetBounds(searchEdt.Left, searchLbl.Top + searchLbl.Height + nbh, searchEdt.Width, searchLbl.Height);
     replaceEdt.Editable := True;
     replaceEdt.OnAccept := Accept;
     replaceEdt.OnAbort := Abort;
     replaceEdt.AllowLiterals := True;
     replaceEdt.ChainControl := searchEdt;
     searchEdt.ChainControl := replaceEdt;
-    tp := replaceEdt.Top + replaceEdt.Height + bh;
+    tp := replaceEdt.Top + replaceEdt.Height + nbh;
   End;
   searchEdt.OnAccept := Accept;
   searchEdt.OnAbort := Abort;
 
   dirGroup := SP_RadioGroup.Create(Win^.Component);
-  dirGroup.SetBounds(searchLbl.Left, tp, (17 * FW) - Bw, FH * 5);
+  dirGroup.SetBounds(searchLbl.Left, tp, (17 * FW) - nBw, FH * 5);
   dirGroup.AddItem('Forward');
   dirGroup.AddItem('Backward');
   dirGroup.Caption := 'Direction';
 
   originGroup := SP_RadioGroup.Create(Win^.Component);
-  originGroup.SetBounds(dirGroup.Left + dirGroup.Width + bw, tp, (searchEdt.Left + searchEdt.Width) - (dirGroup.Width + dirGroup.Left + bW), FH * 5);
+  originGroup.SetBounds(dirGroup.Left + dirGroup.Width + nbw, tp, (searchEdt.Left + searchEdt.Width) - (dirGroup.Width + dirGroup.Left + nbW), FH * 5);
   originGroup.AddItem('Start of BASIC');
   originGroup.AddItem('Cursor pos');
   originGroup.Caption := 'Origin';
@@ -532,10 +532,10 @@ Begin
   inselChk.Caption := 'In selection';
   expChk.Caption := 'Expression';
 
-  caseChk.SetBounds(dirGroup.Left, dirGroup.Top + dirGroup.Height + bh, dirGroup.Width, FH + bh);
-  wholeChk.SetBounds(dirGroup.Left, caseChk.Top + caseChk.Height + 2, dirGroup.Width, FH + bh);
-  inselChk.SetBounds(originGroup.Left, CaseChk.Top, originGroup.Width, FH + bh);
-  expChk.SetBounds(inselChk.Left, inSelChk.Top + inSelChk.Height + 2, inselChk.Width, FH + bh);
+  caseChk.SetBounds(dirGroup.Left, dirGroup.Top + dirGroup.Height + nbh, dirGroup.Width, FH + nbh);
+  wholeChk.SetBounds(dirGroup.Left, caseChk.Top + caseChk.Height + 2, dirGroup.Width, FH + nbh);
+  inselChk.SetBounds(originGroup.Left, CaseChk.Top, originGroup.Width, FH + nbh);
+  expChk.SetBounds(inselChk.Left, inSelChk.Top + inSelChk.Height + 2, inselChk.Width, FH + nbh);
 
   // Fill options from search options record
 
@@ -558,7 +558,7 @@ Begin
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(w - (cw + Bw), h - (FH + 4) - Bh -1, cw, FH + 4);
+  caBtn.SetBounds(w - (cw + nBw), h - (FH + 4) - nBh -1, cw, FH + 4);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
@@ -608,7 +608,6 @@ Begin
 
   WaitForDialog;
 
-  SP_SetSystemFont(Font, Error);
   SP_DeleteWindow(FDWindowID, Error);
   SP_InvalidateWholeDisplay;
 

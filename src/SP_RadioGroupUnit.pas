@@ -103,32 +103,35 @@ End;
 
 Procedure SP_RadioGroup.PlaceItems;
 Var
-  iy, y, i, ht, hm: Integer;
+  iy, y, i, ht, hm, cFW, cFH: Integer;
   sp: aFloat;
 Begin
 
-  iy := iFH;
+  cFH := Round(iFH * iSY);
+  cFW := Round(IfW * iSX);
+
+  iy := cFH;
   If fBorder Then Begin
     If IsRadioGroup And (Caption <> '') Then Begin
-      ht := Height - Round(iFH * 2.5);
-      Inc(iY, Round(iFH / 2));
+      ht := Height - Round(cFH * 2.5);
+      Inc(iY, Round(cFH / 2));
     End Else Begin
-      ht := Height - Round(iFH * 2);
+      ht := Height - Round(cFH * 2);
     End;
   End Else
     ht := Height;
 
   If Count > 0 Then Begin
 
-    sp := (ht - (count * iFH)) / (count + 1);
+    sp := (ht - (count * cFH)) / (count + 1);
     hm := Ord(Not IsRadioGroup) * 4;
     y := iy + Round(sp);
     For i := 0 To Count -1 Do Begin
       If fBorder Then
-        fItems[i].SetBounds(iFW, y, Width - iFW -1, iFH + hm)
+        fItems[i].SetBounds(cFW, y, Width - cFW -1, cFH + hm)
       Else
-        fItems[i].SetBounds(0, y, Width -1, iFH + hm);
-      Inc(y, Round(ifH + sp));
+        fItems[i].SetBounds(0, y, Width -1, cFH + hm);
+      Inc(y, Round(cfH + sp));
     End;
   End;
 
@@ -319,7 +322,7 @@ Begin
 
   DrawGroupBorder(Caption);
 
-  For i := 0 To Length(fItems) -1 Do
+  For i := Length(fItems) -1 DownTo 0 Do
     fItems[i].Paint;
 
 End;

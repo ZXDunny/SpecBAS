@@ -65,12 +65,15 @@ End;
 
 Procedure SP_Label.Prepare;
 Var
-  i, lsp, cnt, maxw: Integer;
+  i, lsp, cnt, maxw, cfW, cfH: Integer;
   s: aString;
   BreakNow: Boolean;
 Begin
 
-  If (fWidth < iFW) and Not fAutoSize Then Exit;
+  cfW := Round(iFW * iSX);
+  cfH := Round(iFH * iSY);
+
+  If (fWidth < cFW) and Not fAutoSize Then Exit;
 
   i := 1;
   lsp := 1;
@@ -79,7 +82,7 @@ Begin
   If fAutoSize Then
     maxw := MAXINT
   else
-    maxw := fWidth Div iFW;
+    maxw := fWidth Div cFW;
   BreakNow := False;
   fLines.Clear;
   While i <= Length(fCaption) Do Begin
@@ -145,8 +148,8 @@ Begin
       maxw := cnt;
       fCapLen := cnt;
     End;
-    Width := maxw * iFW;
-    Height := Max(fLines.Count, 1) * iFH;
+    Width := maxw * cFW;
+    Height := Max(fLines.Count, 1) * cFH;
   End Else
     fCapLen := cnt;
 
@@ -154,8 +157,11 @@ End;
 
 Procedure SP_Label.Draw;
 Var
-  bOffs, i, x, y: Integer;
+  bOffs, i, x, y, cfW, cfH: Integer;
 Begin
+
+  cfW := Round(iFW * iSX);
+  cfH := Round(iFH * iSY);
 
   x := 0; y := 0;
   bOffs := Ord(fBorder) * 2;
@@ -172,11 +178,11 @@ Begin
         End;
       0:
         Begin // Vertically centred
-          y := (fHeight - (fLines.Count * iFH)) Div 2;
+          y := (fHeight - (fLines.Count * cFH)) Div 2;
         End;
       1:
         Begin // Bottom
-          y := fHeight - (fLines.Count * iFH);
+          y := fHeight - (fLines.Count * cFH);
         End;
     End;
 
@@ -189,18 +195,18 @@ Begin
           End;
         0:
           Begin // Centre
-            x := ((fWidth - bOffs) - (Integer(fLines.Objects[i]) * iFW)) Div 2;
+            x := ((fWidth - bOffs) - (Integer(fLines.Objects[i]) * cFW)) Div 2;
           End;
         1:
           Begin // Right Justify
-            x := (fWidth - bOffs) - (Integer(fLines.Objects[i]) * iFW);
+            x := (fWidth - bOffs) - (Integer(fLines.Objects[i]) * cFW);
           End;
       End;
       If fEnabled Then
         PRINT(x, y, fLines[i], fFontClr, -1, iSX, iSY, False, False, False, False)
       Else
         PRINT(x, y, fLines[i], fDisabledFontClr, -1, iSX, iSY, False, False, False, False);
-      Inc(y, iFH);
+      Inc(y, cFH);
 
     End;
 
@@ -208,14 +214,14 @@ Begin
 
     Case fAlign of
       -1: y := 0;
-       0: y := (fHeight - iFH) Div 2;
-       1: y := fHeight - iFH;
+       0: y := (fHeight - cFH) Div 2;
+       1: y := fHeight - cFH;
     End;
 
     Case fJustify Of
       -1: x := bOffs;
-       0: x := ((fWidth - bOffs) - (fCaplen * iFW)) Div 2;
-       1: x := (fWidth - bOffs) - (fCaplen * iFW);
+       0: x := ((fWidth - bOffs) - (fCaplen * cFW)) Div 2;
+       1: x := (fWidth - bOffs) - (fCaplen * cFW);
     End;
     If fEnabled Then
       PRINT(x, y, fCaption, fFontClr, -1, iSX, iSY, False, False, False, False)

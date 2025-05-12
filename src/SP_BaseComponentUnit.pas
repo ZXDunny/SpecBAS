@@ -213,6 +213,7 @@ SP_BaseComponent = Class
     Function  GetWindowDetails: Pointer;
     Function  GetCanvas: NativeUInt;
     Procedure CopyParentCanvas;
+    Procedure CopyToParentCanvas;
     Procedure DoResize(WidthChange, HeightChange: Integer);
     Procedure HasSized; Virtual;
 
@@ -776,21 +777,24 @@ End;
 
 Procedure SP_BaseComponent.DrawGroupBorder(Caption: aString);
 Var
-  yo: Integer;
+  yo, cfW, cfH: Integer;
 Begin
 
+  cfW := Round(iFW * iSX);
+  cfH := Round(iFH * iSY);
+
   If fBorder Then Begin
-    yo := Round(iFH/2);
-    Drawline(0, yo, iFW Div 2, yo, fBorderClr);
+    yo := Round(cFH/2);
+    Drawline(0, yo, cFW Div 2, yo, fBorderClr);
     if Caption <> '' then
-      Drawline(((Length(Caption) +1) * iFW) + (iFW Div 2), yo, Width -1, yo, fBorderClr)
+      Drawline(((Length(Caption) +1) * cFW) + (cFW Div 2), yo, Width -1, yo, fBorderClr)
     else
-      Drawline(iFW Div 2, yo, Width -1, yo, fBorderClr);
+      Drawline(cFW Div 2, yo, Width -1, yo, fBorderClr);
     Drawline(Width -1, yo, Width -1, Height -1, fBorderClr);
     Drawline(0, Height -1, Width -1, Height -1, fBorderClr);
     Drawline(0, yo, 0, Height -1, fBorderClr);
     If Caption <> '' Then
-      PRINT(ifW, 0, Caption, fFontClr, -1, iSX, iSY, False, False, False, False);
+      PRINT(cfW, 0, Caption, fFontClr, -1, iSX, iSY, False, False, False, False);
   End Else Begin
     If Caption <> '' Then
       PRINT(0, 0, Caption, fFontClr, -1, iSX, iSY, False, False, False, False);
@@ -1351,8 +1355,8 @@ Begin
     If not fOverrideScl Then Begin
       fW := EDFONTWIDTH;
       fH := EDFONTHEIGHT;
-      iFW := Trunc(EDFONTWIDTH * EDFONTSCALEX);
-      iFH := Trunc(EDFONTHEIGHT * EDFONTSCALEY);
+      iFW := EDFONTWIDTH;
+      iFH := EDFONTHEIGHT;;
       iSX := EDFONTSCALEX;
       iSY := EDFONTSCALEY;
     End Else Begin
@@ -1814,6 +1818,7 @@ Begin
       SP_AddOnEvent(Compiled_OnPaintBefore);
 
     Draw;
+    CopyToParentCanvas;
 
     If Assigned(fOnPaintAfter) Then
       fOnPaintAfter(Self);
@@ -2116,6 +2121,26 @@ Begin
         SP_PutRegion(Dst, 0, 0, Width, Height, @Source[1], Length(Source), 0, 1, cx1, cy1, cx2, cy2, Error);
     End;
   End;
+
+End;
+
+Procedure SP_BaseComponent.CopyToParentCanvas;
+Var
+  Source: aString;
+  Src, Dst: pByte;
+  Error: TSP_ErrorCode;
+  cX1, cX2, cY1, cY2: Integer;
+Begin
+
+  Src := @fCanvas[0];
+  If fParentType = spControl Then
+    With SP_BaseComponent(fParentControl) Do Begin
+      If Length(fCanvas) = 0 Then Exit;
+      Dst := @fCanvas[0];
+      cx1 := 0; cy1 := 0; cx2 := width; cy2 := height;
+      SP_GetRegion(Src, Self.Width, Self.Height, Source, 0, 0, Self.Width, Self.Height, -1, Error);
+      SP_PutRegion(Dst, Self.Left, Self.Top, Width, Height, @Source[1], Length(Source), 0, 1, cx1, cy1, cx2, cy2, Error);
+    End;
 
 End;
 
@@ -2820,6 +2845,7 @@ Begin
 
       SP_GetWindowDetails(ID, Win, Error);
       curCtrl := @Win^.Component;
+      fParentType := spWindow;
       Update;
 
     End Else
@@ -2828,9 +2854,10 @@ Begin
 
   End Else Begin
 
-    If ControlRegistry.TryGetValue(StringToInt(S), curCtrl) Then
-      Update
-    Else
+    If ControlRegistry.TryGetValue(StringToInt(S), curCtrl) Then Begin
+      fParentType := spControl;
+      Update;
+    End Else
       Error.Code := SP_ERR_INVALID_COMPONENT;
 
   End;

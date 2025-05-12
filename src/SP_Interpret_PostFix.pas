@@ -11147,7 +11147,6 @@ End;
 Procedure SP_Interpret_PLOT(Var Info: pSP_iInfo);
 Var
   YPos, XPos, Radius: Integer;
-  Ink: Longword;
   VarName: aString;
   dX, dY: aFloat;
   Idx, iSize, vIdx, pIdx: Integer;
@@ -11238,25 +11237,12 @@ Begin
     Dec(SP_StackPtr);
     SP_ConvertToOrigin_d(dX, dY);
     If WINFLIPPED Then dY := (SCREENHEIGHT - 1) - dy;
-    {$R-}
-    If T_STROKE > 1 Then begin
-      DRPOSX := dX;
-      DRPOSY := dY;
-      xPos := Round(dX - T_STROKE / 2); yPos := Round(dY - T_STROKE / 2);
-      If T_INVERSE = 0 Then
-        Ink := T_INK
-      Else
-        Ink := T_PAPER;
-      SP_FillRect(xPos, yPos, Round(T_STROKE), Round(T_STROKE), Ink);
-    End Else Begin
-      xPos := Round(dX); yPos := Round(dY);
-      If SCREENBPP = 8 Then
-        SP_SetPixel(dX, dY)
-      Else
-        SP_SetPixel32(dX, dY);
-      If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
-    End;
-    {$R+}
+    xPos := Round(dX); yPos := Round(dY);
+    If SCREENBPP = 8 Then
+      SP_SetPixel(dX, dY)
+    Else
+      SP_SetPixel32(dX, dY);
+    If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + XPos, SCREENY + YPos, SCREENX + XPos, SCREENY + YPos);
   End;
 
   SP_BankList[0]^.Changed := True;

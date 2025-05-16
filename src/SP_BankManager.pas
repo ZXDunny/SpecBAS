@@ -626,8 +626,10 @@ Var
 Begin
 
   DisplaySection.Enter;
+
   // Use with caution - will remove all banks, including system banks.
   // Intended as a nice way to clear up memory when quitting SpecBAS.
+
   If Not SystemToo Then Begin
     Idx := 0;
     While Idx < Length(SP_BankList) Do Begin
@@ -638,7 +640,7 @@ Begin
         If SP_BankList[Idx]^.DataType = SP_SPRITE_BANK Then Begin
           Sprite := @SP_BankList[Idx]^.Info[0];
           SP_RemoveSpriteFromWindowList(Sprite);
-          If Sprite^.Enabled Then Dec(NUMSPRITES)
+          If Sprite^.Enabled Then Dec(NUMSPRITES);
         End;
         Dispose(SP_BankList[Idx]);
         For i := Idx To Length(SP_BankList) -2 Do
@@ -648,14 +650,17 @@ Begin
       End Else
         Inc(Idx);
     End;
-  End Else Begin
-    DISPLAYPOINTER := Nil;
-    NUMBANKS := 0;
-    NUMSPRITES := 0;
-    For Idx := 0 To Length(SP_BankList) -1 Do
-      Dispose(SP_BankList[Idx]);
-    SetLength(SP_BankList, 0);
-  End;
+  End Else
+    If Length(SP_BankList) > 0 Then Begin
+      DISPLAYPOINTER := Nil;
+      NUMBANKS := 0;
+      NUMSPRITES := 0;
+      pSP_Window_Info(@SP_BankList[0]^.Info[0]).Component.Free;
+      For Idx := 0 To Length(SP_BankList) -1 Do
+        Dispose(SP_BankList[Idx]);
+      SetLength(SP_BankList, 0);
+    End;
+
   DisplaySection.Leave;
 
 End;

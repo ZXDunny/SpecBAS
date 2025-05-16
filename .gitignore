@@ -18,3 +18,8 @@ payload.bin
 /src/backup
 /src/ConverterBackup
 src/AutomaticConversion.log
+FastMM_FullDebugMode.dll
+FastMM_FullDebugMode64.dll
+bugreport.txt
+SpecBAS_MemoryManager_EventLog.txt
+*.mes

@@ -96,7 +96,7 @@ Var
 
 implementation
 
-Uses SP_Package;
+Uses SP_Package, SP_Streams;
 
 Procedure SP_SetFPS(Value: aFloat);
 Begin
@@ -250,13 +250,17 @@ Begin
 End;
 
 Procedure SP_CleanUp;
+Var
+  Error: TSP_ErrorCode;
 Begin
 
   DisplaySection.Enter;
+  SP_ClearVars;
   SP_DeleteIncludes;
   If PackageIsOpen Then SP_ClosePackage;
   SetLength(SP_Program, 0);
   SP_Program_Count := 0;
+  SP_DeleteAllStreams(Error);
   SP_DeleteTempFiles;
   SP_DeleteAllWindows;
   SP_DeleteAllBanks(True);
@@ -401,7 +405,7 @@ Begin
         If Result = numStatements Then
           ofs2 := Length(Tokens^)
         Else
-          ofs2 := pLongWord(LongWord(Idx) + SizeOf(LongWord))^;
+          ofs2 := pLongWord(NativeUInt(Idx) + SizeOf(LongWord))^;
         If (LongWord(Offset) >= Ofs1) And (LongWord(Offset) < Ofs2) Then
           Exit;
         Inc(Idx, SizeOf(LongWord));
@@ -517,7 +521,7 @@ Begin
   LabelLen := 0;
   nLabelText := LabelText;
 
-  If Error.Line >= 0 Then Begin
+  If Error.Line <> -2 Then Begin
 
     Idx := 0;
     While Idx < Length(SP_LabelList) Do Begin

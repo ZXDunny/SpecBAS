@@ -1071,7 +1071,7 @@ Begin
   SP_StackPtr := SP_StackStart;
   If InitInterpreter Then
     SP_PreParse(True, True, Error, Tokens^);
-  PROGSTATE := SP_PR_RUN;
+  If PROGSTATE <> SP_PR_EVENT Then PROGSTATE := SP_PR_RUN;
   SP_Interpreter(Tokens, Error.Position, Error, Error.Code);
 
   AUTOSAVE := aSave;
@@ -1305,23 +1305,34 @@ Procedure SP_ExecuteONCtrl(Var Error: TSP_ErrorCode);
 Var
   s: aString;
   nPos: Integer;
+  nError: TSP_ErrorCode;
 Begin
 
   ONCtrlLock.Enter;
 
   If Not DoingOnCtrl And (SP_ONCtrlListPtr >= 0) Then Begin
+
+    nError := Error;
     DoingONCtrl := True;
     nPos := Error.Position;
     s := SP_ONCtrlList[SP_ONCtrlListPtr];
     Dec(SP_ONCtrlListPtr);
     DoingONCtrl := False;
     ONCtrlLock.Leave;
-
-    SP_Execute_Compiled(s, False, Error);
+    SP_StackLine(NXTLINE, NXTSTATEMENT, nError.Statement, SP_KW_GOSUB, Error);
+    nError.Line := -1;
+    SP_Execute_Compiled(s, False, nError);
     If Error.Code = SP_ERR_OK Then
       Error.Position := nPos;
 
+    NXTLINE := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].Line;
+    NXTSTATEMENT := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].Statement;
+    Error.Statement := SP_GOSUB_Stack[SP_GOSUB_STACKPTR - 1].St;
+    If SP_GOSUB_Stack[Length(SP_GOSUB_Stack) -1].Source = SP_KW_ERROR Then IGNORE_ON_ERROR := False;
+    Dec(SP_GOSUB_STACKPTR);
+
   End Else
+
     ONCtrlLock.Leave;
 
 End;
@@ -1976,7 +1987,7 @@ Begin
       OpType := SP_NUMVAR;
       Ptr := @Token^.Cache;
       Val := Ptr^;
-      Str := StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord));
+      Str := StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord));
     End;
   End;
 
@@ -1991,7 +2002,7 @@ Begin
       OpType := SP_STRVAR;
       Ptr := @Token^.Cache;
       Val := Ptr^;
-      Str := StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord));
+      Str := StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord));
       tPos := Token^.TokenPos;
     End;
   End;
@@ -2033,7 +2044,7 @@ Begin
     If Idx <> 0 Then Begin
       Dec(Idx);
     End Else Begin
-      Idx := SP_FindNumVar(StringFromPtrB(pByte(NativeUInt(StrPtr) + (SizeOf(LongWord) * 2)), pLongWord(StrPtr + SizeOf(LongWord))^));
+      Idx := SP_FindNumVar(StringFromPtr(pByte(NativeUInt(StrPtr) + (SizeOf(LongWord) * 2)), pLongWord(StrPtr + SizeOf(LongWord))^));
       If Idx <> -1 Then Begin
         If Not NumVars[Idx]^.ProcVar Then
           pLongWord(StrPtr)^ := Idx + 1;
@@ -2062,7 +2073,7 @@ Begin
     If Idx <> 0 Then Begin
       Dec(Idx);
     End Else Begin
-      Idx := SP_FindNumVar(StringFromPtrB(pByte(NativeUInt(StrPtr) + (SizeOf(LongWord) * 2)), pLongWord(StrPtr + SizeOf(LongWord))^));
+      Idx := SP_FindNumVar(StringFromPtr(pByte(NativeUInt(StrPtr) + (SizeOf(LongWord) * 2)), pLongWord(StrPtr + SizeOf(LongWord))^));
       If Idx <> -1 Then Begin
         If Not NumVars[Idx]^.ProcVar Then
           pLongWord(StrPtr)^ := Idx + 1;
@@ -2092,7 +2103,7 @@ Begin
     If Idx <> 0 Then Begin
       Dec(Idx);
     End Else Begin
-      Idx := SP_FindStrVar(StringFromPtrB(StrPtr + (SizeOf(LongWord) * 2), pLongWord(StrPtr + SizeOf(LongWord))^));
+      Idx := SP_FindStrVar(StringFromPtr(StrPtr + (SizeOf(LongWord) * 2), pLongWord(StrPtr + SizeOf(LongWord))^));
       If Idx <> -1 Then Begin
         If Not StrVars[Idx]^.ProcVar Then
           pLongWord(StrPtr)^ := Idx + 1;
@@ -2122,7 +2133,7 @@ Begin
     SP_StackToString(NumIndices);
     Idx := Round(SP_StackPtr^.Val);
     If Idx = 0 Then Begin
-      Idx := SP_FindNumArray(StringFromPtrB(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
+      Idx := SP_FindNumArray(StringFromPtr(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
       If Idx <> -1 Then Begin
         Inc(Idx);
         SP_StackPtr^.Ptr^ := Idx;
@@ -2154,7 +2165,7 @@ Begin
     If SP_StackPtr^.OpType = SP_NUMVAR Then Begin
       Idx := Round(SP_StackPtr^.Val);
       If Idx = 0 Then Begin
-        Idx := SP_FindNumArray(StringFromPtrB(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
+        Idx := SP_FindNumArray(StringFromPtr(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
         If Idx <> -1 Then Begin
           SP_StackPtr^.Ptr^ := Idx + 1;
         End Else Begin
@@ -2180,7 +2191,7 @@ Begin
         If (Length(SP_StackPtr^.Str) - SizeOf(LongWord)) <> pInteger(@SP_StackPtr^.Str[1])^ Then
           Idx := SP_FindStrArray(SP_StackPtr^.Str)
         Else
-          Idx := SP_FindStrArray(StringFromPtrB(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
+          Idx := SP_FindStrArray(StringFromPtr(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
         If Idx <> -1 Then Begin
           SP_StackPtr^.Ptr^ := Idx + 1;
           If pByte(StrPtr+Token^.TokenLen)^ in [SP_STRUCT_MEMBER_N, SP_STRUCT_MEMBER_S] Then Begin
@@ -2210,7 +2221,7 @@ Begin
               End;
             End;
           End Else Begin
-            Idx := SP_FindStrVar(StringFromPtrB(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
+            Idx := SP_FindStrVar(StringFromPtr(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
             If Idx > -1 Then Begin
               If (NumIndices > 1) or (NumIndices = 0) Or (pLongWord(@gbIndices[1])^ = 0) Or (pLongWord(@gbIndices[1])^ > LongWord(Length(StrVars[Idx]^.ContentPtr^.Value))) Then Begin
                 Error.Code := SP_ERR_SUBSCRIPT_WRONG;
@@ -2255,7 +2266,7 @@ Begin
             End;
           End Else Begin
             If Idx = 0 Then Begin
-              Idx := SP_FindStrArray(StringFromPtrB(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
+              Idx := SP_FindStrArray(StringFromPtr(@SP_StackPtr^.Str[SizeOf(LongWord) + 1], pLongWord(@SP_StackPtr^.Str[1])^));
               If Idx <> -1 Then Begin
                 SP_StackPtr^.Ptr^ := Idx + 1;
               End Else Begin
@@ -2406,7 +2417,7 @@ Begin
     Inc(SP_StackPtr);
     With SP_StackPtr^ Do Begin
       OpType := SP_LABEL;
-      Str := StringFromPtrB(StrPtr, Token^.TokenLen);
+      Str := StringFromPtr(StrPtr, Token^.TokenLen);
     End;
   End;
 
@@ -2503,10 +2514,11 @@ Begin
   With iInfo^ Do Begin
     If pLongWord(StrPtr)^ <> 0 Then
       SP_UpdateNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
-    Else
+    Else Begin
       SP_UpdateNumVar(pLongWord(StrPtr)^,
-                      StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                      StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                       SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
+    End;
     Dec(SP_StackPtr);
   End;
 
@@ -2520,7 +2532,7 @@ Begin
       SP_IncNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
     Else
       SP_IncNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2535,7 +2547,7 @@ Begin
       SP_DecNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
     Else
       SP_DecNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2550,7 +2562,7 @@ Begin
       SP_MulNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
     Else
       SP_MulNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2565,7 +2577,7 @@ Begin
       SP_DivNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val, Error^)
     Else
       SP_DivNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2580,7 +2592,7 @@ Begin
       SP_PowNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
     Else
       SP_PowNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2598,7 +2610,7 @@ Begin
       SP_ModNumVarIndex(pLongWord(StrPtr)^, n, Error^)
     Else
       SP_ModNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    n, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2613,7 +2625,7 @@ Begin
       SP_AndNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
     Else
       SP_AndNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2628,7 +2640,7 @@ Begin
       SP_OrNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
     Else
       SP_OrNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2643,7 +2655,7 @@ Begin
       SP_NotNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
     Else
       SP_NotNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2658,7 +2670,7 @@ Begin
       SP_XorNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
     Else
       SP_XorNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2673,7 +2685,7 @@ Begin
       SP_ShlNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
     Else
       SP_ShlNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2688,7 +2700,7 @@ Begin
       SP_ShrNumVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Val)
     Else
       SP_ShrNumVar(pLongWord(StrPtr)^,
-                   StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                   StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                    SP_StackPtr^.Val, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2703,7 +2715,7 @@ Begin
       SP_UpdateStrVarIndex(pLongWord(StrPtr)^, SP_StackPtr^.Str)
     Else
       SP_UpdateStrVar(pLongWord(StrPtr)^,
-                      StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                      StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                       SP_StackPtr^.Str, -1, -1, Error^, pLongWord(StrPtr));
     Dec(SP_StackPtr);
   End;
@@ -2717,7 +2729,7 @@ Var
 Begin
 
   With iInfo^ Do Begin
-    Name := StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord));
+    Name := StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord));
     Name[1] := aChar(Ord(Name[1]) - 128);
     Case SP_StackPtr^.OpTYpe of
       SP_VALUE:
@@ -2743,7 +2755,7 @@ Begin
   With iInfo^ Do Begin
     With SP_StackPtr^ Do Begin
       OpType := SP_VALUE;
-      Val := SP_GetStructMemberN(pSP_StrVarContent(Ptr), StringFromPtrB(StrPtr, Token^.TokenLen), Error^);
+      Val := SP_GetStructMemberN(pSP_StrVarContent(Ptr), StringFromPtr(StrPtr, Token^.TokenLen), Error^);
     End;
   End;
 
@@ -2756,7 +2768,7 @@ Begin
     Inc(SP_StackPtr);
     With SP_StackPtr^ Do Begin
       OpType := SP_STRUCT_MEMBER_ASS;
-      Str := StringFromPtrB(StrPtr, Token^.TokenLen);
+      Str := StringFromPtr(StrPtr, Token^.TokenLen);
     End;
   End;
 
@@ -2769,7 +2781,7 @@ Begin
 
     With SP_StackPtr^ Do Begin
       OpType := SP_STRING;
-      Str := SP_GetStructMemberS(pSP_StrVarContent(Ptr), StringFromPtrB(StrPtr, Token^.TokenLen), Error^);
+      Str := SP_GetStructMemberS(pSP_StrVarContent(Ptr), StringFromPtr(StrPtr, Token^.TokenLen), Error^);
     End;
 
   End;
@@ -2786,7 +2798,7 @@ Begin
     If Idx <> 0 Then Begin
       Dec(Idx);
     End Else Begin
-      Idx := SP_FindStrVar(StringFromPtrB(StrPtr + SizeOf(LongWord), Token^.TokenLen - SizeOf(LongWord)));
+      Idx := SP_FindStrVar(StringFromPtr(StrPtr + SizeOf(LongWord), Token^.TokenLen - SizeOf(LongWord)));
       If Idx <> -1 Then Begin
         If Not StrVars[Idx]^.ProcVar Then
           pLongWord(StrPtr)^ := Idx + 1;
@@ -2812,7 +2824,7 @@ Begin
     If SP_StackPtr^.OpType = SP_VALUE Then Begin
       If pLongWord(StrPtr)^ = 0 Then
         SP_UpdateNumVar(dLongWord(StrPtr),
-                        StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                        StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                         SP_StackPtr^.Val, Error^, pLongWord(StrPtr))
       Else
         SP_UpdateNumVarIndex(dLongWord(StrPtr), SP_StackPtr^.Val);
@@ -2832,7 +2844,7 @@ Begin
     If SP_StackPtr^.OpType = SP_STRING Then Begin
       If pLongWord(StrPtr)^ = 0 Then
         SP_UpdateStrVar(dLongWord(StrPtr),
-                        StringFromPtrB(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
+                        StringFromPtr(pByte(StrPtr + SizeOf(LongWord)), Token^.TokenLen - SizeOf(LongWord)),
                         SP_StackPtr^.Str, -1, -1, Error^, pLongWord(StrPtr))
       Else
         SP_UpdateStrVarIndex(dLongWord(StrPtr), SP_StackPtr^.Str);
@@ -3968,9 +3980,13 @@ End;
 Procedure DoPeriodicalEvents(var Error: TSP_ErrorCode);
 Begin
 
-  If OnActive > 0 Then SP_CheckONConditions(Error);
-  If ControlsAreInUse Then DoTimerEvents;
-  SP_ExecuteONCtrl(Error);
+  If PROGSTATE = SP_PR_RUN Then Begin
+    PROGSTATE := SP_PR_EVENT;
+    If OnActive > 0 Then SP_CheckONConditions(Error);
+    If ControlsAreInUse Then DoTimerEvents;
+    SP_ExecuteONCtrl(Error);
+    PROGSTATE := SP_PR_RUN;
+  End;
 
 End;
 
@@ -4028,8 +4044,6 @@ Var
 Label
   Next_Statement;
 Begin
-
-  DoPeriodicalEvents(Error);
 
   If Error.Code <> SP_ERR_OK Then Begin
     ppError := Error.Code;
@@ -4582,7 +4596,7 @@ Begin
   Len := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  SP_StackPtr^.Str := StringFromPtrB(pByte(Round(SP_StackPtr^.Val)), Len);
+  SP_StackPtr^.Str := StringFromPtr(pByte(Round(SP_StackPtr^.Val)), Len);
   SP_StackPtr^.OpType := SP_STRING;
 
 End;
@@ -6289,7 +6303,7 @@ Begin
   If Ps < 0 then Ps := 0;
   SP_StackPtr^.OpType := SP_STRING;
   If Ps <= Length(Src) Then
-    SP_StackPtr^.Str := StringFromPtrB(@Src[1], Ps-1) + ins + StringFromPtrB(@Src[Ps], Length(Src) -Ps +1)
+    SP_StackPtr^.Str := StringFromPtr(@Src[1], Ps-1) + ins + StringFromPtr(@Src[Ps], Length(Src) -Ps +1)
   Else
     SP_StackPtr^.Str := Src + Ins;
 
@@ -8654,9 +8668,13 @@ Begin
 
   End Else Begin
 
-    aX := Round(FONTWIDTH * X);
-    aY := Round(FONTHEIGHT * Y);
-    SP_ConvertToOrigin_d(aX, aY);
+    aX := Round(FONTWIDTH * X * T_SCALEX);
+    aY := Round(FONTHEIGHT * Y * T_SCALEY);
+
+    If WINORIGIN Then Begin
+      aX := Round(aX - SORGX);
+      aY := Round(aY - SORGY);
+    End;
 
     PRPOSX := aX;
     PRPOSY := aY;
@@ -9622,7 +9640,8 @@ Begin
     End;
 
     Dec(SP_StackPtr);
-    TokenStart := pByte(pLongWord(@gbIndices)^ + (Nl - SizeOf(LongWord)));
+//    TokenStart := pByte(pLongWord(@gbIndices)^ + (Nl - SizeOf(LongWord)));
+    TokenStart := @gbIndices[Nl - (SizeOf(LongWord) -1)];
     While NumIndices > 0 Do Begin
       pInteger(TokenStart)^ := Round(SP_StackPtr^.Val);
       Dec(TokenStart, SizeOf(LongWord));
@@ -10387,7 +10406,7 @@ Begin
   NXTSTATEMENT := -1;
   Dec(Info^.StrPtr, SizeOf(LongWord));
 
-  If Info^.Error^.Line >= 0 Then
+  If Info^.Error^.Line <> -2 Then
     LineItem := SP_ConvertLineStatement(Info^.Error^.Line, Info^.Error^.Statement + 1)
   Else Begin
     LineItem.Line := -2;
@@ -10459,7 +10478,7 @@ Begin
       If (NXTLINE > INCLUDEFROM) And (Error^.Line < INCLUDEFROM) Then NXTLINE := -1;
       NXTSTATEMENT := -1;
     End;
-    If Error^.Line >= 0 Then
+    If Error^.Line <> -2 Then
       LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1)
     Else Begin
       LineItem.Line := -2;
@@ -10532,7 +10551,7 @@ Begin
     With Info^ Do Begin
       VarIdx := Round(Val);
       varName := Str;
-      If Error^.Line >= 0 Then Begin
+      If Error^.Line <> -2 Then Begin
         LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1);
       End Else Begin
         LineItem.Line := -2;
@@ -12975,7 +12994,7 @@ Var
 Begin
 
   With Info^ Do Begin
-    If Error^.Line >= 0 Then
+    If Error^.Line <> -2 Then
       LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement +1)
     Else Begin
       LineItem.Line := -2;
@@ -12992,7 +13011,7 @@ Var
 Begin
 
   With Info^ Do Begin
-    If Error^.Line >= 0 Then
+    If Error^.Line <> -2 Then
       LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1)
     Else Begin
       LineItem.Line := -2;
@@ -13489,7 +13508,7 @@ Begin
   // This can be called by ON RESTORE so just to be safe, we stack the next statement.
 
   With Info^ Do Begin
-    If Error^.Line >= 0 Then
+    If Error^.Line <> -2 Then
       LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1)
     Else Begin
       LineItem.Line := -2;
@@ -16489,7 +16508,7 @@ Begin
 
   With Info^ Do Begin
 
-    If Error^.Line >= 0 Then
+    If Error^.Line <> -2 Then
       LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1)
     Else Begin
       LineItem.Line := -2;
@@ -17424,7 +17443,7 @@ FoundIt:
         // Push the return address
 
         If CallType = 0 Then Begin
-          If Error.Line >= 0 Then
+          If Error.Line <> -2 Then
             TempLine := SP_ConvertLineStatement(Error.Line, Error.Statement + 1)
           Else Begin
             TempLine.Line := -2;
@@ -18124,10 +18143,10 @@ Begin
     SP_StackPtr^.Str := PadStr + ResultStr + #13;
     SP_Interpret_PRINT(Info);
 
-    Files.Free;
-    FileSizes.Free;
-
   End;
+
+  Files.Free;
+  FileSizes.Free;
 
 End;
 
@@ -21630,7 +21649,7 @@ Begin
     VarPtr := Ptr;
     If OpType = SP_STRVAR Then VarName := VarName + '$';
     With Info^ Do Begin
-      If Error^.Line >= 0 Then Begin
+      If Error^.Line <> -2 Then Begin
         LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1);
       End Else Begin
         LineItem.Line := -2;
@@ -21667,7 +21686,7 @@ Begin
     VarName := Str + '$';
     VarPtr := Ptr;
     With Info^ Do Begin
-      If Error^.Line >= 0 Then Begin
+      If Error^.Line <> -2 Then Begin
         LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1);
       End Else Begin
         LineItem.Line := -2;
@@ -21710,7 +21729,7 @@ Begin
       If OpType = SP_STRVAR Then Begin
         VarName := VarName + '$';
       End;
-      If Error^.Line >= 0 Then Begin
+      If Error^.Line <> -2 Then Begin
         LineItem := SP_ConvertLineStatement(Error^.Line, Error^.Statement + 1);
       End Else Begin
         LineItem.Line := -2;

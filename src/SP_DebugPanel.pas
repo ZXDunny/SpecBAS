@@ -452,6 +452,8 @@ Begin
               AddHeader(' Result', Max(7, MaxP) * iFW);
               Sort(0);
               Enabled := True;
+              OldExprs.Free;
+              OldWatches.Free;
             End;
           End;
         2: // Breakpoints

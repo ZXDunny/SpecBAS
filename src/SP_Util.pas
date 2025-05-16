@@ -62,7 +62,6 @@ Function  SP_Copy(Const Src: aString; Start: Integer): aString; overload; inline
 Function  SP_CopyClrs(Const Src: aString; Start, Len: Integer): aString;
 Function  StringCopy(Str: paString; Start, Len: Integer): aString; inline;
 Function  StringFromPtr(Ptr: pByte; Len: Integer): aString; inline;
-Function  StringFromPtrB(Ptr: pByte; Len: Integer): aString; inline;
 Procedure StringFromPtrD(Const Src: aString; Var Dest: aString); inline;
 Procedure FillMem(Dst: pByte; Len: LongWord; Value: Byte); inline;
 Procedure ZeroMem(Dst: pByte; Len: LongWord); inline;
@@ -454,62 +453,12 @@ Begin
 
 End;
 
-Function StringFromPtr(Ptr: pByte; Len: Integer): aString; inline;
-Var
-  dPtr: pByte;
+Function StringFromPtr(Ptr: pByte; Len: Integer): aString;
 Begin
 
   SetLength(Result, Len);
-  dPtr := pByte(pNativeUInt(@Result)^);
+  Move(ptr^, PAnsiChar(Result)^, Len);
 
-  Move(Ptr^, dPtr^, Len);
-{
-  While Len > SizeOf(LongWord) Do Begin
-    pLongWord(dPtr)^ := pLongWord(Ptr)^;
-    Inc(pLongWord(Ptr));
-    Inc(pLongWord(dPtr));
-    Dec(Len, SizeOf(LongWord));
-  End;
-  If Len = SizeOf(LongWord) Then Begin
-    pLongWord(dPtr)^ := pLongWord(Ptr)^;
-    Exit;
-  End;
-  While Len > 0 Do Begin
-    dPtr^ := Ptr^;
-    Inc(Ptr);
-    Inc(dPtr);
-    Dec(Len);
-  End;
-}
-End;
-
-Function StringFromPtrB(Ptr: pByte; Len: Integer): aString; inline;
-Var
-  dPtr: pByte;
-Begin
-
-  SetLength(Result, Len);
-  dPtr := pByte(pNativeUInt(@Result)^);
-
-  Move(Ptr^, dPtr^, Len);
-{
-  While Len > SizeOf(LongWord) Do Begin
-    pLongWord(dPtr)^ := pLongWord(Ptr)^;
-    Inc(pLongWord(Ptr));
-    Inc(pLongWord(dPtr));
-    Dec(Len, SizeOf(LongWord));
-  End;
-  If Len = SizeOf(LongWord) Then Begin
-    pLongWord(dPtr)^ := pLongWord(Ptr)^;
-    Exit;
-  End;
-  While Len > 0 Do Begin
-    dPtr^ := Ptr^;
-    Inc(Ptr);
-    Inc(dPtr);
-    Dec(Len);
-  End;
-}
 End;
 
 Procedure StringFromPtrD(Const Src: aString; Var Dest: aString); inline;

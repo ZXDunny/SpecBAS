@@ -212,6 +212,7 @@ Begin
 
   InterpreterThreadAlive := True;
   Priority := tpNormal;
+  FreeOnTerminate := True;
 
   SP_MainLoop;
   InterpreterThreadAlive := False;
@@ -539,6 +540,8 @@ begin
   While InterpreterThreadAlive {$IFDEF RefreshThread} And RefreshThreadAlive{$ENDIF} Do
     CB_YIELD;
 
+  PARAMS.Free;
+
 end;
 
 Procedure MouseMoveTo(ToX, ToY: Integer);
@@ -592,6 +595,7 @@ begin
   EXENAME := ParamStr(0);
   PayLoad := TPayLoad.Create(EXENAME);
   PAYLOADPRESENT := PayLoad.HasPayLoad;
+  PayLoad.Free;
 
   {$IFDEF OPENGL}
   DisplayFlip := False;
@@ -1118,7 +1122,6 @@ Begin
 
   Quitting := True;
   PostMessage(Main.Handle, WM_CLOSE, 0, 0);
-  PARAMS.Free;
 
 End;
 

@@ -3784,25 +3784,28 @@ End;
 Procedure SP_CheckEvents;
 Var
   Idx: Integer;
+  Event: SP_EditorEvent;
 Begin
 
   Idx := 0;
   If Length(Events) > 0 Then Begin
-    While Idx < Length(Events) Do
-      With Events[Idx] Do Begin
+    While Idx < Length(Events) Do Begin
+      Event := Events[Idx];
+      With Event Do Begin
+        If OneShot Then
+          SP_DeleteEventByIndex(Idx)
+        Else
+          Inc(Idx);
         Case evType of
           evtRefreshLine:
             SP_DisplayFPListing(Tag);
         Else
           If FRAMES >= TargetFrame Then
-            If Assigned(Events[Idx].OnLaunch) Then
-              SP_LaunchEvent(@Events[Idx]);
+            If Assigned(Event.OnLaunch) Then
+              SP_LaunchEvent(@Event);
         End;
-        If OneShot Then
-          SP_DeleteEventByIndex(Idx)
-        Else
-          Inc(Idx);
       End;
+    End;
   End;
 
 End;

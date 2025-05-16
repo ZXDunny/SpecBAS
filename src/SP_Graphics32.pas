@@ -3028,7 +3028,10 @@ Begin
            22:
               Begin // AT control
                 X := 0; Y := 0;
-                SP_ConvertToOrigin_i(X, Y);
+                If WINORIGIN Then Begin
+                  X := Round(X - SORGX);
+                  Y := Round(Y - SORGY);
+                End;
                 Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer));
                 Inc(X, pInteger(@Text[Idx+1])^ * Cw);
@@ -3047,7 +3050,8 @@ Begin
            24:
               Begin // CENTRE control
                 Y := 0;
-                SP_ConvertToOrigin_i_y(Y);
+                If WINORIGIN Then
+                  Y := Round(Y - SORGY);
                 Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer) +1);
                 pIdx := pByte(@Text[Idx]);
@@ -3341,7 +3345,10 @@ Begin
          22:
             Begin // AT control
               X := 0; Y := 0;
-              SP_ConvertToOrigin_i(X, Y);
+              If WINORIGIN Then Begin
+                X := Round(X - SORGX);
+                Y := Round(Y - SORGY);
+              End;
               Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer));
               Inc(X, pInteger(@Text[Idx+1])^ * Cw);
@@ -3360,7 +3367,8 @@ Begin
          24:
             Begin // CENTRE control
               Y := 0;
-              SP_ConvertToOrigin_i_y(Y);
+              If WINORIGIN Then
+                Y := Round(Y - SORGY);
               Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer) +1);
               pIdx := pByte(@Text[Idx]);
@@ -3689,7 +3697,10 @@ Begin
            22:
               Begin // AT control
                 X := 0; Y := 0;
-                SP_ConvertToOrigin_i(X, Y);
+                If WINORIGIN Then Begin
+                  X := Round(X - SORGX);
+                  Y := Round(Y - SORGY);
+                End;
                 Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer));
                 Inc(X, pInteger(@Text[Idx+1])^ * Cw);
@@ -3708,7 +3719,8 @@ Begin
            24:
               Begin // CENTRE control
                 Y := 0;
-                SP_ConvertToOrigin_i_y(Y);
+                If WINORIGIN Then
+                  Y := Round(Y - SORGY);
                 Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer) +1);
                 pIdx := pByte(@Text[Idx]);
@@ -3997,7 +4009,10 @@ Begin
          22:
             Begin // AT control
               X := 0; Y := 0;
-              SP_ConvertToOrigin_i(X, Y);
+              If WINORIGIN Then Begin
+                X := Round(X - SORGX);
+                Y := Round(Y - SORGY);
+              End;
               Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer));
               Inc(X, pInteger(@Text[Idx+1])^ * Cw);
@@ -4016,7 +4031,8 @@ Begin
          24:
             Begin // CENTRE control
               Y := 0;
-              SP_ConvertToOrigin_i_y(Y);
+              If WINORIGIN Then
+                Y := Round(Y - SORGY);
               Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer) +1);
               pIdx := pByte(@Text[Idx]);

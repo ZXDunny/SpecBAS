@@ -391,6 +391,7 @@ pSP_BaseComponent = ^SP_BaseComponent;
 Var
 
   GlobalControlID: Integer = 0;
+  GlobalComponentCount: Integer = 0;
 
 Const
 
@@ -1401,6 +1402,8 @@ Var
   l: Integer;
 Begin
 
+  Inc(GlobalComponentCount);
+
   Aligning := False;
   RegisterProperties;
   RegisterMethods;
@@ -1482,6 +1485,8 @@ Var
   Idx, Idx2: Integer;
   cp: SP_BaseComponent;
 Begin
+
+  Dec(GlobalComponentCount);
 
   DisplaySection.Enter;
 
@@ -1754,6 +1759,7 @@ Var
 Begin
 
   If Enabled Then
+
     If b Then Begin
 
       ParentCanFocus := True;
@@ -3345,6 +3351,5 @@ Begin
   Unlock;
 
 End;
-
 
 end.

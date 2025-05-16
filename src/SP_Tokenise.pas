@@ -1314,6 +1314,7 @@ Const
   SP_CHAR_EXCLAIM           = '!';
   SP_CHAR_TILDE             = '~';
 
+  SP_PR_EVENT               = 3;
   SP_PR_STOP                = 2;
   SP_PR_RUN                 = 1;
 

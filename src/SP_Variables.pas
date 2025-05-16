@@ -236,6 +236,10 @@ Function  SP_SearchStrArrayNext(Const Name: aString; Var Error: TSP_ErrorCode): 
 Function  SP_ValueInNumArray(Const Name: aString; Term: aFloat; Var Error: TSP_ErrorCode): Boolean;
 Function  SP_StringInStrArray(Const Name: aString; Term: aString; Var Error: TSP_ErrorCode): Boolean;
 
+Procedure SP_ClearVars;
+Procedure FinalizeNumArray(Idx: Integer);
+Procedure FinalizeStrArray(Idx: Integer);
+
 Var
 
   NumVars: Array of pSP_NUMVAR;
@@ -248,6 +252,8 @@ Var
   SP_NextCount: Integer;
   NVLen, SVLen, NumNV, NumSV: Integer;
   logtext: astring;
+
+  hash: pHashEntry;
 
 Const
 
@@ -277,7 +283,7 @@ Function New_StrVarContent: pSP_StrVarContent; inline;
 Begin
   Result := New(pSP_StrVarContent);
   With Result^ Do Begin
-    FillChar(Result^, SizeOf(TSP_NumVarContent), 0);
+    FillChar(Result^, SizeOf(TSP_StrVarContent), 0);
     Value := '';
     VarType := SP_NumVar;
     EachTokens := '';
@@ -398,25 +404,23 @@ End;
 Function SP_NewNumVar: Integer;
 Begin
   Inc(NumNV);
-  If NumNV >= NVLen Then Begin
+  Result := NumNV -1;
+  If NumNV > NVLen Then Begin
     Inc(NVLen);
     SetLength(NumVars, NVLen);
-  End;
-  Result := NumNV -1;
-  If NumVars[Result] = nil Then
     NumVars[Result] := New(pSP_NumVar);
+  End;
 End;
 
 Function SP_NewStrVar: Integer;
 Begin
   Inc(NumSV);
-  If NumSV >= SVLen Then Begin
+  Result := NumSV -1;
+  If NumSV > SVLen Then Begin
     Inc(SVLen);
     SetLength(StrVars, SVLen);
-  End;
-  Result := NumSV -1;
-  If StrVars[Result] = nil Then
     StrVars[Result] := New(pSP_StrVar);
+  End;
 End;
 
 Procedure SP_ResizeNumVars(Size: Integer); Inline;
@@ -1163,6 +1167,8 @@ Var
   Ptr, nPtr: pHashEntry;
 Begin
 
+  FinalizeNumArray(Idx);
+
   For pIdx := 0 To Length(NumArrays[Idx].Values) -1 Do
     Dispose(NumArrays[Idx].Values[pIdx]);
   SetLength(NumArrays[Idx].Values, 0);
@@ -1726,6 +1732,8 @@ Var
   pIdx: Integer;
   ptr, nPtr: pHashEntry;
 Begin
+
+  FinalizeStrArray(Idx);
 
   For pIdx := 0 To Length(StrArrays[Idx].Strings) -1 Do
     Dispose(StrArrays[Idx].Strings[pIdx]);
@@ -4456,6 +4464,68 @@ Begin
     SP_ResizeStrVars(VarOffsetS);
 
   End;
+
+End;
+
+// Clean your shit up
+
+procedure FinalizeNumVars;
+var
+  i: Integer;
+begin
+  for i := 0 to High(NumVars) do
+  begin
+    if Assigned(NumVars[i]) then
+    begin
+      Finalize(NumVars[i]^.Content); // Frees EachTokens and Key
+      Finalize(NumVars[i]^);         // Frees Name
+      Dispose(NumVars[i]);           // Frees the record itself
+      NumVars[i] := nil;
+    end;
+  end;
+  SetLength(NumVars, 0);
+end;
+
+procedure FinalizeStrVars;
+var
+  i: Integer;
+begin
+  for i := 0 to High(StrVars) do
+  begin
+    if Assigned(StrVars[i]) then
+    begin
+      Finalize(StrVars[i]^.Content); // Frees EachTokens and Key
+      Finalize(StrVars[i]^);         // Frees Name
+      Dispose(StrVars[i]);           // Frees the record itself
+      StrVars[i] := nil;
+    end;
+  end;
+  SetLength(NumVars, 0);
+end;
+
+Procedure FinalizeStrArray(Idx: Integer);
+Var
+  i: Integer;
+Begin
+  For i := 0 To High(StrArrays[Idx].Strings) Do
+    Finalize(StrArrays[Idx].Strings[i]^);
+End;
+
+Procedure FinalizeNumArray(Idx: Integer);
+Var
+  i: Integer;
+Begin
+  For i := 0 To High(NumArrays[Idx].Values) Do
+    Finalize(NumArrays[Idx].Values[i]^);
+End;
+
+Procedure SP_ClearVars;
+Begin
+
+  SP_TruncateNumArrays(-1);
+  SP_TruncateStrArrays(-1);
+  FinalizeNumVars;
+  FinalizeStrVars;
 
 End;
 

@@ -1122,6 +1122,8 @@ Begin
       If (Bank^.DataType = SP_SPRITE_BANK) or (Bank^.DataType = SP_WINDOW_BANK) Then Begin
         SP_BankList[Idx2]^.Protection := False;
         SP_BankList[Idx2]^.System := False;
+        If (Bank^.DataType = SP_WINDOW_BANK) and Assigned(pSP_Window_Info(@Bank^.Info[0]).Component) Then
+          pSP_Window_Info(@Bank^.Info[0]).Component.Free;
         SP_DeleteBank(Idx2, Error);
       End Else
         Inc(Idx2);
@@ -2380,7 +2382,10 @@ Begin
               Inc(Idx, SizeOf(Integer));
               X := pInteger(@Text[Idx+1])^ * Cw;
               Inc(Idx, SizeOf(Integer));
-              SP_ConvertToOrigin_i(X, Y);
+              If WINORIGIN Then Begin
+                X := Round(X - SORGX);
+                Y := Round(Y - SORGY);
+              End;
             End;
          23:
             Begin // TAB control
@@ -2395,7 +2400,8 @@ Begin
          24:
             Begin // CENTRE control
               Y := 0;
-              SP_ConvertToOrigin_i_y(Y);
+              If WINORIGIN Then
+                Y := Round(Y - SORGY);
               Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
               Inc(Idx, SizeOf(Integer) +1);
               pIdx := pByte(@Text[Idx]);
@@ -5417,7 +5423,10 @@ Begin
            22:
               Begin // AT control
                 X := 0; Y := 0;
-                SP_ConvertToOrigin_i(X, Y);
+                If WINORIGIN Then Begin
+                  X := Round(X - SORGX);
+                  Y := Round(Y - SORGY);
+                End;
                 Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer));
                 Inc(X, pInteger(@Text[Idx+1])^ * Cw);
@@ -5436,7 +5445,8 @@ Begin
            24:
               Begin // CENTRE control
                 Y := 0;
-                SP_ConvertToOrigin_i_y(Y);
+                If WINORIGIN Then
+                  Y := Round(Y - SORGY);
                 Inc(Y, pInteger(@Text[Idx+1])^ * Ch);
                 Inc(Idx, SizeOf(Integer) +1);
                 pIdx := pByte(@Text[Idx]);

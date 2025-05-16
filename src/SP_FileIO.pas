@@ -2473,6 +2473,9 @@ Begin
 
       Error.Code := SP_ERR_FILE_MISSING;
 
+    Files.Free;
+    FileSizes.Free;
+
   End;
 
 End;

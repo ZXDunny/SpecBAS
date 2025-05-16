@@ -160,7 +160,7 @@ Begin
     Repeat
       CB_YIELD;
     Until Not CompilerRunning;
-    FreeAndNil(CompilerThread);
+    CompilerThread := nil;
   End;
 
 End;
@@ -188,6 +188,7 @@ Begin
   CompilerRunning := True;
   CompilerBusy := False;
   Finish := False;
+  FreeOnTerminate := True;
 
   While Not (QUITMSG or Finish) Do Begin
 

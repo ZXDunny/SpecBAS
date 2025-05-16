@@ -70,8 +70,8 @@ End;
 Destructor SP_FileListBox.Destroy;
 Begin
 
-  Inherited;
   fFilterList.Free;
+  Inherited;
 
 End;
 

@@ -115,7 +115,7 @@ Type
 Var
   Tkn, Tkn2: pToken;
   Idx, Idx2, Idx3, Idx4, sIdx, pStatement,
-  LabelPos, LabelLen, ProcIdx, LastStrAt, LastStrLen, DATALine, DATAStatement: Integer;
+  LabelPos, LabelLen, ProcIdx, LastStrAt, LastStrLen, DATALine, DATAStatement, TokenLen: Integer;
   Tokens, Name, s: aString;
   Changed, Reference, NewStatement, IsVar: Boolean;
   TempLine, cLine: TSP_GOSUB_Item;
@@ -137,10 +137,6 @@ Begin
   INPROC := 0;
 
   If ClearVars Then Begin
-    SVLen := 0;
-    NVLen := 0;
-    SetLength(NumVars, 0);
-    SetLength(StrVars, 0);
     SP_ResizeNumVars(0);
     SP_ResizeStrVars(0);
     SP_ClearStructs;
@@ -401,6 +397,7 @@ Begin
         StrPtr := @Tokens[Idx2];
         Tkn := pToken(StrPtr);
         If Tkn^.Token = SP_TERMINAL Then Break;
+        TokenLen := Tkn^.TokenLen;
         If ClearVars then Tkn^.Cache := 0;
         Inc(Idx2, SizeOf(TToken)); // Idx2 now points to content
         Case Tkn^.Token of
@@ -419,7 +416,7 @@ Begin
             Begin
               IsVar := True;
               If Tkn^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then Begin
-                Name := StringFromPtrB(@Tokens[Idx2 + SizeOf(LongWord)], Tkn^.TokenLen - SizeOf(LongWord));
+                Name := StringFromPtr(@Tokens[Idx2 + SizeOf(LongWord)], Tkn^.TokenLen - SizeOf(LongWord));
                 If Name[1] > #127 Then Begin
                   // A high bit set on the first char of the var name indicates a hybrid function -
                   // a function that can be written to. Convert to that token type now.
@@ -470,6 +467,7 @@ Begin
                         End;
                     End;
                     Tkn := Tkn2;
+                    TokenLen := Tkn^.TokenLen;
                   End;
                 SP_KW_DATA: // if this is the first time we find DATA then store the location for later
                   If DATALine = -1 Then Begin
@@ -495,7 +493,7 @@ Begin
                       SP_FixStatementList(Tokens, LastStrAt, Length(s) - LastStrLen);
                   End;
               End;
-              Inc(Idx2, Tkn^.TokenLen);
+              Inc(Idx2, TokenLen);
             End;
           SP_LABEL:
             Begin
@@ -1008,7 +1006,7 @@ Begin
 
             // Check if we're trying to assign to a constant - that's a no-no.
 
-            Name := StringFromPtrB(@Tokens[Idx + SizeOf(LongWord)], Tkn^.TokenLen - SizeOf(LongWord));
+            Name := StringFromPtr(@Tokens[Idx + SizeOf(LongWord)], Tkn^.TokenLen - SizeOf(LongWord));
             If Tkn^.Token in [SP_STRVAR_LET, SP_STRVAR_LET_VALID] Then Name := Name + '$';
             Idx2 := 0;
             While (Idx2 < NUMCONSTS) And (Constants[Idx2].Name <> Name) Do Inc(Idx2);
@@ -1029,7 +1027,7 @@ Begin
             // I cannot think of anywhere that this should be able to be used. It basically stacks a variable name
             // for use later on, and the only uses would be assignment. Unlike stringvars, numvars cannot be sliced.
 
-            Name := StringFromPtrB(@Tokens[Idx + SizeOf(LongWord)], Tkn^.TokenLen - SizeOf(LongWord));
+            Name := StringFromPtr(@Tokens[Idx + SizeOf(LongWord)], Tkn^.TokenLen - SizeOf(LongWord));
             Idx2 := 0;
             While (Idx2 < NUMCONSTS) And (Constants[Idx2].Name <> Name) Do Inc(Idx2);
             If Idx2 < NUMCONSTS Then Begin
@@ -1050,7 +1048,7 @@ Begin
             // A stringvar reference might be a const. Grab the name of the variable, and flag it if it's a declared constant.
             // A possible slice operation can then pick it up later.
 
-            Name := StringFromPtrB(@Tokens[Idx + SizeOf(LongWord)], Tkn^.TokenLen - SizeOf(LongWord)) + '$';
+            Name := StringFromPtr(@Tokens[Idx + SizeOf(LongWord)], Tkn^.TokenLen - SizeOf(LongWord)) + '$';
             Idx2 := 0;
             While (Idx2 < NUMCONSTS) And (Constants[Idx2].Name <> Name) Do Inc(Idx2);
             If Idx2 < NUMCONSTS Then

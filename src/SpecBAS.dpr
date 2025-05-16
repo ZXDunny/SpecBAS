@@ -23,21 +23,30 @@ program SpecBAS;
 {$ENDIF}
 
 uses
-  {$IFnDEF FPC}
+  {$IFDEF DEBUG}
+  FastMM4,
+  madExcept,
+  madLinkDisAsm,
+  madListHardware,
+  madListProcesses,
+  madListModules,
+  {$ENDIF}
+  {$IFNDEF FPC}
   Windows,
   {$ELSE}
   Interfaces,
   {$ENDIF }
   Forms,
   SP_Display,
-  MainForm in 'MainForm.pas' {Main},
-  SP_Compiler in 'SP_Compiler.pas';
+  MainForm in 'MainForm.pas' {Main};
 
 {$R *.res}
 begin
-  {$IFDEF DELPHI}
+  {$IFNDEF FPC}
   SetProcessDPIAware;
+  {$IFDEF DEBUG}
   ReportMemoryLeaksOnShutdown := True;
+  {$ENDIF}
   {$ENDIF}
   Application.Initialize;
   Application.MainFormOnTaskbar := True;

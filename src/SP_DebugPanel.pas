@@ -46,6 +46,7 @@ var
   FPDebugBPEdt: SP_Button;
   FPPoIList: Array of SP_PoIInfo;
   DebugCurWindow: Integer;
+  LastDebugPanelIndex: Integer;
 
 Const
 
@@ -160,6 +161,7 @@ Begin
     AddItem('Labels');
     AddItem('Procedures/Functions');
     AddItem('Character Set');
+    ItemIndex := LastDebugPanelIndex;
     CanFocus := False;
     FPDebugPanel.SetBounds(Left, Top + Height + BSize, Width, FPPaperHeight - (Height + BSize));
     FPDebugPanel.BackgroundClr := debugPanel;
@@ -626,8 +628,8 @@ End;
 Class Procedure SP_DebugPanelActionProcs.PanelSwitch(Sender: SP_BaseComponent; Text: aString);
 Begin
 
+  LastDebugPanelIndex := FPDebugCombo.ItemIndex;
   SP_FPUpdatePoIList;
-  SP_FillDebugPanel;
 
 End;
 

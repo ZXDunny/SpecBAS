@@ -227,7 +227,7 @@ Begin
 
   RegisterProperty('caption', Get_Caption, Set_Caption, ':s|s');
   RegisterProperty('captionpos', Get_CaptionPos, Set_CaptionPos, ':v,v|v,v');
-  RegisterProperty('state', Get_State, Set_State, ':v|v');
+  RegisterProperty('pressed', Get_State, Set_State, ':v|v');
 
 End;
 
@@ -262,21 +262,21 @@ End;
 
 Procedure SP_Button.Set_State(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
-  If s = 'normal' Then
-    State := spNormal
+  If StringToInt(s) <> 0 Then
+    State := spPressed
   Else
-    If s = 'pressed' Then
-      State := spPressed
-    Else
-      Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+    If StringToInt(s) = 0 Then
+      State := spNormal
+  Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
 End;
 
 Function SP_Button.Get_State: aString;
 Begin
   If State = spPressed Then
-    Result := 'pressed'
+    Result := '1'
   Else
-    Result := 'normal';
+    Result := '0';
 End;
 
 end.

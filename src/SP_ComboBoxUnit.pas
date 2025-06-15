@@ -227,7 +227,7 @@ End;
 Procedure SP_ComboBox.SetHighlightClr(c: Byte);
 Begin
 
-  Menu.HightlightClr := c;
+  Menu.HighlightClr := c;
   Paint;
 
 End;
@@ -543,13 +543,13 @@ End;
 
 Procedure SP_ComboBox.Set_Item(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Var
-  Idx: Integer;
+  Idx, p: Integer;
 Begin
 
-  Idx := Pos(':', s);
-  If Idx >= 0 Then Begin
-    Idx := StringToInt(Copy(s, 1, Idx -1));
-    s := Copy(s, Idx);
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
     If (Idx >= 0) And (Idx < Count) Then
       Menu.SetItemCaption(Idx, s);
   End Else
@@ -560,28 +560,28 @@ End;
 Function SP_ComboBox.Get_Item: aString;
 Begin
 
-  Result := GetCaption(StringToInt(fUserParam));
+  Result := GetCaption(StringToInt(fUserParam) -1);
 
 End;
 
 Function SP_ComboBox.Get_IndexOf: aString;
 Begin
 
-  Result := IntToString(Menu.Find(fUserParam));
+  Result := IntToString(Menu.Find(fUserParam) +1);
 
 End;
 
 Procedure SP_ComboBox.Set_Index(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
 
-  ItemIndex := StringToInt(s);
+  ItemIndex := StringToInt(s) -1;
 
 End;
 
 Function SP_ComboBox.Get_Index: aString;
 Begin
 
-  Result := IntToString(ItemIndex);
+  Result := IntToString(ItemIndex +1);
 
 End;
 
@@ -696,7 +696,7 @@ Var
   i: Integer;
 Begin
 
-  i := StringToInt(Params[0], -1);
+  i := StringToInt(Params[0], 0) -1;
   If (i >= 0) And (i < Menu.Count) then
     InsertItem(Params[1], i)
   Else
@@ -709,7 +709,7 @@ Var
   i: Integer;
 Begin
 
-  i := StringToInt(Params[0], -1);
+  i := StringToInt(Params[0], 0) -1;
   If (i >= 0) And (i < Menu.Count) then
     Menu.DeleteItem(i)
   Else
@@ -729,8 +729,8 @@ Var
   i, j: Integer;
 Begin
 
-  i := StringToInt(Params[0], -1);
-  j := StringToInt(Params[1], -1);
+  i := StringToInt(Params[0], 0) -1;
+  j := StringToInt(Params[1], 0) -1;
   If (i >= 0) And (i < Menu.Count) And (j >= 0) And (j < Menu.Count) Then
     Menu.MoveItem(i, j);
 

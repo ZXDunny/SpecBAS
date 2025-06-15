@@ -2,7 +2,7 @@ unit SP_PopUpMenuUnit;
 
 interface
 
-Uses Types, SP_Util, SP_BaseComponentUnit;
+Uses Types, SP_Errors, SP_Util, SP_BaseComponentUnit;
 
 Type
 
@@ -61,6 +61,10 @@ SP_PopupMenu = Class(SP_BaseComponent)
     fAltDown: Boolean;
     fShortcutLen: Integer;
     fCapOfs: Integer;
+
+    Compiled_OnSelect,
+    User_OnSelect: aString;
+
     Procedure CalculateSizes;
     Procedure Draw; Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
@@ -99,12 +103,36 @@ SP_PopupMenu = Class(SP_BaseComponent)
     Property  MenuItems[Index: Integer]: SP_MenuItem read GetItem write SetItem;
     Property  IgnoreMouseUp: Boolean read fIgnoreMouseUp write fIgnoreMouseUp;
     Property  OnPopUp: SP_PopupEvent read fOnPopUp write fOnPopUp;
-    Property  HightlightClr: Byte read fHighlightClr write SetHighlightClr;
+    Property  HighlightClr: Byte read fHighlightClr write SetHighlightClr;
     Property  SeparatorClr: Byte read fSepClr write SetSeparatorClr;
     Property  LastClicked: SP_MenuItem read fClicked write fClicked;
 
     Constructor Create(Owner: SP_BaseComponent; ParentMenu: SP_BaseComponent);
     Destructor  Destroy; Override;
+
+    // User Properties
+
+    Procedure RegisterProperties; Override;
+    Procedure Set_Item(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Item: aString;
+    Procedure Set_ItemEnabled(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ItemEnabled: aString;
+    Procedure Set_ItemChecked(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ItemChecked: aString;
+    Procedure Set_ItemCheckable(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ItemCheckable: aString;
+    Procedure Set_ItemVisible(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ItemVisible: aString;
+    Procedure Set_ItemSubMenu(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ItemSubMenu: aString;
+    Procedure Set_OnSelect(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnSelect: aString;
+    Procedure Set_HiLightClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_HilightClr: aString;
+    Procedure Set_SepClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_SepClr: aString;
+    Function  Get_Count: aString;
+    Function  Get_IndexOf: aString;
+    Function  Get_Clicked: aString;
+
+    Procedure RegisterMethods; Override;
+    Procedure Method_Clear(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Move(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Add(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Insert(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Delete(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_PopUp(Params: Array of aString; Var Error: TSP_ErrorCode);
 
 End;
 
@@ -114,7 +142,7 @@ Function ShortCutToString(i: Integer): aString;
 
 implementation
 
-Uses Math, SP_WindowMenuUnit, SP_BankFiling, SP_Components, SP_Graphics, SP_Input, SP_SysVars, SP_Sound, SP_FPEditor, SP_Tokenise;
+Uses Math, SP_WindowMenuUnit, SP_BankFiling, SP_Components, SP_Graphics, SP_Input, SP_SysVars, SP_Sound, SP_FPEditor, SP_Tokenise, SP_Interpret_PostFix;
 
 // SP_PopupMenu
 
@@ -176,7 +204,7 @@ Begin
 
   Inherited Create(Owner);
 
-  fTypeName := 'spFloatMenu';
+  fTypeName := 'spSubMenu';
 
   fTransparentClr := 3;
   PrevFocusedControl := FocusedControl;
@@ -235,7 +263,7 @@ Begin
   fHighlightClr := c;
   For i := 0 To Length(fItems) -1 Do
     If Assigned(fItems[i].SubMenu) Then
-      fItems[i].SubMenu.HightlightClr := c;
+      fItems[i].SubMenu.HighlightClr := c;
 
   Paint;
 
@@ -587,6 +615,7 @@ Var
   i: Integer;
 Begin
 
+  fItems[Index].Free;
   For i := Index To Length(fItems) -2 Do
     fItems[i] := fItems[i +1];
   SetLength(fItems, Length(fItems) -1);
@@ -600,8 +629,12 @@ Begin
 End;
 
 Procedure SP_PopUpMenu.Clear;
+Var
+  i: Integer;
 Begin
 
+  For i := 0 To Length(fItems) -1 Do
+    fItems[i].Free;
   SetLength(fItems, 0);
   CalculateSizes;
 
@@ -732,10 +765,18 @@ Begin
     If Assigned(fParentMenu) Then Begin
       p := fParentMenu.ScreenToClient(ClientToScreen(Point(X, Y)));
       if PtInRect(fParentMenu.BoundsRect, p) Then Begin
-        Item := ItemAtPos(p.X, p.Y);
-        If (item >= 0) And ((SP_PopUpMenu(fParentMenu).fItems[Item].SubMenu = Self) or Not (SP_PopUpMenu(fParentMenu).fItems[Item].Enabled)) Then Begin
-          fIgnoreMouseUp := True;
-          Exit;
+        If fParentMenu is SP_WindowMenu Then Begin
+          Item := SP_WindowMenu(fParentMenu).ItemAtPos(p.X, p.Y);
+          If (item >= 0) And ((SP_WindowMenu(fParentMenu).fItems[Item].SubMenu = Self) or Not (SP_WindowMenu(fParentMenu).fItems[Item].Enabled)) Then Begin
+            fIgnoreMouseUp := True;
+            Exit;
+          End;
+        End Else Begin
+          Item := SP_PopUpMenu(fParentMenu).ItemAtPos(p.X, p.Y);
+          If (item >= 0) And ((SP_PopUpMenu(fParentMenu).fItems[Item].SubMenu = Self) or Not (SP_PopUpMenu(fParentMenu).fItems[Item].Enabled)) Then Begin
+            fIgnoreMouseUp := True;
+            Exit;
+          End;
         End;
       End Else
         If Not (SP_BaseComponent(fParentMenu) is SP_WindowMenu) Then
@@ -803,8 +844,12 @@ Begin
       LastClicked := fItems[i];
       If (Item <> -1) and (fItems[Item].Caption <> '-') Then Begin
         CloseAll;
-        If fItems[i].Enabled And Assigned(fItems[i].OnClick) Then
-          fItems[i].OnClick(Self, i);
+        If fItems[i].Enabled Then Begin
+          If Assigned(fItems[i].OnClick) Then
+            fItems[i].OnClick(Self, i);
+          If Not Locked And (Compiled_OnSelect <> '') Then
+            SP_AddOnEvent(Compiled_OnSelect);
+        End;
       End;
     End Else
       If ((Item <> -1) and (fItems[Item].Caption <> '-')) or (Item = -1) Then
@@ -857,6 +902,8 @@ Begin
     fItems[Item].OnClick(Self, Item);
     fParentWindowID := oPW;
   End;
+  If Not Locked And (Compiled_OnSelect <> '') Then
+    SP_AddOnEvent(Compiled_OnSelect);
   Paint;
 End;
 
@@ -1153,6 +1200,390 @@ Begin
   InsertItem(fItems[Item1], Item2);
   If Item1 > Item2 Then Inc(Item1);
   DeleteItem(Item1);
+
+End;
+
+// User Properties
+
+Procedure SP_PopUpMenu.RegisterProperties;
+Begin
+
+  Inherited;
+  RegisterProperty('item', Get_Item, Set_Item, 'v:s|v:s');
+  RegisterProperty('itemenabled', Get_ItemEnabled, Set_ItemEnabled, 'v:v|v:v');
+  RegisterProperty('itemchecked', Get_ItemChecked, Set_ItemChecked, 'v:v|v:v');
+  RegisterProperty('itemcancheck', Get_ItemCheckable, Set_ItemCheckable, 'v:v|v:v');
+  RegisterProperty('itemvisible', Get_ItemVisible, Set_ItemVisible, 'v:v|v:v');
+  RegisterProperty('itemsubmenu', Get_ItemSubMenu, Set_ItemSubMenu, 'v:v|v:v');
+  RegisterProperty('onselect', Get_OnSelect, Set_OnSelect, 'v:s|v:s');
+  RegisterProperty('hilightclr', Get_HilightClr, Set_HilightClr, 'v:v|v:v');
+  RegisterProperty('sepclr', Get_SepClr, Set_SepClr, 'v:v|v:v');
+  RegisterProperty('count', Get_Count, nil, ':v');
+  RegisterProperty('clicked', Get_Clicked, nil, ':v');
+  RegisterProperty('find', Get_IndexOf, nil, 's:v');
+
+End;
+
+Procedure SP_PopUpMenu.Set_Item(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx, p: Integer;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
+    If (Idx >= 0) And (Idx < Count) Then
+      MenuItems[idx].Caption := s;
+    Paint;
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_PopUpMenu.Get_Item: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam) -1;
+  If (Idx >= 0) And (Idx < Count) Then
+    Result := MenuItems[Idx].Caption;
+
+End;
+
+Procedure SP_PopUpMenu.Set_ItemCheckable(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx, p: Integer;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
+    If (Idx >= 0) And (Idx < Count) Then
+      MenuItems[idx].Checkable := StringToInt(s, Ord(MenuItems[Idx].Checkable)) <> 0;
+    Paint;
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_PopUpMenu.Get_ItemCheckable: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam) -1;
+  If (Idx >= 0) And (Idx < Count) Then
+    Result := IntToString(Ord(MenuItems[Idx].Checkable));
+
+End;
+
+Procedure SP_PopUpMenu.Set_ItemEnabled(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx, p: Integer;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
+    If (Idx >= 0) And (Idx < Count) Then
+      MenuItems[idx].Enabled := StringToInt(s, Ord(MenuItems[Idx].Enabled)) <> 0;
+    Paint;
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_PopUpMenu.Get_ItemEnabled: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam) -1;
+  If (Idx >= 0) And (Idx < Count) Then
+    Result := IntToString(Ord(MenuItems[Idx].Enabled));
+
+End;
+
+Procedure SP_PopUpMenu.Set_ItemChecked(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx, p: Integer;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
+    If (Idx >= 0) And (Idx < Count) Then
+      MenuItems[idx].Checked := StringToInt(s, Ord(MenuItems[Idx].Checked)) <> 0;
+    Paint;
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_PopUpMenu.Get_ItemChecked: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam) -1;
+  If (Idx >= 0) And (Idx < Count) Then
+    Result := IntToString(Ord(MenuItems[Idx].Checked));
+
+End;
+
+Procedure SP_PopUpMenu.Set_ItemVisible(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx, p: Integer;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
+    If (Idx >= 0) And (Idx < Count) Then
+      MenuItems[idx].Visible := StringToInt(s, Ord(MenuItems[Idx].Visible)) <> 0;
+    Paint;
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_PopUpMenu.Get_ItemVisible: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam) -1;
+  If (Idx >= 0) And (Idx < Count) Then
+    Result := IntToString(Ord(MenuItems[Idx].Visible));
+
+End;
+
+Procedure SP_PopUpMenu.Set_ItemSubMenu(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  ID, Idx, p: Integer;
+  Control: SP_BaseComponent;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
+    If (Idx >= 0) And (Idx < Count) Then Begin
+      ID := StringToInt(s, -1);
+      If ControlRegistry.TryGetValue(ID, Control) And (Control Is SP_PopUpMenu) Then
+        MenuItems[idx].fSubMenu := SP_PopUpMenu(Control);
+    End Else
+      Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_PopUpMenu.Get_ItemSubMenu: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam) -1;
+  If (Idx >= 0) And (Idx < Count) Then
+    Result := IntToString(MenuItems[Idx].fSubMenu.fIDNumber);
+
+End;
+
+Procedure SP_PopUpMenu.Set_OnSelect(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Compiled_OnSelect := SP_ConvertToTokens(s, Error);
+  If Compiled_OnSelect <> '' Then
+    User_OnSelect := s;
+
+End;
+
+Function SP_PopUpMenu.Get_OnSelect: aString;
+Begin
+
+  Result := User_OnSelect;
+
+End;
+
+Procedure SP_PopUpMenu.Set_HiLightClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Clr: Integer;
+Begin
+
+  Clr := StringToInt(s, fHighlightClr);
+  HighlightClr := Clr;
+
+End;
+
+Function SP_PopUpMenu.Get_HilightClr: aString;
+Begin
+
+  Result := IntToString(HighLightClr);
+
+End;
+
+Procedure SP_PopUpMenu.Set_SepClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Clr: Integer;
+Begin
+
+  Clr := StringToInt(s, fSepClr);
+  SeparatorClr := Clr;
+
+End;
+
+Function SP_PopUpMenu.Get_SepClr: aString;
+Begin
+
+  Result := IntToString(fSepClr);
+
+End;
+
+Function SP_PopUpMenu.Get_Count: aString;
+Begin
+
+  Result := IntToString(Count);
+
+End;
+
+Function SP_PopUpMenu.Get_IndexOf: aString;
+Var
+  Idx: integer;
+Begin
+
+  Idx := 0;
+  Result := '-1';
+  While Idx < Count Do
+    If MenuItems[Idx].Caption = fUserParam Then Begin
+      Result := IntToString(Idx +1);
+      Exit;
+    End Else
+      Inc(Idx);
+
+End;
+
+Function SP_PopUpMenu.Get_Clicked: aString;
+Var
+  Idx: integer;
+Begin
+
+  Idx := 0;
+  Result := '-1';
+  While Idx < Count Do
+    If MenuItems[Idx].Caption = LastClicked.Caption Then Begin
+      Result := IntToString(Idx +1);
+      Exit;
+    End Else
+      Inc(Idx);
+
+End;
+
+Procedure SP_PopUpMenu.RegisterMethods;
+Begin
+
+  Inherited;
+  RegisterMethod('add', 'S', Method_Add);
+  RegisterMethod('insert', 'ns', Method_Insert);
+  RegisterMethod('erase', 'n', Method_Delete);
+  RegisterMethod('clear', '', Method_Clear);
+  RegisterMethod('move', 'nn', Method_Move);
+  RegisterMethod('popup', 'nn', Method_PopUp);
+
+End;
+
+Procedure SP_PopUpMenu.Method_Clear(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Clear;
+
+End;
+
+Procedure SP_PopUpMenu.Method_Move(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i, j: Integer;
+Begin
+
+  i := StringToInt(Params[0], 0) -1;
+  j := StringToInt(Params[1], 0) -1;
+  If (i >= 0) And (i < Count) And (j >= 0) And (j < Count) Then
+    MoveItem(i, j);
+
+End;
+
+Procedure SP_PopUpMenu.Method_Add(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+  Item: SP_MenuItem;
+Begin
+
+  For i := 0 To Length(Params) -1 do Begin
+    Item := SP_MenuItem.Create;
+    Item.Checked := False;
+    Item.Checkable := False;
+    Item.Visible := True;
+    Item.Enabled := True;
+    Item.Caption := Params[i];
+    Item.OnClick := nil;
+    AddItem(Item);
+  End;
+
+End;
+
+Procedure SP_PopUpMenu.Method_Insert(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+  Item: SP_MenuItem;
+Begin
+
+  i := StringToInt(Params[0], 0) -1;
+  If (i >= 0) And (i < Count) then Begin
+    Item := SP_MenuItem.Create;
+    Item.Checked := False;
+    Item.Checkable := False;
+    Item.Visible := True;
+    Item.Enabled := True;
+    Item.Caption := Params[i];
+    Item.OnClick := nil;
+    InsertItem(Item, i);
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_PopUpMenu.Method_Delete(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+Begin
+
+  i := StringToInt(Params[0], 0) -1;
+  If (i >= 0) And (i < Count) then
+    DeleteItem(i)
+  Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_PopUpMenu.Method_PopUp(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  x, y: Integer;
+Begin
+
+  x := StringToInt(Params[0], 0);
+  y := StringToInt(Params[1], 0);
+  PopUp(x, y);
 
 End;
 

@@ -102,8 +102,13 @@ Procedure SP_DrawLineEx(X1, Y1, X2, Y2: aFloat);
 Procedure SP_DrawRect(x1, y1, x2, y2: Integer; Ink: Byte);
 Procedure SP_DrawSpeccyCurve(X, Y, Angle: aFloat);
 Procedure SP_DrawEllipse(CX, CY, Rx, Ry: Integer; Angle: aFloat);
-Procedure SP_DrawTexEllipse(CX, CY, Rx, Ry: Integer; const TextureStr: aString; tW, tH: LongWord);
-Procedure SP_DrawSolidEllipse(CX, CY, Rx, Ry: Integer);
+Procedure SP_DrawTexEllipse(CX, CY, Rx, Ry: Integer; Angle: aFloat; const TextureStr: aString; tW, tH: LongWord);
+Procedure SP_DrawSolidEllipse(CX, CY, Rx, Ry: Integer; Angle: aFloat);
+
+Procedure SP_DrawCircle(CX, CY, R: Integer);
+Procedure SP_DrawTexCircle(CX, CY, R: Integer; const TextureStr: aString; tW, tH: LongWord);
+Procedure SP_DrawSolidCircle(CX, CY, R: Integer);
+
 Procedure SP_SetPixel(X, Y: aFloat);
 Procedure SP_DrawCurve(CurveStartX, CurveStartY, X, Y, CurveEndX, CurveEndY: aFloat; N: Integer);
 Procedure SP_GetRegion(Src: pByte; SrcW, SrcH: LongWord; Var Dest: aString; rX, rY, rW, rH, T: Integer; Var Error: TSP_ErrorCode);
@@ -1389,6 +1394,8 @@ Begin
       SP_CLS(CPAPER);
     End;
 
+    SP_SetDirtyRect(Window^.Left, Window^.Top, Window^.Left + oW, Window^.Top + oH);
+
     {$IFDEF RefreshThread}
     CB_ResumeDisplay;
     {$ELSE}
@@ -2603,7 +2610,7 @@ Begin
   DRPOSX := Dx;
   DRPOSY := Dy;
 
-ENd;
+End;
 
 Procedure SP_DrawLine(X2, Y2: aFloat);
 var
@@ -3082,161 +3089,259 @@ End;
 
 Procedure SP_DrawThickEllipse(CX, CY, R1, R2: Integer; Angle: aFloat);
 Var
-  fr1,fr2, ir1, ir2, id, rd, ys, ox1, ix1, ts: aFloat;
-  y, x: NativeInt;
+  fr1, fr2, ir1, ir2, cosA, sinA, ts: aFloat;
+  y, minY, maxY: NativeInt;
+
+  Procedure DrawSpansForRow(rowY: Integer);
+  Var
+    x, spanStart, minX, maxX: Integer;
+    inSpan: Boolean;
+    rx, ry, outerTest, innerTest: aFloat;
+    testY, maxRadius: aFloat;
+    i: Integer;
+  Begin
+    testY := rowY;
+    inSpan := False;
+    spanStart := 0;
+    maxRadius := sqrt(fr1 * fr1 + fr2 * fr2);
+    minX := -Round(maxRadius) - 1;
+    maxX := Round(maxRadius) + 1;
+
+    For x := minX to maxX Do Begin
+      rx := x * cosA + testY * sinA;
+      ry := -x * sinA + testY * cosA;
+      outerTest := (rx * rx) / (fr1 * fr1) + (ry * ry) / (fr2 * fr2);
+      innerTest := (rx * rx) / (ir1 * ir1) + (ry * ry) / (ir2 * ir2);
+      If (outerTest <= 1.0) and (innerTest > 1.0) Then Begin
+        If not inSpan Then Begin
+          spanStart := x;
+          inSpan := True;
+        End;
+      End Else Begin
+        If inSpan Then Begin
+          For i := spanStart to x - 1 Do
+            SP_SetPixel(i + CX, rowY + CY);
+          inSpan := False;
+        End;
+      End;
+    End;
+    If inSpan Then Begin
+      For i := spanStart to maxX Do
+        SP_SetPixel(i + CX, rowY + CY);
+    End;
+  End;
+
 Begin
 
-  If Angle <> 0 Then
+  if (r1 = 0) or (r2 = 0) then exit;
 
-    SP_DrawThickEllipseRot(CX, CY, R1, R2, Angle)
+  ts := T_STROKE + 0.5;
+  fr1 := r1 + ts / 2;
+  fr2 := r2 + ts / 2;
+  ir1 := fr1 - ts;
+  ir2 := fr2 - ts;
+
+  cosA := cos(Angle);
+  sinA := sin(Angle);
+
+  minY := -Round(sqrt(fr1*fr1*sinA*sinA + fr2*fr2*cosA*cosA)) - 1;
+  maxY := Round(sqrt(fr1*fr1*sinA*sinA + fr2*fr2*cosA*cosA)) + 1;
+
+  T_STROKE := 1;
+  For y := Max(T_CLIPY1 - cY, minY) to Min(T_CLIPY2 - cY, maxY) Do
+    DrawSpansForRow(y);
+  T_STROKE := ts - 0.5;
+
+End;
+
+Procedure SP_DrawSolidEllipse(CX, CY, Rx, Ry: Integer; Angle: aFloat);
+Var
+  fr1, fr2, cosA, sinA: aFloat;
+  y, minY, maxY: NativeInt;
+  Ink: Byte;
+
+  Procedure DrawSpan(X1, X2, Y: Integer);
+  Var
+    DstA: pByte;
+  Begin
+    X1 := Max(T_CLIPX1, X1);
+    X2 := Min(T_CLIPX2 -1, X2);
+    If X2 > X1 Then Begin
+      DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
+      If T_OVER = 0 Then Begin
+        While X2 >= X1 Do Begin
+          DstA^ := Ink;
+          Inc(DstA);
+          Dec(X2);
+        End;
+      End Else Begin
+        While X2 >= X1 Do Begin
+          SP_OverPixelPtrVal(DstA, Ink, T_OVER);
+          Inc(DstA);
+          Dec(X2);
+        End;
+      End;
+    End;
+  End;
+
+  Function SolveEllipseForX(rowY: aFloat; out x1, x2: aFloat): Boolean;
+  Var
+    A, B, C, discriminant, sqrtDisc: aFloat;
+    cos2, sin2, cossin: aFloat;
+  Begin
+    cos2 := cosA * cosA;
+    sin2 := sinA * sinA;
+    cossin := cosA * sinA;
+    A := cos2/(fr1*fr1) + sin2/(fr2*fr2);
+    B := 2 * rowY * cossin * (1/(fr1*fr1) - 1/(fr2*fr2));
+    C := rowY*rowY * (sin2/(fr1*fr1) + cos2/(fr2*fr2)) - 1;
+    discriminant := B*B - 4*A*C;
+    If discriminant < 0 Then Begin
+      Result := False;
+      Exit;
+    End;
+    sqrtDisc := sqrt(discriminant);
+    x1 := (-B - sqrtDisc) / (2*A);
+    x2 := (-B + sqrtDisc) / (2*A);
+    Result := True;
+  End;
+
+  Procedure DrawSpansForRow(rowY: Integer);
+  Var
+    x1, x2, testY: aFloat;
+    startX, endX: Integer;
+  Begin
+    testY := rowY;
+
+    If SolveEllipseForX(testY, x1, x2) Then Begin
+      startX := Round(x1);
+      endX := Round(x2);
+      DrawSpan(startX + cX, endX + cX, rowY + Cy);
+    End;
+  End;
+
+Begin
+
+  if (rX = 0) or (ry = 0) then exit;
+
+  If SCREENBPP = 8 Then Begin
+
+    If T_INVERSE = 0 Then
+      Ink := T_INK
+    Else
+      Ink := T_PAPER;
+
+    fr1 := rx;
+    fr2 := ry;
+    cosA := cos(Angle);
+    sinA := sin(Angle);
+    minY := -Round(sqrt(fr1*fr1*sinA*sinA + fr2*fr2*cosA*cosA)) - 1;
+    maxY := Round(sqrt(fr1*fr1*sinA*sinA + fr2*fr2*cosA*cosA)) + 1;
+
+    For y := Max(T_CLIPY1 - cY, minY) to Min(T_CLIPY2 - cY, maxY) Do
+      DrawSpansForRow(y);
+
+  End Else
+
+    SP_DrawSolidEllipse32(CX, CY, Rx, Ry, Angle);
+
+  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - Rx, (SCREENY + Cy) - Ry, SCREENX + Cx + Rx, SCREENY + Cy + Ry);
+  SP_BankList[0]^.Changed := True;
+
+End;
+
+Procedure SP_DrawEllipse(CX, CY, Rx, Ry: Integer; Angle: aFloat);
+Var
+  cosA, sinA: aFloat;
+
+  Procedure DrawConnectedEllipse;
+  Var
+    t, stepSize: aFloat;
+    x, y: aFloat;
+    pixelX, pixelY: Integer;
+    lastPixelX, lastPixelY: Integer;
+    firstPixelX, firstPixelY: Integer;
+    hasFirst: Boolean;
+    numSteps, i: Integer;
+  Begin
+    numSteps := Ceil(Pi * (3 * (Rx + Ry) - sqrt((3 * Rx + Ry) * (Rx + 3 * Ry)))) div 2;
+    numSteps := Max(numSteps, 32);
+
+    stepSize := (2 * Pi) / numSteps;
+    hasFirst := False;
+
+    firstPixelX := -1;
+    firstPixelY := -1;
+    lastPixelX := -1;
+    lastPixelY := -1;
+
+    For i := 0 to numSteps Do Begin
+      t := i * stepSize;
+      x := Rx * cos(t) * cosA - Ry * sin(t) * sinA;
+      y := Rx * cos(t) * sinA + Ry * sin(t) * cosA;
+      pixelX := Round(x) + CX;
+      pixelY := Round(y) + CY;
+
+      If not hasFirst Then Begin
+        firstPixelX := pixelX;
+        firstPixelY := pixelY;
+        lastPixelX := pixelX;
+        lastPixelY := pixelY;
+        hasFirst := True;
+      End Else Begin
+        If (pixelX <> lastPixelX) or (pixelY <> lastPixelY) Then Begin
+          SP_DrawLineEx(lastPixelX, lastPixelY, pixelX, pixelY);
+          lastPixelX := pixelX;
+          lastPixelY := pixelY;
+        End;
+      End;
+    End;
+    If (lastPixelX <> firstPixelX) or (lastPixelY <> firstPixelY) Then Begin
+      SP_DrawLineEx(lastPixelX, lastPixelY, firstPixelX, firstPixelY);
+    End;
+  End;
+
+Begin
+
+  if (rX = 0) or (ry = 0) then exit;
+
+  If Rx = Ry Then
+
+    SP_DrawCircle(Cx, Cy, Rx)
 
   Else Begin
 
-    fr1 := r1 + T_STROKE / 2;
-    fr2 := r2 + T_STROKE / 2;
-    ir1 := fr1 - T_STROKE;
-    ir2 := fr2 - T_STROKE;
-    id := ir1 / ir2;
-    rd := fr1 / fr2;
-    r2 := Round(fr2);
+    If SCREENBPP = 8 Then Begin
 
-    tS := T_STROKE;
-    T_STROKE := 1;
-
-    For y := -r2 to r2 Do Begin
-      ys := y * rd;
-      ox1 := sqrt(fr1 * fr1 - ys * ys);
-
-      If Abs(y) < ir2 Then Begin
-        ys := y * id;
-        ix1 := sqrt(ir1 * ir1 - ys * ys);
-      End Else
-        ix1 := 0;
-
-      For x := Round(ix1) to Round(ox1) Do Begin
-        SP_SetPixel(x + CX, y + CY);
-        SP_SetPixel(-x + CX, y + CY);
+      If T_STROKE > 1 Then Begin
+        SP_DrawThickEllipse(CX, CY, Rx, Ry, Angle);
+        Inc(Rx, Ceil(T_STROKE / 2));
+        Inc(Ry, Ceil(T_STROKE / 2));
+      End Else Begin
+        cosA := cos(Angle);
+        sinA := sin(Angle);
+        DrawConnectedEllipse;
       End;
 
-    End;
+    End Else
 
-    T_STROKE := ts;
+      SP_DrawEllipse32(Cx, Cy, Rx, Ry, Angle);
+
+    If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - Rx, (SCREENY + Cy) - Ry, SCREENX + Cx + Rx, SCREENY + Cy + Ry);
+    SP_BankList[0]^.Changed := True;
 
   End;
 
 End;
 
-Procedure SP_DrawEllipse(CX, CY, Rx, Ry: Integer; Angle: aFloat);
-var
-  x, y, px, py, twoRx2, twoRy2: Integer;
-  p, Rx2, Ry2: Int64;
-  cxpx, cypy, cxmx, cymy: Integer;
-begin
-
-  If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
-
-  If T_STROKE > 1 Then Begin
-
-    If SCREENBPP = 8 Then
-      SP_DrawThickEllipse(CX, CY, Rx, Ry, angle)
-    Else
-      SP_DrawThickEllipse32(CX, CY, Rx, Ry);
-
-    Inc(Rx, Ceil(T_STROKE / 2));
-    Inc(Ry, Ceil(T_STROKE / 2));
-
-  End Else Begin
-
-    If SCREENBPP = 8 Then Begin
-
-      Rx := Abs(Rx);
-      Ry := Abs(Ry);
-
-      Rx2 := Rx * Rx;
-      Ry2 := Ry * Ry;
-      twoRx2 := 2 * Rx2;
-      twoRy2 := 2 * Ry2;
-      x := 0;
-      y := Ry;
-      px := 0;
-      py := twoRx2 * y;
-
-      cxpx := Cx + X; cypy := Cy + Y;
-      cxmx := Cx - X; cymy := Cy - Y;
-
-      SP_SetPixel(cxpx, cypy);
-      SP_SetPixel(cxpx, cymy);
-      If cxmx <> cxpx Then Begin
-        SP_SetPixel(cxmx, cymy);
-        SP_SetPixel(cxmx, cypy);
-      End;
-
-      p := Ry2 - (Rx2 * Ry) + (Rx2 div 4);
-
-      while px < py do begin
-         Inc(x);
-         Inc(px, twoRy2);
-         if p < 0 then
-            Inc(p, Ry2 + px)
-         else begin
-            Dec(y);
-            Dec(py, twoRx2);
-            Inc(p, Ry2 + px - py);
-            dec(cypy);
-            inc(cymy);
-         end;
-         inc(cxpx);
-         dec(cxmx);
-         SP_SetPixel(cxpx, cypy);
-         SP_SetPixel(cxmx, cypy);
-         SP_SetPixel(cxpx, cymy);
-         SP_SetPixel(cxmx, cymy);
-      end;
-
-      p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
-
-      while y > 0 do begin
-         Dec(y);
-         Dec(py, twoRx2);
-         if p > 0 then
-            Inc(p, Rx2 - py)
-         else begin
-            Inc(x);
-            Inc(px, twoRy2);
-            Inc(p, Rx2 - py + px);
-            inc(cxpx);
-            dec(cxmx);
-         end;
-         dec(cypy);
-         inc(cymy);
-         SP_SetPixel(cxpx, cypy);
-         SP_SetPixel(cxmx, cypy);
-         if y > 0 Then Begin
-           SP_SetPixel(cxpx, cymy);
-           SP_SetPixel(cxmx, cymy);
-         End;
-      end;
-
-    End Else
-
-      SP_DrawEllipse32(Cx, Cy, Rx, Ry);
-
-  End;
-
-  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - Rx, (SCREENY + Cy) - Ry, SCREENX + Cx + Rx, SCREENY + Cy + Ry);
-  SP_BankList[0]^.Changed := True;
-
-end;
-
-Procedure SP_DrawTexEllipse(CX, CY, Rx, Ry: Integer; const TextureStr: aString; tW, tH: LongWord);
-var
+Procedure SP_DrawTexEllipse(CX, CY, Rx, Ry: Integer; Angle: aFloat; const TextureStr: aString; tW, tH: LongWord);
+Var
+  fr1, fr2, cosA, sinA: aFloat;
+  y, minY, maxY: NativeInt;
   Trans: Word;
   DstA, TexBase: pByte;
   tClr, Clr: Byte;
   Graphic: pSP_Graphic_Info;
-  x, y, p, px, py, twoRx2, twoRy2: Int64;
-  Rx2, Ry2: Int64;
-  cxpx, cypy, cxmx, cymy, lcypy, lcymy: Integer;
 
   Procedure DrawTexSpan(X1, X2, Y: Integer);
   Begin
@@ -3276,9 +3381,284 @@ var
     End;
   End;
 
+  Function SolveEllipseForX(rowY: aFloat; out x1, x2: aFloat): Boolean;
+  Var
+    A, B, C, discriminant, sqrtDisc: aFloat;
+    cos2, sin2, cossin: aFloat;
+  Begin
+    cos2 := cosA * cosA;
+    sin2 := sinA * sinA;
+    cossin := cosA * sinA;
+    A := cos2/(fr1*fr1) + sin2/(fr2*fr2);
+    B := 2 * rowY * cossin * (1/(fr1*fr1) - 1/(fr2*fr2));
+    C := rowY*rowY * (sin2/(fr1*fr1) + cos2/(fr2*fr2)) - 1;
+    discriminant := B*B - 4*A*C;
+    If discriminant < 0 Then Begin
+      Result := False;
+      Exit;
+    End;
+    sqrtDisc := sqrt(discriminant);
+    x1 := (-B - sqrtDisc) / (2*A);
+    x2 := (-B + sqrtDisc) / (2*A);
+    Result := True;
+  End;
+
+  Procedure DrawSpansForRow(rowY: Integer);
+  Var
+    x1, x2, testY: aFloat;
+    startX, endX: Integer;
+  Begin
+    testY := rowY;
+    If SolveEllipseForX(testY, x1, x2) Then Begin
+      startX := Round(x1);
+      endX := Round(x2);
+      DrawTexSpan(startX + cX, endX + cX, rowY + Cy);
+    End;
+  End;
+
+Begin
+
+  if (rX = 0) or (ry = 0) then exit;
+
+  tClr := 0;
+
+  // if TextureStr = '' Then tW holds a pointer to the graphic bank's data,
+  // and tH holds a pointer to the graphic bank's info field.
+
+  If TextureStr = '' Then Begin
+    TexBase := pByte(tW);
+    Graphic := pSP_Graphic_Info(tH);
+    tW := Graphic.Width;
+    tH := Graphic.Height;
+    Trans := Graphic.Transparent;
+  End Else Begin
+    TexBase := @TextureStr[11];
+    Trans := pWord(@TextureStr[9])^;
+  End;
+  If Trans <> $FFFF Then
+    tClr := Trans And $FF;
+
+  fr1 := rx;
+  fr2 := ry;
+  cosA := cos(Angle);
+  sinA := sin(Angle);
+  minY := -Round(sqrt(fr1*fr1*sinA*sinA + fr2*fr2*cosA*cosA)) - 1;
+  maxY := Round(sqrt(fr1*fr1*sinA*sinA + fr2*fr2*cosA*cosA)) + 1;
+
+  For y := Max(T_CLIPY1 - cY, minY) to Min(T_CLIPY2 - cY, maxY) Do
+    DrawSpansForRow(y);
+
+  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - Rx, (SCREENY + Cy) - Ry, SCREENX + Cx + Rx, SCREENY + Cy + Ry);
+  SP_BankList[0]^.Changed := True;
+
+End;
+
+Procedure SP_DrawCircle(CX, CY, R: Integer);
+var
+  x, y, px, py, twoRx2: Integer;
+  p, Rx2: Int64;
+  cxpx, cypy, cxmx, cymy: Integer;
 begin
 
-  If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
+  If (r = 0) or ((cx+r)<0) or ((cx-r)>SCREENWIDTH) or ((cy+r)<0) or ((cy-r)>SCREENHEIGHT) Then Exit;
+
+  If T_STROKE > 1 Then Begin
+
+    If SCREENBPP = 8 Then
+      SP_DrawThickEllipse(CX, CY, R, R, 0)
+    Else
+      SP_DrawThickEllipse32(CX, CY, R, R, 0);
+
+    Inc(R, Ceil(T_STROKE / 2));
+
+  End Else Begin
+
+    If SCREENBPP = 8 Then Begin
+
+      R := Abs(R);
+      Rx2 := R * R;
+      twoRx2 := 2 * Rx2;
+      x := 0;
+      y := R;
+      px := 0;
+      py := twoRx2 * y;
+
+      cxpx := Cx + X; cypy := Cy + Y;
+      cxmx := Cx - X; cymy := Cy - Y;
+
+      SP_SetPixel(cxpx, cypy);
+      SP_SetPixel(cxpx, cymy);
+      If cxmx <> cxpx Then Begin
+        SP_SetPixel(cxmx, cymy);
+        SP_SetPixel(cxmx, cypy);
+      End;
+
+      p := Rx2 - (Rx2 * R) + (Rx2 div 4);
+
+      while px < py do begin
+         Inc(x);
+         Inc(px, twoRx2);
+         if p < 0 then
+            Inc(p, Rx2 + px)
+         else begin
+            Dec(y);
+            Dec(py, twoRx2);
+            Inc(p, Rx2 + px - py);
+            dec(cypy);
+            inc(cymy);
+         end;
+         inc(cxpx);
+         dec(cxmx);
+         SP_SetPixel(cxpx, cypy);
+         SP_SetPixel(cxmx, cypy);
+         SP_SetPixel(cxpx, cymy);
+         SP_SetPixel(cxmx, cymy);
+      end;
+
+      p := Round(Rx2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Rx2);
+
+      while y > 0 do begin
+        Dec(y);
+        Dec(py, twoRx2);
+        if p > 0 then
+          Inc(p, Rx2 - py)
+        else begin
+          Inc(x);
+          Inc(px, twoRx2);
+          Inc(p, Rx2 - py + px);
+          inc(cxpx);
+          dec(cxmx);
+        end;
+        dec(cypy);
+        inc(cymy);
+        SP_SetPixel(cxpx, cypy);
+        SP_SetPixel(cxmx, cypy);
+        if y > 0 Then Begin
+         SP_SetPixel(cxpx, cymy);
+         SP_SetPixel(cxmx, cymy);
+        End;
+      end;
+
+    End Else
+
+      SP_DrawCircle32(Cx, Cy, R);
+
+  End;
+
+  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - R, (SCREENY + Cy) - R, SCREENX + Cx + R, SCREENY + Cy + R);
+  SP_BankList[0]^.Changed := True;
+
+end;
+
+Procedure SP_DrawSolidCircle(CX, CY, R: Integer);
+var
+  x, y, r2, y2, y3: Integer;
+  DstA: pByte;
+  Ink: Byte;
+
+  Procedure DrawSpan(X1, X2, Y: Integer);
+  Begin
+    X1 := Max(T_CLIPX1, X1);
+    X2 := Min(T_CLIPX2 -1, X2);
+    If X2 > X1 Then Begin
+      DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
+      If T_OVER = 0 Then Begin
+        While X2 >= X1 Do Begin
+          DstA^ := Ink;
+          Inc(DstA);
+          Dec(X2);
+        End;
+      End Else Begin
+          While X2 >= X1 Do Begin
+            SP_OverPixelPtrVal(DstA, Ink, T_OVER);
+            Inc(DstA);
+            Dec(X2);
+          End;
+      End;
+    End;
+  End;
+
+begin
+
+  If (r = 0) or ((cx+r)<0) or ((cx-r)>SCREENWIDTH) or ((cy+r)<0) or ((cy-r)>SCREENHEIGHT) Then Exit;
+
+  If SCREENBPP = 8 Then Begin
+
+    If T_INVERSE = 0 Then
+      Ink := T_INK
+    Else
+      Ink := T_PAPER;
+
+    r2 := Trunc((r + 0.5) * (r + 0.5));
+    For y := -r To r Do Begin
+      y2 := y * y;
+      x := 0;
+      While (x * x + y2) <= r2 Do
+        Inc(x);
+      Dec(x);
+      y3 := cy + y;
+      if (y3 >= T_CLIPY1) and (y3 < T_CLIPY2) then
+        DrawSpan(cx - x, cx + x, y3);
+    End;
+
+  End Else
+
+    SP_DrawSolidCircle32(Cx, Cy, R);
+
+  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - R, (SCREENY + Cy) - R, SCREENX + Cx + R, SCREENY + Cy + R);
+  SP_BankList[0]^.Changed := True;
+
+end;
+
+Procedure SP_DrawTexCircle(CX, CY, R: Integer; const TextureStr: aString; tW, tH: LongWord);
+var
+  Trans: Word;
+  DstA, TexBase: pByte;
+  tClr, Clr: Byte;
+  Graphic: pSP_Graphic_Info;
+  x, y, r2, y2, y3: NativeInt;
+
+  Procedure DrawSpan(X1, X2, Y: Integer);
+  Begin
+    X1 := Max(T_CLIPX1, X1);
+    X2 := Min(T_CLIPX2, X2);
+    If X2 >= X1 Then Begin
+      DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
+      If T_OVER = 0 Then Begin
+        If Trans <> $FFFF Then Begin
+          While X2 >= X1 Do Begin
+            Clr := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
+            If Clr <> tClr Then DstA^ := Clr;
+            Inc(DstA);
+            Inc(X1);
+          End;
+        End Else
+          While X2 >= X1 Do Begin
+            DstA^ := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
+            Inc(DstA);
+            Inc(X1);
+          End;
+      End Else Begin
+        If Trans <> $FFFF Then Begin
+          While X2 >= X1 Do Begin
+            Clr := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
+            If Clr <> tClr Then SP_OverPixelPtrVal(DstA, Clr, T_OVER);;
+            Inc(DstA);
+            Inc(X1);
+          End;
+        End Else
+          While X2 >= X1 Do Begin
+            SP_OverPixelPtrVal(DstA, pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^, T_OVER);
+            Inc(DstA);
+            Inc(X1);
+          End;
+      End;
+    End;
+  End;
+
+begin
+
+  If (r = 0) or ((cx+r)<0) or ((cx-r)>SCREENWIDTH) or ((cy+r)<0) or ((cy-r)>SCREENHEIGHT) Then Exit;
 
   If SCREENBPP = 8 Then Begin
 
@@ -3300,203 +3680,23 @@ begin
     If Trans <> $FFFF Then
       tClr := Trans And $FF;
 
-    Rx := Abs(Rx);
-    Ry := Abs(Ry);
-
-    Rx2 := Rx * Rx;
-    Ry2 := Ry * Ry;
-    twoRx2 := 2 * Rx2;
-    twoRy2 := 2 * Ry2;
-    x := 0;
-    y := Ry;
-    px := 0;
-    py := twoRx2 * y;
-
-    cxpx := Cx + X; cypy := Cy + Y;
-    cxmx := Cx - X; cymy := Cy - Y;
-
-    if Ry = 1 Then Begin
-      SP_SetPixelClr(cxpx, cypy, pByte(TexBase + ((cxpx mod Integer(tW)) + ((cypy mod Integer(tH)) * Integer(tw))))^);
-      SP_SetPixelClr(cxpx, cymy, pByte(TexBase + ((cxpx mod Integer(tW)) + ((cymy mod Integer(tH)) * Integer(tw))))^);
+    r2 := Trunc((r + 0.5) * (r + 0.5));
+    For y := -r To r Do Begin
+      y2 := y * y;
+      x := 0;
+      While (x * x + y2) <= r2 Do
+        Inc(x);
+      Dec(x);
+      y3 := cy + y;
+      if (y3 >= T_CLIPY1) and (y3 < T_CLIPY2) then
+        DrawSpan(cx - x, cx + x, y3);
     End;
-    If cxmx <> cxpx Then Begin
-      SP_SetPixelClr(cxmx, cymy, pByte(TexBase + ((cxmx mod Integer(tW)) + ((cymy mod Integer(tH)) * Integer(tw))))^);
-      SP_SetPixelClr(cxmx, cypy, pByte(TexBase + ((cxmx mod Integer(tW)) + ((cypy mod Integer(tH)) * Integer(tw))))^);
-    End;
-
-    p := Ry2 - (Rx2 * Ry) + (Rx2 div 4);
-    lcypy := -1;
-    lcymy := -1;
-
-    while px < py do begin
-      Inc(x);
-      Inc(px, twoRy2);
-      if p < 0 then
-        Inc(p, Ry2 + px)
-      else begin
-        if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cypy);
-        if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cymy);
-        lcypy := cypy;
-        lcymy := cymy;
-        Dec(y);
-        Dec(py, twoRx2);
-        Inc(p, Ry2 + px - py);
-        dec(cypy);
-        inc(cymy);
-      end;
-      inc(cxpx);
-      dec(cxmx);
-    end;
-    if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cypy);
-    if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cymy);
-
-    {$R-}
-    p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
-    {$R-}
-    while y > 0 do begin
-       Dec(y);
-       Dec(py, twoRx2);
-       if p > 0 then
-          Inc(p, Rx2 - py)
-       else begin
-          Inc(x);
-          Inc(px, twoRy2);
-          Inc(p, Rx2 - py + px);
-          inc(cxpx);
-          dec(cxmx);
-       end;
-       dec(cypy);
-       inc(cymy);
-       if (cypy >= T_CLIPY1) and (cypy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cypy);
-       if (y > 0) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy <= T_CLIPY2) Then DrawTexSpan(cxmx, cxpx, cymy);
-    end;
 
   End Else
 
-    SP_DrawSolidEllipse32(cX, cY, rX, rY);
+    SP_DrawTexCircle8To32(cX, cY, r, TextureStr, tw, th);
 
-  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - Rx, (SCREENY + Cy) - Ry, SCREENX + Cx + Rx, SCREENY + Cy + Ry);
-  SP_BankList[0]^.Changed := True;
-
-end;
-
-Procedure SP_DrawSolidEllipse(CX, CY, Rx, Ry: Integer);
-var
-  Ink: Byte;
-  DstA: pByte;
-  x, y, p, px, py, twoRx2, twoRy2: Int64;
-  Rx2, Ry2: Int64;
-  cxpx, cypy, cxmx, cymy, lcypy, lcymy: Integer;
-
-  Procedure DrawSpan(X1, X2, Y: Integer);
-  Begin
-    X1 := Max(T_CLIPX1, X1);
-    X2 := Min(T_CLIPX2 -1, X2);
-    If X2 > X1 Then Begin
-      DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
-      If T_OVER = 0 Then Begin
-        While X2 >= X1 Do Begin
-          DstA^ := Ink;
-          Inc(DstA);
-          Dec(X2);
-        End;
-      End Else Begin
-        While X2 >= X1 Do Begin
-          SP_OverPixelPtrVal(DstA, Ink, T_OVER);
-          Inc(DstA);
-          Dec(X2);
-        End;
-      End;
-    End;
-  End;
-
-begin
-
-  If ((rx = 0) and (ry = 0)) or ((cx+rx)<0) or ((cx-rx)>SCREENWIDTH) or ((cy+ry)<0) or ((cy-ry)>SCREENHEIGHT) Then Exit;
-
-  If SCREENBPP = 8 Then Begin
-
-    If T_INVERSE = 0 Then
-      Ink := T_INK
-    Else
-      Ink := T_PAPER;
-
-    Rx := Abs(Rx);
-    Ry := Abs(Ry);
-
-    Rx2 := Rx * Rx;
-    Ry2 := Ry * Ry;
-    twoRx2 := 2 * Rx2;
-    twoRy2 := 2 * Ry2;
-    x := 0;
-    y := Ry;
-    px := 0;
-    py := twoRx2 * y;
-
-    cxpx := Cx + X; cypy := Cy + Y;
-    cxmx := Cx - X; cymy := Cy - Y;
-
-    If Ry = 1 Then Begin
-      SP_SetPixel(cxpx, cypy);
-      SP_SetPixel(cxpx, cymy);
-    End;
-    If cxmx <> cxpx Then Begin
-      SP_SetPixel(cxmx, cymy);
-      SP_SetPixel(cxmx, cypy);
-    End;
-
-    p := Ry2 - (Rx2 * Ry) + (Rx2 div 4);
-    lcypy := -1;
-    lcymy := -1;
-
-    while px < py do begin
-      Inc(x);
-      Inc(px, twoRy2);
-      if p < 0 then
-        Inc(p, Ry2 + px)
-      else begin
-        if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
-        if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
-        lcypy := cypy;
-        lcymy := cymy;
-        Dec(y);
-        Dec(py, twoRx2);
-        Inc(p, Ry2 + px - py);
-        dec(cypy);
-        inc(cymy);
-      end;
-      inc(cxpx);
-      dec(cxmx);
-    end;
-    if (lcypy <> cypy) And (cypy >= T_CLIPY1) and (cypy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
-    if (lcymy <> cymy) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
-
-    {$R-}
-    p := Round(Ry2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Ry2);
-    {$R-}
-    while y > 0 do begin
-       Dec(y);
-       Dec(py, twoRx2);
-       if p > 0 then
-          Inc(p, Rx2 - py)
-       else begin
-          Inc(x);
-          Inc(px, twoRy2);
-          Inc(p, Rx2 - py + px);
-          inc(cxpx);
-          dec(cxmx);
-       end;
-       dec(cypy);
-       inc(cymy);
-       if (cypy >= T_CLIPY1) and (cypy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cypy);
-       if (y > 0) And (cypy <> cymy) And (cymy >= T_CLIPY1) and (cymy < T_CLIPY2) Then DrawSpan(cxmx, cxpx, cymy);
-    end;
-
-  End Else
-
-    SP_DrawSolidEllipse32(cX, cY, rX, rY);
-
-  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - Rx, (SCREENY + Cy) - Ry, SCREENX + Cx + Rx, SCREENY + Cy + Ry);
+  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - R, (SCREENY + Cy) - R, SCREENX + Cx + R, SCREENY + Cy + R);
   SP_BankList[0]^.Changed := True;
 
 end;

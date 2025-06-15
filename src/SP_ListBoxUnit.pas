@@ -2,7 +2,7 @@ unit SP_ListBoxUnit;
 
 interface
 
-Uses Types, SP_Util, SP_BaseComponentUnit, SP_ScrollBarUnit;
+Uses Types, SP_Util, SP_Errors, SP_BaseComponentUnit, SP_ScrollBarUnit;
 
 Type
 
@@ -54,6 +54,12 @@ SP_ListBox = Class(SP_BaseComponent)
     fHeaderGrab:    Integer;
     fLastMouseX:    Integer;
     fAllowLiterals: Boolean;
+    fNeedScroll:    Integer;
+
+    Compiled_OnChoose,
+    User_OnChoose,
+    Compiled_OnSelect,
+    User_OnSelect: aString;
 
     Procedure     Clear;
     Procedure     ClearSelected;
@@ -87,6 +93,7 @@ SP_ListBox = Class(SP_BaseComponent)
     Procedure     SetSortIndClr(c: Integer);
     Procedure     SetSortedColumnClr(c: Integer);
     Procedure     HasSized; Override;
+    Procedure     MoveItem(Item1, Item2: Integer);
 
     Procedure     MouseWheel(Sender: SP_BaseComponent; X, Y, Btn, Delta: Integer); Override;
     Procedure     MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
@@ -129,6 +136,38 @@ SP_ListBox = Class(SP_BaseComponent)
     Constructor   Create(Owner: SP_BaseComponent);
     Destructor    Destroy; Override;
 
+    // User Properties
+
+    Procedure RegisterProperties; Override;
+    Procedure Set_Item(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Item: aString;
+    Procedure Set_Column(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Column: aString;
+    Function  Get_ColCount: aString; Function  Get_Count: aString; Function  Get_SelIndex: aString;
+    Procedure Set_ColColor(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ColColor: aString;
+    Procedure Set_ColWidth(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ColWidth: aString;
+    Procedure Set_ColJustify(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ColJustify: aString;
+    Procedure Set_Selected(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Selected: aString;
+    Procedure Set_MultiSel(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_MultiSel: aString;
+    Procedure Set_Sorted(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Sorted: aString;
+    Procedure Set_SortCol(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_SortCol: aString;
+    Procedure Set_SortColor(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_SortColor: aString;
+    Procedure Set_SortDir(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_SortDir: aString;
+    Procedure Set_OnSelect(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnSelect: aString;
+    Procedure Set_OnChoose(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnChoose: aString;
+    Procedure Set_ShowCols(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ShowCols: aString;
+    Function  Get_IndexOf: aString;
+
+    Procedure RegisterMethods; Override;
+    Procedure Method_ClearSelected(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Clear(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Move(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Add(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Insert(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Delete(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_AddCol(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_InsertCol(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_DeleteCol(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Sort(Params: Array of aString; Var Error: TSP_ErrorCode);
+
 End;
 
 Const
@@ -168,6 +207,7 @@ Begin
   fVScroll.OnScroll := vScroll;
   fVScroll.WheelStep := SP_ScrollWheelValue * cFH;
 
+  fTransparent := False;
   fShowHeaders := True;
   fMultiSelect := True;
   SetUIElements;
@@ -265,7 +305,7 @@ Begin
 
   If (Index >= 0) And (Index < Length(fStrings)) Then
     fStrings[Index] := Value;
-  If fLockCount = 0 Then Paint Else fNeedPaint := True;
+  Paint;
 
 End;
 
@@ -444,9 +484,12 @@ Procedure SP_ListBox.Unlock;
 Begin
 
   fLockCount := Math.Max(fLockCount -1, 0);
-  If fLockCount = 0 Then
+  If fLockCount = 0 Then Begin
     If fNeedPaint Then
       SetUIElements;
+    If fNeedScroll <> -1 Then
+      fVScroll.ScrollInView(fNeedScroll);
+  End;
 
 End;
 
@@ -472,6 +515,17 @@ Begin
     fSelected[i] := False;
   If Assigned(fOnSelect) Then
     fOnSelect(Self, -1);
+  If Not Locked And (Compiled_OnSelect <> '') Then
+    SP_AddOnEvent(Compiled_OnSelect);
+
+End;
+
+Procedure SP_ListBox.MoveItem(Item1, Item2: Integer);
+Begin
+
+  Insert(item2, fStrings[Item1]);
+  If Item1 > Item2 Then Inc(Item1);
+  Delete(Item1);
 
 End;
 
@@ -669,16 +723,13 @@ Begin
   cfH := Round(iFH * iSY);
 
   w := fWidth - (4 * Ord(fBorder)) - 2;
-  h := fHeight - (4 * Ord(fBorder)) - 2;
+  h := fClientRgn.Bottom - fClientRgn.Top;
 
-  If Length(fHeaders) > 0 Then Begin
+  If fShowHeaders And (Length(fHeaders) > 0) Then Begin
 
     t := 0;
     For i := 0 To Length(fHeaders) -1 Do
       Inc(t, fHeaders[i].Width);
-
-    If fShowHeaders Then
-      Dec(h, cFH);
 
   End Else Begin
 
@@ -694,14 +745,14 @@ Begin
   fHScroll.Step := cFW;
 
   fVScroll.Visible := False;
-  fVScroll.Max := fCount * cFH;
+  fVScroll.Max := (fCount + Ord(fShowHeaders And (Length(fHeaders) > 0)))  * cFH;
   fVScroll.Step := cFH;
 
   ScrollBarsDone := False;
   While Not ScrollBarsDone Do Begin
 
     If h < fCount * cFH Then Begin
-      fVScroll.SetBounds(Width - cfW - (Ord(fBorder) * 2), Ord(fBorder) * 2, cfW, h + (cFH * Ord(fShowHeaders)) + (cfH * Ord(fHScroll.Visible)));
+      fVScroll.SetBounds(Width - cfW - (Ord(fBorder) * 2), Ord(fBorder) * 2, cfW, h + (cfH * Ord(fHScroll.Visible)));
       fVScroll.Visible := True;
       Dec(w, cfW + 2);
     End;
@@ -711,7 +762,7 @@ Begin
       fHScroll.SetBounds(Ord(fBorder) * 2, fHeight - cfH - (Ord(fBorder) * 2), w + (Ord(fBorder) * 2) + (Ord(fVScroll.Visible) * (cfW + 2)), cfH);
       fHScroll.Visible := True;
       Dec(h, cFh);
-      fVScroll.SetBounds(Width - cfW - (Ord(fBorder) * 2), Ord(fBorder) * 2, cfW, h + (cFH * Ord(fShowHeaders)) + (cfH * Ord(fHScroll.Visible)));
+      fVScroll.SetBounds(Width - cfW - (Ord(fBorder) * 2), Ord(fBorder) * 2, cfW, h + (cfH * Ord(fHScroll.Visible)));
     End Else
       ScrollBarsDone := True;
 
@@ -731,10 +782,27 @@ End;
 
 Procedure SP_ListBox.Draw;
 Var
-  c: Byte;
+  c1, c2, c3: Byte;
   r: TRect;
   yp, i, j, py, hx, ps, sx1, sx2, cfW, cfH: Integer;
   s, s2, pr: aString;
+
+  Procedure DrawSelectionRect;
+  Begin
+    If Focused Then
+      c3 := SP_UISelectionOutline
+    Else
+      c3 := SP_UISelectionUnfocusedOutline;
+    r.Left := Ord(fBorder) * 2;
+    r.Right := (Width - (Ord(fBorder) * 4)) - ((fVScroll.Width + 1) * Ord(fVScroll.Visible)) + 1;
+    DrawLine(r.left, r.top, r.left, r.bottom, c3);
+    DrawLine(r.Right, r.top, r.right, r.bottom, c3);
+    If (i = 0) or not fSelected[i -1] Then
+      DrawLine(r.left, r.top, r.right, r.top, c3);
+    If (i = Count -1) or not fSelected[i +1] Then
+      DrawLine(r.Left, r.bottom, r.right, r.bottom, c3);
+  End;
+
 Begin
 
   sx2 := 0; sx1 := 0;
@@ -747,8 +815,9 @@ Begin
   cfH := Round(iFH * iSY);
 
   i := yp Div cfH;
-  py := (i * cfH - yp) + fClientRgn.Top;
+  py := (i * cfH - yp) + fClientRgn.Top + Ord(fShowHeaders And (HeaderCount > 0));
   If fShowHeaders And (HeaderCount > 0) Then Inc(py, cfH);
+  If not fTransparent Then FillRect(Rect(0, 0, Width, Height), fBackgroundClr);
 
   While (i < fCount) And (py - cFH < fClientRgn.Bottom) Do Begin
 
@@ -762,38 +831,37 @@ Begin
         ps := Pos(#255, s);
         If fSorted And (fSortedBy = j) And fCanUserSort Then Begin
           If fSelected[i] Then
-            c := fHighlightClr
+            c1 := fHighlightClr
           Else
-            c := fSortedColumnClr; // sorted column
+            c1 := fSortedColumnClr; // sorted column
           sx1 := hx -1; sx2 := hx + fHeaders[j].Width -1;
         End Else
           If fSelected[i] Then
-            c := fHighlightClr
+            c1 := fHighlightClr
           Else
-            c := fBackgroundClr; // non-sorted column
+            c1 := fBackgroundClr; // non-sorted column
         If fSelected[i] Then
           If Not Focused Then
-            c := fUnfocusedHighlightClr;
+            c1 := fUnfocusedHighlightClr;
         If j = fHCount -1 Then
-          r := Rect(hx -1 + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), Width - 1, py + cFH -1 + (Ord(fBorder) * 2))
+          r := Rect(hx -1 + fClientRgn.Left, py, Width - 1, py + cFH -1)
         Else
-          r := Rect(hx -1 + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), hx + fHeaders[j].Width - 1 + (Ord(fBorder) * 2), py + cFH -1 + (Ord(fBorder) * 2));
+          r := Rect(hx -1 + fClientRgn.Left, py, hx + fHeaders[j].Width - 1 + fClientRgn.Left, py + cFH -1);
 
         If not fTransparent Then
-          FillRect(r, c);
+          FillRect(r, c1);
 
         If fEnabled then
-          c := fFontClr
+          c1 := fFontClr
         Else
-          c := fDisabledFontClr;
+          c1 := fDisabledFontClr;
 
-//        s2 := Copy(s, 1, ps-1);
         SP_ReplaceAll(Copy(s, 1, ps-1), '\$FF', #255, s2);
         If Assigned(OnTextPrep) Then s2 := OnTextPrep(s2, j, i);
         Case fHeaders[j].Justify of
-         -1: Print(hx + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False, False);
-          0: Print(hx + (Ord(fBorder) * 2) + (fHeaders[j].Width - (Length(s2)*cFW)) Div 2, py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False, False);
-          1: Print(hx + (Ord(fBorder) * 2) + (fHeaders[j].Width - (Length(s2)*cFW)), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False, False);
+         -1: Print(hx + fClientRgn.Left, py, s2, c1, -1, iSX, iSY, False, False, False, False);
+          0: Print(hx + fClientRgn.Left + (fHeaders[j].Width - (Length(s2)*cFW)) Div 2, py, s2, c1, -1, iSX, iSY, False, False, False, False);
+          1: Print(hx + fClientRgn.Left + (fHeaders[j].Width - (Length(s2)*cFW)), py, s2, c1, -1, iSX, iSY, False, False, False, False);
         End;
         If ps > 0 Then
           s := Copy(s, ps +1)
@@ -802,36 +870,28 @@ Begin
         Inc(hx, fHeaders[j].Width);
       End;
 
-      If fSelected[i] Then Begin
-        If Focused Then
-          c := SP_UISelectionOutline
-        Else
-          c := SP_UISelectionUnfocusedOutline;
-        r.Left := Ord(fBorder) * 2;
-        r.Right := (Width - (Ord(fBorder) * 4)) - (fVScroll.Width * Ord(fVScroll.Visible));
-        DrawRect(r, c);
-      End;
+      If fSelected[i] Then
+        DrawSelectionRect;
 
     End Else Begin
 
-      If fSelected[i] and fEnabled Then
-        FillRect(Ord(fBorder) * 2, py + (Ord(fBorder) * 2), fWidth, py + cFH -1 + (Ord(fBorder) * 2), fHighlightClr);
+      If fSelected[i] And fEnabled Then
+        c1 := fHighlightClr
+      Else
+        c1 := fBackgroundClr;
       s2 := fStrings[i];
       If Assigned(OnTextPrep) Then s2 := OnTextPrep(s2, 0, i);
       If fEnabled then
-        c := fFontClr
+        c2 := fFontClr
       Else
-        c := fDisabledFontClr;
-      Print(-fHScroll.Pos + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), s2, c, -1, iSX, iSY, False, False, False, False);
-      If fEnabled Then Begin
-        If Focused Then
-          c := SP_UISelectionOutline
-        Else
-          c := SP_UISelectionUnfocusedOutline;
-        r.Left := Ord(fBorder) * 2;
-        r.Right := (Width - (Ord(fBorder) * 4)) - (fVScroll.Width * Ord(fVScroll.Visible));
-        DrawRect(r, c);
-      End;
+        c2 := fDisabledFontClr;
+
+      r := Rect(-fHScroll.Pos -1 + (Ord(fBorder) * 2), py, fWidth +1, py + cFH -1);
+      If (Not fTransparent) or (fSelected[i]) Then
+        FillRect(r, c1);
+      Print(-fHScroll.Pos + (Ord(fBorder) * 2), py, s2, c2, -1, iSX, iSY, False, False, False, False);
+      If fSelected[i] Then
+        DrawSelectionRect;
 
     End;
 
@@ -844,7 +904,7 @@ Begin
     If py < fClientRgn.Bottom Then
       FillRect(sx1 + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), sx2 +1, fHeight, fSortedColumnClr);
 
-  If fShowHeaders Then Begin
+  If fShowHeaders And (HeaderCount > 0) Then Begin
 
     hx := -fHScroll.Pos;
     For j := 0 To fHCount -1 Do Begin
@@ -861,10 +921,10 @@ Begin
         Else
           FillRect(hx + (Ord(fBorder) * 2), Ord(fBorder) * 2, hx + fHeaders[j].Width -2 + (Ord(fBorder) * 2), cFH -1 + (Ord(fBorder) * 2), fHeaderClr);
       If fEnabled then
-        c := fFontClr
+        c1 := fFontClr
       Else
-        c := fDisabledFontClr;
-      Print(hx + (Ord(fBorder) * 2), Ord(fBorder) * 2, fHeaders[j].Caption, c, -1, iSX, iSY, False, False, False, False);
+        c1 := fDisabledFontClr;
+      Print(hx + (Ord(fBorder) * 2), Ord(fBorder) * 2, fHeaders[j].Caption, c1, -1, iSX, iSY, False, False, False, False);
       Print(hx + (Ord(fBorder) * 2) + ((Length(fHeaders[j].Caption) +1) * cFW), ((cFH - fH) Div 2) + (Ord(fBorder) * 2), pr, fSortIndClr, -1, 1, 1, False, False, False, False);
       Inc(hx, fHeaders[j].Width);
 
@@ -1082,6 +1142,8 @@ Procedure SP_ListBox.Select(Index: Integer);
 Begin
 
   If Assigned(OnSelect) Then OnSelect(Self, Index);
+  If Not Locked And (Compiled_OnSelect <> '') Then
+    SP_AddOnEvent(Compiled_OnSelect);
 
 End;
 
@@ -1161,6 +1223,8 @@ Begin
           If Assigned(OnChoose) Then Begin
             i := fSelectedIdx;
             OnChoose(Self, fLastSelected, Copy(fStrings[i], 1, Pos(#255, fStrings[i]) -1));
+            If Not Locked And (Compiled_OnChoose <> '') Then
+              SP_AddOnEvent(Compiled_OnChoose);
           End;
           Handled := True;
         End;
@@ -1171,10 +1235,17 @@ Begin
 End;
 
 Procedure SP_ListBox.ScrollInView;
+Var
+  p: Integer;
 Begin
 
-  fVScroll.ScrollInView(fLastSelected * Round(iFH * iSY));
-  Paint;
+  fNeedScroll := -1;
+  p := fLastSelected * Round(iFH * iSY);
+  If Not Locked Then Begin
+    fVScroll.ScrollInView(p);
+    Paint;
+  End Else
+    fNeedScroll := p;
 
 End;
 
@@ -1184,9 +1255,511 @@ Begin
   If (Y < Round(iFH * iSY)) And fShowHeaders Then Exit;
   If Assigned(OnDblClick) and (fLastSelected <> -1) Then
     OnDblClick(Self, X, Y, Btn)
-  Else
+  Else Begin
     If Assigned(OnChoose) and (fLastSelected <> -1) Then
       OnChoose(Self, fLastSelected, Copy(fStrings[fLastSelected], 1, Pos(#255, fStrings[fLastSelected]) -1));
+    If Not Locked And (Compiled_OnChoose <> '') Then
+      SP_AddOnEvent(Compiled_OnChoose);
+  End;
+
+End;
+
+// User Stuff
+
+Procedure SP_ListBox.RegisterProperties;
+Begin
+
+  Inherited;
+
+  RegisterProperty('item', Get_Item, Set_Item, 'v:s|v:s');
+  RegisterProperty('count', Get_Count, nil, ':v');
+  RegisterProperty('column', Get_Column, Set_Column, 'v:s|v:s[,v,v]');
+  RegisterProperty('colcount', Get_Count, nil, ':v');
+  RegisterProperty('colclr', Get_ColColor, Set_ColColor, 'v:v|v:v');
+  RegisterProperty('colwidth', Get_ColWidth, Set_ColWidth, 'v:v|v:v');
+  RegisterProperty('coljustify', Get_ColWidth, Set_ColJustify, 'v:v|v:v');
+  RegisterProperty('selidx', Get_SelIndex, nil, ':v');
+  RegisterProperty('selected', Get_Selected, Set_Selected, 'v:v|v:v');
+  RegisterProperty('multisel', Get_MultiSel, Set_MultiSel, ':v|v');
+  RegisterProperty('sorted', Get_Sorted, Set_Sorted, ':v|v');
+  RegisterProperty('showcols', Get_ShowCols, Set_ShowCols, ':v|v');
+  RegisterProperty('sortcol', Get_SortCol, Set_SortCol, ':v|v');
+  RegisterProperty('sortclr', Get_SortColor, Set_SortColor, ':v|v');
+  RegisterProperty('sortdir', Get_SortDir, Set_SortDir, ':v|v');
+  RegisterProperty('onselect', Get_OnSelect, Set_OnSelect, ':s|s');
+  RegisterProperty('onchoose', Get_OnChoose, Set_OnChoose, ':s|s');
+  RegisterProperty('find', Get_IndexOf, nil, 's:v');
+
+End;
+
+Procedure SP_ListBox.Set_Item(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx, p: Integer;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
+    If (Idx >= 0) And (Idx < Count) Then
+      SP_ReplaceAll(s, '|', #255, fStrings[Idx]);
+    Paint;
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_ListBox.Get_Item: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam) -1;
+  If (Idx >= 0) And (Idx < Count) Then
+    SP_ReplaceAll(fStrings[Idx], #255, '|', Result);
+
+End;
+
+Procedure SP_ListBox.Set_Column(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx, cp, p: Integer;
+  cap, s2, s3: aString;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
+
+    If (Idx >= 0) And (Idx < fHCount) Then Begin
+      cp := Pos(',', s);
+      If cp > 0 Then Begin
+        cap := Copy(s, 1, cp -1);
+        s2 := Copy(s, cp +1);
+        cp := Pos(',', s2);
+        If cp > 0 Then Begin
+          s3 := Copy(s2, cp +1);
+          s2 := Copy(s2, 1, cp -1);
+          fHeaders[Idx].Justify := StringToInt(s3, fHeaders[Idx].Justify);
+        End;
+        fHeaders[Idx].Width := StringToInt(s2, fHeaders[Idx].Width);
+      End Else
+        cap := s;
+      fHeaders[Idx].Caption := Cap;
+    End;
+    Paint;
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_ListBox.Get_Column: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam) -1;
+  If (Idx >= 0) And (Idx < fHCount) Then
+    Result := fHeaders[Idx].Caption;
+
+End;
+
+Function SP_ListBox.Get_ColCount: aString;
+Begin
+
+  Result := IntToString(fHCount);
+
+End;
+
+Function SP_ListBox.Get_Count: aString;
+Begin
+
+  Result := IntToString(Count);
+
+End;
+
+Function SP_ListBox.Get_SelIndex: aString;
+Begin
+
+  Result := IntToString(fSelectedIdx);
+
+End;
+
+Procedure SP_ListBox.Set_ColColor(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  fHeaderClr := StringToInt(s, fHeaderClr);
+  Paint;
+
+End;
+
+Function SP_ListBox.Get_ColColor: aString;
+Begin
+
+  Result := IntToString(fHeaderClr);
+
+End;
+
+Procedure SP_ListBox.Set_ColWidth(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx, p: integer;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
+    fHeaders[Idx].Width := StringToInt(s, fHeaders[Idx].Width);
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_ListBox.Get_ColWidth: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam) -1;
+  If (Idx >= 0) And (Idx < fHCount) Then
+    Result := IntToString(fHeaders[Idx].Width);
+
+End;
+
+Procedure SP_ListBox.Set_ColJustify(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx, p: integer;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
+    fHeaders[Idx].Justify := StringToInt(s, fHeaders[Idx].Justify);
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_ListBox.Get_ColJustify: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam) -1;
+  If (Idx >= 0) And (Idx < fHCount) Then
+    Result := IntToString(fHeaders[Idx].Justify);
+
+End;
+
+Procedure SP_ListBox.Set_Selected(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Idx, p: integer;
+  b: Boolean;
+Begin
+
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    If (Idx >= 0) and (Idx < Count) Then Begin
+      s := Copy(s, p +1);
+      b := StringToInt(s, Ord(fSelected[Idx])) <> 0;
+      fSelected[Idx] := b;
+      If b Then Begin
+        fSelectedIdx := Idx;
+        fLastSelected := Idx;
+        ScrollInView;
+        Paint;
+      End;
+    End Else
+      Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Function SP_ListBox.Get_Selected: aString;
+Var
+  Idx: Integer;
+Begin
+
+  Result := '';
+  Idx := StringToInt(fUserParam, -1) -1;
+  If (Idx >= 0) And (Idx < Count) Then
+    Result := IntToString(Ord(fSelected[Idx]));
+
+End;
+
+Procedure SP_ListBox.Set_MultiSel(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  fMultiSelect := StringToInt(s, 0) <> 0;
+
+End;
+
+Function SP_ListBox.Get_MultiSel: aString;
+Begin
+
+  Result := IntToString(Ord(fMultiSelect));
+
+End;
+
+Procedure SP_ListBox.Set_Sorted(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  fSorted := StringToInt(s, 0) <> 0;
+
+End;
+
+Function SP_ListBox.Get_Sorted: aString;
+Begin
+
+  Result := IntToString(Ord(fSorted));
+
+End;
+
+Procedure SP_ListBox.Set_ShowCols(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  SetShowHeaders(StringToInt(s, 0) <> 0);
+
+End;
+
+Function SP_ListBox.Get_ShowCols: aString;
+Begin
+
+  Result := IntToString(Ord(fShowHeaders));
+
+End;
+
+Procedure SP_ListBox.Set_SortCol(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  fSortedBy := StringToInt(s, 0) -1;
+
+End;
+
+Function SP_ListBox.Get_SortCol : aString;
+Begin
+
+  Result := IntToString(fSortedBy +1);
+
+End;
+
+Procedure SP_ListBox.Set_SortColor(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Var
+  Clr: Integer;
+Begin
+
+  Clr := StringToInt(s, SortedColumnClr);
+  SortedColumnClr := Clr;
+
+End;
+
+Function SP_ListBox.Get_SortColor: aString;
+Begin
+
+  Result := IntToString(SortedColumnClr);
+
+End;
+
+Procedure SP_ListBox.Set_SortDir(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  fSortDir := StringToInt(s, fSortDir);
+  If fSorted Then
+    Sort(fSortedBy);
+
+End;
+
+Function SP_ListBox.Get_SortDir: aString;
+Begin
+
+  Result := IntToString(fSortDir);
+
+End;
+
+Procedure SP_ListBox.Set_OnSelect(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Compiled_OnSelect := SP_ConvertToTokens(s, Error);
+  If Compiled_OnSelect <> '' Then
+    User_OnSelect := s;
+
+End;
+
+Function SP_ListBox.Get_OnSelect: aString;
+Begin
+
+  Result := User_OnSelect;
+
+End;
+
+Procedure SP_ListBox.Set_OnChoose(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Compiled_OnChoose := SP_ConvertToTokens(s, Error);
+  If Compiled_OnChoose <> '' Then
+    User_OnChoose := s;
+
+End;
+
+Function SP_ListBox.Get_OnChoose: aString;
+Begin
+
+  Result := User_OnChoose;
+
+End;
+
+Function SP_ListBox.Get_IndexOf: aString;
+Var
+  Idx: integer;
+Begin
+
+  Idx := 0;
+  Result := '-1';
+  While Idx < Count Do
+    If Items[Idx] = fUserParam Then Begin
+      Result := IntToString(Idx +1);
+      Exit;
+    End Else
+      Inc(Idx);
+
+End;
+
+// User Methods
+
+Procedure SP_ListBox.RegisterMethods;
+Begin
+
+  Inherited;
+  RegisterMethod('add', 'S', Method_Add);
+  RegisterMethod('insert', 'ns', Method_Insert);
+  RegisterMethod('erase', 'n', Method_Delete);
+  RegisterMethod('clear', '', Method_Clear);
+  RegisterMethod('move', 'nn', Method_Move);
+  RegisterMethod('clearsel', '', Method_ClearSelected);
+  RegisterMethod('addcol', 'sn', Method_AddCol);
+  RegisterMethod('insertcol', 'nsn', Method_AddCol);
+  RegisterMethod('erasecol', 'n', Method_DeleteCol);
+  RegisterMethod('sort', '', Method_Sort);
+
+End;
+
+Procedure SP_ListBox.Method_Move(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i, j: Integer;
+Begin
+
+  i := StringToInt(Params[0], 0) -1;
+  j := StringToInt(Params[1], 0) -1;
+  If (i >= 0) And (i < Count) And (j >= 0) And (j < Count) Then
+    MoveItem(i, j);
+
+End;
+
+Procedure SP_ListBox.Method_Clear(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Clear;
+
+End;
+
+Procedure SP_ListBox.Method_ClearSelected(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  ClearSelected;
+
+End;
+
+Procedure SP_ListBox.Method_Add(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+Begin
+
+  For i := 0 To Length(Params) -1 do
+    Add(Params[i]);
+
+End;
+
+Procedure SP_ListBox.Method_Insert(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+Begin
+
+  i := StringToInt(Params[0], 0) -1;
+  If (i >= 0) And (i < Count) then
+    Insert(i, Params[1])
+  Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_ListBox.Method_Delete(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+Begin
+
+  i := StringToInt(Params[0], 0) -1;
+  If (i >= 0) And (i < Count) then
+    Delete(i)
+  Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_ListBox.Method_AddCol(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  w: Integer;
+  s: aString;
+Begin
+
+  s := Params[0];
+  If Length(Params) > 1 Then Begin
+    w := StringToInt(Params[1], 4 * Round(iFH * iSY));
+    AddHeader(s, w);
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_ListBox.Method_InsertCol(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i, w: Integer;
+  s: aString;
+Begin
+
+  i := StringToInt(Params[0], 0) -1;
+  If (Length(Params) > 2) And (i >= 0) And (i <= Count) Then Begin
+    s := Params[1];
+    w := StringToInt(Params[2], 4 * Round(iFH * iSY));
+    InsertHeader(i, s, w);
+  End Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_ListBox.Method_DeleteCol(Params: Array of aString; Var Error: TSP_ErrorCode);
+Var
+  i: Integer;
+Begin
+
+  i := StringToInt(Params[0], 0) -1;
+  If (i >= 0) And (i < Count) then
+    DeleteHeader(i)
+  Else
+    Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
+
+End;
+
+Procedure SP_ListBox.Method_Sort(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Sort(fSortedBy);
 
 End;
 

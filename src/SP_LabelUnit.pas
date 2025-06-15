@@ -2,7 +2,7 @@ unit SP_LabelUnit;
 
 interface
 
-Uses Math, SP_BaseComponentUnit, SP_Util;
+Uses Math, SP_BaseComponentUnit, SP_Errors, SP_Util;
 
 Type
 
@@ -30,6 +30,14 @@ SP_Label = Class(SP_BaseComponent)
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor Destroy; Override;
+
+    // User Properties
+
+    Procedure RegisterProperties; Override;
+    Procedure Set_Caption(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Caption: aString;
+    Procedure Set_Justify(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Justify: aString;
+    Procedure Set_vAlign(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_vAlign: aString;
+    Procedure Set_AutoSize(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_AutoSize: aString;
 
   End;
 
@@ -276,5 +284,74 @@ begin
 
 end;
 
+// User Properties
+
+Procedure SP_Label.RegisterProperties;
+Begin
+
+  Inherited;
+
+  RegisterProperty('caption', Get_Caption, Set_Caption, ':s|s');
+  RegisterProperty('halign', Get_Justify, Set_Justify, ':v|v');
+  RegisterProperty('valign', Get_vAlign, Set_vAlign, ':v|v');
+  RegisterProperty('autosize', Get_AutoSize, Set_AutoSize, ':v|v');
+
+End;
+
+Procedure SP_Label.Set_Caption(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Caption := s;
+
+End;
+
+Function SP_Label.Get_Caption: aString;
+Begin
+
+  Result := Caption;
+
+End;
+
+Procedure SP_Label.Set_Justify(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  TextJustify := StringToInt(s, TextJustify);
+
+End;
+
+Function SP_Label.Get_Justify: aString;
+Begin
+
+  Result := IntToString(TextJustify);
+
+End;
+
+Procedure SP_Label.Set_vAlign(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  TextAlign := StringToInt(s, TextAlign);
+
+End;
+
+Function SP_Label.Get_vAlign: aString;
+Begin
+
+  Result := IntToString(TextAlign);
+
+End;
+
+Procedure SP_Label.Set_AutoSize(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  AutoSize := StringToInt(s, 0) <> 0;
+
+End;
+
+Function SP_Label.Get_AutoSize: aString;
+Begin
+
+  Result := IntToString(Ord(AutoSize));
+
+End;
 
 end.

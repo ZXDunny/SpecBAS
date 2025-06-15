@@ -135,7 +135,8 @@ Var
 implementation
 
 Uses SP_Main, SP_Sound, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Graphics32, SP_Input, SP_Tokenise, SP_Interpret_PostFix,
-     SP_PopupMenuUnit, SP_WindowMenuUnit, SP_CheckBoxUnit, SP_ComboBoxUnit, SP_RadioGroupUnit, SP_CheckListUnit, SP_ContainerUnit, SP_EditUnit;
+     SP_PopupMenuUnit, SP_WindowMenuUnit, SP_CheckBoxUnit, SP_ComboBoxUnit, SP_RadioGroupUnit, SP_CheckListUnit, SP_ContainerUnit, SP_EditUnit,
+     SP_ListBoxUnit, SP_FileListBoxUnit, SP_LabelUnit, SP_ProgressBarUnit, SP_ScrollBarUnit, SP_SliderUnit;
 
 // Timer Functions
 
@@ -730,6 +731,38 @@ Begin
       spEdit:
         Begin
           Control := SP_Edit.Create(Parent);
+        End;
+      spList:
+        Begin
+          Control := SP_ListBox.Create(Parent);
+        End;
+      spFileList:
+        Begin
+          Control := SP_FileListBox.Create(Parent);
+        End;
+      spLabel:
+        Begin
+          Control := SP_Label.Create(Parent);
+        End;
+      spProgress:
+        Begin
+          Control := SP_ProgressBar.Create(Parent);
+        End;
+      spScrollBar:
+        Begin
+          Control := SP_ScrollBar.Create(Parent);
+        End;
+      spWindowMenu:
+        Begin
+          Control := SP_WindowMenu.Create(Parent);
+        End;
+      spPopUpMenu:
+        Begin
+          Control := SP_PopUpMenu.Create(Parent, nil);
+        End;
+      spSlider:
+        Begin
+          Control := SP_Slider.Create(Parent);
         End;
     End;
     If Assigned(Control) Then Begin

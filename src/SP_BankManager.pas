@@ -1127,7 +1127,8 @@ Begin
   Window^.FontTrans := False;
   Window^.CaptionHeight := 0;
   Window^.ID := Bank^.ID;
-  If Assigned(Window^.Component) then Window^.Component.Free;
+  If Assigned(Window^.Component) then
+    Window^.Component.Free;
   Window^.Component := SP_BaseComponent.Create(Nil);
   Window^.Component.WindowID := Bank^.ID;
 

@@ -68,13 +68,13 @@ End;
 
 Procedure SP_CheckList.Set_Checked(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Var
-  Idx: Integer;
+  Idx, p: Integer;
 Begin
 
-  Idx := Pos(':', s);
-  If Idx >= 0 Then Begin
-    Idx := StringToInt(Copy(s, 1, Idx -1));
-    s := Copy(s, Idx);
+  p := Pos(':', s);
+  If p >= 0 Then Begin
+    Idx := StringToInt(Copy(s, 1, p -1)) -1;
+    s := Copy(s, p +1);
     If (Idx >= 0) And (Idx < Count) Then
       fItems[Idx].Checked := StringToInt(s) <> 0;
     Paint;
@@ -89,7 +89,7 @@ Var
 Begin
 
   Result := '';
-  Idx := StringToInt(fUserParam);
+  Idx := StringToInt(fUserParam) -1;
   If (Idx >= 0) And (Idx < Count) Then
     Result := IntToString(Integer(fItems[Idx].Checked));
 

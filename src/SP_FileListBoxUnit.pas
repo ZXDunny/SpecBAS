@@ -2,7 +2,7 @@ unit SP_FileListBoxUnit;
 
 interface
 
-Uses SP_BaseComponentUnit, SP_ListBoxUnit, SP_Util, SP_AnsiStringlist;
+Uses SP_BaseComponentUnit, SP_ListBoxUnit, SP_Util, SP_AnsiStringlist, SP_Errors;
 
 Type
 
@@ -32,20 +32,32 @@ SP_FileListBox = Class(SP_ListBox)
     Procedure Select(Index: Integer); Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
     Procedure PerformKeyUp(Var Handled: Boolean); Override;
+
     Property  Directory: aString read fDirectory write SetDirectory;
     Property  OnChooseFile: SP_FLBSelectEvent read fOnChooseFile write fOnChooseFile;
     Property  OnChooseDir: SP_FLBSelectEvent read fOnChooseDir write fOnChooseDir;
     Property  Filters: aString read GetFilters write SetFilters;
+
     Procedure DoDoubleClick(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor Destroy; Override;
 
+    // User Properties
+
+    Procedure RegisterProperties; Override;
+    Procedure Set_Directory(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Directory: aString;
+    Procedure Set_Mask(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Mask: aString;
+
+    Procedure RegisterMethods; Override;
+    Procedure Method_Refresh(Params: Array of aString; Var Error: TSP_ErrorCode);
+    Procedure Method_Parent(Params: Array of aString; Var Error: TSP_ErrorCode);
+
 End;
 
 implementation
 
-Uses Types, SysUtils, SP_Errors, SP_FileIO, SP_Components, SP_Input, SP_Sound, SP_SysVars, SP_Main;
+Uses Types, SysUtils, SP_FileIO, SP_Components, SP_Input, SP_Sound, SP_SysVars, SP_Main;
 
 // SP_FileListBox
 
@@ -615,4 +627,68 @@ Begin
 
 End;
 
+// User properties and methods
+
+Procedure SP_FileListBox.RegisterProperties;
+Begin
+
+  Inherited;
+
+  RegisterProperty('dir', Get_Directory, Set_Directory, ':s|s');
+  RegisterProperty('mask', Get_Mask, Set_Mask, ':s|s');
+
+End;
+
+Procedure SP_FileListBox.Set_Directory(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Directory := s;
+
+End;
+
+Function SP_FileListBox.Get_Directory: aString;
+Begin
+
+  Result := Directory;
+
+End;
+
+Procedure SP_FileListBox.Set_Mask(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Filters := s;
+
+End;
+
+Function SP_FileListBox.Get_Mask: aString;
+Begin
+
+  Result := Filters;
+
+End;
+
+Procedure SP_FileListBox.RegisterMethods;
+Begin
+
+  Inherited;
+  RegisterMethod('refresh', '', Method_Refresh);
+  RegisterMethod('parent', '', Method_Parent);
+
+End;
+
+Procedure SP_FileListBox.Method_Refresh(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Populate;
+
+End;
+
+Procedure SP_FileListBox.Method_Parent(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  GoParent;
+
+End;
+
 end.
+

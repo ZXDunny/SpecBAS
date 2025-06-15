@@ -1485,8 +1485,16 @@ Const
    spCheckList = 4;
    spContainer = 5;
    spEdit = 6;
+   spList = 7;
+   spFileList = 8;
+   spLabel = 9;
+   spProgress = 10;
+   spScrollBar = 11;
+   spWindowMenu = 12;
+   spPopUpMenu = 13;
+   spSlider = 14;
 
-   SP_Constants: Array[0..124] of TConstant =
+   SP_Constants: Array[0..132] of TConstant =
    ((Name: 'TRUE'; Value: 1),
     (Name: 'FALSE'; Value: 0),
 
@@ -1617,7 +1625,15 @@ Const
     (Name: 'SPGROUP'; Value: spRadioGroup),
     (Name: 'SPCHECKLIST'; Value: spCheckList),
     (Name: 'SPCONTAINER'; Value: spContainer),
-    (Name: 'SPEDIT'; Value: spEdit)
+    (Name: 'SPEDIT'; Value: spEdit),
+    (Name: 'SPLIST'; Value: spList),
+    (Name: 'SPFILELIST'; Value: spFileList),
+    (Name: 'SPLABEL'; Value: spLabel),
+    (Name: 'SPPROGRESS'; Value: spProgress),
+    (Name: 'SPSCROLLBAR'; Value: spScrollBar),
+    (Name: 'SPMENU'; Value: spWindowMenu),
+    (Name: 'SPSUBMENU'; Value: spPopUpMenu),
+    (Name: 'SPSLIDER'; Value: spSlider)
     );
 
   SysVars: Array[0..257] of TSysVar =

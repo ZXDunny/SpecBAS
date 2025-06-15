@@ -81,10 +81,12 @@ Type
     Procedure LoadFromFile(Filename: AnsiString);
     Procedure SaveToFile(Filename: AnsiString);
     Procedure Resize(NewSize: Integer);
+    Function  GetCapacity: Integer;
     Property  Strings[Index: Integer]: AnsiString read GetString write SetString; default;
     Property  Flags[Index: Integer]: pLineFlags read GetFlags write SetFlags;
     Property  Objects[Index: Integer]: TObject read GetObject write SetObject;
     Property  Text: AnsiString read GetText write SetText;
+    Property  Capacity: Integer read GetCapacity;
     Property  DelimitedText: AnsiString read GetDelimitedText write SetDelimitedText;
     Property  OnChange: TStringlistChangeProc read fOnChange write fOnChange;
     Property  UndoInProgress: Boolean read fUndoInProgress;
@@ -144,6 +146,13 @@ begin
   End;
 
 end;
+
+Function TAnsiStringlist.GetCapacity: Integer;
+Begin
+
+  Result := Length(fStrings);
+
+End;
 
 Procedure TAnsiStringlist.Clear;
 Var
@@ -222,8 +231,8 @@ Begin
   AddUndoItem(opChange, Index);
   os := fStrings[Index];
   fStrings[Index] := s;
-  If Assigned(OnChange) Then
-    OnChange(Index, 0);
+  if Index >= fCount Then fCount := Index +1;
+  If Assigned(OnChange) Then OnChange(Index, 0);
 End;
 
 Function  TAnsiStringlist.GetString(Index: Integer): AnsiString;

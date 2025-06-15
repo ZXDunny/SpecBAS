@@ -24,13 +24,12 @@ program SpecBAS;
 
 uses
   {$IFDEF DEBUG}
-  FastMM4,
   madExcept,
   madLinkDisAsm,
   madListHardware,
   madListProcesses,
   madListModules,
-  {$ENDIF}
+  {$ENDIF }
   {$IFNDEF FPC}
   Windows,
   {$ELSE}
@@ -38,7 +37,8 @@ uses
   {$ENDIF }
   Forms,
   SP_Display,
-  MainForm in 'MainForm.pas' {Main};
+  MainForm in 'MainForm.pas' {Main},
+  SP_Graphics32Alpha in 'SP_Graphics32Alpha.pas';
 
 {$R *.res}
 begin

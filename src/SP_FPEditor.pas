@@ -300,6 +300,7 @@ Var
   ToolMode: NativeInt;
 
   // Direct command window
+  DWUndoBufferMax: Integer;
   DWUndoCount, DWRedoCount: Integer;
   DWUndoGroup, DwRedoGroup: Integer;
   DWUndoBufferPtr, DWRedoBufferPtr: Integer;
@@ -505,6 +506,7 @@ Begin
   DWRedoBufferPtr := -1;
   DWUndoBufferSize := 1000;
   DWRedoBufferSize := 1000;
+  DWUndoBufferMax := 131072;
   DWCommenceUndo;
   DWCompleteUndo;
   UndoLock.Leave;
@@ -8947,7 +8949,6 @@ Begin
   LastFindwasReplace := not Find;
   FindWindow := SP_FindReplace.Create;
   FindWindow.Open(Find);
-  FindWindow.Free;
 
   If FPSearchTerm <> '' Then FindNext(True);
 
@@ -9134,8 +9135,13 @@ Begin
 
   UndoLock.Enter;
   Inc(DWUndoBufferPtr);
-  If DWUndoBufferPtr >= DWUndoList.Count Then
-    DWUndoList.SetCapacity(DWUndoList.Count + DWUndoBufferSize);
+  If DWUndoBufferPtr >= DWUndoList.Capacity Then Begin
+    DWUndoList.SetCapacity(DWUndoList.Capacity + DWUndoBufferSize);
+  End;
+  While DWUndoList.Count > DWUndoBufferMax Do Begin
+    DWUndoList.Delete(0);
+    Dec(DWUndoBufferPtr);
+  End;
   UndoLock.Leave;
 
 End;

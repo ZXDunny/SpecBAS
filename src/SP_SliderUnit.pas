@@ -2,7 +2,7 @@ unit SP_SliderUnit;
 
 interface
 
-Uses Types, SP_BaseComponentUnit, SP_ButtonUnit, SP_Util;
+Uses SysUtils, Types, SP_BaseComponentUnit, SP_ButtonUnit, SP_Util, SP_Errors;
 
 Type
 
@@ -25,6 +25,8 @@ SP_Slider = Class(SP_BaseComponent)
     fMousePos: TPoint;
     fMouseIsDown: Boolean;
 
+    Compiled_OnChange, User_OnChange: aString;
+
   Public
 
     Procedure Draw; Override;
@@ -39,10 +41,10 @@ SP_Slider = Class(SP_BaseComponent)
     Procedure SetPos(Value: aFloat);
     Procedure SetKind(Value: SP_ScrollBarKind);
     Procedure SetUIElements;
-    Procedure MouseDown(X, Y, Btn: Integer); Override;
-    Procedure MouseUp(X, Y, Btn: Integer); Override;
-    Procedure MouseMove(X, Y, Btn: Integer); Override;
-    Procedure MouseWheel(X, Y, Btn, Delta: Integer); Override;
+    Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseWheel(Sender: SP_BaseComponent; X, Y, Btn, Delta: Integer); Override;
 
     Property OnChange: SP_ScrollEvent read fOnChange write fOnChange;
     Property TrackClr: Integer read fTrackColour write SetTrackColour;
@@ -54,10 +56,28 @@ SP_Slider = Class(SP_BaseComponent)
     Property Kind: SP_ScrollbarKind read fKind write SetKind;
     Property Position: aFloat read fPosition write SetPos;
 
+    // User Properties
+
+    Procedure RegisterProperties; Override;
+    Procedure Set_Step(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Step: aString;
+    Procedure Set_Min(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Min: aString;
+    Procedure Set_Max(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Max: aString;
+    Procedure Set_Pos(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Pos: aString;
+    Procedure Set_Kind(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Kind: aString;
+    Procedure Set_OnChange(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnChange: aString;
+    Procedure Set_FillClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_FillClr: aString;
+    Procedure Set_ThumbClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ThumbClr: aString;
+    Procedure Set_TrackClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_TrackClr: aString;
+
+    Procedure RegisterMethods; Override;
+    Procedure Method_SlideTo(Params: Array of aString; Var Error: TSP_ErrorCode);
+
 End;
 pSP_Slider = ^SP_Slider;
 
 implementation
+
+Uses SP_Interpret_PostFix;
 
 Constructor SP_Slider.Create(Owner: SP_BaseComponent);
 Begin
@@ -81,6 +101,8 @@ End;
 
 Destructor SP_Slider.Destroy;
 Begin
+
+  Inherited;
 
 End;
 
@@ -203,13 +225,16 @@ Begin
   SetUIElements;
   Paint;
 
-  If oPos <> fPosition Then
+  If oPos <> fPosition Then Begin
     If Assigned(OnChange) Then
       OnChange(fPosition - oPos, fPosition);
+    If Not Locked And (Compiled_OnChange <> '') Then
+      SP_AddOnEvent(Compiled_OnChange);
+  End;
 
 End;
 
-Procedure SP_Slider.MouseDown(X, Y, Btn: Integer);
+Procedure SP_Slider.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   If Btn = 1 Then Begin
@@ -221,7 +246,7 @@ Begin
 
 End;
 
-Procedure SP_Slider.MouseUp(X, Y, Btn: Integer);
+Procedure SP_Slider.MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
   fMouseIsDown := False;
@@ -229,7 +254,7 @@ Begin
 
 End;
 
-Procedure SP_Slider.MouseMove(X, Y, Btn: Integer);
+Procedure SP_Slider.MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Var
   Dx, Dy: Integer;
   p, oPos: aFloat;
@@ -256,7 +281,7 @@ Begin
 
 End;
 
-Procedure SP_Slider.MouseWheel(X, Y, Btn, Delta: Integer);
+Procedure SP_Slider.MouseWheel(Sender: SP_BaseComponent; X, Y, Btn, Delta: Integer);
 Begin
 
   If Delta > 0 Then
@@ -267,5 +292,175 @@ Begin
 
 End;
 
+// User Properties
+
+Procedure SP_Slider.RegisterProperties;
+Begin
+
+  Inherited;
+
+  RegisterProperty('step', Get_Step, Set_Step, ':v|v');
+  RegisterProperty('min', Get_Min, Set_Min, ':v|v');
+  RegisterProperty('max', Get_Max, Set_Max, ':v|v');
+  RegisterProperty('position', Get_Pos, Set_Pos, ':v|v');
+  RegisterProperty('kind', Get_Kind, Set_Kind, ':v|v');
+  RegisterProperty('onchange', Get_OnChange, Set_OnChange, ':s|s');
+  RegisterProperty('fillclr', Get_FillClr, Set_FillClr, ':v|v');
+  RegisterProperty('trackclr', Get_TrackClr, Set_TrackClr, ':v|v');
+  RegisterProperty('thumbclr', Get_ThumbClr, Set_ThumbClr, ':v|v');
+
+End;
+
+Procedure SP_Slider.Set_Step(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Step := StrToFloatDef(String(s), Step);
+
+End;
+
+Function SP_Slider.Get_Step: aString;
+Begin
+
+  Result := aString(FloatToStr(Step));
+
+End;
+
+Procedure SP_Slider.Set_Min(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Min := StrToFloatDef(String(s), Min);
+
+End;
+
+Function SP_Slider.Get_Min: aString;
+Begin
+
+  Result := aString(FloatToStr(Min));
+
+End;
+
+Procedure SP_Slider.Set_Max(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Max := StrToFloatDef(String(s), Max);
+
+End;
+
+Function SP_Slider.Get_Max: aString;
+Begin
+
+  Result := aString(FloatToStr(Max));
+
+End;
+
+Procedure SP_Slider.Set_Pos(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Position := StrToFloatDef(String(s), Position);
+
+End;
+
+Function SP_Slider.Get_Pos: aString;
+Begin
+
+  Result := aString(FloatToStr(Position));
+
+End;
+
+Procedure SP_Slider.Set_Kind(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  if s <> '' Then
+    if s[1] = '0' Then
+      Kind := spHorizontal
+    else
+      if s[1] = '1' Then
+        Kind := spVertical;
+
+End;
+
+Function SP_Slider.Get_Kind: aString;
+Begin
+
+  if Kind = spHorizontal then
+    Result := '0'
+  Else
+    Result := '1';
+
+End;
+
+Procedure SP_Slider.Set_OnChange(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  Compiled_OnChange := SP_ConvertToTokens(s, Error);
+  If Compiled_OnChange <> '' Then
+    User_OnChange := s;
+
+End;
+
+Function SP_Slider.Get_OnChange: aString;
+Begin
+
+  Result := User_OnChange;
+
+End;
+
+Procedure SP_Slider.Set_FillClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  FillClr := (StringToInt(s, FillClr));
+
+End;
+
+Function SP_Slider.Get_FillClr: aString;
+Begin
+
+  Result := IntToString(FillClr);
+
+End;
+
+Procedure SP_Slider.Set_ThumbClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  ThumbClr := StringToInt(s, fTrackFillColour);
+
+End;
+
+Function SP_Slider.Get_ThumbClr: aString;
+Begin
+
+  Result := IntToString(ThumbClr);
+
+End;
+
+Procedure SP_Slider.Set_TrackClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+
+  TrackClr := StringToInt(s, TrackClr);
+
+End;
+
+Function SP_Slider.Get_TrackClr: aString;
+Begin
+
+  Result := IntToString(TrackClr);
+
+End;
+
+
+Procedure SP_Slider.RegisterMethods;
+Begin
+
+  Inherited;
+  RegisterMethod('slideto', 'n', Method_SlideTo);
+
+End;
+
+Procedure SP_Slider.Method_SlideTo(Params: Array of aString; Var Error: TSP_ErrorCode);
+Begin
+
+  Position := StringToInt(Params[0], Round(Position));
+
+End;
 
 end.

@@ -310,6 +310,7 @@ SP_BaseComponent = Class
     Procedure Set_OnHide(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnHide: aString;
 
     {User Methods}
+
     Procedure RegisterMethods; Virtual;
     Procedure Method_BringToFront(Params: Array of aString; Var Error: TSP_ErrorCode);
     Procedure Method_SendToBack(Params: Array of aString; Var Error: TSP_ErrorCode);
@@ -1259,8 +1260,8 @@ Var
   Dst: pByte;
 Begin
 
-  X1 := Max(0, X1); X2 := Min(X2, fWidth -1);
-  X2 := Max(0, X2); Y2 := Min(Y2, fHeight -1);
+  X1 := Min(fWidth -1, Max(0, X1)); X2 := Min(Max(0, X2), fWidth -1);
+  Y1 := Min(fHeight -1, Max(0, Y1)); Y2 := Min(Max(0, Y2), fHeight -1);
   Dst := pByte(NativeInt(@fCanvas[0]) + (fWidth * Y1) + X1);
   ink_long := Ink + (Ink shl 8) + (Ink shl 16) + (Ink shl 24);
 
@@ -1446,7 +1447,6 @@ Begin
     fBackgroundClr := SP_UIBackground;
     fFontClr := SP_UIText;
     fDisabledFontClr := SP_UITextDisabled;
-    fTransparent := True;
     fHighlightClr := SP_UISelection;
     fUnfocusedHighlightClr := SP_UIUnfocusedSelection;
   End Else Begin
@@ -1456,8 +1456,8 @@ Begin
     fDisabledFontClr := Owner.fDisabledFontClr;
     fUnfocusedHighlightClr := Owner.fUnfocusedHighlightClr;
     fHighlightClr := Owner.fHighlightClr;
-    fTransparent := True;
   End;
+  fTransparent := False;
   fErrorClr := 2;
   fEnabled := True;
   fValidCanvas := False;

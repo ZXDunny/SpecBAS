@@ -18685,7 +18685,7 @@ Var
 Begin
 
   // CTRL NEW id,class AT x,y,w,h [TO {WINDOW id|parentid}] [PROP {propID$,propVAL$...}]
-  // CTRL PROP id,propname$,propvalue$
+  // CTRL SET id,propname$,propvalue$
   // CTRL DO id,methodname$[,param1,param2,...]
   // CTRL LOCK id
   // CTRL UNLOCK id

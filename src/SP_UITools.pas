@@ -173,7 +173,6 @@ Begin
 
   FileReq := SP_FileRequester.Create;
   Result := FileReq.Open(Caption, Filename, Filter, Save, Error);
-  FileReq.Free;
 
 End;
 
@@ -366,18 +365,18 @@ Begin
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(w - (cw + nBw) +1, h - (FH + 4) - nBh -1, cw, FH + 4);
+  caBtn.SetBounds(w - (cw + nBw) +1, h - (FH + 6) - nBh -1, cw, FH + 6);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
   okBtn := SP_Button.Create(Win^.Component);
   okBtn.Caption := 'Okay';
   cw := Fw * (Length(OkBtn.Caption) + 2);
-  okBtn.SetBounds(caBtn.Left - (cw + nBw), caBtn.Top, cw, FH + 4);
+  okBtn.SetBounds(caBtn.Left - (cw + nBw), caBtn.Top, cw, FH + 6);
   okBtn.CentreCaption;
 
   FilenameEdt := SP_Edit.Create(Win^.Component);
-  FilenameEdt.SetBounds(pBtn.Left, okBtn.Top - (Fh + 4 + nBh), pBtn.Width + nBw + PathEdt.Width, Fh);
+  FilenameEdt.SetBounds(pBtn.Left, okBtn.Top - (Fh + 6 + nBh), pBtn.Width + nBw + PathEdt.Width, Fh);
   If SP_FileExists(Filename) Then
     FilenameEdt.Text := SP_ExtractFileName(Filename)
   Else
@@ -429,6 +428,8 @@ Begin
   SP_DeleteWindow(FDWindowID, Error);
   DisplaySection.Leave;
 
+  Free;
+
 End;
 
 // Find Dialog
@@ -463,7 +464,7 @@ Begin
   FindMode := Mode;
   If FindMode Then Caption := 'Find...' else Caption := 'Replace...';
 
-  w := 38 * FW; h := FPFh + 21 + (10 * FH) + (Ord(Not FindMode) * (nbh + FH)) + (5 * nbh);
+  w := 38 * FW; h := FPFh + 23 + (10 * FH) + (Ord(Not FindMode) * (nbh + FH)) + (5 * nbh);
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
   Dec(w, 1); // Account for the one-pixel border around the window when placing items
   SP_GetWindowDetails(FDWindowID, Win, Error);
@@ -558,7 +559,7 @@ Begin
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(w - (cw + nBw), h - (FH + 4) - nBh -1, cw, FH + 4);
+  caBtn.SetBounds(w - (cw + nBw), h - (FH + 6) - nBh -1, cw, FH + 6);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
@@ -568,7 +569,7 @@ Begin
     allBtn := SP_Button.Create(Win^.Component);
     allBtn.Caption := 'Replace All';
     cw := Fw * (Length(allBtn.Caption) + 2);
-    allBtn.SetBounds(caBtn.Left - (cw + 6), caBtn.Top, cw, FH + 4);
+    allBtn.SetBounds(caBtn.Left - (cw + 6), caBtn.Top, cw, FH + 6);
     allBtn.CentreCaption;
     tp := allBtn.Left;
   End;
@@ -576,7 +577,7 @@ Begin
   okBtn := SP_Button.Create(Win^.Component);
   okBtn.Caption := 'Okay';
   cw := Fw * (Length(OkBtn.Caption) + 2);
-  okBtn.SetBounds(tp - (cw + 6), caBtn.Top, cw, FH + 4);
+  okBtn.SetBounds(tp - (cw + 6), caBtn.Top, cw, FH + 6);
   okBtn.CentreCaption;
 
   okBtn.OnClick := OkBtnClick;
@@ -610,6 +611,7 @@ Begin
 
   SP_DeleteWindow(FDWindowID, Error);
   SP_InvalidateWholeDisplay;
+  Free;
 
 End;
 
@@ -747,7 +749,7 @@ Begin
   End;
 
   w := (45 * FW) + (Bh * 2);
-  h := ((FH + 4) * 2) + FPCaptionHeight + (Bh * 3);
+  h := ((FH + 6) * 2) + FPCaptionHeight + (Bh * 3);
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
   SP_GetWindowDetails(FDWindowID, Win, Error);
   SP_SetDrawingWindow(FDWindowID);
@@ -766,14 +768,14 @@ Begin
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(w - (cw + Bw), h - (FH + 4) - Bh -1, cw, FH + 4);
+  caBtn.SetBounds(w - (cw + Bw), h - (FH + 6) - Bh -1, cw, FH + 6);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
   okBtn := SP_Button.Create(Win^.Component);
   okBtn.Caption := 'Okay';
   cw := Fw * (Length(OkBtn.Caption) + 2);
-  okBtn.SetBounds(caBtn.Left - (cw + Bw), caBtn.Top, cw, FH + 4);
+  okBtn.SetBounds(caBtn.Left - (cw + Bw), caBtn.Top, cw, FH + 6);
   okBtn.CentreCaption;
 
   okBtn.OnClick := okBtnClick;
@@ -793,6 +795,7 @@ Begin
   SP_SetSystemFont(Font, Error);
   SP_DeleteWindow(FDWindowID, Error);
   SP_InvalidateWholeDisplay;
+  Free;
 
 End;
 
@@ -935,7 +938,7 @@ begin
   End;
 
   w := (45 * FW) + (Bh * 2) -2;
-  h := FPCaptionHeight + (4 * FH + 4) + (Bh * 6);
+  h := FPCaptionHeight + (4 * FH + 8) + (Bh * 6);
   Width := w; Height := h;
   Self.Caption := Caption;
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
@@ -954,7 +957,7 @@ begin
   cmbType.AddItem('Source');
   cmbType.AddItem('Conditional');
   cmbType.AddItem('Data');
-  cmbType.BackgroundClr := SP_UIWindowBack;
+  cmbType.BackgroundClr := SP_UIBackground;
 
   edtLine := SP_Edit.Create(Win^.Component);
   edtLine.OnChange := edtLineChange;
@@ -1050,6 +1053,7 @@ begin
   SP_DeleteWindow(FDWindowID, Error);
   SP_DisplayFPListing(-1);
   SP_InvalidateWholeDisplay;
+  Free;
 
 end;
 
@@ -1089,12 +1093,12 @@ Begin
   edtPassCount.OnAbort := Abort;
 
   cw := Fw * (Length(caBtn.Caption) +2);
-  caBtn.SetBounds(Width - (cw + Bh), Height - (FH + 4 + Bh), cw, FH + 4);
+  caBtn.SetBounds(Width - (cw + Bh), Height - (FH + 6 + Bh), cw, FH + 6);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
   cw := Fw * (Length(OkBtn.Caption) + 2);
-  okBtn.SetBounds(caBtn.Left - (cw + 6), caBtn.Top, cw, FH + 4);
+  okBtn.SetBounds(caBtn.Left - (cw + 6), caBtn.Top, cw, FH + 6);
   okBtn.CentreCaption;
   okBtn.Enabled := False;
 

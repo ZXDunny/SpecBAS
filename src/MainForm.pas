@@ -231,6 +231,7 @@ begin
   If ScaleMouseX > 0 Then Begin
 
     SetCapture(Handle);
+    SetCaptureControl(Self);
 
     {$IFDEF OPENGL}
     X := Round(X / ScaleMouseX);
@@ -370,7 +371,7 @@ begin
 
   End Else
 
-    If MOUSEVISIBLE And Not SIZINGMAIN Then Begin
+    If (Assigned(CaptureControl) or MOUSEVISIBLE) And Not SIZINGMAIN Then Begin
 
       // Now check for controls under the mouse
 
@@ -389,8 +390,10 @@ begin
         End;
         If Assigned(CaptureControl) And CaptureControl.Visible Then Begin
           p := CaptureControl.ScreenToClient(Point(x, y));
-          If SP_CanInteract(CaptureControl) Then
+          If SP_CanInteract(CaptureControl) Then Begin
             CaptureControl.PreMouseMove(p.x, p.y, Btn);
+            Handled := True;
+          End;
         End Else Begin
           If Assigned(Win) And pSP_BaseComponent(Win)^.Enabled Then Begin
             If MouseControl <> pSP_BaseComponent(Win)^ Then Begin

@@ -24,9 +24,12 @@
     <Transaction>2024/05/19 12:31:48.000.797,D:\Projects\SpecBAS\src\SP_Testing.pas=</Transaction>
     <Transaction>2025/03/24 22:53:19.000.782,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2025/03/24 22:53:42.000.175,D:\Projects\SpecBAS\src\SP_Compiler.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2025/06/01 16:43:35.000.546,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2025/06/01 16:43:50.000.753,D:\Projects\SpecBAS\src\SP_Graphics32Alpha.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
   </Transactions>
 	<ProjectSortOrder AutoSort="0" SortType="0">
     <File Path="MainForm.pas"/>
     <File Path="MainForm.dfm"/>
+    <File Path="SP_Graphics32Alpha.pas"/>
   </ProjectSortOrder>
 </BorlandProject>

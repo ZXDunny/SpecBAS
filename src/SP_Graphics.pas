@@ -622,7 +622,7 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components, SP_ToolTipWindow, SP_Variables;
+Uses SP_Main, SP_Display, SP_Interpret_PostFix, SP_Tokenise, SP_InfixToPostFix, SP_Input, SP_Graphics32, SP_Components, SP_ToolTipWindow, SP_Variables;
 
 class operator TSP_Point.Add(const a, b: TSP_Point): TSP_Point;
 begin
@@ -653,16 +653,27 @@ Begin
 End;
 
 Procedure SP_WaitForSync;
+const SYNC_TIMEOUT_MS = 500; // e.g., 500ms
 Begin
-  {$IFDEF RefreshThread}
-  If RefreshThreadAlive Then Begin
-  {$ENDIF}
-    CauseUpdate := True;
-    While CauseUpdate {$IFDEF RefreshThread}and RefreshThreadAlive{$ENDIF} and Not QUITMSG Do
-      CB_YIELD;
-  {$IFDEF RefreshThread}
-  End;
-  {$ENDIF}
+  if SP_Display.IsPerformingDisplayChange or QUITMSG then
+  begin
+    CB_YIELD; // Interpreter thread just yields a bit, doesn't get stuck
+    Exit;
+  end;
+  if Assigned(FrameProcessedEvent) then
+  begin
+    SP_Display.FrameProcessedEvent.ResetEvent; // Prepare to wait
+    case SP_Display.FrameProcessedEvent.WaitFor(SYNC_TIMEOUT_MS) of
+      wrSignaled, wrTimeout, wrError:
+        begin
+          Exit;
+        end;
+    end;
+  end
+  else
+  begin
+    CB_YIELD; // Fallback if event not set up
+  end;
 End;
 
 Procedure SP_SetDirtyRect(x1, y1, x2, y2: Integer);
@@ -2125,8 +2136,8 @@ Begin
     Bank := SP_BankList[Result];
     FontBank := @Bank^.Info[0];
     IsScaled := (ScaleX <> 1) Or (ScaleY <> 1);
-    CharW := Max(1, Round(FONTWIDTH * ScaleX));
-    CharH := Max(1, Round(FONTHEIGHT * ScaleY));
+    CharW := Max(1, Round(FontBank^.WIDTH * ScaleX));
+    CharH := Max(1, Round(FontBank^.HEIGHT * ScaleY));
     Cw := CharW;
     Ch := CharH;
     If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
@@ -2159,14 +2170,14 @@ Begin
 
         If IsScaled Then Begin
           // Scaled character
-          sx := Integer(FONTWIDTH Shl 16) Div CharW;
-          sy := Integer(FONTHEIGHT Shl 16) Div CharH;
+          sx := Integer(FontBank.WIDTH Shl 16) Div CharW;
+          sy := Integer(FontBank.HEIGHT Shl 16) Div CharH;
           yp := 0;
           While CharH > 0 Do Begin
             pIdx := Char;
             xp := 0;
             SkipNextPaper := False;
-            Inc(pIdx, Integer(FONTWIDTH) * (yp Shr 16));
+            Inc(pIdx, Integer(FontBank.WIDTH) * (yp Shr 16));
             While CharW > 0 Do Begin
               If (X >= T_CLIPX1) And (Y >= T_CLIPY1) And (X < T_CLIPX2) And (Y < T_CLIPY2) Then
                 If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
@@ -2454,8 +2465,8 @@ Begin
                 SP_NeedDisplayUpdate := True;
                 Exit;
               End Else Begin
-                CharW := Max(1, Round(FONTWIDTH * ScaleX));
-                CharH := Max(1, Round(FONTHEIGHT * ScaleY));
+                CharW := Max(1, Round(FontBank^.WIDTH * ScaleX));
+                CharH := Max(1, Round(FontBank^.HEIGHT * ScaleY));
                 Cw := CharW;
                 Ch := CharH;
               End;
@@ -3455,213 +3466,224 @@ End;
 
 Procedure SP_DrawCircle(CX, CY, R: Integer);
 var
-  x, y, px, py, twoRx2: Integer;
-  p, Rx2: Int64;
-  cxpx, cypy, cxmx, cymy: Integer;
+  x, y: Integer;
+  p: Integer;
+
+  procedure PlotOctantSymmetries_V2(oct_x, oct_y: Integer);
+  begin
+    SP_SetPixel(CX + oct_x, CY + oct_y);
+    if oct_y > 0 then SP_SetPixel(CX + oct_x, CY - oct_y);
+    if oct_x > 0 then
+    begin
+      SP_SetPixel(CX - oct_x, CY + oct_y);
+      if oct_y > 0 then SP_SetPixel(CX - oct_x, CY - oct_y);
+    end;
+    if oct_x < oct_y then
+    begin
+      SP_SetPixel(CX + oct_y, CY + oct_x);
+      if oct_x > 0 then SP_SetPixel(CX + oct_y, CY - oct_x);
+      if oct_y > 0 then
+      begin
+        SP_SetPixel(CX - oct_y, CY + oct_x);
+        if oct_x > 0 then SP_SetPixel(CX - oct_y, CY - oct_x);
+      end;
+    end;
+  end;
+
 begin
 
-  If (r = 0) or ((cx+r)<0) or ((cx-r)>SCREENWIDTH) or ((cy+r)<0) or ((cy-r)>SCREENHEIGHT) Then Exit;
-
-  If T_STROKE > 1 Then Begin
-
+ If T_STROKE > 1 Then Begin
     If SCREENBPP = 8 Then
       SP_DrawThickEllipse(CX, CY, R, R, 0)
     Else
       SP_DrawThickEllipse32(CX, CY, R, R, 0);
-
     Inc(R, Ceil(T_STROKE / 2));
-
   End Else Begin
 
-    If SCREENBPP = 8 Then Begin
+    if R = 0 then
+    begin
+      SP_SetPixel(CX, CY);
+      If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + CX, SCREENY + CY, SCREENX + CX + 1, SCREENY + CY + 1);
+      SP_BankList[0]^.Changed := True;
+      Exit;
+    end;
 
-      R := Abs(R);
-      Rx2 := R * R;
-      twoRx2 := 2 * Rx2;
-      x := 0;
-      y := R;
-      px := 0;
-      py := twoRx2 * y;
+    if R <= 0 then Exit;
+    If ((CX + R) < 0) or ((CX - R) > SCREENWIDTH) or ((CY + R) < 0) or ((CY - R) > SCREENHEIGHT) Then Exit;
 
-      cxpx := Cx + X; cypy := Cy + Y;
-      cxmx := Cx - X; cymy := Cy - Y;
+    x := 0;
+    y := R;
+    p := 1 - R;
 
-      SP_SetPixel(cxpx, cypy);
-      SP_SetPixel(cxpx, cymy);
-      If cxmx <> cxpx Then Begin
-        SP_SetPixel(cxmx, cymy);
-        SP_SetPixel(cxmx, cypy);
-      End;
-
-      p := Rx2 - (Rx2 * R) + (Rx2 div 4);
-
-      while px < py do begin
-         Inc(x);
-         Inc(px, twoRx2);
-         if p < 0 then
-            Inc(p, Rx2 + px)
-         else begin
-            Dec(y);
-            Dec(py, twoRx2);
-            Inc(p, Rx2 + px - py);
-            dec(cypy);
-            inc(cymy);
-         end;
-         inc(cxpx);
-         dec(cxmx);
-         SP_SetPixel(cxpx, cypy);
-         SP_SetPixel(cxmx, cypy);
-         SP_SetPixel(cxpx, cymy);
-         SP_SetPixel(cxmx, cymy);
-      end;
-
-      p := Round(Rx2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Rx2);
-
-      while y > 0 do begin
+    while x <= y do
+    begin
+      PlotOctantSymmetries_V2(x, y);
+      if x = y then break;
+      if p < 0 then
+      begin
+        p := p + (2 * x) + 3;
+        Inc(x);
+      end
+      else
+      begin
+        p := p + (2 * (x - y)) + 5;
+        Inc(x);
         Dec(y);
-        Dec(py, twoRx2);
-        if p > 0 then
-          Inc(p, Rx2 - py)
-        else begin
-          Inc(x);
-          Inc(px, twoRx2);
-          Inc(p, Rx2 - py + px);
-          inc(cxpx);
-          dec(cxmx);
-        end;
-        dec(cypy);
-        inc(cymy);
-        SP_SetPixel(cxpx, cypy);
-        SP_SetPixel(cxmx, cypy);
-        if y > 0 Then Begin
-         SP_SetPixel(cxpx, cymy);
-         SP_SetPixel(cxmx, cymy);
-        End;
       end;
-
-    End Else
-
-      SP_DrawCircle32(Cx, Cy, R);
+    end;
 
   End;
 
-  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - R, (SCREENY + Cy) - R, SCREENX + Cx + R, SCREENY + Cy + R);
+  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + CX) - R, (SCREENY + CY) - R, SCREENX + CX + R, SCREENY + CY + R);
   SP_BankList[0]^.Changed := True;
-
 end;
 
 Procedure SP_DrawSolidCircle(CX, CY, R: Integer);
 var
-  x, y, r2, y2, y3: Integer;
-  DstA: pByte;
-  Ink: Byte;
+  x, y: Integer;
+  p: Integer;
+  CurrentInk: Byte;
 
-  Procedure DrawSpan(X1, X2, Y: Integer);
+  Procedure DrawSpan(X1, X2, Y_scanline: Integer);
+  var
+    LocalDstA: pByte;
+    NumPixelsToFill, Cnt: Integer;
   Begin
-    X1 := Max(T_CLIPX1, X1);
-    X2 := Min(T_CLIPX2 -1, X2);
-    If X2 > X1 Then Begin
-      DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
-      If T_OVER = 0 Then Begin
-        While X2 >= X1 Do Begin
-          DstA^ := Ink;
-          Inc(DstA);
-          Dec(X2);
+    if (y_scanline >= T_CLIPY1) and (y_scanline < T_CLIPY2) then begin
+      X1 := Max(T_CLIPX1, X1);
+      X2 := Min(T_CLIPX2 -1, X2);
+      If X1 <= X2 Then Begin
+        LocalDstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y_scanline * SCREENSTRIDE));
+        NumPixelsToFill := X2 - X1 + 1;
+        If T_OVER = 0 Then Begin
+          FillChar(LocalDstA^, NumPixelsToFill, CurrentInk);
+        End Else Begin
+          For Cnt := 1 to NumPixelsToFill do begin
+            SP_OverPixelPtrVal(LocalDstA, CurrentInk, T_OVER);
+            Inc(LocalDstA);
+          end;
         End;
-      End Else Begin
-          While X2 >= X1 Do Begin
-            SP_OverPixelPtrVal(DstA, Ink, T_OVER);
-            Inc(DstA);
-            Dec(X2);
-          End;
       End;
-    End;
+    end;
   End;
+
+  procedure FillSymmetricScanlines(oct_x, oct_y: Integer);
+  begin
+    DrawSpan(CX - oct_x, CX + oct_x, CY + oct_y);
+    if oct_y > 0 then DrawSpan(CX - oct_x, CX + oct_x, CY - oct_y);
+    if oct_x < oct_y then begin
+      DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
+      if oct_x > 0 then DrawSpan(CX - oct_y, CX + oct_y, CY - oct_x);
+    end else
+      if oct_x = 0 then
+        DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
+  end;
 
 begin
 
-  If (r = 0) or ((cx+r)<0) or ((cx-r)>SCREENWIDTH) or ((cy+r)<0) or ((cy-r)>SCREENHEIGHT) Then Exit;
+  if R <= 0 then Exit;
+  If ((CX + R) < 0) or ((CX - R) > SCREENWIDTH) or ((CY + R) < 0) or ((CY - R) > SCREENHEIGHT) Then Exit;
 
   If SCREENBPP = 8 Then Begin
-
     If T_INVERSE = 0 Then
-      Ink := T_INK
+      CurrentInk := T_INK
     Else
-      Ink := T_PAPER;
-
-    r2 := Trunc((r + 0.5) * (r + 0.5));
-    For y := -r To r Do Begin
-      y2 := y * y;
-      x := 0;
-      While (x * x + y2) <= r2 Do
-        Inc(x);
-      Dec(x);
-      y3 := cy + y;
-      if (y3 >= T_CLIPY1) and (y3 < T_CLIPY2) then
-        DrawSpan(cx - x, cx + x, y3);
-    End;
-
-  End Else
-
+      CurrentInk := T_PAPER;
+  End Else Begin
     SP_DrawSolidCircle32(Cx, Cy, R);
+    Exit;
+  End;
 
-  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - R, (SCREENY + Cy) - R, SCREENX + Cx + R, SCREENY + Cy + R);
+  x := 0;
+  y := R;
+  p := 1 - R;
+
+  while x <= y do
+  begin
+    FillSymmetricScanlines(x, y);
+    if x = y then break;
+    if p < 0 then begin
+      p := p + (2 * x) + 3;
+      Inc(x);
+    end else begin
+      p := p + (2 * (x - y)) + 5;
+      Inc(x);
+      Dec(y);
+    end;
+  end;
+
+  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + CX) - R, (SCREENY + CY) - R, SCREENX + CX + R, SCREENY + CY + R);
   SP_BankList[0]^.Changed := True;
 
 end;
 
 Procedure SP_DrawTexCircle(CX, CY, R: Integer; const TextureStr: aString; tW, tH: LongWord);
 var
+  x, y: Integer;
+  p: Integer;
   Trans: Word;
   DstA, TexBase: pByte;
   tClr, Clr: Byte;
   Graphic: pSP_Graphic_Info;
-  x, y, r2, y2, y3: NativeInt;
 
   Procedure DrawSpan(X1, X2, Y: Integer);
   Begin
-    X1 := Max(T_CLIPX1, X1);
-    X2 := Min(T_CLIPX2, X2);
-    If X2 >= X1 Then Begin
-      DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
-      If T_OVER = 0 Then Begin
-        If Trans <> $FFFF Then Begin
-          While X2 >= X1 Do Begin
-            Clr := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
-            If Clr <> tClr Then DstA^ := Clr;
-            Inc(DstA);
-            Inc(X1);
-          End;
-        End Else
-          While X2 >= X1 Do Begin
-            DstA^ := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
-            Inc(DstA);
-            Inc(X1);
-          End;
-      End Else Begin
-        If Trans <> $FFFF Then Begin
-          While X2 >= X1 Do Begin
-            Clr := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
-            If Clr <> tClr Then SP_OverPixelPtrVal(DstA, Clr, T_OVER);;
-            Inc(DstA);
-            Inc(X1);
-          End;
-        End Else
-          While X2 >= X1 Do Begin
-            SP_OverPixelPtrVal(DstA, pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^, T_OVER);
-            Inc(DstA);
-            Inc(X1);
-          End;
+    if (Y >= T_CLIPY1) and (Y < T_CLIPY2) then begin
+      X1 := Max(T_CLIPX1, X1);
+      X2 := Min(T_CLIPX2, X2);
+      If X2 >= X1 Then Begin
+        DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
+        If T_OVER = 0 Then Begin
+          If Trans <> $FFFF Then Begin
+            While X2 >= X1 Do Begin
+              Clr := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
+              If Clr <> tClr Then DstA^ := Clr;
+              Inc(DstA);
+              Inc(X1);
+            End;
+          End Else
+            While X2 >= X1 Do Begin
+              DstA^ := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
+              Inc(DstA);
+              Inc(X1);
+            End;
+        End Else Begin
+          If Trans <> $FFFF Then Begin
+            While X2 >= X1 Do Begin
+              Clr := pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^;
+              If Clr <> tClr Then SP_OverPixelPtrVal(DstA, Clr, T_OVER);;
+              Inc(DstA);
+              Inc(X1);
+            End;
+          End Else
+            While X2 >= X1 Do Begin
+              SP_OverPixelPtrVal(DstA, pByte(TexBase + ((X1 mod Integer(tW)) + ((y mod Integer(tH)) * Integer(tw))))^, T_OVER);
+              Inc(DstA);
+              Inc(X1);
+            End;
+        End;
       End;
     End;
   End;
 
+  procedure FillSymmetricScanlines(oct_x, oct_y: Integer);
+  begin
+    DrawSpan(CX - oct_x, CX + oct_x, CY + oct_y);
+    if oct_y > 0 then DrawSpan(CX - oct_x, CX + oct_x, CY - oct_y);
+    if oct_x < oct_y then begin
+      DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
+      if oct_x > 0 then DrawSpan(CX - oct_y, CX + oct_y, CY - oct_x);
+    end else
+      if oct_x = 0 then
+        DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
+  end;
+
 begin
 
-  If (r = 0) or ((cx+r)<0) or ((cx-r)>SCREENWIDTH) or ((cy+r)<0) or ((cy-r)>SCREENHEIGHT) Then Exit;
+  if R <= 0 then Exit;
+  If ((CX + R) < 0) or ((CX - R) > SCREENWIDTH) or ((CY + R) < 0) or ((CY - R) > SCREENHEIGHT) Then Exit;
 
   If SCREENBPP = 8 Then Begin
-
     tClr := 0;
 
     // if TextureStr = '' Then tW holds a pointer to the graphic bank's data,
@@ -3680,23 +3702,32 @@ begin
     If Trans <> $FFFF Then
       tClr := Trans And $FF;
 
-    r2 := Trunc((r + 0.5) * (r + 0.5));
-    For y := -r To r Do Begin
-      y2 := y * y;
-      x := 0;
-      While (x * x + y2) <= r2 Do
-        Inc(x);
-      Dec(x);
-      y3 := cy + y;
-      if (y3 >= T_CLIPY1) and (y3 < T_CLIPY2) then
-        DrawSpan(cx - x, cx + x, y3);
-    End;
+  End Else Begin
 
-  End Else
+    SP_DrawTexCircle8To32(Cx, Cy, R, TextureStr, tW, tH);
+    Exit;
 
-    SP_DrawTexCircle8To32(cX, cY, r, TextureStr, tw, th);
+  End;
 
-  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - R, (SCREENY + Cy) - R, SCREENX + Cx + R, SCREENY + Cy + R);
+  x := 0;
+  y := R;
+  p := 1 - R;
+
+  while x <= y do
+  begin
+    FillSymmetricScanlines(x, y);
+    if x = y then break;
+    if p < 0 then begin
+      p := p + (2 * x) + 3;
+      Inc(x);
+    end else begin
+      p := p + (2 * (x - y)) + 5;
+      Inc(x);
+      Dec(y);
+    end;
+  end;
+
+  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + CX) - R, (SCREENY + CY) - R, SCREENX + CX + R, SCREENY + CY + R);
   SP_BankList[0]^.Changed := True;
 
 end;
@@ -5333,8 +5364,8 @@ Begin
       Bank := SP_BankList[Idx];
       FontBank := @Bank^.Info[0];
       IsScaled := (ScaleX <> 1) Or (ScaleY <> 1);
-      CharW := Max(1, Round(FONTWIDTH * ScaleX));
-      CharH := Max(1, Round(FONTHEIGHT * ScaleY));
+      CharW := Max(1, Round(FontBank^.WIDTH * ScaleX));
+      CharH := Max(1, Round(FontBank^.HEIGHT * ScaleY));
       Cw := CharW;
       Ch := CharH;
       If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
@@ -5407,13 +5438,13 @@ Begin
           If (X >= T_CLIPX1) And (X + Cw -1 < T_CLIPX2) And (Y >= T_CLIPY1) And (Y + Ch -1 < T_CLIPY2) Then Begin
             If IsScaled Then Begin
               // Scaled character
-              sx := (FONTWIDTH Shl 16) Div CharW;
-              sy := (FONTHEIGHT Shl 16) Div CharH;
+              sx := (FontBank^.WIDTH Shl 16) Div CharW;
+              sy := (FontBank^.HEIGHT Shl 16) Div CharH;
               yp := 0;
               While CharH > 0 Do Begin
                 pIdx := Char;
                 xp := 0;
-                Inc(pIdx, FONTWIDTH * (yp Shr 16));
+                Inc(pIdx, FontBank^.WIDTH * (yp Shr 16));
                 SkipNextPaper := False;
                 While CharW > 0 Do Begin
                   If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
@@ -5694,8 +5725,8 @@ Begin
                   Error.Code := SP_ERR_INVALID_SCALE;
                   Exit;
                 End Else Begin
-                  CharW := Max(1, Round(FONTWIDTH * ScaleX));
-                  CharH := Max(1, Round(FONTHEIGHT * ScaleY));
+                  CharW := Max(1, Round(FontBank^.WIDTH * ScaleX));
+                  CharH := Max(1, Round(FontBank^.HEIGHT * ScaleY));
                   Cw := CharW;
                   Ch := CharH;
                 End;

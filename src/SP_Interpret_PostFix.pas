@@ -14575,7 +14575,7 @@ Begin
     CSTROKE := 1;
     SP_Reset_Temp_Colours;
     SP_CLS(CPAPER);
-    Error^.Line := -2;
+    Error^.Line := -10;
     Error^.Statement := 0;
     Error^.Code := -1;
     NXTLINE := -1;

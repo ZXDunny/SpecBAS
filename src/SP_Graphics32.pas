@@ -1576,151 +1576,177 @@ End;
 
 Procedure SP_DrawSolidCircle32(CX, CY, R: Integer);
 var
-  x, y, r2, y2, y3: Integer;
-  DstA: pLongWord;
+  x, y: Integer;
+  p: Integer;
   Ink: LongWord;
 
-  Procedure DrawSpan(X1, X2, Y: Integer);
+  Procedure DrawSpan(X1, X2, Y_scanline: Integer);
+  var
+    DstA: pLongWord;
   Begin
-    X1 := Max(T_CLIPX1, X1);
-    X2 := Min(T_CLIPX2 -1, X2);
-    If X2 > X1 Then Begin
-      DstA := pLongWord(NativeUInt(SCREENPOINTER) + X1 * SizeOf(RGBA) + (Y * SCREENSTRIDE));
-      While X2 >= X1 Do Begin
-        DstA^ := Ink;
-        Inc(DstA);
-        Dec(X2);
+    if (y_scanline >= T_CLIPY1) and (y_scanline < T_CLIPY2) then begin
+      X1 := Max(T_CLIPX1, X1);
+      X2 := Min(T_CLIPX2 -1, X2);
+      If X2 > X1 Then Begin
+        DstA := pLongWord(NativeUInt(SCREENPOINTER) + X1 * SizeOf(RGBA) + (Y * SCREENSTRIDE));
+        While X2 >= X1 Do Begin
+          DstA^ := Ink;
+          Inc(DstA);
+          Dec(X2);
+        End;
       End;
-    End;
+    end;
   End;
+
+  procedure FillSymmetricScanlines(oct_x, oct_y: Integer);
+  begin
+    DrawSpan(CX - oct_x, CX + oct_x, CY + oct_y);
+    if oct_y > 0 then DrawSpan(CX - oct_x, CX + oct_x, CY - oct_y);
+    if oct_x < oct_y then begin
+      DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
+      if oct_x > 0 then DrawSpan(CX - oct_y, CX + oct_y, CY - oct_x);
+    end else
+      if oct_x = 0 then
+        DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
+  end;
 
 begin
 
-  if r = 0 then exit;
+  if R <= 0 then Exit;
+  If ((CX + R) < 0) or ((CX - R) > SCREENWIDTH) or ((CY + R) < 0) or ((CY - R) > SCREENHEIGHT) Then Exit;
 
+  x := 0;
+  y := R;
+  p := 1 - R;
   Ink := T_INK;
-  r2 := Trunc((r + 0.5) * (r + 0.5));
-  For y := -r To r Do Begin
-    y2 := y * y;
-    x := 0;
-    While (x * x + y2) <= r2 Do
+
+  while x <= y do
+  begin
+    FillSymmetricScanlines(x, y);
+    if x = y then break;
+    if p < 0 then begin
+      p := p + (2 * x) + 3;
       Inc(x);
-    Dec(x);
-    y3 := cy + y;
-    if (y3 >= T_CLIPY1) and (y3 < T_CLIPY2) then
-      DrawSpan(cx - x, cx + x, y3);
-  End;
+    end else begin
+      p := p + (2 * (x - y)) + 5;
+      Inc(x);
+      Dec(y);
+    end;
+  end;
 
 end;
 
 Procedure SP_DrawCircle32(CX, CY, R: Integer);
 var
-  x, y, px, py, twoRx2: Integer;
-  p, Rx2: NativeInt;
-  cxpx, cypy, cxmx, cymy: Integer;
-begin
+  x, y: Integer;
+  p: Integer;
 
-  if r = 0 then exit;
-
-  R := Abs(R);
-  Rx2 := R * R;
-  twoRx2 := 2 * Rx2;
-  x := 0;
-  y := R;
-  px := 0;
-  py := twoRx2 * y;
-
-  cxpx := Cx + X; cypy := Cy + Y;
-  cxmx := Cx - X; cymy := Cy - Y;
-
-  SP_SetPixel32(cxpx, cypy);
-  SP_SetPixel32(cxpx, cymy);
-  If cxmx <> cxpx Then Begin
-    SP_SetPixel32(cxmx, cymy);
-    SP_SetPixel32(cxmx, cypy);
-  End;
-
-  p := Rx2 - (Rx2 * R) + (Rx2 div 4);
-
-  while px < py do begin
-     Inc(x);
-     Inc(px, twoRx2);
-     if p < 0 then
-        Inc(p, Rx2 + px)
-     else begin
-        Dec(y);
-        Dec(py, twoRx2);
-        Inc(p, Rx2 + px - py);
-        dec(cypy);
-        inc(cymy);
-     end;
-     inc(cxpx);
-     dec(cxmx);
-     SP_SetPixel32(cxpx, cypy);
-     SP_SetPixel32(cxmx, cypy);
-     SP_SetPixel32(cxpx, cymy);
-     SP_SetPixel32(cxmx, cymy);
+  procedure PlotOctantSymmetries_V2(oct_x, oct_y: Integer);
+  begin
+    SP_SetPixel32(CX + oct_x, CY + oct_y);
+    if oct_y > 0 then SP_SetPixel32(CX + oct_x, CY - oct_y);
+    if oct_x > 0 then
+    begin
+      SP_SetPixel32(CX - oct_x, CY + oct_y);
+      if oct_y > 0 then SP_SetPixel32(CX - oct_x, CY - oct_y);
+    end;
+    if oct_x < oct_y then
+    begin
+      SP_SetPixel32(CX + oct_y, CY + oct_x);
+      if oct_x > 0 then SP_SetPixel32(CX + oct_y, CY - oct_x);
+      if oct_y > 0 then
+      begin
+        SP_SetPixel32(CX - oct_y, CY + oct_x);
+        if oct_x > 0 then SP_SetPixel32(CX - oct_y, CY - oct_x);
+      end;
+    end;
   end;
 
-  p := Round(Rx2 * (x + 0.5) * (x + 0.5) + Rx2 * (y-1) * (y-1) - Rx2 * Rx2);
+begin
 
-  while y > 0 do begin
-    Dec(y);
-    Dec(py, twoRx2);
-    if p > 0 then
-      Inc(p, Rx2 - py)
-    else begin
+  if R = 0 then
+  begin
+    SP_SetPixel32(CX, CY);
+    If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + CX, SCREENY + CY, SCREENX + CX + 1, SCREENY + CY + 1);
+    SP_BankList[0]^.Changed := True;
+    Exit;
+  end;
+
+  if R <= 0 then Exit;
+  If ((CX + R) < 0) or ((CX - R) > SCREENWIDTH) or ((CY + R) < 0) or ((CY - R) > SCREENHEIGHT) Then Exit;
+
+  x := 0;
+  y := R;
+  p := 1 - R;
+
+  while x <= y do
+  begin
+    PlotOctantSymmetries_V2(x, y);
+    if x = y then break;
+    if p < 0 then
+    begin
+      p := p + (2 * x) + 3;
       Inc(x);
-      Inc(px, twoRx2);
-      Inc(p, Rx2 - py + px);
-      inc(cxpx);
-      dec(cxmx);
+    end
+    else
+    begin
+      p := p + (2 * (x - y)) + 5;
+      Inc(x);
+      Dec(y);
     end;
-    dec(cypy);
-    inc(cymy);
-    SP_SetPixel32(cxpx, cypy);
-    SP_SetPixel32(cxmx, cypy);
-    if y > 0 Then Begin
-     SP_SetPixel32(cxpx, cymy);
-     SP_SetPixel32(cxmx, cymy);
-    End;
   end;
 
 end;
 
 Procedure SP_DrawTexCircle8To32(CX, CY, R: Integer; const TextureStr: aString; tW, tH: LongWord);
 var
+  x, y: Integer;
+  p: Integer;
   Trans: Word;
   DstA, TexBase: pByte;
   tClr, Clr1: Byte;
   Graphic: pSP_Graphic_Info;
-  x, y, r2, y2, y3: NativeInt;
 
   Procedure DrawSpan(X1, X2, Y: Integer);
   Begin
-    X1 := Max(T_CLIPX1, X1);
-    X2 := Min(T_CLIPX2, X2);
-    If X2 >= X1 Then Begin
-      DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
-      If Trans <> $FFFF Then Begin
-        While X2 >= X1 Do Begin
-          Clr1 := pByte(TexBase + (X1 mod Integer(tW)) + ((Y mod Integer(tH)) * Integer(tw)))^;
-          If Clr1 <> tClr Then DstA^ := Clr1;
-          Inc(DstA);
-          Inc(X1);
-        End;
-      End Else
-        While X2 >= X1 Do Begin
-          DstA^ := pByte(TexBase + (X1 mod Integer(tW)) + ((Y mod Integer(tH)) * Integer(tw)))^;
-          Inc(DstA);
-          Inc(X1);
-        End;
+    if (Y >= T_CLIPY1) and (Y < T_CLIPY2) then begin
+      X1 := Max(T_CLIPX1, X1);
+      X2 := Min(T_CLIPX2, X2);
+      If X2 >= X1 Then Begin
+        DstA := pByte(NativeUInt(SCREENPOINTER) + X1 + (Y * SCREENSTRIDE));
+        If Trans <> $FFFF Then Begin
+          While X2 >= X1 Do Begin
+            Clr1 := pByte(TexBase + (X1 mod Integer(tW)) + ((Y mod Integer(tH)) * Integer(tw)))^;
+            If Clr1 <> tClr Then DstA^ := Clr1;
+            Inc(DstA);
+            Inc(X1);
+          End;
+        End Else
+          While X2 >= X1 Do Begin
+            DstA^ := pByte(TexBase + (X1 mod Integer(tW)) + ((Y mod Integer(tH)) * Integer(tw)))^;
+            Inc(DstA);
+            Inc(X1);
+          End;
+      End;
     End;
   End;
 
+  procedure FillSymmetricScanlines(oct_x, oct_y: Integer);
+  begin
+    DrawSpan(CX - oct_x, CX + oct_x, CY + oct_y);
+    if oct_y > 0 then DrawSpan(CX - oct_x, CX + oct_x, CY - oct_y);
+    if oct_x < oct_y then begin
+      DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
+      if oct_x > 0 then DrawSpan(CX - oct_y, CX + oct_y, CY - oct_x);
+    end else
+      if oct_x = 0 then
+        DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
+  end;
+
 begin
 
-  if r = 0 then exit;
+  if R <= 0 then Exit;
+  If ((CX + R) < 0) or ((CX - R) > SCREENWIDTH) or ((CY + R) < 0) or ((CY - R) > SCREENHEIGHT) Then Exit;
 
   tClr := 0;
 
@@ -1740,47 +1766,69 @@ begin
   If Trans <> $FFFF Then
     tClr := Trans And $FF;
 
-  r2 := Trunc((r + 0.5) * (r + 0.5));
-  For y := -r To r Do Begin
-    y2 := y * y;
-    x := 0;
-    While (x * x + y2) <= r2 Do
+  x := 0;
+  y := R;
+  p := 1 - R;
+
+  while x <= y do
+  begin
+    FillSymmetricScanlines(x, y);
+    if x = y then break;
+    if p < 0 then begin
+      p := p + (2 * x) + 3;
       Inc(x);
-    Dec(x);
-    y3 := cy + y;
-    if (y3 >= T_CLIPY1) and (y3 < T_CLIPY2) then
-      DrawSpan(cx - x, cx + x, y3);
-  End;
+    end else begin
+      p := p + (2 * (x - y)) + 5;
+      Inc(x);
+      Dec(y);
+    end;
+  end;
 
 end;
 
 Procedure SP_DrawTexCircle32To32(CX, CY, R: Integer; const TextureStr: aString; tW, tH: LongWord);
 var
+  x, y: Integer;
+  p: Integer;
   DstA: pLongWord;
   TexBase: pByte;
   Graphic: pSP_Graphic_Info;
-  x, y, r2, y2, y3: NativeInt;
 
-  Procedure DrawTexSpan(X1, X2, Y: Integer);
+  Procedure DrawSpan(X1, X2, Y: Integer);
   Begin
-    X1 := Max(T_CLIPX1, X1);
-    X2 := Min(T_CLIPX2, X2);
-    If X2 > X1 Then Begin
-      DstA := pLongWord(NativeUInt(SCREENPOINTER) + X1 * SizeOf(RGBA) + (Y * SCREENSTRIDE));
-      While X2 >= X1 Do Begin
-        DstA^ := pLongWord(NativeUInt(TexBase) + (X1 mod Integer(tW) * SizeOf(RGBA)) + ((y mod Integer(tH) * Integer(tw) * SizeOf(RGBA))))^;
-        Inc(DstA);
-        Inc(X1);
+    if (Y >= T_CLIPY1) and (Y < T_CLIPY2) then begin
+      X1 := Max(T_CLIPX1, X1);
+      X2 := Min(T_CLIPX2, X2);
+      If X2 > X1 Then Begin
+        DstA := pLongWord(NativeUInt(SCREENPOINTER) + X1 * SizeOf(RGBA) + (Y * SCREENSTRIDE));
+        While X2 >= X1 Do Begin
+          DstA^ := pLongWord(NativeUInt(TexBase) + (X1 mod Integer(tW) * SizeOf(RGBA)) + ((y mod Integer(tH) * Integer(tw) * SizeOf(RGBA))))^;
+          Inc(DstA);
+          Inc(X1);
+        End;
       End;
     End;
   End;
 
+  procedure FillSymmetricScanlines(oct_x, oct_y: Integer);
+  begin
+    DrawSpan(CX - oct_x, CX + oct_x, CY + oct_y);
+    if oct_y > 0 then DrawSpan(CX - oct_x, CX + oct_x, CY - oct_y);
+    if oct_x < oct_y then begin
+      DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
+      if oct_x > 0 then DrawSpan(CX - oct_y, CX + oct_y, CY - oct_x);
+    end else
+      if oct_x = 0 then
+        DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
+  end;
+
 begin
+
+  if R <= 0 then Exit;
+  If ((CX + R) < 0) or ((CX - R) > SCREENWIDTH) or ((CY + R) < 0) or ((CY - R) > SCREENHEIGHT) Then Exit;
 
   // if TextureStr = '' Then tW holds a pointer to the graphic bank's data,
   // and tH holds a pointer to the graphic bank's info field.
-
-  if r = 0 then exit;
 
   If TextureStr = '' Then Begin
     TexBase := pByte(tW);
@@ -1790,17 +1838,23 @@ begin
   End Else
     TexBase := @TextureStr[11];
 
-  r2 := Trunc((r + 0.5) * (r + 0.5));
-  For y := -r To r Do Begin
-    y2 := y * y;
-    x := 0;
-    While (x * x + y2) <= r2 Do
+  x := 0;
+  y := R;
+  p := 1 - R;
+
+  while x <= y do
+  begin
+    FillSymmetricScanlines(x, y);
+    if x = y then break;
+    if p < 0 then begin
+      p := p + (2 * x) + 3;
       Inc(x);
-    Dec(x);
-    y3 := cy + y;
-    if (y3 >= T_CLIPY1) and (y3 < T_CLIPY2) then
-      DrawTexSpan(cx - x, cx + x, y3);
-  End;
+    end else begin
+      p := p + (2 * (x - y)) + 5;
+      Inc(x);
+      Dec(y);
+    end;
+  end;
 
 end;
 
@@ -2163,8 +2217,8 @@ Begin
       Bank := SP_BankList[Idx];
       FontBank := @Bank^.Info[0];
       IsScaled := (ScaleX <> 1) Or (ScaleY <> 1);
-      CharW := Max(1, Trunc(FONTWIDTH * ScaleX));
-      CharH := Max(1, Trunc(FONTHEIGHT * ScaleY));
+      CharW := Max(1, Trunc(FontBank^.WIDTH * ScaleX));
+      CharH := Max(1, Trunc(FontBank^.HEIGHT * ScaleY));
       Cw := CharW;
       Ch := CharH;
       If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
@@ -2221,16 +2275,16 @@ Begin
           If (X >= T_CLIPX1) And (X + Cw -1 < T_CLIPX2) And (Y >= T_CLIPY1) And (Y + Ch -1 < T_CLIPY2) Then Begin
             If IsScaled Then Begin
               // Scaled character
-              sx := (FONTWIDTH Shl 16) Div CharW;
-              sy := (FONTHEIGHT Shl 16) Div CharH;
+              sx := (FontBank^.WIDTH Shl 16) Div CharW;
+              sy := (FontBank^.HEIGHT Shl 16) Div CharH;
               yp := 0;
               While CharH > 0 Do Begin
                 pIdx := Char;
                 xp := 0;
                 If FontBank^.FontType = SP_FONT_TYPE_32BIT Then
-                  Inc(pLongWord(pIdx), FONTWIDTH * (yp Shr 16))
+                  Inc(pLongWord(pIdx), FontBank^.WIDTH * (yp Shr 16))
                 Else
-                  Inc(pIdx, FONTWIDTH * (yp Shr 16));
+                  Inc(pIdx, FontBank^.WIDTH * (yp Shr 16));
                 While CharW > 0 Do Begin
                   If FontBank^.FontType = SP_FONT_TYPE_MONO Then Begin
                     // 8 Bpp, mono (INK and PAPER)
@@ -2456,8 +2510,8 @@ Begin
                   Error.Code := SP_ERR_INVALID_SCALE;
                   Exit;
                 End Else Begin
-                  CharW := Max(1, Trunc(FONTWIDTH * ScaleX));
-                  CharH := Max(1, Trunc(FONTHEIGHT * ScaleY));
+                  CharW := Max(1, Trunc(FontBank^.WIDTH * ScaleX));
+                  CharH := Max(1, Trunc(FontBank^.HEIGHT * ScaleY));
                   Cw := CharW;
                   Ch := CharH;
                 End;
@@ -2515,8 +2569,8 @@ Begin
     Bank := SP_BankList[Result];
     FontBank := @Bank^.Info[0];
     IsScaled := (ScaleX <> 1) Or (ScaleY <> 1);
-    CharW := Max(1, Trunc(FONTWIDTH * ScaleX));
-    CharH := Max(1, Trunc(FONTHEIGHT * ScaleY));
+    CharW := Max(1, Trunc(FontBank^.WIDTH * ScaleX));
+    CharH := Max(1, Trunc(FontBank^.HEIGHT * ScaleY));
     Cw := CharW;
     Ch := CharH;
     If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
@@ -2544,13 +2598,13 @@ Begin
 
         If IsScaled Then Begin
           // Scaled character
-          sx := (FONTWIDTH Shl 16) Div CharW;
-          sy := (FONTHEIGHT Shl 16) Div CharH;
+          sx := (FontBank^.WIDTH Shl 16) Div CharW;
+          sy := (FontBank^.HEIGHT Shl 16) Div CharH;
           yp := 0;
           While CharH > 0 Do Begin
             pIdx := Char;
             xp := 0;
-            Inc(pIdx, FONTWIDTH * (yp Shr 16));
+            Inc(pIdx, FontBank^.WIDTH * (yp Shr 16));
             While CharW > 0 Do Begin
               If (X >= T_CLIPX1) And (Y >= T_CLIPY1) And (X < T_CLIPX2) And (Y < T_CLIPY2) Then
                 If FontBank^.FontType = SP_FONT_TYPE_MONO Then Begin
@@ -2771,8 +2825,8 @@ Begin
                 SP_NeedDisplayUpdate := True;
                 Exit;
               End Else Begin
-                CharW := Max(1, Trunc(FONTWIDTH * ScaleX));
-                CharH := Max(1, Trunc(FONTHEIGHT * ScaleY));
+                CharW := Max(1, Trunc(FontBank^.WIDTH * ScaleX));
+                CharH := Max(1, Trunc(FontBank^.HEIGHT * ScaleY));
                 Cw := CharW;
                 Ch := CharH;
               End;

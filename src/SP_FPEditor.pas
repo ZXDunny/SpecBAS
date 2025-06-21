@@ -114,7 +114,7 @@ Function  SP_WasPrevSoft(Idx: Integer): Boolean; Inline;
 Function  SP_GetLineExtents(Idx: Integer; FindStart: Boolean = False): TPoint;
 Function  SP_GetLineY(Line: Integer): Integer;
 Function  SP_LineFlags(Index: Integer): pLineFlags;
-Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1);
+Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -2);
 Procedure SP_CreateFontMetrics;
 Procedure SP_SetFPClientMetrics;
 Procedure SP_CreateFPWindow;
@@ -452,7 +452,7 @@ Begin
   SP_SetFPEditorFont;
   EDITORMENU := CURMENU;
 
-  Error.Line := -2;
+  Error.Line := -10; // Trigger NEW in the error handler
   Error.Statement := 0;
   Error.Code := -1;
   NXTLINE := -1;
@@ -724,7 +724,7 @@ Procedure SP_Decorate_Window(WindowID: Integer; Title: aString; Clear, SizeGrip,
 Var
   Win: pSP_Window_Info;
   Err: TSP_ErrorCode;
-  Window, sp: Integer;
+  Window, sp, FB: Integer;
   Stroke: aFloat;
   iFPFh, iFPFw: Integer;
   iEDSC: aString;
@@ -733,10 +733,12 @@ Begin
   Window := SCREENBANK;
 
   If SYSTEMSTATE in [SS_EDITOR, SS_DIRECT, SS_NEW, SS_ERROR] Then Begin
-    iFPFW := Trunc(FONTWIDTH * EDFONTSCALEX);
-    iFPFH := Trunc(FONTHEIGHT * EDFONTSCALEY);
+    FB := EDITORFONT;
+    iFPFW := Trunc(EDFONTWIDTH * EDFONTSCALEX);
+    iFPFH := Trunc(EDFONTHEIGHT * EDFONTSCALEY);
     iEdSc := #25 + aFloatToString(EDFONTSCALEX) + aFloatToString(EDFONTSCALEY);
   End Else Begin
+    FB := FONTBANKID;
     iFPFH := Round(FONTHEIGHT * T_SCALEY);
     iFPFW := Round(FONTWIDTH * T_SCALEX);
     iEdSc := #25 + aFloatToString(T_SCALEX) + aFloatToString(T_SCALEY);
@@ -772,9 +774,9 @@ Begin
   If Focused Then T_INK := 0;
   SP_DrawRectangle(0, 0, Win^.Width -1, Win^.Height -1);
   If Focused Then
-    SP_TextOut(-1, iFPFw Div 2, 1, iEdSc + Title, capText, capBack, True)
+    SP_TextOut(FB, iFPFw Div 2, 1, iEdSc + Title, capText, capBack, True)
   Else
-    SP_TextOut(-1, iFPFw Div 2, 1, iEdSc + Title, capInactive, CapBack, True);
+    SP_TextOut(FB, iFPFw Div 2, 1, iEdSc + Title, capInactive, CapBack, True);
 
 
   If WindowID = DWWindowID Then
@@ -783,7 +785,7 @@ Begin
     SP_DrawStripe(Win^.Surface, Win^.Width, iFPFw, iFPFh, 100, Focused);
 
   If SizeGrip Then
-    SP_TextOut(FONTBANKID, Win^.Width -(iFPFw + 6), Win^.Height - (iFPFh + 6), EdCSc + #250, gripClr, winBack, True);
+    SP_TextOut(FB, Win^.Width -(iFPFw + 6), Win^.Height - (iFPFh + 6), EdCSc + #250, gripClr, winBack, True);
 
   SP_SetDirtyRect(Win^.Left, Win^.Top, Win^.Left + Win^.Width -1, Win^.Top + Win^.Height);
   SP_SetDrawingWindow(Window);
@@ -7191,7 +7193,7 @@ Begin
 
 End;
 
-Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -1);
+Procedure SP_FPEditorError(Var Error: TSP_ErrorCode; LineNum: Integer = -2);
 Var
   Err: TSP_ErrorCode;
   ErrWin: pSP_Window_Info;
@@ -7224,7 +7226,7 @@ Begin
   // Turn off ON ERROR - we don't want this to trigger now, it should have done it before if at all.
   // The EVERY system is also turned off, as the system should halt completely here.
 
-  ERROR_LineNum := -1;
+  ERROR_LineNum := -2;
   SP_ClearEvery;
 
   SCREENLOCK := False;
@@ -7233,13 +7235,13 @@ Begin
 
   // Get the error Text
 
-  IsNew := Error.Line < -1;
+  IsNew := Error.Line = -10;
 
   If IsNew Then SystemState := SS_NEW Else SystemState := SS_ERROR;
 
   If Not IsNew Then Begin
-    If LineNum = -1 Then Begin
-      If Error.Line = -1 Then
+    If LineNum = -2 Then Begin
+      If Error.Line < 0 Then
         Error.Line := 0
       Else
         Error.Line := pLongWord(@SP_Program[Error.Line][2])^;
@@ -7815,7 +7817,7 @@ Begin
         End;
         DWStoreEditorState;
         Line := '';
-        Error.Line := -1;
+        Error.Line := -2;
         Error.Statement := 1;
         Error.Position := SP_FindStatement(@TokensStr, 1);
         COMMAND_TOKENS := TokensStr;
@@ -7976,7 +7978,7 @@ Begin
               SP_PlaySystem(ERRORCHAN, ERRSNDBANK);
             End;
             SP_CloseEditorWindows;
-            Error.Line := -1;
+            Error.Line := -2;
             Error.Statement := 1;
             Goto ExitProc;
           End;
@@ -9614,7 +9616,7 @@ Begin
   If (Error.Code <> SP_ERR_BREAKPOINT) And (Error.Code <> SP_ERR_OK) Then Begin
     WasActuallyAnError:
     If Error.Code = SP_ERR_STATEMENT_LOST Then Begin
-      Error.Line := -1;
+      Error.Line := -2;
       Error.Statement := 0;
     End;
     If FPWindowID >= 0 Then SP_CloseEditorWindows;

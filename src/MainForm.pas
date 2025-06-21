@@ -128,7 +128,8 @@ Uses {$IFDEF FPC}ShlObj, {$ENDIF}SP_FPEditor, SP_ToolTipWindow, SP_Display;
 {$IFNDEF RefreshThread}
 Procedure TMain.OnIdle(Sender: TObject; Var Done: Boolean);
 Begin
-  If MainCanResize Then FrameLoop;
+  If MainCanResize Then
+    FrameLoop;
   Done := False;
 End;
 {$ENDIF}
@@ -159,7 +160,7 @@ Begin
       SendMessage(Handle, WM_SETREDRAW, WPARAM(True), 0);
   End;
 
-  FormResize(Self);
+  FormResize(Self); // must run here, or crash
 
   Msg.Result := 0;
   SIZINGMAIN := False;
@@ -1076,6 +1077,7 @@ begin
           Exit;
         End;
 
+      SP_Display.SetScaling(DISPLAYWIDTH, DISPLAYHEIGHT, Main.ClientWidth, Main.ClientHeight);
       GLResize;
 
     {$ELSE}

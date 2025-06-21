@@ -48,6 +48,8 @@ Type
   aFloat = Extended;
   paFloat = ^aFloat;
 
+Procedure LogError(const Msg: string);
+
 Procedure Delay(ms: Integer);
 {$IFDEF FPC}
 Function  IntersectRect(R1, R2: TRect): Boolean;
@@ -109,7 +111,6 @@ Function  DecodeBase(Text: aString; Var Base: Integer): Boolean;
 Procedure SP_ReplaceSpecialChars(Var Output: aString);
 Function  NumToText(Number: Integer): aString;
 Function  StripLen(Text: aString): Integer;
-Procedure Log(Text: aString);
 Function  StrPosPtr(Const Str: paString; Position: Integer): Pointer; inline;
 {$if defined(RASPI) or defined(PANDORA)}
 Function  Copy(Const Str: aString; Start, Len: Integer): aString; Overload;
@@ -193,23 +194,23 @@ End;
 
 {$ENDIF}
 
-Procedure Log(Text: aString);
-Begin
-
-  {$IFDEF FPC}
-  WriteLn(Text + #13);
-  {$ELSE}
-  If Not LogFileAssigned Then Begin
-    If FileExists('c:\temp\log.txt') Then
-      DeleteFile('c:\temp\log.txt');
-    LogFile := TFileStream.Create('c:\temp\log.txt', fmCreate);
-    LogFileAssigned := True;
-  End;
-  Text := '['+IntToString(Round(CB_GETTICKS))+'] ' + Text + #13#10;
-  LogFile.Write(Text[1], Length(Text));
-  {$ENDIF}
-
-End;
+Procedure LogError(const Msg: string);
+var
+  F: TextFile;
+  LogFileName: string;
+begin
+  LogFileName := ExtractFilePath(ParamStr(0)) + 'specbas_gl_error.txt';
+  AssignFile(F, LogFileName);
+  try
+    if FileExists(LogFileName) then
+      Append(F)
+    else
+      Rewrite(F);
+    Writeln(F, DateTimeToStr(Now) + ': ' + Msg);
+  finally
+    CloseFile(F);
+  end;
+end;
 
 Function ReadLinuxFile(Filename: aString): aString;
 Var

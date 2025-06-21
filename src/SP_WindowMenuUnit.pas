@@ -723,9 +723,9 @@ Begin
   RegisterProperty('itemenabled', Get_ItemEnabled, Set_ItemEnabled, 'v:v|v:v');
   RegisterProperty('itemvisible', Get_ItemVisible, Set_ItemVisible, 'v:v|v:v');
   RegisterProperty('itemsubmenu', Get_ItemSubMenu, Set_ItemSubMenu, 'v:v|v:v');
-  RegisterProperty('hilightclr', Get_HilightClr, Set_HilightClr, 'v:v|v:v');
-  RegisterProperty('submenuclr', Get_SubMenuClr, Set_SubMenuClr, 'v:v|v:v');
-  RegisterProperty('onselect', Get_OnSelect, Set_OnSelect, 'v:s|v:s');
+  RegisterProperty('hilightclr', Get_HilightClr, Set_HilightClr, ':v|v');
+  RegisterProperty('submenuclr', Get_SubMenuClr, Set_SubMenuClr, ':v|v');
+  RegisterProperty('onselect', Get_OnSelect, Set_OnSelect, ':s|s');
   RegisterProperty('clicked', Get_Clicked, nil, ':v');
   RegisterProperty('static', Get_Static, Set_Static, ':v|v');
   RegisterProperty('count', Get_Count, nil, ':v');

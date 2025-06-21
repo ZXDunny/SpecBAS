@@ -1215,9 +1215,9 @@ Begin
   RegisterProperty('itemcancheck', Get_ItemCheckable, Set_ItemCheckable, 'v:v|v:v');
   RegisterProperty('itemvisible', Get_ItemVisible, Set_ItemVisible, 'v:v|v:v');
   RegisterProperty('itemsubmenu', Get_ItemSubMenu, Set_ItemSubMenu, 'v:v|v:v');
-  RegisterProperty('onselect', Get_OnSelect, Set_OnSelect, 'v:s|v:s');
-  RegisterProperty('hilightclr', Get_HilightClr, Set_HilightClr, 'v:v|v:v');
-  RegisterProperty('sepclr', Get_SepClr, Set_SepClr, 'v:v|v:v');
+  RegisterProperty('onselect', Get_OnSelect, Set_OnSelect, ':s|s');
+  RegisterProperty('hilightclr', Get_HilightClr, Set_HilightClr, ':v|v');
+  RegisterProperty('sepclr', Get_SepClr, Set_SepClr, ':v|v');
   RegisterProperty('count', Get_Count, nil, ':v');
   RegisterProperty('clicked', Get_Clicked, nil, ':v');
   RegisterProperty('find', Get_IndexOf, nil, 's:v');

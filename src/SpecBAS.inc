@@ -5,4 +5,5 @@
   {$DEFINE CPU64}
 {$ENDIF}
 {$DEFINE OpenGL}
+//{$DEFINE RefreshThread}
 

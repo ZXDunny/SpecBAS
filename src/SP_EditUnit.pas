@@ -839,6 +839,8 @@ End;
 Procedure SP_Edit.RegisterProperties;
 Begin
 
+  Inherited;
+
   RegisterProperty('text', Get_Text, Set_Text, ':s|s');
   RegisterProperty('readonly', Get_Editable, Set_Editable, ':v|v');
   RegisterProperty('pos', Get_CursorPos, Set_CursorPos, ':v|v');

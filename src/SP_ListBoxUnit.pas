@@ -902,7 +902,10 @@ Begin
 
   If fSorted And fCanUserSort and fEnabled and not fTransparent Then
     If py < fClientRgn.Bottom Then
-      FillRect(sx1 + (Ord(fBorder) * 2), py + (Ord(fBorder) * 2), sx2 +1, fHeight, fSortedColumnClr);
+      If fSortedBy = fHCount -1 Then
+        FillRect(sx1 + (Ord(fBorder) * 2), py, Width -1, fHeight, fSortedColumnClr)
+      Else
+        FillRect(sx1 + (Ord(fBorder) * 2), py, sx2 +1, fHeight, fSortedColumnClr);
 
   If fShowHeaders And (HeaderCount > 0) Then Begin
 

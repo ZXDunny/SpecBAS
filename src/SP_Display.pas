@@ -462,7 +462,7 @@ End;
 Procedure AddToFrameTimeHistory(Time: aFloat);
 Var
   d: aFloat;
-  const ALPHA_FPS = 0.1; // 0.05
+  const ALPHA_FPS = 0.5; // 0.05
 Begin
   // Calculate actual frame time (this was how LASTFRAMETIME was calculated)
   // LASTFRAMETIME := CurTime - LastTime;
@@ -495,10 +495,7 @@ Begin
     FrameElapsed := True;
     Inc(AutoFrameCount);
 
-    FrameDuration := CurTime - LastTime; // Actual duration of the last frame cycle
     LastFrames := FRAMES;
-    LastTime := CurTime; // Update LastTime for the *next* frame's duration calculation
-    AddToFrameTimeHistory(FrameDuration);
 
     HandleMouse;
 
@@ -507,8 +504,9 @@ Begin
         Try
           If UpdateDisplay Then Begin // UpdateDisplay prepares GLX, GLY etc.
             // LASTFRAMETIME is now FrameDuration
-            If SHOWFPSHISTORY Then
-              AddToFrameTimeHistory(FrameDuration); // AddToFrameTimeHistory now also updates AvgFrameTime
+            FrameDuration := CurTime - LastTime; // Actual duration of the last frame cycle
+            LastTime := CurTime; // Update LastTime for the *next* frame's duration calculation
+            AddToFrameTimeHistory(FrameDuration);
             // LastTime was already updated above
             CB_Refresh_Display; // This calls Refresh_Display
           End;

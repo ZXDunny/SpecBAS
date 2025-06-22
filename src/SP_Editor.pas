@@ -627,7 +627,6 @@ Var
 
   End;
 
-
 Begin
 
   EditorSaveFPS := FPS;

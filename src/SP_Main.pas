@@ -610,7 +610,7 @@ Var
 Begin
 
   Result := '';
-  If INCLUDEFROM = -1 Then
+  If INCLUDEFROM < 0 Then
     ProgLen := Length(SP_Program) -1
   Else
     ProgLen := INCLUDEFROM -1;

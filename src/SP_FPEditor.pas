@@ -6073,8 +6073,9 @@ Begin
   If Not (soMatchCase in Options) Then
     Text := Lower(Text);
 
-  If FPSearchPanel.Visible And (soClearBar in Options) Then
-    FPSearchBox.SetTextNoUpdate('');
+  If Assigned(FPSearchPanel) Then
+    If FPSearchPanel.Visible And (soClearBar in Options) Then
+      FPSearchBox.SetTextNoUpdate('');
   tl := Length(Text);
 
   SP_GetSelectionInfo(Sel);

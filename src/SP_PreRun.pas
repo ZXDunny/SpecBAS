@@ -626,7 +626,7 @@ Begin
     FPWindowID := -1;
     DWWindowID := -1;
 
-    If INCLUDEFROM > -1 Then
+    If INCLUDEFROM >= 0 Then
       SP_DeleteIncludes;
 
     If Restore Then

@@ -216,6 +216,7 @@ Var
   Win: pSP_Window_Info;
   Error: TSP_ErrorCode;
 Begin
+
   FH := Trunc(FONTHEIGHT * EDFONTSCALEY);
 
   SP_GetWindowDetails(FPWindowID, Win, Error);

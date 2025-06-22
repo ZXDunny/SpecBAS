@@ -237,6 +237,8 @@ Function  SP_ValueInNumArray(Const Name: aString; Term: aFloat; Var Error: TSP_E
 Function  SP_StringInStrArray(Const Name: aString; Term: aString; Var Error: TSP_ErrorCode): Boolean;
 
 Procedure SP_ClearVars;
+Procedure FinalizeNumVar(i: Integer);
+Procedure FinalizeStrVar(i: Integer);
 Procedure FinalizeNumArray(Idx: Integer);
 Procedure FinalizeStrArray(Idx: Integer);
 
@@ -441,29 +443,29 @@ Procedure SP_InsertGlobalNumVar(Var Idx: Integer); inline;
 Var
   nIdx: Integer;
 Begin
-
   Inc(NumNV);
   If NumNV > NVLen Then Begin
     Inc(NVLen);
     SetLength(NumVars, NVLen);
   End;
-
   If SP_ProcStackPtr > -1 Then Begin
-    Idx := NVLen -1;
-    nIdx := Idx;
-    While nIdx >= SP_ProcStack[0].VarPosN Do Begin
-      NumVars[nIdx] := NumVars[nIdx-1];
+    Idx := SP_ProcStack[0].VarPosN; // position of new variable. VarPosN will increase to make room
+    nIdx := NumNV -1; // Start at the very last var
+    FinalizeNumVar(nIdx);
+    While nIdx > SP_ProcStack[0].VarPosN Do Begin
+      NumVars[nIdx] := NumVars[nIdx -1];
       Dec(nIdx);
     End;
-    nIdx := 0;
+    nIdx := 0; // Now increase all the VarPosN's by one to reflect the var's position
     While nIdx <= SP_ProcStackPtr Do Begin
       Inc(SP_ProcStack[nIdx].VarPosN);
       Inc(nIdx);
     End;
-  End Else
+  End Else Begin // Not in a procedure, just make a new var.
     Idx := NumNV -1;
-  If NumVars[Idx] = nil Then
-    NumVars[Idx] := New(pSP_NumVar);
+    FinalizeNumVar(Idx);
+  End;
+  NumVars[Idx] := New(pSP_NumVar);
 End;
 
 Procedure SP_InsertGlobalStrVar(Var Idx: Integer); inline;
@@ -476,9 +478,10 @@ Begin
     SetLength(StrVars, SVLen);
   End;
   If SP_ProcStackPtr > -1 Then Begin
-    Idx := SVLen -1;
-    nIdx := Idx;
-    While nIdx > SP_ProcStack[0].VarPosS -1 Do Begin
+    Idx := SP_ProcStack[0].VarPosS;
+    nIdx := NumSV -1;
+    FinalizeStrVar(nIdx);
+    While nIdx > SP_ProcStack[0].VarPosS Do Begin
       StrVars[nIdx] := StrVars[nIdx-1];
       Dec(nIdx);
     End;
@@ -487,10 +490,11 @@ Begin
       Inc(SP_ProcStack[nIdx].VarPosS);
       Inc(nIdx);
     End;
-  End Else
+  End Else Begin
     Idx := NumSV -1;
-  If StrVars[Idx] = nil Then
-    StrVars[Idx] := New(pSP_StrVar);
+    FinalizeStrVar(Idx);
+  End;
+  StrVars[Idx] := New(pSP_StrVar);
 End;
 
 Function SP_UpdateNumVar(Idx: Integer; const Name: aString; Var Value: aFloat; Var Error: TSP_ErrorCode; Ptr: pLongWord): Integer; inline;
@@ -4469,20 +4473,32 @@ End;
 
 // Clean your shit up
 
+Procedure FinalizeNumVar(i: Integer);
+Begin
+  If Assigned(NumVars[i]) Then Begin
+    Finalize(NumVars[i]^.Content); // Frees EachTokens and Key
+    Finalize(NumVars[i]^);         // Frees Name
+    Dispose(NumVars[i]);           // Frees the record itself
+    NumVars[i] := nil;
+  End;
+End;
+
+Procedure FinalizeStrVar(i: Integer);
+Begin
+  If Assigned(StrVars[i]) Then Begin
+    Finalize(StrVars[i]^.Content); // Frees EachTokens and Key
+    Finalize(StrVars[i]^);         // Frees Name
+    Dispose(StrVars[i]);           // Frees the record itself
+    StrVars[i] := nil;
+  End;
+End;
+
 procedure FinalizeNumVars;
 var
   i: Integer;
 begin
   for i := 0 to High(NumVars) do
-  begin
-    if Assigned(NumVars[i]) then
-    begin
-      Finalize(NumVars[i]^.Content); // Frees EachTokens and Key
-      Finalize(NumVars[i]^);         // Frees Name
-      Dispose(NumVars[i]);           // Frees the record itself
-      NumVars[i] := nil;
-    end;
-  end;
+    FinalizeNumVar(i);
   SetLength(NumVars, 0);
 end;
 
@@ -4491,15 +4507,7 @@ var
   i: Integer;
 begin
   for i := 0 to High(StrVars) do
-  begin
-    if Assigned(StrVars[i]) then
-    begin
-      Finalize(StrVars[i]^.Content); // Frees EachTokens and Key
-      Finalize(StrVars[i]^);         // Frees Name
-      Dispose(StrVars[i]);           // Frees the record itself
-      StrVars[i] := nil;
-    end;
-  end;
+    FinalizeStrVar(i);
   SetLength(NumVars, 0);
 end;
 

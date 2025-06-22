@@ -1186,11 +1186,11 @@ Begin
 
   // Remove all included procedures from the current program
 
-  If INCLUDEFROM > -1 Then Begin
+  If INCLUDEFROM >= 0 Then Begin
 
     SetLength(SP_Program, INCLUDEFROM);
     SP_Program_Count := Length(SP_Program);
-    INCLUDEFROM := -1;
+    INCLUDEFROM := -10;
 
   End;
 

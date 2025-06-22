@@ -1121,7 +1121,7 @@ Begin
       Exit;
     End;
 
-  If INCLUDEFROM > -1 Then Begin
+  If INCLUDEFROM >= 0 Then Begin
     If NXTLINE >= INCLUDEFROM Then NXTLINE := -1;
   End Else
     If NXTLINE >= SP_Program_Count Then NXTLINE := -1;
@@ -10306,7 +10306,7 @@ Begin
   End Else
     LineNum := 0;
 
-  If INCLUDEFROM > -1 Then
+  If INCLUDEFROM >= 0 Then
     ProgLen := INCLUDEFROM
   Else
     ProgLen := SP_Program_Count;
@@ -19843,7 +19843,7 @@ Begin
   Finish := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  If INCLUDEFROM <> -1 Then
+  If INCLUDEFROM >= 0 Then
     ProgLen := INCLUDEFROM
   Else
     ProgLen := SP_Program_Count;
@@ -19878,7 +19878,7 @@ Begin
   MaxH := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  If INCLUDEFROM <> -1 Then
+  If INCLUDEFROM >= 0 Then
     ProgLen := INCLUDEFROM
   Else
     ProgLen := SP_Program_Count;
@@ -19979,7 +19979,7 @@ Begin
 
   Inc(SP_StackPtr);
 
-  If INCLUDEFROM <> -1 Then
+  If INCLUDEFROM >= 0 Then
     ProgLen := INCLUDEFROM
   Else
     ProgLen := SP_Program_Count;
@@ -19998,7 +19998,7 @@ Var
   Start, Finish, ProgLen: Integer;
 Begin
 
-  If INCLUDEFROM <> -1 Then
+  If INCLUDEFROM >= 0 Then
     ProgLen := INCLUDEFROM
   Else
     ProgLen := SP_Program_Count;
@@ -24366,7 +24366,7 @@ Begin
 
   Info^.Error^.Code := Err.Code;
   If Info^.Error^.Code = SP_ERR_OK Then
-    If INCLUDEFROM = -1 Then
+    If INCLUDEFROM < 0 Then
       INCLUDEFROM := LastLine;
 
 End;
@@ -24379,7 +24379,7 @@ Begin
 
   NXTLINE := -1;
   NXTSTATEMENT := 1;
-  If INCLUDEFROM > -1 Then With Info^ Do Begin
+  If INCLUDEFROM >= 0 Then With Info^ Do Begin
     Error^.Line := INCLUDEFROM -1;
     Error^.Statement := pLongWord(@SP_Program[Error^.Line][7])^;
   End;

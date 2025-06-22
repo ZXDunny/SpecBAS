@@ -443,7 +443,7 @@ Var
 Begin
 
   Inc(NumNV);
-  If NumNV >= NVLen Then Begin
+  If NumNV > NVLen Then Begin
     Inc(NVLen);
     SetLength(NumVars, NVLen);
   End;
@@ -471,7 +471,7 @@ Var
   nIdx: Integer;
 Begin
   Inc(NumSV);
-  If NumSV >= SVLen Then Begin
+  If NumSV > SVLen Then Begin
     Inc(SVLen);
     SetLength(StrVars, SVLen);
   End;

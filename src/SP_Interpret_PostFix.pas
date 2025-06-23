@@ -3995,7 +3995,7 @@ Var
   LineItem: TSP_GOSUB_Item;
 Begin
   Result := False;
-  If ERROR_LineNum <> -1 Then Begin
+  If ERROR_LineNum >= 0 Then Begin
     If (Error.Code <> SP_ERR_OK) And Not IGNORE_ON_ERROR Then Begin
       Error.Code := SP_ERR_OK;
       If Error.ReturnType >= SP_JUMP Then Begin
@@ -4171,7 +4171,7 @@ Begin
 
         // Terminal char - EOL!
 
-        If NXTLINE = -1 Then Begin
+        If NXTLINE < 0 Then Begin
           CONTLINE := Error.Line +1;
           CONTSTATEMENT := 1;
         End Else Begin
@@ -4189,7 +4189,7 @@ Begin
     End;
 
     If Error.Code < 0 Then Begin // SP_EXIT or SP_NEW
-      If NXTLINE = -1 Then Begin
+      If NXTLINE < 0 Then Begin
         CONTLINE := Error.Line +1;
         CONTSTATEMENT := 1;
       End Else Begin
@@ -16588,7 +16588,8 @@ Begin
 
           If NXTLINE <> -1 Then Begin
 
-            If NXTLINE = -2 Then Begin CurLine := -1;
+            If NXTLINE = -2 Then Begin
+              CurLine := -2;
               Tkns := COMMAND_TOKENS;
               If NXTSTATEMENT = -1 Then
                 Break;

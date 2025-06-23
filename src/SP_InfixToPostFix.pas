@@ -5150,9 +5150,18 @@ Begin
                   Inc(Position, 2);
                   FnResult := SP_ExtractArray(Tokens, Position, False, Error);
                   If Error.Code <> SP_ERR_OK Then Exit;
-                  If Error.ReturnType = SP_SLICE_VAR Then
+                  If Error.ReturnType = SP_SLICE_VAR Then Begin
                     If SP_OperandStack[SP_OperandPtr].OpType = SP_STRVAR Then
                       SP_OperandStack[SP_OperandPtr].OpType := SP_STRVAR_EVAL;
+                  End Else
+                    If Error.ReturnType = SP_ARRAY Then
+                      If SP_OperandStack[SP_OperandPtr].OpType = SP_FUNCTION Then Begin
+                        Name := StripSpaces(SP_FUNCTIONS_EXTRA[pLongWord(@SP_OperandStack[SP_OperandPtr].Content[1])^ - SP_FUNCTION_BASE]);
+                        If (Name <> '') And (Name[Length(Name)] <> '$') Then Begin
+                          Error.Code := SP_ERR_SYNTAX_ERROR;
+                          Exit;
+                        End;
+                      End;
                   SP_StackExpression(FnResult);
                   Dec(Position, 2);
 

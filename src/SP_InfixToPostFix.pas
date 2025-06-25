@@ -5156,6 +5156,8 @@ Begin
                   End Else
                     If Error.ReturnType = SP_ARRAY Then
                       If SP_OperandStack[SP_OperandPtr].OpType = SP_FUNCTION Then Begin
+                        // We can allow an array suffix IF the function was a string function.
+                        // Check that by looking at the name. Clunky but works.
                         Name := StripSpaces(SP_FUNCTIONS_EXTRA[pLongWord(@SP_OperandStack[SP_OperandPtr].Content[1])^ - SP_FUNCTION_BASE]);
                         If (Name <> '') And (Name[Length(Name)] <> '$') Then Begin
                           Error.Code := SP_ERR_SYNTAX_ERROR;

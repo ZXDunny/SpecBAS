@@ -127,6 +127,7 @@ Begin
           FPResizingDebugPanel := False;
           SetAllToCompile;
           SP_StartCompiler;
+          SP_FPUpdatePoIList;
           DeleteControlMsg(0);
         End;
 

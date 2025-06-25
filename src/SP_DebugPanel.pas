@@ -541,7 +541,7 @@ Begin
               If FPPoIList[i].PoI_Type in [PoI_Proc, PoI_Fn] Then Begin
                 s := ' ' + PoINameT[FPPoIList[i].PoI_Type] + ' ' + FPPoIList[i].Name;
                 j := FPPoIList[i].Line;
-                vContent := ' ' + IntToString(Listing.Flags[j].Line) + ':' + IntToString(FPPoIList[i].Statement);
+                vContent := ' ' + IntToString(SP_GetLineNumberFromIndex(j)) + ':' + IntToString(FPPoIList[i].Statement);
                 MaxW := Max(MaxW, Length(vContent) +1);
                 MaxP := Max(MaxP, Length(s) +1);
                 Add(s + #255 + vContent);
@@ -776,6 +776,8 @@ Begin
 
   // User double clicked (or used the enter key) on a breakpoint so open it and edit it.
 
+  Index := Integer(FPDebugPanel.Objects[Index]);
+
   Case FPDebugCombo.ItemIndex of
     0: // Variables - edit the var
       Begin
@@ -798,6 +800,8 @@ Begin
       End;
     4: // Procs and FNs - jump to declaration
       Begin
+        PROGLINE := SP_GetLineNumberFromIndex(FPPoiList[Index].Line);
+        SP_FPScrollToLine(PROGLINE, FPPoIList[Index].Statement);
       End;
     5: // Character set - paste character at cursor pos
       Begin
@@ -968,7 +972,7 @@ Begin
               lbl := lbl + '(';
               Inc(ps);
               bc := 0;
-              while (ps <= Length(s)) and (s[ps] in ['_', '0'..'9', 'a'..'z', '(', ')', ',', ' ']) Do Begin
+              while (ps <= Length(s)) and (s[ps] in ['_', '0'..'9', 'a'..'z', '(', ')', ',', ' ', '$']) Do Begin
                 if s[ps] = '(' then Begin
                   Inc(ps);
                   lbl := lbl + '(';

@@ -577,6 +577,7 @@ Begin
                   10: vContent := 'Cursor down';
                   11: vContent := 'Cursor up';
                   13: vContent := 'Return';
+                  15: vContent := 'FONT';
                   16: vContent := 'INK';
                   17: vContent := 'PAPER';
                   18: vContent := 'OVER';
@@ -793,7 +794,6 @@ Begin
     3: // Labels - double click to jump to that label declaration
       Begin
         s := EDITLINE;
-        Index := Integer(FPDebugPanel.Objects[Index]);
         EDITLINE := '@' + FPPoIList[Index].Name;
         SP_FPBringToEditor(0, 0, Error, False);
         EDITLINE := s;

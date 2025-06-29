@@ -107,8 +107,8 @@ Begin
           BreakNow := True;
           Inc(i);
         End;
-     16, 17, 18, 19, 20, 23, 24, 26, 27:
-        Begin // INK/PAPER/OVER/TRANSPARENT/INVERSE/TAB/ITALIC/BOLD control
+     15, 16, 17, 18, 19, 20, 23, 24, 26, 27:
+        Begin // FONT/INK/PAPER/OVER/TRANSPARENT/INVERSE/TAB/ITALIC/BOLD control
           s := s + Copy(fCaption, i, SizeOf(LongWord) +1);
           Inc(i, SizeOf(LongWord) +1)
         End;

@@ -410,7 +410,7 @@ implementation
 Uses
 
   SP_Main, SP_Input, SP_Graphics, SP_BankFiling, SP_BankManager, SP_SysVars,
-  SP_PopUpMenuUnit, SP_Components, SP_Interpret_PostFix, SP_ToolTipWindow;
+  SP_PopUpMenuUnit, SP_Components, SP_Interpret_PostFix, SP_ToolTipWindow, SP_FPEditor;
 
 // All controls should register their extra properties and methods via this routine in the base class.
 // These are properties that the user can change or read.
@@ -2336,6 +2336,7 @@ Begin
     cKeyRepeat := AddTimer(Self, REPDEL, KeyRepeat, False, False)^.ID;
   End Else
     If Not fWantTab And (Key = K_TAB) Then Begin
+      If FocusedWindow = FPWindowID Then Exit;
       If Assigned(chainControl) then
         ChainControl.SetFocus(True)
       Else Begin
@@ -2491,6 +2492,11 @@ Begin
   cLastKey := fLastKey;
 
   PerformKeyDown(b);
+
+  If Assigned(fOnKeyDown) Then
+    fOnKeyDown(Self, cLastKey, True, b);
+  If Not IsLocked And (Compiled_OnKeyDown <> '') Then
+    SP_AddOnEvent(Compiled_OnKeyDown);
 
   pSP_TimerEvent(p)^.Interval := REPPER;
   pSP_TimerEvent(p)^.NextFrameTime := FRAMES + REPPER;

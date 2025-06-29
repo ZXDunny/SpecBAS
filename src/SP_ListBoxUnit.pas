@@ -623,7 +623,7 @@ Begin
   If fSortByAlpha Then Begin
     While Copy(Result, 1, 1) <= #32 Do Begin
       Case Ord(Result[1]) of
-        16, 17, 18, 19, 20, 23, 24, 26, 27:
+        15, 16, 17, 18, 19, 20, 23, 24, 26, 27:
           Begin // INK/PAPER/OVER/TRANSPARENT/INVERSE/TAB/ITALIC/BOLD control
             Result := Copy(Result, 1 + SizeOf(LongWord) + 1)
           End;

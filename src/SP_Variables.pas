@@ -1152,8 +1152,9 @@ Var
   Idx: Integer;
 Begin
 
+  Count := Max(Count, 0);
   Idx := Length(NumArrays) -1;
-  While Idx > Count Do Begin
+  While Idx >= Count Do Begin
 
     SP_RemoveNumArray(Idx);
     Dec(Idx);
@@ -1718,8 +1719,9 @@ Var
   Idx: Integer;
 Begin
 
+  Count := Max(Count, 0);
   Idx := Length(StrArrays) -1;
-  While Idx > Count Do Begin
+  While Idx >= Count Do Begin
 
     SP_RemoveStrArray(Idx);
     Dec(Idx);

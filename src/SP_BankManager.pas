@@ -1026,6 +1026,9 @@ Begin
       FONTTRANSPARENT := FontBank^.Transparent;
       FONTTYPE := FontBank^.FontType;
 
+      CFONT := BankID;
+      T_FONT := BankID;
+
       TABSIZE := (SCREENWIDTH Div Integer(FONTWIDTH)) Div 2;
 
     End Else

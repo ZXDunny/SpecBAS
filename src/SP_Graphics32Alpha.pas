@@ -1055,6 +1055,28 @@ Var
   ScaleX, ScaleY: aFloat;
   Info: TSP_iInfo;
   pInfo: pSP_iInfo;
+
+  Function SetFontAttrs(ID: Integer): Integer;
+  Begin
+    Result := SP_FindBankID(ID);
+    If Result <> SP_ERR_BANK_ID_NOT_FOUND Then Begin
+      Bank := SP_BankList[Result];
+      FontBank := @Bank^.Info[0];
+      CharW := Max(1, Round(FontBank^.WIDTH * ScaleX));
+      CharH := Max(1, Round(FontBank^.HEIGHT * ScaleY));
+      Cw := CharW;
+      Ch := CharH;
+      If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
+        Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
+        TC := FontBank^.Transparent And $FF;
+      End Else Begin
+        Transparent := T_TRANSPARENT;
+        TC := 0;
+      End;
+    End Else
+      Error.Code := Result;
+  End;
+
 Begin
 
 
@@ -1079,26 +1101,12 @@ Begin
     ScaleY := T_SCALEY;
 
     If BankID = -1 Then // Use the system font?
-      BankID := FONTBANKID;
+      BankID := SP_GetFontBank;
 
-    Idx := SP_FindBankID(BankID);
+    Idx := SetFontAttrs(BankID);
     If Idx <> SP_ERR_BANK_ID_NOT_FOUND Then Begin
 
-      Bank := SP_BankList[Idx];
-      FontBank := @Bank^.Info[0];
       IsScaled := (ScaleX <> 1) Or (ScaleY <> 1);
-      CharW := Max(1, Trunc(FontBank^.WIDTH * ScaleX));
-      CharH := Max(1, Trunc(FontBank^.HEIGHT * ScaleY));
-      Cw := CharW;
-      Ch := CharH;
-      If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
-        Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
-        TC := FontBank^.Transparent And $FF;
-      End Else Begin
-        Transparent := T_TRANSPARENT;
-        TC := 0;
-      End;
-
       Idx := 1;
       Scrolls := 0;
       While Idx <= Length(Text) Do Begin
@@ -1263,6 +1271,12 @@ Begin
                 X := 0;
                 Inc(Y, Ch);
               End;
+           15:
+              Begin // FONT
+                T_FONT := pLongWord(@Text[Idx+1])^;
+                SetFontAttrs(T_FONT);
+                If Error.Code <> SP_ERR_OK Then Exit;
+              End;
            16:
               Begin // INK control
                 T_INK := pByte(@Text[Idx+1])^;
@@ -1411,6 +1425,27 @@ Var
   Char, pIdx, lIdx: pByte;
   IsScaled: Boolean;
   ScaleX, ScaleY: aFloat;
+
+  Function SetFontAttrs(ID: Integer): Integer;
+  Begin
+    Result := SP_FindBankID(ID);
+    If Result <> SP_ERR_BANK_ID_NOT_FOUND Then Begin
+      Bank := SP_BankList[Result];
+      FontBank := @Bank^.Info[0];
+      CharW := Max(1, Round(FontBank^.WIDTH * ScaleX));
+      CharH := Max(1, Round(FontBank^.HEIGHT * ScaleY));
+      Cw := CharW;
+      Ch := CharH;
+      If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
+        Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
+        TC := FontBank^.Transparent And $FF;
+      End Else Begin
+        Transparent := T_TRANSPARENT;
+        TC := 0;
+      End;
+    End;
+  End;
+
 Begin
 
   If T_INVERSE <> 0 Then Begin
@@ -1422,26 +1457,12 @@ Begin
   ScaleY := T_SCALEY;
 
   If BankID = -1 Then // Use the system font?
-    BankID := FONTBANKID;
+    BankID := SP_GetFontBank;
 
-  Result := SP_FindBankID(BankID);
+  Result := SetFontAttrs(BankID);
   If Result <> SP_ERR_BANK_ID_NOT_FOUND Then Begin
 
-    Bank := SP_BankList[Result];
-    FontBank := @Bank^.Info[0];
     IsScaled := (ScaleX <> 1) Or (ScaleY <> 1);
-    CharW := Max(1, Trunc(FontBank^.WIDTH * ScaleX));
-    CharH := Max(1, Trunc(FontBank^.HEIGHT * ScaleY));
-    Cw := CharW;
-    Ch := CharH;
-    If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
-      Transparent := T_TRANSPARENT And (FontBank^.Transparent <> $FFFF);
-      TC := FontBank^.Transparent And $FF;
-    End Else Begin
-      Transparent := T_TRANSPARENT;
-      TC := 0;
-    End;
-
     Coord := SCREENPOINTER;
     Inc(Coord, (SCREENWIDTH * Y) + X);
 
@@ -1572,6 +1593,11 @@ Begin
          13:
             Begin // Carriage return
               X := 0; Inc(Y, Ch);
+            End;
+         15:
+            Begin // FONT
+              T_FONT := pLongWord(@Text[Idx+1])^;
+              If SetFontAttrs(T_FONT) = SP_ERR_BANK_ID_NOT_FOUND Then Exit;
             End;
          16:
             Begin // INK control

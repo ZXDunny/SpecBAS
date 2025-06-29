@@ -37,8 +37,7 @@ uses
   {$ENDIF }
   Forms,
   SP_Display,
-  MainForm in 'MainForm.pas' {Main},
-  SP_Graphics32Alpha in 'SP_Graphics32Alpha.pas';
+  MainForm in 'MainForm.pas' {Main};
 
 {$R *.res}
 begin

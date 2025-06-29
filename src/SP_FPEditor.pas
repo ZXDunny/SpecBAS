@@ -743,7 +743,7 @@ Begin
     iFPFW := Round(FONTWIDTH * T_SCALEX);
     iEdSc := #25 + aFloatToString(T_SCALEX) + aFloatToString(T_SCALEY);
   End;
-
+  T_FONT := FB;
 
   SP_GetWindowDetails(WindowID, Win, Err);
   If Not Assigned(Win) Then Exit;
@@ -3959,9 +3959,14 @@ Begin                                                                           
 End;
 
 Procedure SP_CopySelection;
+Var
+  selText: String;
 Begin
 
-  Clipboard.AsText := String(SP_GetSelectionAsString);
+  selText := String(SP_GetSelectionAsString);
+
+  If selText <> '' Then
+    Clipboard.AsText := selText;
 
 End;
 
@@ -7741,6 +7746,7 @@ Begin
       ValTokens := SP_Convert_Expr(Str1, Position, Error, -1) + #255;
       If (Position <> Length(Str1)) or ((Position < Length(Str1)) And (Str1[Position] <> #255)) Then Begin
         Error.Code := SP_ERR_SYNTAX_ERROR;
+        SYSTEMSTATE := State;
         Exit;
       End;
       SP_RemoveBlocks(ValTokens);

@@ -241,9 +241,10 @@ Begin
     If Copy(p, Length(p), 1) <> '/' Then
       p := p + '/';
     s := FilesList.Items[i];
-    If FocusedControl <> FileNameEdt Then
-      FilenameEdt.Text := Copy(s, 2, Pos(#255, s) -2)
-    Else
+    If FocusedControl <> FileNameEdt Then Begin
+      FilenameEdt.SetTextNoUpdate(Copy(s, 2, Pos(#255, s) -2));
+      FilesList.Find(s, True);
+    End Else
       FilenameEdt.GhostText := Copy(s, 2, Pos(#255, s) -2);
     okBtn.Enabled := SP_FileExists(p + FilenameEdt.Text) or (ToolMode = 2);
   End Else Begin
@@ -284,7 +285,7 @@ Var
 Begin
 
   If s <> '' Then Begin
-    FilesList.Find(s);
+    FilesList.Find(s, False);
     p := FilesList.Directory;
     If Copy(p, Length(p), 1) <> '/' Then
       p := p + '/';
@@ -389,7 +390,7 @@ Begin
   FilesList.Filters := Filter;
   FilesList.Directory := PathEdt.Text;
   FilesList.Transparent := False;
-  FilesList.Find(SP_ExtractFilename(Filename));
+  FilesList.Find(SP_ExtractFilename(Filename), True);
 
   PathEdt.ChainControl := FilesList;
   FilesList.ChainControl := FilenameEdt;

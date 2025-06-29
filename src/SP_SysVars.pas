@@ -418,6 +418,7 @@ Var
   COUTEXPR:                 aString;
   CITALIC:                  Integer;
   CBOLD:                    Integer;
+  CFONT:                    Integer;
   SKIPFIRSTPOINT:           Boolean;      // Flag that the current DRAW position has been PLOTted
   T_PAPER:                  LongWord;     // Temporary PAPER used by PRINT and INPUT colour items
   T_INK:                    LongWord;     // Temporary INK
@@ -441,6 +442,7 @@ Var
   T_CENTRETEXT:             aString;
   T_CENTRE_Y:               Integer;
   T_STROKE:                 aFloat;
+  T_FONT:                   Integer;
   OUTBUFFER:                aString;
   OUTSET:                   Boolean;
   OUTWORKSP:                aString;

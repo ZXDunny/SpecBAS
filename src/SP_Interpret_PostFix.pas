@@ -9334,6 +9334,29 @@ Begin
 
 End;
 
+Procedure SP_Interpret_PR_FONT(Var Info: pSP_iInfo);
+Var
+  Font: Integer;
+Begin
+
+  Font := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  If (Font >= 0) And (Font < Length(SP_BankList)) And (SP_BankList[Font]^.DataType = SP_FONT_BANK) Then Begin
+
+    If OUTSET Then
+      OUTBUFFER := OUTBUFFER + aChar(15) + LongWordToString(Font)
+    Else
+      IF T_CENTRE Then
+        T_CENTRETEXT := T_CENTRETEXT + aChar(17) + IntegerToString(Font)
+      Else
+        T_FONT := Font;
+
+  End Else
+    Info^.Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+
+End;
+
 Procedure SP_Interpret_PR_ITALIC(Var Info: pSP_iInfo);
 Var
   Italic: Integer;
@@ -11137,6 +11160,10 @@ Begin
     While SP_StackPtr^.OpType = SP_STRING Do Begin
       Str := SP_StackPtr^.Str;
       Case Byte(Str[1]) of
+        15: // FONT
+          Begin
+            T_FONT := pLongWord(@Str[2])^;
+          End;
         16: // INK
           Begin
             T_INK := pLongWord(@Str[2])^;
@@ -14573,6 +14600,7 @@ Begin
     CBOLD := 0;
     CITALIC := 0;
     CSTROKE := 1;
+    CFONT := SYSFONT;
     SP_Reset_Temp_Colours;
     SP_CLS(CPAPER);
     Error^.Line := -10;
@@ -15823,6 +15851,10 @@ Begin
   Dec(SP_StackPtr);
 
   SP_SetSystemFont(FontID, Info^.Error^);
+  If Info^.Error.Code = SP_ERR_OK Then Begin
+    CFONT := FontID;
+    T_FONT := FontID;
+  End;
 
 End;
 
@@ -16525,7 +16557,7 @@ Begin
 
     With SP_StackPtr^ Do Begin
 
-      NewError.Line := -1;
+      NewError.Line := -2;
       NewError.Statement := 1;
       NewError.Position := 1;
       NewError.ReturnType := 0;
@@ -19935,6 +19967,7 @@ Begin
     SP_SetDrawingWindow(Gfx);
     SP_CLS(8);
     CINK := 0; CPAPER := 8; T_INK := 0; T_PAPER := 8;
+    CFONT := SYSFONT; T_FONT := SYSFONT;
 
     cx := 0; cy := 0;
     For i := 0 To List.Count -1 Do Begin
@@ -27699,6 +27732,7 @@ Initialization
   InterpretProcs[SP_KW_PR_PAPER] := @SP_Interpret_PR_PAPER;
   InterpretProcs[SP_KW_PR_INVERSE] := @SP_Interpret_PR_INVERSE;
   InterpretProcs[SP_KW_PR_ITALIC] := @SP_Interpret_PR_ITALIC;
+  InterpretProcs[SP_KW_PR_FONT] := @SP_Interpret_PR_FONT;
   InterpretProcs[SP_KW_PR_BOLD] := @SP_Interpret_PR_BOLD;
   InterpretProcs[SP_KW_LET] := @SP_Interpret_LET;
   InterpretProcs[SP_KW_ENUM_BASE] := @SP_Interpret_ENUM_BASE;

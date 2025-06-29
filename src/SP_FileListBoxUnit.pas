@@ -26,7 +26,7 @@ SP_FileListBox = Class(SP_ListBox)
 
   Public
 
-    Procedure Find(Filename: aString);
+    Procedure Find(Filename: aString; Exact: Boolean);
     Procedure GoParent;
     Function  GetString(Index: Integer): aString; Override;
     Procedure Select(Index: Integer); Override;
@@ -514,7 +514,7 @@ Begin
     fLastKeyDownTime := Time;
     If NewChar in [32..127] Then Begin
       fSearchStr := fSearchStr + aChar(NewChar);
-      Find(fSearchStr);
+      Find(fSearchStr, False);
       SP_PlaySystem(CLICKCHAN, CLICKBANK);
       Handled := True;
     End;
@@ -584,7 +584,7 @@ Begin
 
 End;
 
-Procedure SP_FileListBox.Find(Filename: aString);
+Procedure SP_FileListBox.Find(Filename: aString; Exact: Boolean);
 Var
   i, l: Integer;
   oSel: Array of Boolean;
@@ -603,7 +603,7 @@ Begin
   FileName := Lower(Filename);
   While i < fCount Do Begin
     fSelected[i] := False;
-    if Lower(Copy(fStrings[i], 2, Length(Filename))) = Filename Then Begin
+    If (Exact And (Lower(Copy(fStrings[i], 2)) = Filename)) or (Not Exact And (Lower(Copy(fStrings[i], 2, Length(Filename))) = Filename)) Then Begin
       fLastSelected := i;
       fSelected[i] := True;
       fSelectedIdx := i;

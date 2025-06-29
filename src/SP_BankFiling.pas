@@ -63,7 +63,7 @@ Type
 
   SP_Window_Info = Record
     ID, Width, Height, Stride, Inverse, Over, Italic, Bold,
-    Left, Top, FontBankID, SpriteCount, scrollcnt, bpp, Menu, CaptionHeight, PrevWin: Integer;
+    Left, Top, FontBankID, SpriteCount, scrollcnt, bpp, Menu, CaptionHeight, PrevWin, Font: Integer;
     heading, orgx, orgy, orgw, orgh, winscalex, winscaley, scalex, scaley: aFloat;
     clipx1, clipy1, clipx2, clipy2: Integer; winscale, winorigin, flip: Boolean;
     Visible, AlphaEnabled, FontTrans, System: Boolean;

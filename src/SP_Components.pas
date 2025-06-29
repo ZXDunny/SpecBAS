@@ -377,7 +377,7 @@ Var
   Function SendKey(var ctrl: SP_BaseComponent): Boolean;
   Begin
     Result := False;
-    If IsVisible(ctrl) And (ctrl = focusedcontrol) And SP_CanInteract(ctrl) then
+    If IsVisible(ctrl) {And (ctrl = focusedcontrol)} And SP_CanInteract(ctrl) then
       If Down Then Begin
         cLastKeyChar := Ord(aStr[1]);
         cLastKey := Key;

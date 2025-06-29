@@ -6265,7 +6265,7 @@ Begin
                 Result := Result + Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
                 Expr := '';
               End;
-            SP_KW_INK, SP_KW_PAPER, SP_KW_INVERSE, SP_KW_TAB, SP_KW_OVER, SP_KW_ITALIC, SP_KW_BOLD:
+            SP_KW_INK, SP_KW_PAPER, SP_KW_INVERSE, SP_KW_TAB, SP_KW_OVER, SP_KW_ITALIC, SP_KW_BOLD, SP_KW_FONT:
               Begin
                 Inc(Position, 1+SizeOf(LongWord));
                 Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
@@ -6282,6 +6282,7 @@ Begin
                   SP_KW_INVERSE: KeyWordID := SP_KW_PR_INVERSE;
                   SP_KW_TAB: KeywordID := SP_KW_PR_TAB;
                   SP_KW_OVER: KeyWordID := SP_KW_PR_OVER;
+                  SP_KW_FONT: KeyWordID := SP_KW_PR_FONT;
                 End;
                 Result := Result + Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
                 Expr := '';

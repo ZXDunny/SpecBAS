@@ -316,7 +316,7 @@ Var
   oText: aString;
 Begin
 
-  If not fEnabled Then Exit;
+  If not (fEnabled and fFocused) Then Exit;
 
   oText := fText;
   fGfxMode := fGfxLock;

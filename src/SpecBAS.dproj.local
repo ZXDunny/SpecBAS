@@ -30,6 +30,5 @@
 	<ProjectSortOrder AutoSort="0" SortType="0">
     <File Path="MainForm.pas"/>
     <File Path="MainForm.dfm"/>
-    <File Path="SP_Graphics32Alpha.pas"/>
   </ProjectSortOrder>
 </BorlandProject>

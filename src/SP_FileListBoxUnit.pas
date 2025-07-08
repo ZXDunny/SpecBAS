@@ -466,6 +466,8 @@ Var
   NewChar: Byte;
 Begin
 
+  If not (fEnabled and fFocused) Then Exit;
+
   NewChar := DecodeKey(cLastKey);
   Handled := False;
 
@@ -575,7 +577,7 @@ Begin
       fSelected[i] := True;
       fSelectedIdx := i;
       fSearchStr := '';
-      ScrollInView;
+      ScrollInView(False);
     End;
   End;
 
@@ -607,7 +609,7 @@ Begin
       fLastSelected := i;
       fSelected[i] := True;
       fSelectedIdx := i;
-      ScrollInView;
+      ScrollInView(False);
       OnSel := fOnSelect;
       Select(i);
       fOnSelect := OnSel;

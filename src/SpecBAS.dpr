@@ -24,6 +24,7 @@ program SpecBAS;
 
 uses
   {$IFDEF DEBUG}
+  //FastMM4,
   madExcept,
   madLinkDisAsm,
   madListHardware,

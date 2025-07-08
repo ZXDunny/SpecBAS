@@ -86,7 +86,7 @@ SP_ListBox = Class(SP_BaseComponent)
     Procedure     PerformKeyDown(Var Handled: Boolean); Override;
     Procedure     PerformKeyUp(Var Handled: Boolean); Override;
     Procedure     SetBackgroundClr(c: Byte); Override;
-    Procedure     ScrollInView;
+    Procedure     ScrollInView(OnlyObscured: Boolean);
     Procedure     Draw; Override;
     Function      GetHeaderCount: Integer;
     Procedure     SetHeaderClr(c: Integer);
@@ -710,7 +710,7 @@ End;
 
 Procedure SP_ListBox.SetUIElements;
 Var
-  w, h, i, t, cFW, cFH: Integer;
+  w, h, rh, i, t, cFW, cFH: Integer;
   ScrollBarsDone: Boolean;
 Begin
 
@@ -723,7 +723,8 @@ Begin
   cfH := Round(iFH * iSY);
 
   w := fWidth - (4 * Ord(fBorder)) - 2;
-  h := fClientRgn.Bottom - fClientRgn.Top;
+  rh := fClientRgn.Bottom - fClientRgn.Top;
+  h := rh - (Ord(fShowHeaders And (Length(fHeaders) > 0)) * cFH);
 
   If fShowHeaders And (Length(fHeaders) > 0) Then Begin
 
@@ -745,14 +746,14 @@ Begin
   fHScroll.Step := cFW;
 
   fVScroll.Visible := False;
-  fVScroll.Max := (fCount + Ord(fShowHeaders And (Length(fHeaders) > 0)))  * cFH;
+  fVScroll.Max := fCount * cFH;
   fVScroll.Step := cFH;
 
   ScrollBarsDone := False;
   While Not ScrollBarsDone Do Begin
 
     If h < fCount * cFH Then Begin
-      fVScroll.SetBounds(Width - cfW - (Ord(fBorder) * 2), Ord(fBorder) * 2, cfW, h + (cfH * Ord(fHScroll.Visible)));
+      fVScroll.SetBounds(Width - cfW - (Ord(fBorder) * 2), Ord(fBorder) * 2, cfW, rh + (cfH * Ord(fHScroll.Visible)));
       fVScroll.Visible := True;
       Dec(w, cfW + 2);
     End;
@@ -762,7 +763,7 @@ Begin
       fHScroll.SetBounds(Ord(fBorder) * 2, fHeight - cfH - (Ord(fBorder) * 2), w + (Ord(fBorder) * 2) + (Ord(fVScroll.Visible) * (cfW + 2)), cfH);
       fHScroll.Visible := True;
       Dec(h, cFh);
-      fVScroll.SetBounds(Width - cfW - (Ord(fBorder) * 2), Ord(fBorder) * 2, cfW, h + (cfH * Ord(fHScroll.Visible)));
+      fVScroll.SetBounds(Width - cfW - (Ord(fBorder) * 2), Ord(fBorder) * 2, cfW, rh + (cfH * Ord(fHScroll.Visible)));
     End Else
       ScrollBarsDone := True;
 
@@ -1052,7 +1053,7 @@ Begin
               fSortedBy := i;
             Sort(fSortedBy);
             SP_PlaySystem(CLICKCHAN, CLICKBANK);
-            ScrollInView;
+            ScrollInView(True);
             Exit;
           End;
 
@@ -1108,7 +1109,7 @@ Begin
             Inc(fSelCount);
 
         fSelectAnchor := i;
-        ScrollInView;
+        ScrollInView(True);
 
         Select(fLastSelected);
         SP_PlaySystem(CLICKCHAN, CLICKBANK);
@@ -1156,6 +1157,8 @@ Var
   NewChar: Byte;
 Begin
 
+  If not (fEnabled and fFocused) Then Exit;
+
   cfH := Round(iFH * iSY);
 
   NewChar := DecodeKey(cLastKey);
@@ -1191,7 +1194,7 @@ Begin
             End;
             fSelectedIdx := fLastSelected;
             SP_PlaySystem(CLICKCHAN, CLICKBANK);
-            ScrollInView;
+            ScrollInView(False);
             Select(fLastSelected);
             Handled := True;
           End;
@@ -1237,18 +1240,25 @@ Begin
 
 End;
 
-Procedure SP_ListBox.ScrollInView;
+Procedure SP_ListBox.ScrollInView(OnlyObscured: Boolean);
 Var
   p: Integer;
+  CanScroll: Boolean;
 Begin
 
   fNeedScroll := -1;
+  CanScroll := True;
   p := fLastSelected * Round(iFH * iSY);
-  If Not Locked Then Begin
-    fVScroll.ScrollInView(p);
-    Paint;
-  End Else
-    fNeedScroll := p;
+
+  If OnlyObscured Then
+    CanScroll := (p < fVScroll.Pos) or (p > fVScroll.Pos + fVScroll.PageSize - iFH);
+
+  If CanScroll Then
+    If Not Locked Then Begin
+      fVScroll.ScrollInView(p, OnlyObscured);
+    End Else
+      fNeedScroll := p;
+  Paint;
 
 End;
 
@@ -1475,7 +1485,7 @@ Begin
       If b Then Begin
         fSelectedIdx := Idx;
         fLastSelected := Idx;
-        ScrollInView;
+        ScrollInView(False);
         Paint;
       End;
     End Else

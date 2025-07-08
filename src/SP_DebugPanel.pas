@@ -696,16 +696,42 @@ var
   s: aString;
   i, j, p, l: Integer;
   Error: TSP_ErrorCode;
+  IsArray: Boolean;
 Begin
 
   PanelSelect(Sender, Index);
 
   If Index < 0 Then Exit;
-  Index := Integer(FPDebugPanel.Objects[Index]);
 
   Case FPDebugCombo.ItemIndex of
+    0: // Variables - Highlight all instances
+      Begin
+        IsArray := False;
+        FPSearchTerm := FPDebugPanel.Items[Index];
+        if FPSearchTerm[1] = ' ' then FPSearchTerm := Copy(FPSearchTerm, 2);
+        if FPSearchTerm[1] < ' ' then FPSearchTerm := Copy(FPSearchTerm, 6);
+        FPSearchTerm := Copy(FPSearchTerm, 1, Pos(#255, FPSearchTerm) -1);
+        If Pos('(', FPSearchTerm) > 0 Then Begin
+          FPSearchTerm := Copy(FPSearchTerm, 1, Pos('(', FPSearchTerm));
+          IsArray := True;
+        End;
+        FPSearchOptions := [soForward, soStart, soClearBar, soVarName];
+        SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
+        FPShowingSearchResults := True;
+        j := -1;
+        For i := 0 To Length(FPFindResults) -1 Do Begin
+          If IsArray And Not FPFindResults[i].Split Then Dec(FPFindResults[i].Length);
+          If FPFindResults[i].Line <> j Then Begin
+            SP_FPApplyHighlighting(FPFindResults[i].Line);
+            AddDirtyLine(FPFindResults[i].Line);
+          End;
+          j := FPFindResults[i].Line;
+        End;
+        SP_DisplayFPListing(-1);
+      End;
     3: // Labels - highlight all @Label instances
       Begin
+        Index := Integer(FPDebugPanel.Objects[Index]);
         FPSearchTerm := '@' + FPPoIList[Index].Name;
         FPSearchOptions := [soForward, soStart, soClearBar];
         SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
@@ -722,6 +748,7 @@ Begin
       End;
     4: // Procs and FNs - highlight all usages. Find "Fn x" and "Proc x", "DEF FN x" and "DEF PROC x" as well as "CALL x".
       Begin
+        Index := Integer(FPDebugPanel.Objects[Index]);
         s := FPPoIList[Index].Name;
         if Pos('(', s) > 0 Then
           s := Copy(s, 1, Pos('(', s) -1);

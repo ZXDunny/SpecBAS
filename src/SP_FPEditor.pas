@@ -67,7 +67,7 @@ Uses Types, Classes, Clipbrd, SyncObjs, SysUtils, Math{$IFNDEF FPC}, Windows{$EN
 Type
 
   pSP_EditorEvent = Pointer;
-  SP_SearchOptions = Set Of (soStart, soCursorPos, soForward, soBackwards, soInREM, soInString, soMatchCase, soLoop, soInSelection, soCondenseSpaces, soInEditLine, soWholeWords, soExpression, soAll, soNoClear, soClearBar);
+  SP_SearchOptions = Set Of (soStart, soCursorPos, soForward, soBackwards, soInREM, soInString, soMatchCase, soLoop, soInSelection, soCondenseSpaces, soInEditLine, soWholeWords, soVarName, soExpression, soAll, soNoClear, soClearBar);
   SP_EventData = Record Pos, Key, Button, X, Y, tsData: Integer; ObjectPtr: Pointer; End;
   SP_EventHandler = Procedure(Var Data: SP_EventData);
   SP_EventOnLaunch = Procedure(Event: pSP_EditorEvent);
@@ -6156,7 +6156,11 @@ Begin
         Match := True;
         If (soInREM in Options) Then Match := Match And InREM;
         If (soInString in Options) Then Match := Match And InString;
-        If (soWholeWords in Options) Then Match := Match And ((k = 1) or Not (s[k -1] in ['a'..'z', 'A'..'Z', '0'..'9'])) And ((k = l) or Not (s[k +1] in ['a'..'z', 'A'..'Z', '0'..'9']));
+        If (soWholeWords in Options) Then Match := Match And ((k = 1) or Not (s[k -1] in ['a'..'z', 'A'..'Z', '0'..'9'])) And ((k = l) or Not (s[k+tl] in ['a'..'z', 'A'..'Z', '0'..'9']));
+        If (soVarName in Options) And (Text[tl] <> '(') Then Begin
+          Match := Match And ((k = 1) or Not (s[k -1] in ['_', '$', 'a'..'z', 'A'..'Z', '0'..'9'])) And ((k = l) or Not (s[k+tl] in ['_', '$', 'a'..'z', 'A'..'Z', '0'..'9']));
+          Match := Match And not InREM and Not InString;
+        End;
         If Match Then Begin
           fl := Length(FPFindResults);
           b := False;
@@ -6199,6 +6203,7 @@ Begin
               FPFindResults[fl].Line := i +1;
               FPFindResults[fl].Position := 1;
               FPFindResults[fl].Length := tl - ((e - k) +1);
+              FPFindResults[fl].Split := False;
               rs := FPFindResults[fl].Length + 1;
               Break;
             End Else Begin
@@ -6209,7 +6214,7 @@ Begin
           Inc(k, tl);
           Inc(ps, tl);
         End Else Begin
-          Inc(l);
+          Inc(k);
           Inc(ps);
         End;
       End Else Begin
@@ -6231,7 +6236,7 @@ End;
 
 Function SP_FindText(Text: aString; StartAtL, StartAtP: Integer; Const Options: SP_SearchOptions): TPoint;
 Var
-  Origin, Limit, Dir, Idx, fp, fp2, cIdx, Cnt: Integer;
+  Origin, Limit, Dir, Idx, fp, fp2, cIdx, tl, Cnt: Integer;
   Sel: SP_SelectionInfo;
   Error: TSP_ErrorCode;
   s, s2: aString;
@@ -6240,6 +6245,8 @@ Begin
 
   // SP_SearchOptions = Set Of (soForward, soBackwards, soInREM, soInString, soMatchCase, soLoop, soInSelection, soWholeWords, soExpression);
   // Finds a given text, with options. soCondenseSpaces and soWholeWords cannot be used together.
+
+  If Text = '' Then Exit;
 
   If soExpression in Options Then Begin
     Text := SP_FPExecuteAnyExpression(Text, Error);
@@ -6254,6 +6261,8 @@ Begin
 
   If Not (soMatchCase in Options) Then
     Text := Lower(Text);
+
+  tl := Length(Text);
 
   Result := Point(-1, -1);
   Origin := StartAtL;
@@ -6348,7 +6357,9 @@ Begin
           Inc(cIdx);
         End;
         If Done And (soWholeWords in Options) Then
-          Done := Done And ((fp2 = 1) or (Not (s[fp2 -1] in ['A'..'Z', 'a'..'z', '0'..'9'])) And ((fp2 + Length(Text) -1 = Length(s)) or (Not (s[fp2 +1] in ['A'..'Z', 'a'..'z', '0'..'9']))));
+          Done := Done And ((fp2 = 1) or (Not (s[fp2 -1] in ['A'..'Z', 'a'..'z', '0'..'9'])) And ((fp2 + tl -1 = Length(s)) or (Not (s[fp2 + tl] in ['A'..'Z', 'a'..'z', '0'..'9']))));
+        If Done And (soVarName in Options) And (Text[tl] <> '(') Then
+          Done := Done And ((fp2 = 1) or (Not (s[fp2 -1] in ['_', '$', 'A'..'Z', 'a'..'z', '0'..'9'])) And ((fp2 + tl -1 = Length(s)) or (Not (s[fp2 + tl] in ['_', '$', 'A'..'Z', 'a'..'z', '0'..'9']))));
         Done := Done And ((Odd(Cnt) And (Not (soInString in Options))) or Not Odd(Cnt));
       End Else Begin
         // Re-synchronise if we lost spaces.

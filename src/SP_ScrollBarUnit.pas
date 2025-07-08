@@ -73,7 +73,7 @@ SP_ScrollBar = Class(SP_BaseComponent)
     Procedure SetTrackClr(c: Byte);
     Procedure SetBtnClr(c: Byte);
     Procedure SetThumbClr(c: Byte);
-    Procedure ScrollInView(p: Integer);
+    Procedure ScrollInView(p: Integer; JustEnough: Boolean = False);
 
     Property Step:        Integer          read fStep        write fStep;
     Property Min:         Integer          read fMin         write SetMin;
@@ -227,18 +227,25 @@ Begin
 
 End;
 
-Procedure SP_ScrollBar.ScrollInView(p: Integer);
+Procedure SP_ScrollBar.ScrollInView(p: Integer; JustEnough: Boolean);
 Var
   m: Integer;
 Begin
 
-  m := fPageSize Div 4;
-
-  If p < fTargetPos + m Then
-    Pos := p - m
-  Else
-    If p > fTargetPos + fPageSize - m Then
-      Pos := p - fPageSize + m;
+  If JustEnough Then Begin
+    If p < fTargetPos Then
+      Pos := p
+    Else
+      If p > fTargetPos + fPageSize - fStep Then
+        Pos := p - fPageSize + fStep;
+  End Else Begin
+    m := fPageSize Div 4;
+    If p < fTargetPos + m Then
+      Pos := p - m
+    Else
+      If p > fTargetPos + fPageSize - m Then
+        Pos := p - fPageSize + m;
+  End;
 
 End;
 

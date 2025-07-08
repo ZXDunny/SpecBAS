@@ -221,12 +221,12 @@ Begin
 
   SP_GetWindowDetails(FPWindowID, Win, Error);
   FPSearchPanel := SP_Container.Create(Win^.Component);
+  FPSearchPanel.Visible := False;
   FPSearchPanel.BackgroundClr := 251;
   FPSearchPanel.Border := False;
   FPSearchPanel.OnPaintAfter := SP_MenuActionProcs.FPEditorSearchBarPaint;
   FPSearchPanel.Height := Fh + 10;
   FPSearchPanel.Align := SP_AlignBottom;
-  FPSearchPanel.Visible := False;
 
   FPSearchBox := SP_Edit.Create(FPSearchPanel);
   FPSearchBox.Border := True;

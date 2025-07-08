@@ -462,6 +462,8 @@ Var
   NewChar: Byte;
 Begin
 
+  If not (fEnabled and fFocused) Then Exit;
+
   NewChar := DecodeKey(cLastKey);
   Handled := False;
 

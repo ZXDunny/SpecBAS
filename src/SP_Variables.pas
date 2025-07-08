@@ -2870,27 +2870,15 @@ Begin
             End Else
               InternalName := VarName;
 
-          VarIdx := SP_FindNumArray(InternalName);
-          If VarIdx = -1 Then Begin
-            SP_CreateNumArray(InternalName, LongWordToString(1), ArrayBase, False, Error);
-            VarIdx := Length(NumArrays) -1;
-          End Else
-            SP_RemoveNumArray(VarIdx);
 
           SP_FileRead(SrcFile, @Size, SizeOf(LongWord), Error);
           SP_FileRead(SrcFile, @NumIndices, SizeOf(LongWord), Error);
-          NumArrays[VarIdx].Size := Size;
-          NumArrays[VarIdx].NumIndices := NumIndices;
-          SetLength(NumArrays[VarIdx].Indices, NumIndices);
+          SetLength(Str, NumIndices * SizeOf(LongWord));
+          For Idx := 0 To NumIndices -1 Do
+            SP_FileRead(SrcFile, @Str[Idx * SizeOf(LongWord) +1], SizeOf(longWord), Error);
+          VarIdx := SP_CreateNumArray(InternalName, Str, ArrayBase, False, Error);
 
-          For Idx := 0 To NumIndices -1 Do Begin
-            SP_FileRead(SrcFile, @Size, SizeOf(longWord), Error);
-            NumArrays[VarIdx].Indices[Idx] := Size;
-          End;
-
-          SetLength(NumArrays[VarIdx].Values, NumArrays[VarIdx].Size);
           For Idx := 0 To NumArrays[VarIdx].Size -1 Do Begin
-            NumArrays[VarIdx].Values[Idx] := New_NumVarContent;
             SP_FileRead(SrcFile, @NV.VarType, SizeOf(NV_Template), Error);
             With NumArrays[VarIdx].Values[Idx]^ Do Begin
               VarType := NV.VarType;
@@ -2975,27 +2963,14 @@ Begin
               End Else
                 InternalName := Copy(VarName, 1, Length(VarName) -1);
 
-            VarIdx := SP_FindStrArray(InternalName);
-            If VarIdx = -1 Then Begin
-              SP_CreateStrArray(InternalName, LongWordToString(1), 0, '', ArrayBase, False, Error);
-              VarIdx := Length(StrArrays) -1;
-            End Else
-              SP_RemoveStrArray(VarIdx);
-
             SP_FileRead(SrcFile, @Size, SizeOf(LongWord), Error);
             SP_FileRead(SrcFile, @NumIndices, SizeOf(LongWord), Error);
-            StrArrays[VarIdx].Size := Size;
-            StrArrays[VarIdx].NumIndices := NumIndices;
-            SetLength(StrArrays[VarIdx].Indices, NumIndices);
+            SetLength(Str, NumIndices * SizeOf(LongWord));
+            For Idx := 0 To NumIndices -1 Do
+              SP_FileRead(SrcFile, @Str[Idx * SizeOf(LongWord) +1], SizeOf(longWord), Error);
+            VarIdx := SP_CreateStrArray(InternalName, Str, 0, '', ArrayBase, False, Error);
 
-            For Idx := 0 To NumIndices -1 Do Begin
-              SP_FileRead(SrcFile, @Size, SizeOf(longWord), Error);
-              StrArrays[VarIdx].Indices[Idx] := Size;
-            End;
-
-            SetLength(StrArrays[VarIdx].Strings, StrArrays[VarIdx].Size);
             For Idx := 0 To StrArrays[VarIdx].Size -1 Do Begin
-              StrArrays[VarIdx].Strings[Idx] := New_StrVarContent;
               SP_FileRead(SrcFile, @SV.SliceFrom, SizeOf(SV_Template), Error);
               With StrArrays[VarIdx].Strings[Idx]^ Do Begin
                 SliceFrom := SV.SliceFrom;
@@ -3004,14 +2979,12 @@ Begin
                 SetLength(Value, SV.Len);
                 SP_FileRead(SrcFile, @Value[1], SV.Len, Error);
               End;
-
               If StrArrays[VarIdx].Strings[Idx]^.DLen < 0 Then Begin
                 StrArrays[VarIdx].Strings[Idx]^.DLen := -StrArrays[VarIdx].Strings[Idx]^.DLen;
                 SP_FileRead(SrcFile, @LwVal, SizeOf(LongWord), Error);
                 SetLength(StrArrays[VarIdx].Strings[Idx]^.StructName, LwVal);
                 SP_FileRead(SrcFile, @StrArrays[VarIdx].Strings[Idx]^.StructName[1], LwVal, Error);
               End;
-
             End;
 
             If StrArrays[VarIdx].Size > 0 Then

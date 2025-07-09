@@ -918,7 +918,6 @@ Var
   Error: TSP_ErrorCode;
 Begin
 
-
   If WINDOWPOINTER <> nil Then Begin
 
     If SCREENBANK >= 0 Then Begin
@@ -1394,6 +1393,7 @@ Begin
 
     Window^.Surface := @Bank^.Memory[0];
     Idx := SCREENBANK;
+    SP_SetCurrentWindowSettings;
     SCREENBANK := -1;
     SP_SetDrawingWindow(Idx);
 

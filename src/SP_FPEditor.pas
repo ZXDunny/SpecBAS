@@ -605,11 +605,11 @@ Var
   Err: TSP_ErrorCode;
 Begin
 
-  Result := FONTBANKID;
   SP_SetSystemFont(EDITORFONT, Err);
   EdSc := #25 + aFloatToString(EDFONTSCALEX) + aFloatToString(EDFONTSCALEY);
   EdCSc := #25 + aFloatToString(1) + aFloatToString(1);
   SP_CreateFontMetrics;
+  Result := FONTBANKID;
 
 End;
 
@@ -7238,6 +7238,7 @@ Begin
   Window := SCREENBANK;
   REPCOUNT := FRAMES;
 
+  SP_SetCurrentWindowSettings;
   Font := SP_SetFPEditorFont;
 
   // Turn off ON ERROR - we don't want this to trigger now, it should have done it before if at all.
@@ -7358,7 +7359,6 @@ Begin
     Else
       WinY := (DISPLAYHEIGHT - WinH) - BSize;
 
-    SP_SetCurrentWindowSettings;
     ERRORWINDOW := SP_Add_Window(WinX, WinY, WinW, WinH, -1, 8, 0, Error);
     SP_SetDrawingWindow(ERRORWINDOW);
     For Idx := 0 To 255 Do pSP_Window_Info(WINDOWPOINTER)^.Palette[Idx] := DefaultPalette[Idx];
@@ -7621,7 +7621,10 @@ Begin
   PRPOSY := FPEditorPRPOSY;
   COVER := FPEditorOVER;
   T_OVER := COVER;
+  SCREENBANK := -1;
+  WINDOWPOINTER := Nil;
   SP_SetDrawingWindow(FPEditorDefaultWindow);
+  SCREENBANK := FPEditorDefaultWindow;
   SP_Reset_Temp_Colours;
   SP_NeedDisplayUpdate := True;
   CauseUpdate := True;

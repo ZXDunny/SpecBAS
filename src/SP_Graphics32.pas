@@ -1588,7 +1588,7 @@ var
       X1 := Max(T_CLIPX1, X1);
       X2 := Min(T_CLIPX2 -1, X2);
       If X2 > X1 Then Begin
-        DstA := pLongWord(NativeUInt(SCREENPOINTER) + X1 * SizeOf(RGBA) + (Y * SCREENSTRIDE));
+        DstA := pLongWord(NativeUInt(SCREENPOINTER) + X1 * SizeOf(RGBA) + (Y_Scanline * SCREENSTRIDE));
         While X2 >= X1 Do Begin
           DstA^ := Ink;
           Inc(DstA);
@@ -1611,9 +1611,6 @@ var
   end;
 
 begin
-
-  if R <= 0 then Exit;
-  If ((CX + R) < 0) or ((CX - R) > SCREENWIDTH) or ((CY + R) < 0) or ((CY - R) > SCREENHEIGHT) Then Exit;
 
   x := 0;
   y := R;

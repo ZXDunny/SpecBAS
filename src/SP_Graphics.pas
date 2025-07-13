@@ -3625,32 +3625,33 @@ begin
   If ((CX + R) < 0) or ((CX - R) > SCREENWIDTH) or ((CY + R) < 0) or ((CY - R) > SCREENHEIGHT) Then Exit;
 
   If SCREENBPP = 8 Then Begin
+
     If T_INVERSE = 0 Then
       CurrentInk := T_INK
     Else
       CurrentInk := T_PAPER;
-  End Else Begin
-    SP_DrawSolidCircle32(Cx, Cy, R);
-    Exit;
-  End;
 
-  x := 0;
-  y := R;
-  p := 1 - R;
+    x := 0;
+    y := R;
+    p := 1 - R;
 
-  while x <= y do
-  begin
-    FillSymmetricScanlines(x, y);
-    if x = y then break;
-    if p < 0 then begin
-      p := p + (2 * x) + 3;
-      Inc(x);
-    end else begin
-      p := p + (2 * (x - y)) + 5;
-      Inc(x);
-      Dec(y);
+    while x <= y do
+    begin
+      FillSymmetricScanlines(x, y);
+      if x = y then break;
+      if p < 0 then begin
+        p := p + (2 * x) + 3;
+        Inc(x);
+      end else begin
+        p := p + (2 * (x - y)) + 5;
+        Inc(x);
+        Dec(y);
+      end;
     end;
-  end;
+
+  End Else
+
+    SP_DrawSolidCircle32(Cx, Cy, R);
 
   If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + CX) - R, (SCREENY + CY) - R, SCREENX + CX + R, SCREENY + CY + R);
   SP_BankList[0]^.Changed := True;

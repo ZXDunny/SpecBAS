@@ -73,6 +73,7 @@ type
     { Public declarations }
     Function  GetCharFromVirtualKey(Var Key: Word): astring;
     procedure DropFiles(var msg: TMessage ); message WM_DROPFILES;
+    Procedure CreateGDIBitmap;
   end;
 
   TSpecBAS_Thread = Class(TThread)
@@ -141,6 +142,7 @@ Begin
 
   MainCanResize := False;
 
+  FPSIMAGE := '';
   cw := ClientWidth;
   ch := ClientHeight;
   l := SmallInt(Msg.wParam And $FFFF);
@@ -150,6 +152,7 @@ Begin
 
   If Visible Then
     SendMessage(Handle, WM_SETREDRAW, WPARAM(False), 0);
+
   try
     ClientWidth := w;
     ClientHeight := h;
@@ -175,7 +178,10 @@ Var
 begin
   If WCAPTION = '' Then Begin
     GetOSDString;
-    s := Format('%.0f', [1000/AvgFrameTime]);
+    If AvgFrameTime > 0 Then
+      s := Format('%.0f', [1000/AvgFrameTime])
+    Else
+      s := 'INF';
     Caption := CaptionString + ' ' + String(BUILDSTR) + ' - ' + s + ' fps';
   End Else
     Caption := String(WCAPTION);
@@ -234,10 +240,8 @@ begin
     SetCapture(Handle);
     SetCaptureControl(Self);
 
-    {$IFDEF OPENGL}
     X := Round(X / ScaleMouseX);
     Y := Round(Y / ScaleMouseY);
-    {$ENDIF}
 
     MOUSEX := X;
     MOUSEY := Y;
@@ -340,7 +344,6 @@ begin
   Handled := False;
   LastMouseX := X;
   LastMouseY := Y;
-  {$IFDEF OPENGL}
   If ScaleMouseX > 0 Then
     X := Round(X / ScaleMouseX);
   If ScaleMouseY > 0 Then
@@ -348,7 +351,6 @@ begin
   If (X = LastScaledMouseX) And (Y = LastScaledMouseY) Then Exit;
   LastScaledMouseX := X;
   LastScaledMouseY := Y;
-  {$ENDIF}
 
   Btn := Integer(ssLeft in Shift) + (2 * Integer(ssRight in Shift)) + (4 * Integer(ssMiddle in Shift));
   M_DELTAX := X - MOUSEX;
@@ -436,12 +438,10 @@ Var
 begin
 
   ReleaseCapture;
-  If ScaleMouseX = 0 Then Exit;
 
-  {$IFDEF OPENGL}
+  If ScaleMouseX = 0 Then Exit;
   X := Round(X / ScaleMouseX);
   Y := Round(Y / ScaleMouseY);
-  {$ENDIF}
 
   MOUSEX := X;
   MOUSEY := Y;
@@ -524,7 +524,7 @@ begin
       sh := Ceil(nh * (DISPLAYHEIGHT/SCALEHEIGHT));
       SetScreen(sw, sh, nw, nh, SPFULLSCREEN);
       SP_ResizeWindow(0, sw, sh, -1, SPFULLSCREEN, Error);}
-      SetScreen(DISPLAYWIDTH, DISPLAYHEIGHT, nw, nh, SPFULLSCREEN);
+      SetScreen(DISPLAYWIDTH, DISPLAYHEIGHT, nw, nh, SPFULLSCREEN, True);
       SP_InvalidateWholeDisplay;
       SP_NeedDisplayUpdate := True;
       DisplaySection.Leave;
@@ -1054,12 +1054,7 @@ begin
 end;
 
 procedure TMain.FormResize(Sender: TObject);
-{$IFNDEF OPENGL}
-Var
-    BmInfo: tagBITMAPINFO;
-{$ENDIF}
 begin
-
 
   If Not (Quitting) Then Begin
 
@@ -1082,27 +1077,7 @@ begin
 
     {$ELSE}
 
-      If Bitmap <> Nil Then Begin
-        DeleteObject(Bitmap.Handle);
-        Bitmap.Free;
-        Bitmap := Nil;
-      End;
-
-      BmInfo.bmiHeader.biSize := SizeOf(tagBITMAPINFOHEADER);
-      BmInfo.bmiHeader.biWidth := ClientWidth;
-      BmInfo.bmiHeader.biHeight := -ClientHeight;
-      BmInfo.bmiHeader.biPlanes := 1;
-      BmInfo.bmiHeader.biBitCount := 32;
-      BmInfo.bmiHeader.biCompression := BI_RGB;
-
-      Bitmap := TBitmap.Create();
-      Bitmap.Width := ClientWidth;
-      Bitmap.Height := ClientHeight;
-      Bitmap.HandleType := bmDIB;
-      Bitmap.Handle := CreateDIBSection(Main.Canvas.Handle, BmInfo, DIB_RGB_COLORS, Bits, 0, 0);
-
-      DISPLAYSTRIDE := ClientWidth * (BmInfo.bmiHeader.biBitCount Div 8);
-      DISPLAYPOINTER := Bits;
+      SP_Display.SetScaling(DISPLAYWIDTH, DISPLAYHEIGHT, Main.ClientWidth, Main.ClientHeight);
 
     {$ENDIF}
 
@@ -1114,6 +1089,39 @@ begin
   {$ENDIF}
 
 end;
+
+Procedure TMain.CreateGDIBitmap;
+{$IFNDEF OPENGL}
+Var
+  BmInfo: tagBITMAPINFO;
+{$ENDIF}
+Begin
+
+  {$IFNDEF OPENGL}
+  If Bitmap <> Nil Then Begin
+    DeleteObject(Bitmap.Handle);
+    Bitmap.Free;
+    Bitmap := Nil;
+  End;
+
+  BmInfo.bmiHeader.biSize := SizeOf(tagBITMAPINFOHEADER);
+  BmInfo.bmiHeader.biWidth := DISPLAYWIDTH;
+  BmInfo.bmiHeader.biHeight := -DISPLAYHEIGHT;
+  BmInfo.bmiHeader.biPlanes := 1;
+  BmInfo.bmiHeader.biBitCount := 32;
+  BmInfo.bmiHeader.biCompression := BI_RGB;
+
+  Bitmap := TBitmap.Create();
+  Bitmap.Width := DISPLAYWIDTH;
+  Bitmap.Height := DISPLAYHEIGHT;
+  Bitmap.HandleType := bmDIB;
+  Bitmap.Handle := CreateDIBSection(Main.Canvas.Handle, BmInfo, DIB_RGB_COLORS, Bits, 0, 0);
+
+  DISPLAYSTRIDE := DISPLAYWIDTH * (BmInfo.bmiHeader.biBitCount Div 8);
+  DISPLAYPOINTER := Bits;
+  {$ENDIF}
+
+End;
 
 procedure TMain.FormShow(Sender: TObject);
 Begin

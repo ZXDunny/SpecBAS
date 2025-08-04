@@ -1103,7 +1103,7 @@ Begin
   okBtn.CentreCaption;
   okBtn.Enabled := False;
 
-  SP_ResizeWindow(FDWindowID, Width, Height, 8, False, Error);
+  SP_ResizeWindow(FDWindowID, Width, Height, 8, False, False, Error);
   SP_Decorate_Window(FDWindowID, Caption, True, False, True);
   SP_FillRect(1, FH +2, Width -2, Height - (FH + 3), SP_UIWindowBack);
   SP_MoveWindow(FDWindowID, (DISPLAYWIDTH - Width) Div 2, (DISPLAYHEIGHT - Height) Div 2, Error);

@@ -42,7 +42,7 @@ Type
     class operator Multiply(const a: TSP_Point; const b: Single): TSP_Point;
   end;
 
-  TCB_SetScreenRes = Function(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
+  TCB_SetScreenRes = Function(Width, Height, sWidth, sHeight: Integer; FullScreen, AllowResize: Boolean): Integer;
   TCB_Refresh_Display = Procedure;
   TCB_UpdateScreenPointer = Procedure;
   TCB_Test_Resolution = Function(Width, Height: Integer; FullScreen: Boolean): Boolean;
@@ -70,7 +70,7 @@ Procedure SP_SetDrawingWindow(WindowID: Integer);
 Function  SP_GrabCurrentWindow: aString;
 Procedure SP_PutCurrentWindow(Var Str: aString);
 Procedure SP_ChangeRes(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean; Var Error: TSP_ErrorCode);
-Procedure SP_ResizeWindow(WindowID, W, H, Depth: Integer; FullScreen: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_ResizeWindow(WindowID, W, H, Depth: Integer; FullScreen, AllowResize: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_MoveWindow(WindowID, X, Y: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_DeleteWindow(WindowID: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_SetWindowOrigin(WindowID: Integer; X, Y, W, H: aFloat; Flip: Boolean; Var Error: TSP_ErrorCode);
@@ -654,7 +654,8 @@ Begin
 End;
 
 Procedure SP_WaitForSync;
-const SYNC_TIMEOUT_MS = 500; // e.g., 500ms
+const
+  SYNC_TIMEOUT_MS = 500; // e.g., 500ms
 Begin
   if SP_Display.IsPerformingDisplayChange or QUITMSG then
   begin
@@ -886,8 +887,12 @@ Begin
 
   FONTHEIGHT := 8;
 
+  // Set bank 0 as the screen, at default size and then cause a res change to set the window
+  // size and position correctly
+
+  DISPLAYWIDTH := W; DISPLAYHEIGHT := H;
   SCREENBANK := SP_Add_Window(0, 0, W, H, $FFFF, 8, 0, Error);
-  SP_ResizeWindow(SCREENBANK, W, H, 8, False, Error);
+  SP_ResizeWindow(SCREENBANK, W, H, 8, False, True, Error);
   SP_Bank_Protect(SCREENBANK, True);
 
   ID := SCREENBANK;
@@ -1185,7 +1190,7 @@ Begin
 
     SCALEWIDTH := sWidth;
     SCALEHEIGHT := sHeight;
-    SP_ResizeWindow(0, Width, Height, -1, FullScreen, Error);
+    SP_ResizeWindow(0, Width, Height, -1, FullScreen, True, Error);
     SCREENBANK := -1;
     SP_SetDrawingWindow(0);
 
@@ -1298,7 +1303,7 @@ Begin
 
 End;
 
-Procedure SP_ResizeWindow(WindowID, W, H, Depth: Integer; FullScreen: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_ResizeWindow(WindowID, W, H, Depth: Integer; FullScreen, AllowResize: Boolean; Var Error: TSP_ErrorCode);
 Var
   BankIdx, Idx, Bits, NewBits: Integer;
   Bank: pSP_Bank;
@@ -1401,7 +1406,7 @@ Begin
       OldMouse := MOUSEVISIBLE;
       MOUSEVISIBLE := False;
       SIZINGMAIN := True;
-      CB_SetScreenRes(Window^.Width, Window^.Height, SCALEWIDTH, SCALEHEIGHT, FullScreen);
+      CB_SetScreenRes(Window^.WIDTH, Window^.HEIGHT, SCALEWIDTH, SCALEHEIGHT, FullScreen, AllowResize);
       Repeat
         CB_YIELD;
       Until Not SIZINGMAIN;
@@ -7655,6 +7660,7 @@ End;
 Procedure SP_OverPixelPtr(Var c1, c2: pByte; Over: Integer); inline;
 Begin
 
+  {$R-}
   Case Over of
     1: // Xor
       c1^ := c1^ xor c2^;
@@ -7692,6 +7698,7 @@ End;
 Procedure SP_OverPixelPtrl(Var c1, c2: pLongWord; Over: Integer); inline;
 Begin
 
+  {$R-}
   Case Over of
     1: // Xor
       c1^ := c1^ xor c2^;
@@ -7729,6 +7736,7 @@ End;
 Procedure SP_OverPixelPtrVal(c1: pByte; c2: Byte; Over: Integer); inline;
 Begin
 
+  {$R-}
   Case Over of
     1: // Xor
       c1^ := c1^ xor c2;

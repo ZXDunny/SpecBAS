@@ -566,7 +566,6 @@ Begin
 
 End;
 
-
 Procedure SP_DrawSolidCircle32Alpha(CX, CY, R: Integer);
 var
   x, y: Integer;

@@ -4738,7 +4738,7 @@ Begin
 
   If FontInfo^.FontType = SP_FONT_TYPE_MONO Then Begin
 
-    CharAddr := @SP_BankList[BankID]^.Memory[FontInfo^.Font_Info[33].Data];
+    CharAddr := @SP_BankList[BankID]^.Memory[FontInfo^.Font_Info[32].Data];
     Idx := 32;
 
     While True Do Begin
@@ -12035,12 +12035,12 @@ Begin
 
   Aspect := (ScaleWidth/DisplayWidth)/(ScaleHeight/DisplayHeight);
   If WINSCALE Then Begin
-    R := SP_StackPtr^.Val;
+    R := Abs(SP_StackPtr^.Val);
     Radius1 := R/WINSCALEX;
     Radius2 := R/WINSCALEY;
     Aspect := Aspect * (WINSCALEY/WINSCALEX);
   End Else Begin
-    Radius1 := SP_StackPtr^.Val;
+    Radius1 := Abs(SP_StackPtr^.Val);
     Radius2 := Radius1;
   End;
 
@@ -12114,12 +12114,12 @@ Begin
 
   Aspect := (ScaleWidth/DisplayWidth)/(ScaleHeight/DisplayHeight);
   If WINSCALE Then Begin
-    R := SP_StackPtr^.Val;
+    R := Abs(SP_StackPtr^.Val);
     Radius1 := R/WINSCALEX;
     Radius2 := R/WINSCALEY;
     Aspect := Aspect * (WINSCALEY/WINSCALEX);
   End Else Begin
-    Radius1 := SP_StackPtr^.Val;
+    Radius1 := Abs(SP_StackPtr^.Val);
     Radius2 := Radius1;
   End;
 
@@ -12198,16 +12198,16 @@ Begin
   Dec(SP_StackPtr);
 
   If WINSCALE Then Begin
-    Ry := SP_StackPtr^.Val;
+    Ry := Abs(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
-    Rx := SP_StackPtr^.Val;
+    Rx := Abs(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
     RadiusX := Round(Rx/WINSCALEX);
     RadiusY := Round(Ry/WINSCALEY);
   End Else Begin
-    RadiusY := Round(SP_StackPtr^.Val);
+    RadiusY := Abs(Round(SP_StackPtr^.Val));
     Dec(SP_StackPtr);
-    RadiusX := Round(SP_StackPtr^.Val);
+    RadiusX := Abs(Round(SP_StackPtr^.Val));
     Dec(SP_StackPtr);
   End;
 
@@ -12260,16 +12260,16 @@ Begin
   Dec(SP_StackPtr);
 
   If WINSCALE Then Begin
-    Ry := SP_StackPtr^.Val;
+    Ry := Abs(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
-    Rx := SP_StackPtr^.Val;
+    Rx := Abs(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
     RadiusX := Round(Rx/WINSCALEX);
     RadiusY := Round(Ry/WINSCALEY);
   End Else Begin
-    RadiusY := Round(SP_StackPtr^.Val);
+    RadiusY := Abs(Round(SP_StackPtr^.Val));
     Dec(SP_StackPtr);
-    RadiusX := Round(SP_StackPtr^.Val);
+    RadiusX := Abs(Round(SP_StackPtr^.Val));
     Dec(SP_StackPtr);
   End;
 
@@ -13739,8 +13739,8 @@ Begin
   Full := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  If sWidth = -1 Then sWidth := Width;
-  If sHeight = -1 Then sHeight := Height;
+  If sWidth = -1 Then sWidth := SCRWIDTH;
+  If sHeight = -1 Then sHeight := SCRHEIGHT;
 
   SP_ChangeRes(sWidth, sHeight, Width, Height, Full = 1, Info^.Error^);
   LISTWINDOW := -1;
@@ -13895,7 +13895,7 @@ Begin
   Height := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  SP_ResizeWindow(Window, Width, Height, -1, SPFULLSCREEN, Info^.Error^);
+  SP_ResizeWindow(Window, Width, Height, -1, SPFULLSCREEN, False, Info^.Error^);
   SP_NeedDisplayUpdate := True;
 
 End;
@@ -14382,7 +14382,7 @@ Begin
   Depth := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  SP_ResizeWindow(wIdx, -1, -1, Depth, SPFULLSCREEN, Info^.Error^);
+  SP_ResizeWindow(wIdx, -1, -1, Depth, SPFULLSCREEN, False, Info^.Error^);
 
 End;
 
@@ -25725,11 +25725,11 @@ Begin
   If Info^.Error^.Code <> SP_ERR_OK Then Exit;
 
   If WINSCALE Then Begin
-    R := SP_StackPtr^.Val;
+    R := Abs(SP_StackPtr^.Val);
     Radius1 := Round(R/WINSCALEX);
     Radius2 := Round(R/WINSCALEY);
   End Else Begin
-    Radius1 := Round(SP_StackPtr^.Val);
+    Radius1 := Abs(Round(SP_StackPtr^.Val));
     Radius2 := Radius1;
   End;
 
@@ -25808,16 +25808,16 @@ Begin
   Dec(SP_StackPtr);
 
   If WINSCALE Then Begin
-    Ry := SP_StackPtr^.Val;
+    Ry := Abs(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
-    Rx := SP_StackPtr^.Val;
+    Rx := Abs(SP_StackPtr^.Val);
     Dec(SP_StackPtr);
     RadiusX := Round(Rx/WINSCALEX);
     RadiusY := Round(Ry/WINSCALEY);
   End Else Begin
-    RadiusY := Round(SP_StackPtr^.Val);
+    RadiusY := Abs(Round(SP_StackPtr^.Val));
     Dec(SP_StackPtr);
-    RadiusX := Round(SP_StackPtr^.Val);
+    RadiusX := Abs(Round(SP_StackPtr^.Val));
     Dec(SP_StackPtr);
   End;
 
@@ -26292,11 +26292,11 @@ Begin
   End;
 
   If WINSCALE Then Begin
-    R := SP_StackPtr^.Val;
+    R := Abs(SP_StackPtr^.Val);
     Radius1 := Round(R/WINSCALEX);
     Radius2 := Round(R/WINSCALEY);
   End Else Begin
-    Radius1 := Round(SP_StackPtr^.Val);
+    Radius1 := Abs(Round(SP_StackPtr^.Val));
     Radius2 := Radius1;
   End;
 

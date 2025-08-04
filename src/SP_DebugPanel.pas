@@ -701,97 +701,99 @@ Begin
 
   PanelSelect(Sender, Index);
 
-  If Index < 0 Then Exit;
-
-  Case FPDebugCombo.ItemIndex of
-    0: // Variables - Highlight all instances
-      Begin
-        IsArray := False;
-        FPSearchTerm := FPDebugPanel.Items[Index];
-        if FPSearchTerm[1] = ' ' then FPSearchTerm := Copy(FPSearchTerm, 2);
-        if FPSearchTerm[1] < ' ' then FPSearchTerm := Copy(FPSearchTerm, 6);
-        FPSearchTerm := Copy(FPSearchTerm, 1, Pos(#255, FPSearchTerm) -1);
-        If Pos('(', FPSearchTerm) > 0 Then Begin
-          FPSearchTerm := Copy(FPSearchTerm, 1, Pos('(', FPSearchTerm));
-          IsArray := True;
-        End;
-        FPSearchOptions := [soForward, soStart, soClearBar, soVarName];
-        SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
-        FPShowingSearchResults := True;
-        j := -1;
-        For i := 0 To Length(FPFindResults) -1 Do Begin
-          If IsArray And Not FPFindResults[i].Split Then Dec(FPFindResults[i].Length);
-          If FPFindResults[i].Line <> j Then Begin
-            SP_FPApplyHighlighting(FPFindResults[i].Line);
-            AddDirtyLine(FPFindResults[i].Line);
+  If Index < 0 Then Begin
+    HideSearchResults;
+    Exit;
+  End Else
+    Case FPDebugCombo.ItemIndex of
+      0: // Variables - Highlight all instances
+        Begin
+          IsArray := False;
+          FPSearchTerm := FPDebugPanel.Items[Index];
+          if FPSearchTerm[1] = ' ' then FPSearchTerm := Copy(FPSearchTerm, 2);
+          if FPSearchTerm[1] < ' ' then FPSearchTerm := Copy(FPSearchTerm, 6);
+          FPSearchTerm := Copy(FPSearchTerm, 1, Pos(#255, FPSearchTerm) -1);
+          If Pos('(', FPSearchTerm) > 0 Then Begin
+            FPSearchTerm := Copy(FPSearchTerm, 1, Pos('(', FPSearchTerm));
+            IsArray := True;
           End;
-          j := FPFindResults[i].Line;
-        End;
-        SP_DisplayFPListing(-1);
-      End;
-    3: // Labels - highlight all @Label instances
-      Begin
-        Index := Integer(FPDebugPanel.Objects[Index]);
-        FPSearchTerm := '@' + FPPoIList[Index].Name;
-        FPSearchOptions := [soForward, soStart, soClearBar];
-        SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
-        FPShowingSearchResults := True;
-        j := -1;
-        For i := 0 To Length(FPFindResults) -1 Do Begin
-          If FPFindResults[i].Line <> j Then Begin
-            SP_FPApplyHighlighting(FPFindResults[i].Line);
-            AddDirtyLine(FPFindResults[i].Line);
-          End;
-          j := FPFindResults[i].Line;
-        End;
-        SP_DisplayFPListing(-1);
-      End;
-    4: // Procs and FNs - highlight all usages. Find "Fn x" and "Proc x", "DEF FN x" and "DEF PROC x" as well as "CALL x".
-      Begin
-        Index := Integer(FPDebugPanel.Objects[Index]);
-        s := FPPoIList[Index].Name;
-        if Pos('(', s) > 0 Then
-          s := Copy(s, 1, Pos('(', s) -1);
-        if FPPoIList[Index].PoI_Type = PoI_Fn then
-          FPSearchTerm := 'fn ' + s
-        else
-          FPSearchTerm := 'proc ' + s;
-        FPSearchOptions := [soForward, soStart, soClearBar];
-        SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
-        FPSearchTerm := 'def ' + FPSearchTerm;
-        FPSearchOptions := FPSearchOptions + [soNoClear];
-        SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
-        if FPPoIList[Index].PoI_Type = PoI_Proc then Begin
-          FPSearchTerm := 'call ' + s;
+          FPSearchOptions := [soForward, soStart, soClearBar, soVarName];
           SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
-        End;
-        FPShowingSearchResults := True;
-        j := -1;
-        i := 0;
-        l := Length(FPFindResults);
-        While i < l Do With FPFindResults[i] Do Begin
-          If Not Split Then Begin
-            // If any alphanumeric or "_" characters follow, then delete this find result.
-            s := lower(Listing[Line]);
-            p := Position + Length;
-            If (p <= System.Length(s)) and (s[p] in ['a'..'z', '0'..'9', '_']) Then Begin
-              For p := i to l -2 Do
-                FPFindResults[p] := FPFindResults[p +1];
-              SetLength(FPFindResults, l -1);
-              Dec(l);
-              Continue;
+          FPShowingSearchResults := True;
+          j := -1;
+          For i := 0 To Length(FPFindResults) -1 Do Begin
+            If IsArray And Not FPFindResults[i].Split Then Dec(FPFindResults[i].Length);
+            If FPFindResults[i].Line <> j Then Begin
+              SP_FPApplyHighlighting(FPFindResults[i].Line);
+              AddDirtyLine(FPFindResults[i].Line);
             End;
+            j := FPFindResults[i].Line;
           End;
-          If Line <> j Then Begin
-            SP_FPApplyHighlighting(Line);
-            AddDirtyLine(Line);
-          End;
-          j := Line;
-          Inc(i);
+          SP_DisplayFPListing(-1);
         End;
-        SP_DisplayFPListing(-1);
-      End;
-  End;
+      3: // Labels - highlight all @Label instances
+        Begin
+          Index := Integer(FPDebugPanel.Objects[Index]);
+          FPSearchTerm := '@' + FPPoIList[Index].Name;
+          FPSearchOptions := [soForward, soStart, soClearBar];
+          SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
+          FPShowingSearchResults := True;
+          j := -1;
+          For i := 0 To Length(FPFindResults) -1 Do Begin
+            If FPFindResults[i].Line <> j Then Begin
+              SP_FPApplyHighlighting(FPFindResults[i].Line);
+              AddDirtyLine(FPFindResults[i].Line);
+            End;
+            j := FPFindResults[i].Line;
+          End;
+          SP_DisplayFPListing(-1);
+        End;
+      4: // Procs and FNs - highlight all usages. Find "Fn x" and "Proc x", "DEF FN x" and "DEF PROC x" as well as "CALL x".
+        Begin
+          Index := Integer(FPDebugPanel.Objects[Index]);
+          s := FPPoIList[Index].Name;
+          if Pos('(', s) > 0 Then
+            s := Copy(s, 1, Pos('(', s) -1);
+          if FPPoIList[Index].PoI_Type = PoI_Fn then
+            FPSearchTerm := 'fn ' + s
+          else
+            FPSearchTerm := 'proc ' + s;
+          FPSearchOptions := [soForward, soStart, soClearBar];
+          SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
+          FPSearchTerm := 'def ' + FPSearchTerm;
+          FPSearchOptions := FPSearchOptions + [soNoClear];
+          SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
+          if FPPoIList[Index].PoI_Type = PoI_Proc then Begin
+            FPSearchTerm := 'call ' + s;
+            SP_FPEditor.SP_FindAll(FPSearchTerm, FPSearchOptions, Error);
+          End;
+          FPShowingSearchResults := True;
+          j := -1;
+          i := 0;
+          l := Length(FPFindResults);
+          While i < l Do With FPFindResults[i] Do Begin
+            If Not Split Then Begin
+              // If any alphanumeric or "_" characters follow, then delete this find result.
+              s := lower(Listing[Line]);
+              p := Position + Length;
+              If (p <= System.Length(s)) and (s[p] in ['a'..'z', '0'..'9', '_']) Then Begin
+                For p := i to l -2 Do
+                  FPFindResults[p] := FPFindResults[p +1];
+                SetLength(FPFindResults, l -1);
+                Dec(l);
+                Continue;
+              End;
+            End;
+            If Line <> j Then Begin
+              SP_FPApplyHighlighting(Line);
+              AddDirtyLine(Line);
+            End;
+            j := Line;
+            Inc(i);
+          End;
+          SP_DisplayFPListing(-1);
+        End;
+    End;
 
 End;
 

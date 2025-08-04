@@ -502,6 +502,7 @@ Begin
   SetLength(fHeaders, 0);
   fHCount := 0;
   fCount := 0;
+  fSelectedIdx := -1;
   SetUIElements;
 
 End;

@@ -5828,7 +5828,7 @@ Begin
 }
   //
 
-  SP_ResizeWindow(FPWindowID, FPWindowWidth, FPWindowHeight, 8, False, Err);
+  SP_ResizeWindow(FPWindowID, FPWindowWidth, FPWindowHeight, 8, False, False, Err);
   SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, FocusedWindow = fwEditor);
   SP_AddFPScrollBars(False);
   SP_FPRethinkScrollBars;
@@ -5858,7 +5858,7 @@ Begin
 
   DWWindowTop := DISPLAYHEIGHT - NewH - BSize;
   SP_MoveWindow(DWWindowID, DWWindowLeft, DWWindowTop, Err);
-  SP_ResizeWindow(DWWindowID, NewW, NewH, -1, False, Err);
+  SP_ResizeWindow(DWWindowID, NewW, NewH, -1, False, False, Err);
   SP_GetWindowDetails(DWWindowID, Win, Err);
 
   DWWindowLeft := Win^.Left;

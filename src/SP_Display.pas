@@ -22,7 +22,7 @@ Type
   procedure SP_GetMonitorMetrics;
   procedure SetPerformingDisplayChange(Value: Boolean);
   function  IsPerformingDisplayChange: Boolean;
-  Function  SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
+  Function  SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen, AllowResize: Boolean): Integer;
   Function  SetScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
   Function  TestScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;
   Procedure SetScaling(InternalWidth, InternalHeight, OutputClientWidth, OutputClientHeight: Integer); // Modified signature
@@ -50,8 +50,8 @@ Var
   {$IFDEF RefreshThread}
   RefreshTimer: TRefreshThread;
   {$ENDIF}
+  LastScaledMouseX, LastScaledMouseY: Integer; // Still used for mouse region invalidation logic
   {$IFDEF OPENGL}
-    LastScaledMouseX, LastScaledMouseY: Integer; // Still used for mouse region invalidation logic
     DisplayFlip, GLInitDone, ReScaleFlag: Boolean;
     PixArray: Array of Byte; // DispArray removed
     RC: HGLRC;
@@ -317,7 +317,13 @@ begin
   RC := wglCreateContext(DC);
   If RC = 0 then begin ReleaseDC(Main.Handle, DC); DC := 0; Exit; end;
 
-  If Not wglMakeCurrent(DC, RC) then begin wglDeleteContext(RC); RC := 0; ReleaseDC(Main.Handle, DC); DC := 0; Exit; end;
+  If Not wglMakeCurrent(DC, RC) then begin
+    wglDeleteContext(RC);
+    RC := 0;
+    ReleaseDC(Main.Handle, DC);
+    DC := 0;
+    Exit;
+  end;
 
   // Read extensions after a context is current
   ReadImplementationProperties; // from dglOpenGL
@@ -358,7 +364,6 @@ End;
 
 Procedure CloseGL;
 Begin
-  {$IFDEF OPENGL}
   If MainTextureID <> 0 then
   begin
     glDeleteTextures(1, @MainTextureID);
@@ -390,7 +395,6 @@ Begin
     DC := 0;
   end;
   // DeleteDC(DC); // DeleteDC is for DCs created with CreateDC or CreateCompatibleDC
-  {$ENDIF}
 End;
 
 {$ENDIF} // OPENGL
@@ -434,14 +438,9 @@ Var
 Begin
   GetCursorPos(p);
   p := Main.ScreenToClient(p);
-  {$IFDEF OpenGL}
-    // ScaleMouseX/Y are calculated in SetScaling based on logical vs client size
-    MOUSEX := Integer(Round(p.X / ScaleMouseX));
-    MOUSEY := Integer(Round(p.Y / ScaleMouseY));
-  {$ELSE}
-    MOUSEX := p.X;
-    MOUSEY := p.Y;
-  {$ENDIF}
+  // ScaleMouseX/Y are calculated in SetScaling based on logical vs client size
+  MOUSEX := Integer(Round(p.X / ScaleMouseX));
+  MOUSEY := Integer(Round(p.Y / ScaleMouseY));
   If Not PtInRect(Main.ClientRect, p) Then Begin
     If MouseInForm Then Begin
       MOUSEVISIBLE := False;
@@ -739,8 +738,9 @@ Var
   {$ENDIF}
   originalProjectionMatrix: TMatrix4f; // To save/restore projection
   originalModelViewMatrix: TMatrix4f; // To save/restore modelview
+{$ENDIF}
 Begin
-  {$IFDEF OPENGL}
+  {$IFDEF OpenGL}
     If Not GLInitDone Then InitGL;
     If ReScaleFlag Then Begin GLResize; ReScaleFlag := False; End;
 
@@ -909,16 +909,17 @@ Begin
     {$ENDIF}
 
   {$ELSE} // Not OPENGL
-    If Assigned(iRect) and (iRect.Right > iRect.Left) and (iRect.Bottom > iRect.Top) then
-        InvalidateRect(Main.Handle, @iRect, False);
-    Main.Repaint;
+    If StartTime = 0 Then
+      StartTime := CB_GetTicks;
+    StretchBlt(Main.Canvas.Handle, 0, 0, Main.ClientWidth, Main.ClientHeight, Bitmap.Canvas.Handle, 0, 0, DISPLAYWIDTH, DISPLAYHEIGHT, SrcCopy);
   {$ENDIF} // OPENGL
 End;
-{$ENDIF} // Added to match $IFDEF OpenGL at top of procedure
 
 Procedure SetScaling(InternalWidth, InternalHeight, OutputClientWidth, OutputClientHeight: Integer);
+{$IFDEF OPENGL}
 Var
   effScaleX, effScaleY: aFloat;
+{$ENDIF}
 Begin
   {$IFDEF OPENGL}
   CurrentOutputWidth := OutputClientWidth;
@@ -963,10 +964,14 @@ Begin
   End;
 
   ReScaleFlag := True; // Signal GLResize/SetupFBO needs to run
+  {$ELSE}
+  Main.CreateGDIBitmap;
+  ScaleMouseX := OutputClientWidth / InternalWidth;
+  ScaleMouseY := OutputClientHeight / InternalHeight;
   {$ENDIF}
 End;
 
-Function SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean): Integer;
+Function SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen, AllowResize: Boolean): Integer;
 Var
   oW, oH: Integer; // Old output width/height
   oFS: Boolean;
@@ -985,8 +990,8 @@ Begin
     oW := CurrentOutputWidth; // Previously SCALEWIDTH
     oH := CurrentOutputHeight; // Previously SCALEHEIGHT
     {$ELSE}
-    oW := Main.ClientWidth; // Fallback if OpenGL not defined, though SetScaling won't be called
-    oH := Main.ClientHeight;
+    oW := DISPLAYWIDTH; // Fallback if OpenGL not defined, though SetScaling won't be called
+    oH := DISPLAYHEIGHT;
     {$ENDIF}
     oFS := SPFULLSCREEN;
 
@@ -1021,7 +1026,7 @@ Begin
     DISPLAYHEIGHT := Height; // Logical/Internal height
 
     // Check if actual screen resolution or fullscreen state needs to change
-    if (sWidth <> oW) or (sHeight <> oH) or (oFS <> FullScreen) Then Begin
+    if AllowResize And ((sWidth <> oW) or (sHeight <> oH) or (oFS <> FullScreen)) Then Begin
       {$IFDEF OPENGL}
       GLInitDone := False; // Trigger full GL reinitialization if screen mode changes
       {$ENDIF}
@@ -1061,7 +1066,10 @@ Begin
 
     // WM_RESIZEMAIN should handle setting the form's Left, Top, Width, Height
     // and then call SetScaling with the new ClientWidth/Height
-    SendMessage(Main.Handle, WM_RESIZEMAIN, MakeLong(Word(l), Word(t)), MakeLong(Word(sWidth), Word(sHeight)));
+    If AllowResize Then
+      SendMessage(Main.Handle, WM_RESIZEMAIN, MakeLong(Word(l), Word(t)), MakeLong(Word(sWidth), Word(sHeight)))
+    Else
+      SetScaling(DISPLAYWIDTH, DISPLAYHEIGHT, Main.ClientWidth, Main.ClientHeight);
     // After SendMessage, Main.ClientWidth/Height should be sWidth/sHeight.
     // SetScaling should be called from the Main.FormResize triggered by WM_RESIZEMAIN.
     // If not, call it explicitly here:
@@ -1075,6 +1083,8 @@ Begin
     DisplaySection.Leave;
     {$ENDIF}
     SetPerformingDisplayChange(False);
+    If Not AllowResize Then
+      SIZINGMAIN := False;
   End;
 End;
 
@@ -1300,7 +1310,6 @@ end;
 
 Procedure GLResize;
 Begin
-  {$IFDEF OPENGL}
   if Not GLInitDone then Exit;
 
   // 1. Setup main screen viewport and projection
@@ -1346,11 +1355,11 @@ Begin
 
   // VSYNC (should be fine here)
   // ...
-  {$ENDIF}
 End;
 {$ENDIF}
 
 Procedure ScreenShot(fullWindow: Boolean);
+{$IFDEF OPENGL}
 var
   Win: HWND;
   // DC was conflicting with global DC
@@ -1362,6 +1371,7 @@ var
   WinRect, WinRectEx: TRect;
   TheWidth, TheHeight, ox, i: Integer; // Renamed Width, Height to avoid conflict
   Error: TSP_ErrorCode;
+  {$ENDIF}
 begin
   {$IFDEF OPENGL} // Screenshot logic primarily for OpenGL path for now
   If Not DirectoryExists(String(HOMEFOLDER) + '\snaps') Then
@@ -1425,6 +1435,7 @@ end;
 
 Initialization
 
+  StartTime := 0;
   G_DisplayChangeLock := TCriticalSection.Create;
   FrameProcessedEvent := TEvent.Create;
 

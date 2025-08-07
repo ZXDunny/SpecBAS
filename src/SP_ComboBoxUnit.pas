@@ -1,5 +1,7 @@
 unit SP_ComboBoxUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SP_Components, SP_BaseComponentUnit, SP_Util, SP_PopUpMenuUnit, SP_EditUnit, SP_LabelUnit, SP_ButtonUnit, SP_SysVars, SP_Errors;

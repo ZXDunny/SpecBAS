@@ -1,5 +1,7 @@
 unit SP_VM_Emu;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SP_Util, SP_BankManager, SP_Variables, SP_Errors, SP_Tokenise, Classes;

@@ -1,5 +1,7 @@
 unit SP_MenuActions;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_ButtonUnit,

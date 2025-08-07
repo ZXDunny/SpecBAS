@@ -1,5 +1,7 @@
 unit SP_ListBoxUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Types, SP_Util, SP_Errors, SP_BaseComponentUnit, SP_ScrollBarUnit;

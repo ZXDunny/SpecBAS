@@ -18,6 +18,8 @@
 
 unit SP_Menu;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SP_BankManager, SP_BankFiling, SP_Errors, SP_Util;

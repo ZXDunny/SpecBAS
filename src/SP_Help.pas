@@ -1,5 +1,7 @@
 unit SP_Help;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SP_SysVars, SP_Util, SP_Editor, SP_Graphics, SP_Errors, SP_BankManager;

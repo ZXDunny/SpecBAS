@@ -1,5 +1,7 @@
 unit SP_DebugPanel;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 uses Math, Classes, SyncObjs, SysUtils, SP_Util, SP_BaseComponentUnit, SP_ListBoxUnit, SP_ComboBoxUnit, SP_ControlMsgs, SP_ButtonUnit, SP_Input, SP_ContainerUnit;

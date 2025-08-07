@@ -1598,18 +1598,6 @@ var
     end;
   End;
 
-  procedure FillSymmetricScanlines(oct_x, oct_y: Integer);
-  begin
-    DrawSpan(CX - oct_x, CX + oct_x, CY + oct_y);
-    if oct_y > 0 then DrawSpan(CX - oct_x, CX + oct_x, CY - oct_y);
-    if oct_x < oct_y then begin
-      DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
-      if oct_x > 0 then DrawSpan(CX - oct_y, CX + oct_y, CY - oct_x);
-    end else
-      if oct_x = 0 then
-        DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
-  end;
-
 begin
 
   x := 0;
@@ -1619,12 +1607,20 @@ begin
 
   while x <= y do
   begin
-    FillSymmetricScanlines(x, y);
-    if x = y then break;
-    if p < 0 then begin
+    if x < y then
+    begin
+      DrawSpan(CX - y, CX + y, CY + x);
+      if x > 0 then DrawSpan(CX - y, CX + y, CY - x);
+    end;
+    if p < 0 then
+    begin
       p := p + (2 * x) + 3;
       Inc(x);
-    end else begin
+    end
+    else
+    begin
+      DrawSpan(CX - x, CX + x, CY + y);
+      if y > 0 then DrawSpan(CX - x, CX + x, CY - y);
       p := p + (2 * (x - y)) + 5;
       Inc(x);
       Dec(y);
@@ -1728,18 +1724,6 @@ var
     End;
   End;
 
-  procedure FillSymmetricScanlines(oct_x, oct_y: Integer);
-  begin
-    DrawSpan(CX - oct_x, CX + oct_x, CY + oct_y);
-    if oct_y > 0 then DrawSpan(CX - oct_x, CX + oct_x, CY - oct_y);
-    if oct_x < oct_y then begin
-      DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
-      if oct_x > 0 then DrawSpan(CX - oct_y, CX + oct_y, CY - oct_x);
-    end else
-      if oct_x = 0 then
-        DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
-  end;
-
 begin
 
   if R <= 0 then Exit;
@@ -1769,12 +1753,20 @@ begin
 
   while x <= y do
   begin
-    FillSymmetricScanlines(x, y);
-    if x = y then break;
-    if p < 0 then begin
+    if x < y then
+    begin
+      DrawSpan(CX - y, CX + y, CY + x);
+      if x > 0 then DrawSpan(CX - y, CX + y, CY - x);
+    end;
+    if p < 0 then
+    begin
       p := p + (2 * x) + 3;
       Inc(x);
-    end else begin
+    end
+    else
+    begin
+      DrawSpan(CX - x, CX + x, CY + y);
+      if y > 0 then DrawSpan(CX - x, CX + x, CY - y);
       p := p + (2 * (x - y)) + 5;
       Inc(x);
       Dec(y);
@@ -1807,18 +1799,6 @@ var
     End;
   End;
 
-  procedure FillSymmetricScanlines(oct_x, oct_y: Integer);
-  begin
-    DrawSpan(CX - oct_x, CX + oct_x, CY + oct_y);
-    if oct_y > 0 then DrawSpan(CX - oct_x, CX + oct_x, CY - oct_y);
-    if oct_x < oct_y then begin
-      DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
-      if oct_x > 0 then DrawSpan(CX - oct_y, CX + oct_y, CY - oct_x);
-    end else
-      if oct_x = 0 then
-        DrawSpan(CX - oct_y, CX + oct_y, CY + oct_x);
-  end;
-
 begin
 
   if R <= 0 then Exit;
@@ -1841,12 +1821,20 @@ begin
 
   while x <= y do
   begin
-    FillSymmetricScanlines(x, y);
-    if x = y then break;
-    if p < 0 then begin
+    if x < y then
+    begin
+      DrawSpan(CX - y, CX + y, CY + x);
+      if x > 0 then DrawSpan(CX - y, CX + y, CY - x);
+    end;
+    if p < 0 then
+    begin
       p := p + (2 * x) + 3;
       Inc(x);
-    end else begin
+    end
+    else
+    begin
+      DrawSpan(CX - x, CX + x, CY + y);
+      if y > 0 then DrawSpan(CX - x, CX + x, CY - y);
       p := p + (2 * (x - y)) + 5;
       Inc(x);
       Dec(y);

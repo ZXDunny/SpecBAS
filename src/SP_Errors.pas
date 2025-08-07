@@ -21,6 +21,7 @@ unit SP_Errors;
 {$IFDEF FPC}
   {$MODE Delphi}
 {$ENDIF}
+{$INCLUDE SpecBAS.inc}
 
 interface
 

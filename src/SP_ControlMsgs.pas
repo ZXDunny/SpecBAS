@@ -1,5 +1,7 @@
 unit SP_ControlMsgs;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 USes SyncObjs, SP_Interpret_PostFix, SP_Util;

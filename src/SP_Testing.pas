@@ -1,5 +1,7 @@
 unit SP_Testing;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 uses

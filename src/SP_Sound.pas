@@ -187,16 +187,20 @@ Var
   l: Integer;
 Begin
 
-  ChanLock.Enter;
+  If SoundEnabled Then Begin
 
-  l := Length(ChanList);
-  SetLength(ChanList, l +1);
-  With ChanList[l] Do Begin
-    ChannelID := Channel;
-    SampleID := Sample;
+    ChanLock.Enter;
+
+    l := Length(ChanList);
+    SetLength(ChanList, l +1);
+    With ChanList[l] Do Begin
+      ChannelID := Channel;
+      SampleID := Sample;
+    End;
+
+    ChanLock.Leave;
+
   End;
-
-  ChanLock.Leave;
 
 End;
 
@@ -235,6 +239,8 @@ Begin
       SP_SetGlobalVolume(1.0, Error);
       VOLUME := 1.0;
       CLICKVOL := 0.5;
+
+      BEEPMonitor := TChannelMonitor.Create(False);
 
     End Else
 
@@ -2454,7 +2460,6 @@ End;
 
 Initialization
 
-  BEEPMonitor := TChannelMonitor.Create(False);
   PLAYLock := TCriticalSection.Create;
 
 Finalization

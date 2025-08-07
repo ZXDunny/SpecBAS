@@ -1,5 +1,7 @@
 unit RunTimeCompiler;
 
+{$INCLUDE SpecBAS.inc}
+
 // From https://delphidabbler.com/articles/article-7 - adding a payload of abritrary data to an executable file
 
 interface

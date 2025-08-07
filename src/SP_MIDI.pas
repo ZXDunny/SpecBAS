@@ -1,5 +1,7 @@
 unit SP_MIDI;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Windows, MMSystem, SyncObjs, SysUtils;

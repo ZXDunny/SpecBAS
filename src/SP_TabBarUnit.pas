@@ -1,5 +1,7 @@
 unit SP_TabBarUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SP_BaseComponentUnit, SP_Util, SP_ContainerUnit;

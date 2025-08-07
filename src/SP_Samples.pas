@@ -1,5 +1,7 @@
 unit SP_Samples;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SP_Util;

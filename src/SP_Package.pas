@@ -18,6 +18,8 @@
 
 unit SP_Package;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Math, SP_Util, SP_Errors, Classes, SysUtils, SP_SysVars, SP_AnsiStringlist;

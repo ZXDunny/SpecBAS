@@ -1,5 +1,7 @@
 unit SP_LabelUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Math, SP_BaseComponentUnit, SP_Errors, SP_Util;

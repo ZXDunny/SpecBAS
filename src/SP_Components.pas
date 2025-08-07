@@ -18,6 +18,8 @@
 
 unit SP_Components;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Types, SysUtils, System.Generics.Collections, Classes, SyncObjs, Math, ClipBrd, SP_SysVars, SP_FileIO, SP_Util,
@@ -49,7 +51,6 @@ Uses Types, SysUtils, System.Generics.Collections, Classes, SyncObjs, Math, Clip
 Type
 
 // Base component events and variables
-
 
 SP_TimerEvent = Record
 

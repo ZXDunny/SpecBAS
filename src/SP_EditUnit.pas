@@ -1,5 +1,7 @@
 unit SP_EditUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SP_BaseComponentUnit, SP_Util, SP_Errors;

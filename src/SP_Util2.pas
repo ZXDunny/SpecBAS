@@ -18,6 +18,8 @@
 
 unit SP_Util2;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Math, SP_Util;

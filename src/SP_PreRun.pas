@@ -18,6 +18,8 @@
 
 unit SP_PreRun;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 // Housekeeping and stuff performed before a command or program is started.

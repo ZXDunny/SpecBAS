@@ -21,6 +21,7 @@ program SpecBAS;
 {$IFDEF FPC}
   {$MODE Delphi}
 {$ENDIF}
+{$WEAKLINKRTTI ON}
 
 uses
   {$IFDEF DEBUG}

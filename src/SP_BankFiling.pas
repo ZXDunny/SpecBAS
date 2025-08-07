@@ -18,6 +18,8 @@
 
 unit SP_BankFiling;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SysUtils, SP_Util, SP_Errors, SP_BaseComponentUnit, SP_AnsiStringlist;

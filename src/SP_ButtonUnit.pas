@@ -1,5 +1,7 @@
 unit SP_ButtonUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Classes, SysUtils, Types, SP_Util, SP_BaseComponentUnit, SP_Errors;

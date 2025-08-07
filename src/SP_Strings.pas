@@ -18,6 +18,8 @@
 
 unit SP_Strings;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SysUtils, Math, SP_Util, SP_Errors, SP_Tokenise;

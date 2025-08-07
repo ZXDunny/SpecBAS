@@ -1,5 +1,7 @@
 unit SP_RadioGroupUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SP_Util, SP_BaseComponentUnit, SP_CheckBoxUnit, SP_Errors;

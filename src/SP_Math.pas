@@ -1,5 +1,7 @@
 unit SP_Math;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Math, SP_Util, SP_Errors;

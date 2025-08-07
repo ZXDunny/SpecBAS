@@ -1,5 +1,7 @@
 unit SP_FileListBoxUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SP_BaseComponentUnit, SP_ListBoxUnit, SP_Util, SP_AnsiStringlist, SP_Errors;

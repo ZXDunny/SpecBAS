@@ -1,5 +1,7 @@
 unit SP_WindowMenuUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SP_Errors, SP_BaseComponentUnit, SP_PopUpMenuUnit, SP_SysVars, SP_Util;

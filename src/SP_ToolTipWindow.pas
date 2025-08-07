@@ -1,5 +1,7 @@
 unit SP_ToolTipWindow;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SyncObjs, Types, SP_BaseComponentUnit, SP_Components, SP_SysVars, SP_Util;

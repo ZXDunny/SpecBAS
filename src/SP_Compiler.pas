@@ -2,6 +2,8 @@ unit SP_Compiler;
 
 // Deals with the compiler thread and listing management
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Types, Classes;

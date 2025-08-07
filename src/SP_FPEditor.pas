@@ -18,6 +18,8 @@
 
 Unit SP_FPEditor;
 
+{$INCLUDE SpecBAS.inc}
+
 // todo:
 
 // High Priority:

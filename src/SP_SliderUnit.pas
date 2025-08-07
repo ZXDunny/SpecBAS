@@ -1,5 +1,7 @@
 unit SP_SliderUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses SysUtils, Types, SP_BaseComponentUnit, SP_ButtonUnit, SP_Util, SP_Errors;

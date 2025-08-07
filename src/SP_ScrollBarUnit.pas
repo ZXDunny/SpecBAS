@@ -1,5 +1,7 @@
 unit SP_ScrollBarUnit;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Types, Math, SP_Errors, SP_Util, SP_Components, SP_BaseComponentUnit, SP_ButtonUnit;

@@ -1,5 +1,7 @@
 unit SP_AnsiStringlist;
 
+{$INCLUDE SpecBAS.inc}
+
 interface
 
 Uses Types, Classes, SyncObjs;

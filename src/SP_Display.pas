@@ -4,7 +4,8 @@ unit SP_Display;
 
 interface
 
-  Uses WinAPI.Windows, MultiMon, System.SysUtils, System.SyncObjs, Graphics, Forms, Classes, System.Types, Math, PNGImage, MainForm, SP_FileIO, {$IFDEF OPENGL}dglOpenGL,{$ENDIF} SP_Util, WinAPI.DWMApi;
+  Uses WinAPI.Windows, MultiMon, System.SysUtils, System.SyncObjs, Graphics, Forms, Classes, System.Types, Math, PNGImage, MainForm,
+       SP_FileIO, {$IFDEF OPENGL}dglOpenGL,{$ENDIF} SP_Util, WinAPI.DWMApi;
 
   {$IFDEF RefreshThread}
 Type
@@ -32,7 +33,7 @@ Type
   {$ENDIF}
   Procedure Refresh_Display;
   Function  UpdateDisplay: Boolean;
-  Function  GetScreenRefreshRate: Integer;
+  Function  GetScreenRefreshRate: aFloat;
   Procedure GetOSDString;
   {$IFDEF OpenGL}
   Procedure GLResize;
@@ -1088,18 +1089,28 @@ Begin
   End;
 End;
 
-Function GetScreenRefreshRate: Integer;
+Function GetScreenRefreshRate: aFloat;
 var
   DeviceMode: TDeviceMode;
+  TimingInfo: DWM_TIMING_INFO;
+  HRes: HRESULT;
+  Success: Boolean;
 const
   ENUM_CURRENT_SETTINGS = DWORD(-1);
 Begin
-  DeviceMode.dmSize := SizeOf(TDeviceMode); // Ensure correct size for Ansi/Unicode
-  FillChar(DeviceMode, DeviceMode.dmSize, 0); // Zero it out
-  DeviceMode.dmSize := SizeOf(TDeviceMode);
-
-  EnumDisplaySettings(nil, ENUM_CURRENT_SETTINGS, DeviceMode);
-  Result := DeviceMode.dmDisplayFrequency;
+  ZeroMemory(@TimingInfo, SizeOf(TimingInfo));
+  TimingInfo.cbSize := SizeOf(TimingInfo);
+  HRes := DwmGetCompositionTimingInfo(0, TimingInfo);
+  Success := (HRes = S_OK) And (TimingInfo.rateRefresh.uiDenominator <> 0);
+  If Success Then
+    Result := TimingInfo.rateRefresh.uiNumerator / TimingInfo.rateRefresh.uiDenominator
+  Else Begin
+    DeviceMode.dmSize := SizeOf(TDeviceMode);
+    FillChar(DeviceMode, DeviceMode.dmSize, 0);
+    DeviceMode.dmSize := SizeOf(TDeviceMode);
+    EnumDisplaySettings(nil, ENUM_CURRENT_SETTINGS, DeviceMode);
+    Result := DeviceMode.dmDisplayFrequency;
+  End;
 End;
 
 function TestScreenResolution(Width, Height: Integer; FullScreen: Boolean): Boolean;

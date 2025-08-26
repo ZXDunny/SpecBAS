@@ -13739,8 +13739,8 @@ Begin
   Full := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
-  If sWidth = -1 Then sWidth := SCRWIDTH;
-  If sHeight = -1 Then sHeight := SCRHEIGHT;
+  If sWidth = -1 Then sWidth := Width;
+  If sHeight = -1 Then sHeight := Height;
 
   SP_ChangeRes(sWidth, sHeight, Width, Height, Full = 1, Info^.Error^);
   LISTWINDOW := -1;

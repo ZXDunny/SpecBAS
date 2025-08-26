@@ -369,8 +369,10 @@ Procedure TAnsiStringlist.AddStrings(s: TAnsiStringlist);
 Var
   i: Integer;
 begin
-  For i := 0 To s.Count -1 Do
+  For i := 0 To s.Count -1 Do Begin
     Add(s[i]);
+    fObjects[Count -1] := s.Objects[i];
+  End;
 end;
 
 Function  TAnsiStringlist.GetFlags(Index: Integer): pLineFlags;

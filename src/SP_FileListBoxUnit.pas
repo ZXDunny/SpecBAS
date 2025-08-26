@@ -4,7 +4,8 @@ unit SP_FileListBoxUnit;
 
 interface
 
-Uses SP_BaseComponentUnit, SP_ListBoxUnit, SP_Util, SP_AnsiStringlist, SP_Errors;
+Uses Windows, Classes, Math, System.Generics.Collections,
+     SP_BaseComponentUnit, SP_Components, SP_ListBoxUnit, SP_Util, SP_AnsiStringlist, SP_Errors;
 
 Type
 
@@ -12,6 +13,8 @@ SP_FileListBox = Class(SP_ListBox)
 
   Private
 
+    fGotFileList: Boolean;
+    fCacheFiles, fCacheFileSizes: TStringlist;
     fDirectory, fSearchStr: aString;
     fOnChooseFile,
     fOnChooseDir: SP_FLBSelectEvent;
@@ -19,17 +22,22 @@ SP_FileListBox = Class(SP_ListBox)
     fFilterList: TAnsiStringlist;
     fHasContentFilter: Boolean;
     fMaxContentLen: Integer;
+    fChangeTimer: pSP_TimerEvent;
     Procedure Populate;
+    Procedure AddEntry(Filename: aString; Obj: Pointer; SizeInfo: aString; Size: Int64);
     Procedure SetDirectory(s: aString);
     Function  SortProc(Val1, Val2: aString): Integer;
     Function  TextPrep(s: aString; c, i: Integer): aString;
     Function  GetFilters: aString;
+    Function  IsFileSuitable(fName, Buffer: aString): Boolean;
     Procedure SetFilters(s: aString);
 
   Public
 
+    Procedure ChangeTimer(p: Pointer);
     Procedure Find(Filename: aString; Exact: Boolean);
     Procedure GoParent;
+    Function  IndexOf(Filename: aString): Integer;
     Function  GetString(Index: Integer): aString; Override;
     Procedure Select(Index: Integer); Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
@@ -59,7 +67,7 @@ End;
 
 implementation
 
-Uses Types, SysUtils, SP_FileIO, SP_Components, SP_Input, SP_Sound, SP_SysVars, SP_Main;
+Uses Types, SysUtils, SP_FileIO, SP_Input, SP_Sound, SP_SysVars, SP_Main;
 
 // SP_FileListBox
 
@@ -79,12 +87,21 @@ Begin
   fFilterList := TAnsiStringList.Create;
   fOnDblClick := DoDoubleClick;
 
+  fGotFileList := False;
+  fCacheFiles := TStringList.Create;
+  fCacheFileSizes := TStringList.Create;
+  fChangeTimer := AddTimer(Self, Round(FPS), ChangeTimer, False, False);
+
 End;
 
 Destructor SP_FileListBox.Destroy;
 Begin
 
   fFilterList.Free;
+  fCacheFiles.Free;
+  fCacheFileSizes.Free;
+  RemoveTimer(fChangeTimer^.ID);
+
   Inherited;
 
 End;
@@ -155,24 +172,181 @@ Begin
 
 End;
 
+Function SP_FileListBox.IndexOf(Filename: aString): Integer;
+Var
+  i: Integer;
+  s: aString;
+Begin
+
+  i := 0;
+  Result := -1;
+  FileName := Lower(Filename);
+  While i < fCount Do Begin
+    s := Lower(Copy(fStrings[i], 2));
+    if Pos(#255, s) > 0 Then
+      s := Copy(s, 1, Pos(#255, s) - 1);
+    If s = Filename Then Begin
+      Result := i;
+      Break;
+    End;
+    Inc(i);
+  End;
+
+End;
+
+Function SP_FileListBox.IsFileSuitable(fName, Buffer: aString): Boolean;
+Var
+  f, j: Integer;
+  s, t: aString;
+  b: Boolean;
+  Error: TSP_ErrorCode;
+Begin
+  b := False;
+  Result := False;
+  For j := 0 To fFilterList.Count -1 Do Begin
+    s := fFilterList[j];
+    If s[1] = #0 Then // Mask
+      Result := WildComp(Copy(s, 2), fName)
+    Else
+      If s[1] = #1 Then Begin // File content
+        If Not b Then Begin
+          f := SP_FileOpen(fDirectory + fName, False, Error);
+          SP_FileRead(f, @Buffer[1], fMaxContentLen, Error);
+          SP_FileClose(f, Error);
+          b := True;
+        End;
+        t := Copy(s, 6);
+        Result := Copy(Buffer, pLongWord(@s[2])^, Length(t)) = t;
+      End;
+    If Result Then Exit;
+  End;
+End;
+
+Procedure SP_FileListBox.ChangeTimer(p: Pointer);
+Var
+  i, idx: Integer;
+  Changed: Boolean;
+  s, Buffer: aString;
+  Error: TSP_ErrorCode;
+  Files, FileSizes, Changes: TStringlist;
+  Map: TDictionary<AnsiString, Integer>;
+
+  Function Entry(idx: Integer): aString;
+  Begin
+    Result := aChar(Files.Objects[idx]) + Files[idx] + #255 + IntToString(Int64(FileSizes.Objects[idx])) + #255 + Copy(FileSizes[idx], Length(FileSizes[idx]) - 9, 10);
+  End;
+
+Begin
+
+  If fGotFileList And (pSP_TimerEvent(p)^.Sender = Self) Then Begin
+
+    If fHasContentFilter Then
+      SetLength(Buffer, fMaxContentLen);
+
+    s := fDirectory;
+    Files := TStringlist.Create;
+    FileSizes := TStringlist.Create;
+    Changes := TStringlist.Create;
+    Map := TDictionary<AnsiString, Integer>.Create;
+
+    SP_GetFileList(s, Files, FileSizes, Error, False);
+
+    For i := 0 To fCacheFiles.Count -1 Do
+      If fCacheFiles[i][1] <> '.' Then
+        Map.Add(fCacheFiles[i], i);
+
+    Lock;
+
+    For i := 0 To Files.Count -1 Do Begin
+      Changed := False;
+      If Files[i][1] = '.' Then Continue;
+      If Map.ContainsKey(Files[i]) Then Begin
+        // Contained in both. Remove it from the map, check sizes array to see if it changed
+        Map.Remove(Files[i]);
+        If fCacheFileSizes[i] <> FileSizes[i] Then Begin
+          idx := IndexOf(Files[i]);
+          if (idx >= 0) And (idx < Count) Then
+            fStrings[idx] := Entry(i);
+          Continue;
+        End;
+      End Else Begin
+        // Not in the cache, so is a new file - test it for validity and add it in.
+        If Integer(Files.Objects[i]) = 1 Then // is Dir?
+          Changed := True
+        Else
+          If IsFileSuitable(Files[i], Buffer) Then
+            Changed := True;
+        If Changed Then Begin
+          // Add it to the current list
+          AddEntry(Files[i], Files.Objects[i], FileSizes[i], Int64(FileSizes.Objects[i]));
+          Continue;
+        End;
+      End;
+    End;
+
+    // Now any files or folders left in the map have been deleted, so remove them.
+
+    If Map.Count > 0 Then
+      For s in Map.Keys Do Begin
+        i := IndexOf(s);
+        If (i >= 0) And (i < Count) Then
+          Delete(i);
+      End;
+
+    Sort(fSortedBy);
+    Unlock;
+
+    fCacheFiles.Clear;
+    fCacheFileSizes.Clear;
+    fCacheFiles.AddStrings(Files);
+    fCacheFileSizes.AddStrings(FileSizes);
+    fGotFileList := True;
+
+    Map.Free;
+    Files.Free;
+    Changes.Free;
+    FileSizes.Free;
+
+  End;
+
+End;
+
+Procedure SP_FileListBox.AddEntry(Filename: aString; Obj: Pointer; SizeInfo: aString; Size: Int64);
+Begin
+
+  Add(aChar(Obj) +                               // Directory flag
+      FileName + #255 +                          // File name
+      IntToString(Size) + #255 +                 // File size
+      Copy(SizeInfo, Length(SizeInfo) - 9, 10)); // File date
+
+End;
+
 Procedure SP_FileListBox.Populate;
 Var
   Files, FileSizes: TStringlist;
-  s, t, Buffer: aString;
-  i, j, f, cfW: Integer;
+  s, Buffer: aString;
+  i, cfW: Integer;
   Error: TSP_ErrorCode;
-  Match, b: Boolean;
+  Match: Boolean;
 Begin
 
   Lock;
-  Match := False;
   s := fDirectory;
   Error.Code := SP_ERR_OK;
+  cfW:= Round(iFW * iSX);
+
+  fGotFileList := False; // Prevent monitoring
   Files := TStringlist.Create;
   FileSizes := TStringlist.Create;
   SP_GetFileList(s, Files, FileSizes, Error, False);
 
-  cfW:= Round(iFW * iSX);
+  // Store in the cache and add a watcher
+
+  fCacheFiles.Clear;
+  fCacheFileSizes.Clear;
+  fCacheFiles.AddStrings(Files);
+  fCacheFileSizes.AddStrings(FileSizes);
+  fGotFileList := True; // We can start monitor now
 
   // Apply filters to the file list
 
@@ -183,28 +357,11 @@ Begin
 
     i := 0;
     While i < Files.Count Do Begin
-      b := False;
       If Integer(Files.Objects[i]) = 1 Then Begin
         Inc(i);
         Continue;
       End Else
-        For j := 0 To fFilterList.Count -1 Do Begin
-          s := fFilterList[j];
-          If s[1] = #0 Then // Mask
-            Match := WildComp(Copy(s, 2), Files[i])
-          Else
-            If s[1] = #1 Then Begin // File content
-              If Not b Then Begin
-                f := SP_FileOpen(fDirectory + Files[i], False, Error);
-                SP_FileRead(f, @Buffer[1], fMaxContentLen, Error);
-                SP_FileClose(f, Error);
-                b := True;
-              End;
-              t := Copy(s, 6);
-              Match := Copy(Buffer, pLongWord(@s[2])^, Length(t)) = t;
-            End;
-          If Match Then Break;
-        End;
+        Match := IsFileSuitable(Files[i], Buffer);
       If Match Then
         Inc(i)
       Else Begin
@@ -241,10 +398,7 @@ Begin
 
     For i := 0 To Files.Count -1 Do
       If Not ((Files[i][1] = '.') And (Integer(Files.Objects[i]) = 1)) Then
-        Add(aChar(Files.Objects[i]) +                             // Directory flag
-            Files[i] + #255 +                                     // File name
-            IntToString(Int64(FileSizes.Objects[i])) + #255 +     // File size
-            Copy(FileSizes[i], Length(FileSizes[i]) - 9, 10));    // File date
+        AddEntry(Files[i], Files.Objects[i], FileSizes[i], Int64(FileSizes.Objects[i]));
 
   End;
 

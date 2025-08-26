@@ -1224,6 +1224,7 @@ begin
     End;
     Result := True; // Windowed mode change is generally successful unless invalid dimensions
   End;
+  SP_SetFPS(GetScreenRefreshrate); // In case we have a changed refresh rate
 end;
 
 {$IFDEF OpenGL}

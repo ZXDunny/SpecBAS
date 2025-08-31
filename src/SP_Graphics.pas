@@ -7801,7 +7801,7 @@ End;
 
 Procedure SP_DRAWGW(Const str: aString; Var Error: TSP_ErrorCode);
 Var
-  DoPlot, Return, RelativeX, RelativeY: Boolean;
+  DoPlot, Return, Relative: Boolean;
   LastNum, Xc, Yc: aFloat;
   LastString, Commands: aString;
   Len: NativeUInt;
@@ -7846,8 +7846,13 @@ Var
     odX := DRPOSX;
     odY := DRPOSY;
     SP_ConvertToOrigin_d(Xc, Yc);
-    If RelativeX Then dDx := odX + Xc Else dDx := Xc;
-    If RelativeY Then dDy := ody + Yc Else dDy := Yc;
+    If Relative Then Begin
+      dDx := odX + Xc;
+      dDy := ody + Yc;
+    End Else Begin
+      dDx := Xc;
+      dDy := Yc;
+    End;
     If WINFLIPPED Then Yc := (SCREENHEIGHT - 1) - Yc;
     If DoPlot Then
       SP_DrawLineTo(Round(oDx), Round(oDy), Round(dDx), Round(dDy), T_INK);
@@ -7860,8 +7865,7 @@ Var
     End;
     DoPlot := True;
     Return := False;
-    RelativeX := False;
-    RelativeY := False;
+    Relative := False;
     SP_NeedDisplayUpdate := True;
   End;
 
@@ -8005,15 +8009,16 @@ Begin
       Ord('M'): // Move
         Begin
           Inc(p);
-          RelativeX := p^ in [Ord('-'), Ord('+')];
+          Relative := p^ in [Ord('-'), Ord('+')];
           GetNumber;
           Xc := LastNum;
           If p^ <> Ord(',') Then Exit Else Inc(p);
-          RelativeY := p^ in [Ord('-'), Ord('+')];
           GetNumber;
           Yc := LastNum;
-          If RelativeX Then Xc := Xc * GWScaleFactor;
-          If RelativeY Then Yc := Yc * GWScaleFactor;
+          If Relative Then Begin
+            Xc := Xc * GWScaleFactor;
+            Yc := Yc * GWScaleFactor;
+          End;
           DrawCoords;
         End;
       Ord('B'): // Don't plot pixels

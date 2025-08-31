@@ -89,12 +89,15 @@ Begin
   lsp := 1;
   cnt := 0;
   s := '';
+
   If fAutoSize Then
     maxw := MAXINT
   else
     maxw := fWidth Div cFW;
+
   BreakNow := False;
   fLines.Clear;
+
   While i <= Length(fCaption) Do Begin
 
     Case Ord(fCaption[i]) of
@@ -112,7 +115,7 @@ Begin
      15, 16, 17, 18, 19, 20, 23, 24, 26, 27:
         Begin // FONT/INK/PAPER/OVER/TRANSPARENT/INVERSE/TAB/ITALIC/BOLD control
           s := s + Copy(fCaption, i, SizeOf(LongWord) +1);
-          Inc(i, SizeOf(LongWord) +1)
+          Inc(i, SizeOf(LongWord) +1);
         End;
      21, 22:
         Begin // MOVE, AT control
@@ -141,19 +144,22 @@ Begin
     End;
 
     If BreakNow Then Begin
+      BreakNow := False;
       fLines.Add(s);
-      fLines.Objects[fLines.Count -1] := Pointer(cnt);
       cnt := 0;
       s := '';
     End;
 
   End;
 
+  If s <> '' Then
+    fLines.Add(s);
+
   If fAutoSize Then Begin
     maxw := 0;
     If fLines.Count > 0 Then Begin
       For i := 0 To fLines.Count -1 Do
-        If NativeInt(fLines.Objects[i]) > maxw Then maxw := NativeInt(fLines.Objects[i]);
+        If Length(fLines[i]) > maxw Then maxw := Length(fLines[i]);
     End Else Begin
       maxw := cnt;
       fCapLen := cnt;
@@ -205,11 +211,11 @@ Begin
           End;
         0:
           Begin // Centre
-            x := ((fWidth - bOffs) - (Integer(fLines.Objects[i]) * cFW)) Div 2;
+            x := ((fWidth - bOffs) - (Length(fLines[i]) * cFW)) Div 2;
           End;
         1:
           Begin // Right Justify
-            x := (fWidth - bOffs) - (Integer(fLines.Objects[i]) * cFW);
+            x := (fWidth - bOffs) - (Length(fLines[i]) * cFW);
           End;
       End;
       If fEnabled Then

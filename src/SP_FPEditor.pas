@@ -203,6 +203,7 @@ Procedure SP_SetBracketPositions(c: aChar; Line, CPos: Integer);
 Procedure SP_CursorPosChanged;
 Procedure SP_RefreshCursorLineAfterChange(OldLine: Integer);
 Function  SP_FindScrollBar(ScrollBarID: Integer): Integer;
+Procedure SP_CheckGutterSize;
 Procedure AddDirtyLine(Line: Integer);
 Procedure RemoveDirtyLine(Line: Integer);
 Procedure ClearDirtyLines;
@@ -267,7 +268,7 @@ Var
   FPCDes, FPCDesLine, FPMDFramesTarget, FPClickX, FPClickY: Integer;
   FPCDragging, FPDebugging, FPScrolling, FPGutterChangedSize: Boolean;
   FPEditorMarkers: Array[0..9] of TPoint;
-  FPShowingSearchResults, FPShowingBraces: Boolean;
+  FPShowingSearchResults, FPShowingBraces, FPHasBookMarks: Boolean;
   FPSearchTerm, FPReplaceTerm, FPGotoText: aString;
   FPBracket1Pos, FPBracket2Pos, FPBracket1Line, FPBracket2Line: Integer;
   DirtyLines: Array of Integer;
@@ -323,7 +324,7 @@ Var
 Const
 
   FPMarginSize = 2; // Gap between buttons and track in scrollbars
-  FPMinGutterWidth = 5;
+  FPMinGutterWidth = 4;
 
   scVertical = 0;
   scHorizontal = 1;
@@ -543,7 +544,7 @@ Begin
   nl := SP_LineHasNumber(Listing.Count -1);
   If (nl > 0) And Not SP_WasPrevSoft(Listing.Count -1) Then Begin
     Listing.Flags[Listing.Count -1].State := spLineDirty;
-    Listing.Flags[Listing.Count -1].GutterSize := SP_LineNumberSize(Listing.Count -1);
+    Listing.Flags[Listing.Count -1].GutterSize := SP_LineNumberSize(Listing.Count -1) + 1;
   End Else Begin
     Listing.Flags[Listing.Count -1].State := spLineNull;
     Listing.Flags[Listing.Count -1].GutterSize := 0;
@@ -566,7 +567,7 @@ Begin
   Listing.Flags[Index].GutterSize := 0;
   If (i > 0) And Not SP_WasPrevSoft(Index) Then Begin
     Listing.Flags[Index].State := spLineDirty;
-    Listing.Flags[Index].GutterSize := SP_LineNumberSize(Index);
+    Listing.Flags[Index].GutterSize := SP_LineNumberSize(Index) + 1;
     If MarkDirty Then AddDirtyLine(Index);
   End Else
     Listing.Flags[Index].State := spLineNull;
@@ -2265,7 +2266,7 @@ End;
 
 Procedure SP_DisplayFPListing(Line: Integer);
 Var
-  Idx, cIdx, dIdx, Cpx, OfsY, OfsX, Ps, st, LineNum, Window, cursLineNum, MinY, MaxY, ty, i, j: Integer;
+  Idx, cIdx, dIdx, bmIdx, Cpx, OfsY, OfsX, Ps, st, LineNum, Window, cursLineNum, MinY, MaxY, ty, i, j, bmOffset: Integer;
   SelectionStartsAt, Font, pClr, gClr, l, OldSt, ContIdx, llbpx, llbpy: Integer;
   HasNumber, ContainsSelection, Editing, DoneProgline, DontDoProgLine, IsProgLine, Highlight, DoDraw, DoDrawSt, InString,
   InREM, InClr, DrawnCONTLocation, ShowingBraces: Boolean;
@@ -2405,6 +2406,7 @@ Begin
 
         // Draw the gutter and paper for a single line
         cIdx := LineNum;
+        bmIdx := SP_LineIsMarked(Idx);
         If SP_WasPrevSoft(Idx) Then LineNum := 0 Else LineNum := SP_GetFPLineNumber(Idx);
         If (LineNum <> 0) And (DoneProgLine) Then DontDoProgLine := True;
         If LineNum <= 0 Then LineNum := cIdx;
@@ -2547,28 +2549,31 @@ Begin
           T_BOLD := 0;
         End;
 
+        // If a bookmark has been set then we offset everything by one char to the right to make room.
+        bmOffset := Ord((bmIdx >= 0) And HasNumber) * FPFw;
+
         // Draw the breakpoint if one exists here
         If (HasNumber or doDrawSt) and SP_IsSourceBreakPoint(LineNum, St) Then Begin
           llbpx := FPPaperLeft +2; llbpy := OfsY + ((FPFh - 8) Div 2);
           For i := -1 to 1 Do
             For j := -1 to 1 Do
-              SP_TextOut(-1, llbpx +i, llbpy +j, #243, 2, -1, True);
-          SP_FillRect(llbpx +1, llbpy + (FONTHEIGHT Div 2) -1, FONTWIDTH -2, 2, 15);
-
+              SP_TextOut(-1, llbpx +i, llbpy +j, #243, 2, -1, True); // Circle
+          SP_FillRect(llbpx +1, llbpy + (FONTHEIGHT Div 2) -1, FONTWIDTH -2, 2, 15); // White bar
         End;
 
         // Draw the CONTINUE statement position indicator if we're there
         If (HasNumber or DoDrawSt) And (CONTIdx = LineNum) And
            ((St = CONTSTATEMENT) or ((St < CONTSTATEMENT) and
            ((Listing.Flags[Idx+1].Statement > CONTSTATEMENT) or {(Listing.Flags[Idx +1].Statement = 1) or} (Idx +1 = Listing.Count)))) and Not DrawnCONTLocation Then Begin
+          l := FPPaperLeft + 10 + bmOffset;
           For i := -1 to 1 Do
             For j := -1 to 1 Do
-              SP_TextOut(-1, FPPaperLeft +12 +i, OfsY + ((FPFh - 8) Div 2) +j, #253, 0, -1, True);
+              SP_TextOut(-1, l+i, OfsY + ((FPFh - 8) Div 2) +j, #253, 0, -1, True);
           If PROGSTATE = SP_PR_RUN Then
             i := 2
           Else
             i := 6;
-          SP_TextOut(-1, FPPaperLeft + 12, OfsY + ((FPFh - 8) Div 2), #253, i, -1, True);
+          SP_TextOut(-1, l, OfsY + ((FPFh - 8) Div 2), #253, i, -1, True);
           DrawnCONTlocation := True;
         End;
 
@@ -2589,38 +2594,39 @@ Begin
         End;
 
         cIdx := Listing.Flags[Idx].State;
-        If DoDraw And (StripSpaces(Listing[Idx]) <> '') And (HasNumber Or (cIdx in [spLineError, spLineDirty])) Then
+        If DoDraw And (StripSpaces(Listing[Idx]) <> '') And (HasNumber Or (cIdx in [spLineError, spLineDirty])) Then Begin
+          j := FPPaperLeft + 3 + bmOffset;
           Case cIdx of
             spLineNull:
               Begin
-                SP_TextOut(-1, FPPaperLeft +2, OfsY + ((FPFh - 8) Div 2), #245, gclr -1, -1, True);
-                SP_TextOut(-1, FPPaperLeft +2, OfsY + ((FPFh - 8) Div 2), #244, gclr +1, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, gclr -1, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #244, gclr +1, -1, True);
               End;
             spLineOk:
               Begin
-                SP_TextOut(-1, FPPaperLeft +2, OfsY + ((FPFh - 8) Div 2), #245, 0, -1, True);
-                SP_TextOut(-1, FPPaperLeft +2, OfsY + ((FPFh - 8) Div 2), #244, 4, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 0, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #244, 4, -1, True);
               End;
             spLineError:
               Begin
-                SP_TextOut(-1, FPPaperLeft +2, OfsY + ((FPFh - 8) Div 2), #243, 0, -1, True);
-                SP_TextOut(-1, FPPaperLeft +2, OfsY + ((FPFh - 8) Div 2), #245, 2, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #243, 0, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 2, -1, True);
               End;
             spLineDirty:
               Begin
-                SP_TextOut(-1, FPPaperLeft +2, OfsY + ((FPFh - 8) Div 2), #245, 0, -1, True);
-                SP_TextOut(-1, FPPaperLeft +2, OfsY + ((FPFh - 8) Div 2), #244, 1, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 0, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #244, 1, -1, True);
               End;
             spLineDuplicate:
               Begin
-                SP_TextOut(-1, FPPaperLeft +2, OfsY + ((FPFh - 8) Div 2), #243, 0, -1, True);
-                SP_TextOut(-1, FPPaperLeft +2, OfsY + ((FPFh - 8) Div 2), #245, 6, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #243, 0, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 6, -1, True);
               End;
           End;
+        End;
         // Draw bookmarks if necessary
-        cIdx := SP_LineIsMarked(Idx);
-        If DoDraw And (cIdx > 0) Then
-          SP_TextOut(-1, FPPaperLeft + 12, OfsY + ((FPFh - 8) Div 2), IntToString(cIdx), 0, 4, True);
+        If DoDraw And (bmIdx >= 0) Then
+          SP_TextOut(-1, FPPaperLeft + 2, OfsY + ((FPFh - 8) Div 2), IntToString(bmIdx), 6, 1, True);
         // Restore scaling
         If DoDraw Then Begin
           T_SCALEX := fx;
@@ -4544,7 +4550,7 @@ Begin
     EditorMarks[i] := 0
   Else
     EditorMarks[i] := LongWord(((Listing.FPCLine +1) Shl 16) or Listing.FPCPos);
-  AddDirtyLine(EditorMarks[i]);
+  SP_CheckGutterSize;
 End;
 
 Function SP_JumpToMark(i: Integer): Boolean;
@@ -4561,6 +4567,37 @@ Begin
     SP_FPClearSelection(Sel);
     Result := True;
   End;
+End;
+
+Procedure SP_CheckGutterSize;
+Var
+  iBm: Boolean;
+  Mxg, i: Integer;
+Begin
+
+  Mxg := 0;
+  For i := 0 To Listing.Count -1 Do
+    Mxg := Max(Listing.Flags[i].GutterSize, Mxg);
+
+  Mxg := Max(Mxg, FPMinGutterWidth);
+
+  iBm := False;
+  FPHasBookMarks := False;
+  For i := 0 To 9 Do
+    If EditorMarks[i] <> 0 Then Begin
+      If (Not iBm) And (SP_LineHasNumber((EditorMarks[i] Shr 16) -1) > 0) Then Begin
+        Inc(Mxg);
+        iBm := True;
+      End;
+      FPHasBookMarks := True;
+    End;
+
+  If Mxg <> FPGutterWidth Then Begin
+    FPGutterWidth := Mxg;
+    FPGutterChangedSize := True;
+    If EDITORREADY Then SP_FPWrapProgram;
+  End;
+
 End;
 
 Procedure SP_FPEditorPerformEdit(Key: pSP_KeyInfo);

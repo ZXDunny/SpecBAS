@@ -972,7 +972,7 @@ Begin
         If not InString then Begin
           Inc(ps, 5);
           while (ps < length(s)) and (s[ps] <= ' ') do inc(ps);
-          if s[ps] = '@' Then begin
+          if (ps < length(s)) and (s[ps] = '@') Then begin
             Inc(ps);
             while (ps <= length(s)) and (s[ps] in ['0'..'9', 'a'..'z', '_']) do Begin
               lbl := lbl + s[ps];

@@ -77,29 +77,19 @@ Begin
 End;
 
 Procedure SP_MarkAsDirty(Idx: Integer);
-Var
-  Mxg: Integer;
 Begin
 
   // Marks a line in the text editor as dirty - i.e, changed and needing to be syntax checked and compiled.
   // The compiler thread will pick this up.
 
   While (Idx > 0) And (SP_LineHasNumber(Idx) = 0) Do Dec(Idx);
-  Listing.Flags[Idx].GutterSize := SP_LineNumberSize(Idx);
+  Listing.Flags[Idx].GutterSize := SP_LineNumberSize(Idx) + 1;
   Listing.Flags[Idx].State := spLineDirty;
   AddCompileLine(Idx);
 
   // Also just run a quick check to see if the guttersize has changed
 
-  Mxg := 0;
-  For Idx := 0 To Listing.Count -1 Do
-    Mxg := Max(Listing.Flags[Idx].GutterSize, Mxg);
-  Mxg := Max(Mxg, FPMinGutterWidth);
-  If Mxg <> FPGutterWidth Then Begin
-    FPGutterWidth := Mxg;
-    FPGutterChangedSize := True;
-    If EDITORREADY Then SP_FPWrapProgram;
-  End;
+  SP_CheckGutterSize;
 
 End;
 

@@ -1525,15 +1525,18 @@ Begin
 
   cp := GetParentControl;
 
-  Idx := 0;
-  While Idx < Length(cp.fComponentList) Do
-    If (Assigned(cp.fComponentList[Idx]) and (cp.fComponentList[Idx].ControlID = Self.ControlID)) or (Not Assigned(cp.fComponentList[Idx])) Then Begin
-      For Idx2 := Idx To Length(cp.fComponentList) -2 Do
-        cp.fComponentList[Idx2] := cp.fComponentList[Idx2 +1];
-      SetLength(cp.fComponentList, Length(cp.fComponentList) -1);
-      Dec(cp.fNumComponents);
-    End Else
-      Inc(Idx);
+  if Assigned(cp) Then Begin
+    Idx := 0;
+    While Idx < Length(cp.fComponentList) Do
+      If (Assigned(cp.fComponentList[Idx]) and (cp.fComponentList[Idx].ControlID = Self.ControlID)) or (Not Assigned(cp.fComponentList[Idx])) Then Begin
+        For Idx2 := Idx To Length(cp.fComponentList) -2 Do
+          cp.fComponentList[Idx2] := cp.fComponentList[Idx2 +1];
+        SetLength(cp.fComponentList, Length(cp.fComponentList) -1);
+        Dec(cp.fNumComponents);
+      End Else
+        Inc(Idx);
+    cp.Paint;
+  End;
 
   If Assigned(fParentControl) Then
     Dec(GlobalControlCount);

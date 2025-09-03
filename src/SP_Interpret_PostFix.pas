@@ -27698,6 +27698,21 @@ Begin
 
 End;
 
+Procedure SP_Interpret_CTRL_ERASE(Var Info: pSP_iInfo);
+Var
+  ID: Integer;
+  Control: SP_BaseComponent;
+Begin
+
+  ID := Round(SP_StackPtr^.Val);
+
+  If ControlRegistry.TryGetValue(ID, Control) Then Begin
+    Control.Free;
+  End Else
+    Info^.Error^.Code := SP_ERR_INVALID_COMPONENT;
+
+End;
+
 Initialization
 
   ONCtrlLock := TCriticalSection.Create;
@@ -28201,6 +28216,7 @@ Initialization
   InterpretProcs[SP_KW_CTRL_LOCK] := @SP_Interpret_CTRL_LOCK;
   InterpretProcs[SP_KW_CTRL_UNLOCK] := @SP_Interpret_CTRL_UNLOCK;
   InterpretProcs[SP_KW_CTRL_LIST] := @SP_Interpret_CTRL_LIST;
+  InterpretProcs[SP_KW_CTRL_ERASE] := @SP_Interpret_CTRL_ERASE;
 
   // Functions
 

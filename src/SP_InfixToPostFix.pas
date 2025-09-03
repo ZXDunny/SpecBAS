@@ -18702,6 +18702,7 @@ Begin
   // CTRL LOCK id
   // CTRL UNLOCK id
   // CTRL LIST id
+  // CTRL ERASE id
 
   Result := '';
   If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_NEW) Then Begin
@@ -18718,7 +18719,6 @@ Begin
           Error.Code := SP_ERR_MISSING_NUMEXPR;
           Exit;
         End;
-
         If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_AT) Then Begin
           Inc(Position, SizeOf(LongWord) +1);
           AtExpr := SP_Convert_Expr(Tokens, Position, Error, -1); // x
@@ -18750,58 +18750,61 @@ Begin
           AtExpr := SP_Convert_Expr(Tokens, Position, Error, -1) + AtExpr; // h
           If Error.Code <> SP_ERR_OK Then Exit;
           If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
-          Result := AtExpr + Result;
-
-          WinFlag := False;
-          If (Byte(Tokens[Position]) = SP_KEYWORD) and (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+        End Else Begin
+          AtExpr := CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(16) +
+                    CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(16) +
+                    CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(8) +
+                    CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(8);
+        End;
+        Result := AtExpr + Result;
+        WinFlag := False;
+        If (Byte(Tokens[Position]) = SP_KEYWORD) and (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
+          Inc(Position, 1 + SizeOf(LongWord));
+          If (Byte(Tokens[Position]) = SP_KEYWORD) and (pLongWord(@Tokens[Position +1])^ = SP_KW_WINDOW) Then Begin
             Inc(Position, 1 + SizeOf(LongWord));
-            If (Byte(Tokens[Position]) = SP_KEYWORD) and (pLongWord(@Tokens[Position +1])^ = SP_KW_WINDOW) Then Begin
-              Inc(Position, 1 + SizeOf(LongWord));
-              WinFlag := True;
-            End;
-            InExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+            WinFlag := True;
+          End;
+          InExpr := SP_Convert_Expr(Tokens, Position, Error, -1);
+          If Error.Code <> SP_ERR_OK Then Exit;
+          If Error.ReturnType <> SP_VALUE Then Begin
+            Error.Code := SP_ERR_MISSING_NUMEXPR;
+            Exit;
+          End;
+          If WinFlag Then
+            InExpr := InExpr + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(-1) + CreateToken(SP_SYMBOL, 0, 1) + '*';
+        End Else
+          InExpr := CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(-65535);
+        Result := InExpr + Result;
+
+        numProps := 0;
+        PropExpr := '';
+        Done := False;
+        If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_SET) Then Begin
+          Inc(Position, SizeOf(LongWord) +1);
+          While not Done Do Begin
+            PropExpr := SP_Convert_Expr(Tokens, Position, Error, -1) + PropExpr; // PropName
             If Error.Code <> SP_ERR_OK Then Exit;
-            If Error.ReturnType <> SP_VALUE Then Begin
-              Error.Code := SP_ERR_MISSING_NUMEXPR;
+            If Error.ReturnType <> SP_STRING Then Begin Error.Code := SP_ERR_MISSING_STREXPR; Exit; End;
+            If (Ord(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then
+              Inc(Position, 2)
+            Else Begin
+              Error.Code := SP_ERR_ILLEGAL_CHAR;
               Exit;
             End;
-            If WinFlag Then
-              InExpr := InExpr + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(-1) + CreateToken(SP_SYMBOL, 0, 1) + '*';
-          End Else
-            InExpr := CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(-65535);
-          Result := InExpr + Result;
-
-          numProps := 0;
-          PropExpr := '';
-          Done := False;
-          If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_SET) Then Begin
-            Inc(Position, SizeOf(LongWord) +1);
-            While not Done Do Begin
-              PropExpr := SP_Convert_Expr(Tokens, Position, Error, -1) + PropExpr; // PropName
-              If Error.Code <> SP_ERR_OK Then Exit;
-              If Error.ReturnType <> SP_STRING Then Begin Error.Code := SP_ERR_MISSING_STREXPR; Exit; End;
-              If (Ord(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then
-                Inc(Position, 2)
-              Else Begin
-                Error.Code := SP_ERR_ILLEGAL_CHAR;
-                Exit;
-              End;
-              PropExpr := SP_Convert_Expr(Tokens, Position, Error, -1) + PropExpr; // PropValue
-              If Error.Code <> SP_ERR_OK Then Exit;
-              If Error.ReturnType <> SP_STRING Then Begin Error.Code := SP_ERR_MISSING_STREXPR; Exit; End;
-              Inc(numProps);
-              If Not ((Ord(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',')) Then
-                Done := True
-              Else
-                Inc(position, 2);
-            End;
+            PropExpr := SP_Convert_Expr(Tokens, Position, Error, -1) + PropExpr; // PropValue
+            If Error.Code <> SP_ERR_OK Then Exit;
+            If Error.ReturnType <> SP_STRING Then Begin Error.Code := SP_ERR_MISSING_STREXPR; Exit; End;
+            Inc(numProps);
+            If Not ((Ord(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',')) Then
+              Done := True
+            Else
+              Inc(position, 2);
           End;
-          Result := PropExpr + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(numProps) + Result;
-          Result := Result + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_CTRL_NEW) + VarResult;
-          If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
-          Exit;
-        End Else
-          Error.Code := SP_ERR_SYNTAX_ERROR;
+        End;
+        Result := PropExpr + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(numProps) + Result;
+        Result := Result + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(SP_KW_CTRL_NEW) + VarResult;
+        If pToken(@VarResult[1])^.Token in [SP_STRVAR_LET, SP_NUMVAR_LET] Then KeyWordID := 0 Else KeyWordID := SP_KW_LET;
+        Exit;
       End Else
         Error.Code := SP_ERR_ILLEGAL_CHAR;
     End Else
@@ -18895,7 +18898,14 @@ Begin
               If Error.Code <> SP_ERR_OK Then Exit;
               If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
               KeyWordID := SP_KW_CTRL_LIST;
-            End;
+            End Else
+              If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_ERASE) Then Begin
+                Inc(Position, SizeOf(LongWord) +1);
+                Result := SP_Convert_Expr(Tokens, Position, Error, -1); // id
+                If Error.Code <> SP_ERR_OK Then Exit;
+                If Error.ReturnType <> SP_VALUE Then Begin Error.Code := SP_ERR_MISSING_NUMEXPR; Exit; End;
+                KeyWordID := SP_KW_CTRL_ERASE;
+              End;
 
 
 End;

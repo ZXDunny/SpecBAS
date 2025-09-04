@@ -85,6 +85,7 @@ Begin
 
   fCaption := '';
   fTransparent := True;
+  fBackgroundClr := 255;
   IsRadioGroup := True;
 
 End;

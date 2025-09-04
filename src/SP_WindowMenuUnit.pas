@@ -280,7 +280,7 @@ Begin
         End Else Begin
           e.Left := e.Left +2;
           e.Top := e.Top -1;
-          FillRect(e, SubMenu.BackgroundClr);
+          FillRect(e, SubMenu.fMenuClr);
           DrawLine(e.Left, e.Top, e.Left, e.Bottom, fBorderClr);
           DrawLine(e.Right, e.Top, e.Right, e.Bottom, fBorderClr);
           DrawLine(e.Left, e.Top, e.Right, e.Top, fBorderClr);

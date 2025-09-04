@@ -69,6 +69,7 @@ Begin
   fCheckColor := SP_UIText;
   fCaption := '';
   fTransparent := True;
+  fBackgroundClr := 255;
   fBorder := True;
 
 End;

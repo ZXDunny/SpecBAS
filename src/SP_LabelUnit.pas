@@ -22,6 +22,7 @@ SP_Label = Class(SP_BaseComponent)
     Procedure SetJustify(i: Integer);
     Procedure SetAlign(i: Integer); Override;
     Procedure SetAutoSize(b: Boolean);
+    procedure WrapCaption;
     Procedure Prepare;
     Procedure Draw; Override;
 
@@ -60,6 +61,7 @@ Begin
   fAlign := -1;
   fCaption := '';
   fTransparent := True;
+  fBackgroundClr := 255;
   fBorder := False;
   fLines := TStringlist.Create;
 
@@ -73,11 +75,116 @@ Begin
 
 End;
 
+procedure SP_Label.WrapCaption;
+var
+  CurrentLine: aString;
+  CurrentCharIdx: Integer;
+  LineCharCount: Integer;
+  LastSeparatorIdx: Integer;
+  WordStartIdx: Integer;
+  CharWidth: Integer;
+  maxw: Integer;
+begin
+  fLines.Clear;
+  CurrentLine := '';
+  CurrentCharIdx := 1;
+  LineCharCount := 0;
+  LastSeparatorIdx := 0;
+  WordStartIdx := 1;
+  CharWidth := 1;
+
+  If AutoSize Then
+    maxw := MAXINT
+  else
+    maxw := fWidth div Round(iFW * iSX);
+
+  while CurrentCharIdx <= Length(fCaption) do
+  begin
+    case Ord(fCaption[CurrentCharIdx]) of
+      13: // Carriage return
+        begin
+          fLines.Add(CurrentLine);
+          CurrentLine := '';
+          LineCharCount := 0;
+          LastSeparatorIdx := 0;
+          Inc(CurrentCharIdx);
+          WordStartIdx := CurrentCharIdx;
+          Continue;
+        end;
+      6, 7, 8, 9, 10: // PRINT comma, Cursor Left/right/up/down
+        begin
+          CurrentLine := CurrentLine + fCaption[CurrentCharIdx];
+          Inc(CurrentCharIdx);
+          Inc(LineCharCount);
+          LastSeparatorIdx := 0;
+          Continue;
+        end;
+      15, 16, 17, 18, 19, 20, 23, 24, 26, 27: // FONT/INK/PAPER/OVER/TRANSPARENT/INVERSE/TAB/ITALIC/BOLD control
+        begin
+          CurrentLine := CurrentLine + Copy(fCaption, CurrentCharIdx, SizeOf(LongWord) +1);
+          Inc(CurrentCharIdx, SizeOf(LongWord) +1);
+          LastSeparatorIdx := 0;
+          Continue;
+        end;
+      21, 22: // MOVE, AT control
+        begin
+          CurrentLine := CurrentLine + Copy(fCaption, CurrentCharIdx, (SizeOf(LongWord) * 2)+1);
+          Inc(CurrentCharIdx, (SizeOf(LongWord) * 2)+1);
+          LastSeparatorIdx := 0;
+          Continue;
+        end;
+      25: // SCALE control
+        begin
+          CurrentLine := CurrentLine + Copy(fCaption, CurrentCharIdx, (SizeOf(aFloat) * 2) +1);
+          Inc(CurrentCharIdx, (SizeOf(aFloat) * 2)+1);
+          LastSeparatorIdx := 0;
+          Continue;
+        end;
+      else
+        begin
+          if (maxw > 0) And ((LineCharCount + CharWidth) > maxw) then
+          begin
+            if LastSeparatorIdx > 0 then
+            begin
+              fLines.Add(Copy(fCaption, WordStartIdx, LastSeparatorIdx - WordStartIdx));
+              CurrentCharIdx := LastSeparatorIdx + 1;
+            end
+            else
+            begin
+              fLines.Add(Copy(fCaption, WordStartIdx, maxw));
+              CurrentCharIdx := WordStartIdx + maxw;
+            end;
+            CurrentLine := '';
+            LineCharCount := 0;
+            LastSeparatorIdx := 0;
+            WordStartIdx := CurrentCharIdx;
+            Continue;
+          end;
+          if fCaption[CurrentCharIdx] in Seps then
+          begin
+            LastSeparatorIdx := CurrentCharIdx;
+          end;
+          if (CurrentLine = '') and (fCaption[CurrentCharIdx] = ' ') then
+          begin
+            Inc(CurrentCharIdx);
+            WordStartIdx := CurrentCharIdx;
+            Continue;
+          end;
+          CurrentLine := CurrentLine + fCaption[CurrentCharIdx];
+          Inc(LineCharCount, CharWidth);
+          Inc(CurrentCharIdx);
+        end;
+    end;
+  end;
+
+  if CurrentLine <> '' then
+    fLines.Add(CurrentLine);
+end;
+
+
 Procedure SP_Label.Prepare;
 Var
-  i, lsp, cnt, maxw, cfW, cfH: Integer;
-  s: aString;
-  BreakNow: Boolean;
+  i, l, maxw, cfW, cfH: Integer;
 Begin
 
   cfW := Round(iFW * iSX);
@@ -85,89 +192,20 @@ Begin
 
   If (fWidth < cFW) and Not fAutoSize Then Exit;
 
-  i := 1;
-  lsp := 1;
-  cnt := 0;
-  s := '';
+  WrapCaption;
 
-  If fAutoSize Then
-    maxw := MAXINT
-  else
-    maxw := fWidth Div cFW;
-
-  BreakNow := False;
-  fLines.Clear;
-
-  While i <= Length(fCaption) Do Begin
-
-    Case Ord(fCaption[i]) of
-
-      6, 8, 9, 10:
-        Begin // PRINT comma, Cursor Left/right/up/down
-          s := s + fCaption[i];
-          Inc(i);
-        End;
-     13:
-        Begin // Carriage return
-          BreakNow := True;
-          Inc(i);
-        End;
-     15, 16, 17, 18, 19, 20, 23, 24, 26, 27:
-        Begin // FONT/INK/PAPER/OVER/TRANSPARENT/INVERSE/TAB/ITALIC/BOLD control
-          s := s + Copy(fCaption, i, SizeOf(LongWord) +1);
-          Inc(i, SizeOf(LongWord) +1);
-        End;
-     21, 22:
-        Begin // MOVE, AT control
-          s := s + Copy(fCaption, i, (SizeOf(LongWord) * 2)+1);
-          Inc(i, (SizeOf(LongWord) * 2)+1);
-        End;
-     25:
-        Begin // SCALE control
-          s := s + Copy(fCaption, i, (SizeOf(aFloat) * 2) +1);
-          Inc(i, (SizeOf(aFloat) * 2)+1);
-        End;
-      32..255:
-        Begin
-          If cnt >= maxw Then Begin
-            BreakNow := True;
-            s := Copy(s, 1, Length(s) - (i - lsp));
-            i := lsp +1;
-          End Else Begin
-            If fCaption[i] in Seps Then
-              lsp := i;
-            s := s + fCaption[i];
-            Inc(i);
-            Inc(cnt);
-          End;
-        End;
-    End;
-
-    If BreakNow Then Begin
-      BreakNow := False;
-      fLines.Add(s);
-      cnt := 0;
-      s := '';
-    End;
-
+  maxw := 0;
+  For i := 0 To fLines.Count -1 Do Begin
+    l := StripLen(fLines[i]);
+    If l > maxw Then maxw := l;
   End;
 
-  If s <> '' Then
-    fLines.Add(s);
-
   If fAutoSize Then Begin
-    maxw := 0;
-    If fLines.Count > 0 Then Begin
-      For i := 0 To fLines.Count -1 Do
-        If Length(fLines[i]) > maxw Then maxw := Length(fLines[i]);
-    End Else Begin
-      maxw := cnt;
-      fCapLen := cnt;
-    End;
     Width := maxw * cFW;
     Height := Max(fLines.Count, 1) * cFH;
-  End Else
-    fCapLen := cnt;
+  End;
+
+  fCapLen := maxw;
 
 End;
 
@@ -211,11 +249,11 @@ Begin
           End;
         0:
           Begin // Centre
-            x := ((fWidth - bOffs) - (Length(fLines[i]) * cFW)) Div 2;
+            x := ((fWidth - bOffs) - (StripLen(fLines[i]) * cFW)) Div 2;
           End;
         1:
           Begin // Right Justify
-            x := (fWidth - bOffs) - (Length(fLines[i]) * cFW);
+            x := (fWidth - bOffs) - (StripLen(fLines[i]) * cFW);
           End;
       End;
       If fEnabled Then

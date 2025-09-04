@@ -467,7 +467,7 @@ Begin
   FindMode := Mode;
   If FindMode Then Caption := 'Find...' else Caption := 'Replace...';
 
-  w := 38 * FW; h := FPFh + 23 + (10 * FH) + (Ord(Not FindMode) * (nbh + FH)) + (5 * nbh);
+  w := 38 * FW; h := FPFh + 23 + (10 * FH) + (Ord(Not FindMode) * (nbh + FH)) + (5 * nbh) + 8;
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
   Dec(w, 1); // Account for the one-pixel border around the window when placing items
   SP_GetWindowDetails(FDWindowID, Win, Error);
@@ -515,13 +515,13 @@ Begin
   searchEdt.OnAbort := Abort;
 
   dirGroup := SP_RadioGroup.Create(Win^.Component);
-  dirGroup.SetBounds(searchLbl.Left, tp, (17 * FW) - nBw, FH * 5);
+  dirGroup.SetBounds(searchLbl.Left, tp, (17 * FW) - nBw, FH * 5 + 8);
   dirGroup.AddItem('Forward');
   dirGroup.AddItem('Backward');
   dirGroup.Caption := 'Direction';
 
   originGroup := SP_RadioGroup.Create(Win^.Component);
-  originGroup.SetBounds(dirGroup.Left + dirGroup.Width + nbw, tp, (searchEdt.Left + searchEdt.Width) - (dirGroup.Width + dirGroup.Left + nbW), FH * 5);
+  originGroup.SetBounds(dirGroup.Left + dirGroup.Width + nbw, tp, (searchEdt.Left + searchEdt.Width) - (dirGroup.Width + dirGroup.Left + nbW), FH * 5 + 8);
   originGroup.AddItem('Start of BASIC');
   originGroup.AddItem('Cursor pos');
   originGroup.Caption := 'Origin';

@@ -63,6 +63,7 @@ SP_PopupMenu = Class(SP_BaseComponent)
     fAltDown: Boolean;
     fShortcutLen: Integer;
     fCapOfs: Integer;
+    fMenuClr: Byte;
 
     Compiled_OnSelect,
     User_OnSelect: aString;
@@ -208,10 +209,10 @@ Begin
 
   fTypeName := 'spSubMenu';
 
-  fTransparentClr := 3;
+  fBackgroundClr := 3;
   PrevFocusedControl := FocusedControl;
   fParentMenu := SP_PopupMenu(ParentMenu);
-  fTransparent := False;
+  fTransparent := True;
   fCanFocus := True;
   Visible := False;
   fSelected := -1;
@@ -220,11 +221,11 @@ Begin
   If Assigned(ParentMenu) Then Begin
     fDisabledFontClr := SP_WindowMenu(ParentMenu).fDisabledFontClr;
     fHighlightClr := SP_WindowMenu(ParentMenu).fHighlightClr;
-    fBackgroundClr := SP_WindowMenu(ParentMenu).fSubMenuClr;
+    fMenuClr := SP_WindowMenu(ParentMenu).fSubMenuClr;
   End Else Begin
     fDisabledFontClr := SP_UITextDisabled;
     fHighlightClr := SP_UISelection;
-    fBackgroundClr := SP_UIBackground;
+    fMenuClr := SP_UIBackground;
   End;
   AddOverrideControl(Self);
   fAltDown := False;
@@ -389,16 +390,16 @@ Begin
 
   cfW := Round(iFW * iSX);
 
-  FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
+  FillRect(0, 0, fWidth, fHeight, fMenuClr);
   if fBorder Then Begin
     DrawRect(0, 0, fWidth -1, fHeight -1, fBorderClr);
     DrawRect(0, 0, fWidth -2, fHeight -2, fBorderClr);
-    SetPixel(fWidth -1, 0, 3);
-    SetPixel(0, fHeight -1, 3);
+    SetPixel(fWidth -1, 0, fBackgroundClr);
+    SetPixel(0, fHeight -1, fBackgroundClr);
     If Assigned(fParentMenu) and (fParentMenu is SP_WindowMenu) Then Begin
       i := SP_WindowMenu(fParentMenu).fCapWidth;
       if i > 0 Then
-        DrawLine(1 + fCapOfs, 0, i + fCapOfs, 0, fBackgroundClr);
+        DrawLine(1 + fCapOfs, 0, i + fCapOfs, 0, fMenuClr);
     End;
   End;
 
@@ -413,7 +414,7 @@ Begin
         c := fHighlightClr;
         ic := fFontClr;
       end else Begin
-        c := fBackGroundClr;
+        c := fMenuClr;
         ic := fDisabledFontClr;
       End;
       If Selected Then Begin
@@ -692,7 +693,7 @@ Begin
   SubMenu.fDisabledFontClr := fDisabledFontClr;
   SubMenu.fHighlightClr := fHighlightClr;
   SubMenu.fSepClr := fSepClr;
-  SubMenu.fBackgroundClr := fBackgroundClr;
+  SubMenu.fMenuClr := fMenuClr;
   CalculateSizes;
 
 End;
@@ -706,11 +707,11 @@ Begin
     If fParentMenu is SP_WindowMenu Then Begin
       fDisabledFontClr := SP_WindowMenu(fParentMenu).fDisabledFontClr;
       fHighlightClr := SP_WindowMenu(fParentMenu).fHighlightClr;
-      fBackgroundClr := SP_WindowMenu(fParentMenu).fSubMenuClr;
+      fMenuClr := SP_WindowMenu(fParentMenu).fSubMenuClr;
     End Else Begin
       fDisabledFontClr := SP_PopUpMenu(fParentMenu).fDisabledFontClr;
       fHighlightClr := SP_PopUpMenu(fParentMenu).fHighlightClr;
-      fBackgroundClr := SP_PopUpMenu(fParentMenu).fBackgroundClr;
+      fMenuClr := SP_PopUpMenu(fParentMenu).fMenuClr;
     End;
   End;
 

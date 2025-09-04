@@ -105,7 +105,6 @@ SP_BaseComponent = Class
     fNumComponents: Integer;
     fSize: Integer;
     fLockCount: Integer;
-    fTransparentClr: Word;
     fValidCanvas: Boolean;
     fWindowID: Integer;
     fSetLeft, fSetTop, fSetWidth, fSetHeight: Integer;
@@ -1441,7 +1440,6 @@ Begin
     fParentControl := nil;
   End;
 
-  fTransparentClr := $FFFF;
   If fParentType = spWindow Then Begin
     fBorderClr := SP_UIBorder;
     fBackgroundClr := SP_UIBackground;
@@ -1827,7 +1825,6 @@ Begin
       SP_AddOnEvent(Compiled_OnPaintBefore);
 
     Draw;
-    CopyToParentCanvas;
 
     If Assigned(fOnPaintAfter) Then
       fOnPaintAfter(Self);
@@ -2092,10 +2089,7 @@ Begin
 
   If fValidCanvas Then
     If fErase Then
-      If not fTransparent Then
-        FillMem(@fCanvas[0], Length(fCanvas), fBackgroundClr)
-      else
-        CopyParentCanvas;
+      FillMem(@fCanvas[0], Length(fCanvas), fBackgroundClr)
 
 End;
 
@@ -2192,8 +2186,8 @@ Begin
     Src := @fTempCanvas[0];
     Inc(Src, (W * SrcY) + SrcX);
     Inc(Dst, (dW * dY) + dX);
-    If fTransparentClr <> $FFFF Then Begin
-      TC := fTransparentClr And $FF;
+    If fTransparent Then Begin
+      TC := fBackgroundClr And $FF;
       While SrcH > 0 Do Begin
         W2 := SrcW;
         While W2 > 0 Do Begin

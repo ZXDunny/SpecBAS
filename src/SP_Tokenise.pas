@@ -2816,13 +2816,13 @@ Begin
                   Inc(Idx2);
                 Dec(Idx2, Idx);
                 NewSyntax := labClr;
-              End Else
-                If Ch = '{' Then Begin
-                  Idx2 := Idx +1;
-                  While (Idx2 <= L) And (CodeLine[Idx2] <> '}') Do
-                    Inc(Idx2);
-                  Dec(Idx2, Idx -1);
-                  NewSyntax := RemClr;
+//              End Else
+//                If Ch = '{' Then Begin
+//                  Idx2 := Idx +1;
+//                  While (Idx2 <= L) And (CodeLine[Idx2] <> '}') Do
+//                    Inc(Idx2);
+//                  Dec(Idx2, Idx -1);
+//                  NewSyntax := RemClr;
                 End Else
                   If CodeLine[Idx] = '"' Then Begin // String constant
                     ProcessString:

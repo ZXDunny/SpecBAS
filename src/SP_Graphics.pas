@@ -2622,28 +2622,21 @@ End;
 
 Procedure SP_DrawThickLine(X1, Y1, X2, Y2: aFloat);
 Var
-  xa, ya, xb, yb, angle, app, amp, w: aFloat;
+  dx, dy, d: aFloat;
   Points: Array[0..3] of TSP_Point;
 Begin
 
-  angle := arctan2(y2-y1, x2-x1);
-  app := angle + PI / 2; amp := angle - PI / 2;
-  w := T_STROKE / 2;
+  // Thanks to Richard Russell (of BBC BASIC fame) for the updated
+  // end point calculation.
 
-  xa := x1 + W * Cos(angle + PI);
-  ya := y1 + W * Sin(angle + PI);
-  xb := x2 + W * Cos(angle);
-  yb := y2 + W * Sin(angle);
+  dx := X2 - X1; dy := Y2 - Y1;
+  d := T_STROKE / 2 / Sqrt(dx * dx + dy * dy);
+  dx := dx * d; dy := dy * d;
 
-  Points[0].x := xa + W * Cos(app);
-  Points[0].y := ya + W * Sin(app);
-  Points[1].x := xa + W * Cos(amp);
-  Points[1].y := ya + W * Sin(amp);
-
-  Points[2].x := xb + W * Cos(amp);
-  Points[2].y := yb + W * Sin(amp);
-  Points[3].x := xb + W * Cos(app);
-  Points[3].y := yb + W * Sin(app);
+  Points[0].x := X1 + dy; Points[0].y := Y1 - dx;
+  Points[1].x := X1 - dy; Points[1].y := Y1 + dx;
+  Points[2].x := X2 - dy; Points[2].y := Y2 + dx;
+  Points[3].x := X2 + dy; Points[3].y := Y2 - dx;
 
   SP_PolygonSolidFill(Points, False);
 
@@ -7809,6 +7802,14 @@ Var
   Ch: Byte;
   p: pByte;
 
+  Procedure ConvertDelta_d(Var x, y: aFloat);
+  Begin
+    If WINSCALE Then Begin
+      x := x / WINSCALEX;
+      y := y / WINSCALEY;
+    End;
+  End;
+
   Procedure Draw(Dir: aFloat);
   Var
     Dist, Hdg, dX, dY, oDx, oDy: aFloat;
@@ -7820,20 +7821,25 @@ Var
 
     dX := Dist * Cos(Hdg);
     dY := Dist * Sin(Hdg);
-    SP_ConvertToOrigin_d(dX, dY);
+    ConvertDelta_d(dX, dY);
     odX := DRPOSX;
     odY := DRPOSY;
+
     If WINFLIPPED Then dY := -dY;
-    If DoPlot Then
-      SP_DrawLine(dX, dY)
-    Else Begin
+
+    If DoPlot Then Begin
+      SP_SetPixel(odX, odY);
+      SP_DrawLine(dX, dY);
+    End Else Begin
       DRPOSX := DRPOSX + dX;
       DRPOSY := DRPOSY + dY;
     End;
+
     If Return Then Begin
       DRPOSX := odX;
       DRPOSY := odY;
     End;
+
     DoPlot := True;
     Return := False;
     SP_NeedDisplayUpdate := True;
@@ -7891,7 +7897,7 @@ Var
     If IsString And (p^ = Ord('$')) Then Begin LastString := LastString + '$'; Inc(p); End;
   End;
 
-  Procedure GetNumber;
+  Procedure GetNumber(Default: aFloat);
   Var
     Dv: aFloat;
     Dc: Integer;
@@ -7933,6 +7939,8 @@ Var
       End;
       if Neg Then LastNum := -LastNum;
     End;
+    If LastNum = 0 Then
+      LastNum := Default;
   End;
 
   Procedure Pyth;
@@ -7957,52 +7965,52 @@ Begin
       Ord('U'): // Up
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(1);
           Draw(-Pi/2);
         End;
       Ord('D'): // Down
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(1);
           Draw(Pi/2);
         End;
       Ord('L'): // Left
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(1);
           Draw(Pi);
         End;
       Ord('R'): // Right
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(1);
           Draw(0);
         End;
       Ord('E'): // Up+Right
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(1);
           Pyth;
           Draw(-Pi/4);
         End;
       Ord('F'): // Down+Right
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(1);
           Pyth;
           Draw(Pi/4);
         End;
       Ord('G'): // Down+Left
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(1);
           Pyth;
           Draw(-Pi*1.25);
         End;
       Ord('H'): // Up+Left
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(1);
           Pyth;
           Draw(Pi*1.25);
         End;
@@ -8010,10 +8018,10 @@ Begin
         Begin
           Inc(p);
           Relative := p^ in [Ord('-'), Ord('+')];
-          GetNumber;
+          GetNumber(1);
           Xc := LastNum;
           If p^ <> Ord(',') Then Exit Else Inc(p);
-          GetNumber;
+          GetNumber(1);
           Yc := LastNum;
           If Relative Then Begin
             Xc := Xc * GWScaleFactor;
@@ -8034,37 +8042,37 @@ Begin
       Ord('A'): // Set Angle, 0 to 3 for each quadrant
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(0);
           DRHEADING := -LastNum * (Pi / 2);
         End;
       Ord('T'): // Set an angle in degrees (0 to 359)
         Begin
           Inc(p);
           If p^ in [Ord('A'), Ord('a')] Then Inc(p);
-          GetNumber;
+          GetNumber(0);
           DRHEADING := -DegToRad(LastNum);
           SP_RadToAngle(DRHEADING);
         End;
       Ord('C'): // Set Colour (INK)
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(0);
           CINK := Round(LastNum); // Persist between DRAW statements
           T_INK := CINK;
         End;
       Ord('S'): // Set Scaling. Divide by 4.
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(0);
           GWScaleFactor := LastNum / 4;
         End;
       Ord('P'): // Paint fill colour,boundary colour
         Begin
           Inc(p);
-          GetNumber;
+          GetNumber(0);
           Xc := LastNum;
           If p^ <> Ord(',') Then Exit Else Inc(p);
-          GetNumber;
+          GetNumber(0);
           Yc := LastNum;
           Paint;
         End;

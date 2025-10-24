@@ -7918,6 +7918,7 @@ Var
       GetVarName(False);
       Dc := SP_FindNumVar(Lower(LastString));
       If Dc > -1 Then Begin
+        Found := True;
         LastNum := NumVars[Dc]^.ContentPtr^.Value;
       End Else Begin
         Error.Code := SP_ERR_MISSING_VAR;

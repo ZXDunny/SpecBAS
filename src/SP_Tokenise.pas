@@ -2816,68 +2816,61 @@ Begin
                   Inc(Idx2);
                 Dec(Idx2, Idx);
                 NewSyntax := labClr;
-//              End Else
-//                If Ch = '{' Then Begin
-//                  Idx2 := Idx +1;
-//                  While (Idx2 <= L) And (CodeLine[Idx2] <> '}') Do
-//                    Inc(Idx2);
-//                  Dec(Idx2, Idx -1);
-//                  NewSyntax := RemClr;
-                End Else
-                  If CodeLine[Idx] = '"' Then Begin // String constant
-                    ProcessString:
-                    Idx2 := Idx +1;
-                    StringDone := False;
-                    While (Idx2 <= L) Do Begin
-                      If CodeLine[Idx2] = '"' Then Begin
-                        StringDone := True;
-                        If Idx2 < L Then
-                          If CodeLine[Idx2 +1] <> '"' Then
-                            Break
-                          Else
-                            Inc(Idx2);
-                      End;
-                      Inc(Idx2);
+              End Else
+                If CodeLine[Idx] = '"' Then Begin // String constant
+                  ProcessString:
+                  Idx2 := Idx +1;
+                  StringDone := False;
+                  While (Idx2 <= L) Do Begin
+                    If CodeLine[Idx2] = '"' Then Begin
+                      StringDone := True;
+                      If Idx2 < L Then
+                        If CodeLine[Idx2 +1] <> '"' Then
+                          Break
+                        Else
+                          Inc(Idx2);
                     End;
-                    Dec(Idx2, Idx -1);
-                    NewSyntax := StrClr;
+                    Inc(Idx2);
+                  End;
+                  Dec(Idx2, Idx -1);
+                  NewSyntax := StrClr;
+                End Else
+                  If Ch = '=' Then Begin
+                    NewSyntax := relClr
                   End Else
-                    If Ch = '=' Then Begin
-                      NewSyntax := relClr
+                    If Ch in ['(', ')', '[', ']'] Then Begin
+                      NewSyntax := BraceClr;
                     End Else
-                      If Ch in ['(', ')', '[', ']'] Then Begin
-                        NewSyntax := BraceClr;
-                      End Else
-                        If Ch = '#' Then Begin
-                          Idx2 := Idx +1;
-                          NewSyntax := symClr;
-                          If Idx2 <= L Then
-                            If Copy(CodeLine, Idx2, 2) = '0x' Then Begin
-                              Inc(Idx2, 2); sIdx := Idx2;
-                              While (Idx2 <= L) And (CodeLine[Idx2] in ['0'..'9', 'a'..'f', 'A'..'F']) Do
-                                Inc(Idx2);
+                      If Ch = '#' Then Begin
+                        Idx2 := Idx +1;
+                        NewSyntax := symClr;
+                        If Idx2 <= L Then
+                          If Copy(CodeLine, Idx2, 2) = '0x' Then Begin
+                            Inc(Idx2, 2); sIdx := Idx2;
+                            While (Idx2 <= L) And (CodeLine[Idx2] in ['0'..'9', 'a'..'f', 'A'..'F']) Do
+                              Inc(Idx2);
+                            If Idx2 < sIdx Then NewSyntax := strClr;
+                          End Else
+                            If CodeLine[Idx2] in ['0'..'9'] Then Begin
+                              While (Idx2 <= L) And (CodeLine[Idx2] in ['0'..'9']) Do
+                                Inc(Idx2); sIdx := Idx2;
                               If Idx2 < sIdx Then NewSyntax := strClr;
                             End Else
-                              If CodeLine[Idx2] in ['0'..'9'] Then Begin
-                                While (Idx2 <= L) And (CodeLine[Idx2] in ['0'..'9']) Do
-                                  Inc(Idx2); sIdx := Idx2;
+                              If CodeLine[Idx2] = '%' Then Begin
+                                Inc(Idx2); sIdx := Idx2;
+                                While (Idx2 <= L) And (CodeLine[Idx2] in ['0', '1']) Do
+                                  Inc(Idx2);
                                 If Idx2 < sIdx Then NewSyntax := strClr;
                               End Else
-                                If CodeLine[Idx2] = '%' Then Begin
+                                If CodeLine[Idx2] = '$' Then Begin
                                   Inc(Idx2); sIdx := Idx2;
-                                  While (Idx2 <= L) And (CodeLine[Idx2] in ['0', '1']) Do
+                                  While (Idx2 <= L) And (CodeLine[Idx2] in ['0'..'9', 'a'..'f', 'A'..'F']) Do
                                     Inc(Idx2);
                                   If Idx2 < sIdx Then NewSyntax := strClr;
-                                End Else
-                                  If CodeLine[Idx2] = '$' Then Begin
-                                    Inc(Idx2); sIdx := Idx2;
-                                    While (Idx2 <= L) And (CodeLine[Idx2] in ['0'..'9', 'a'..'f', 'A'..'F']) Do
-                                      Inc(Idx2);
-                                    If Idx2 < sIdx Then NewSyntax := strClr;
-                                  End;
-                        Dec(Idx2, Idx );
-                      End Else
-                        NewSyntax := symClr;
+                                End;
+                      Dec(Idx2, Idx );
+                    End Else
+                      NewSyntax := symClr;
           Wd := Copy(CodeLine, Idx, Idx2);
           Inc(Idx, Idx2);
         End;

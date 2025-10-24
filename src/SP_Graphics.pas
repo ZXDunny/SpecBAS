@@ -2622,21 +2622,28 @@ End;
 
 Procedure SP_DrawThickLine(X1, Y1, X2, Y2: aFloat);
 Var
-  dx, dy, d: aFloat;
+  xa, ya, xb, yb, angle, app, amp, w: aFloat;
   Points: Array[0..3] of TSP_Point;
 Begin
 
-  // Thanks to Richard Russell (of BBC BASIC fame) for the updated
-  // end point calculation.
+  angle := arctan2(y2-y1, x2-x1);
+  app := angle + PI / 2; amp := angle - PI / 2;
+  w := T_STROKE / 2;
 
-  dx := X2 - X1; dy := Y2 - Y1;
-  d := T_STROKE / 2 / Sqrt(dx * dx + dy * dy);
-  dx := dx * d; dy := dy * d;
+  xa := x1 + W * Cos(angle + PI);
+  ya := y1 + W * Sin(angle + PI);
+  xb := x2 + W * Cos(angle);
+  yb := y2 + W * Sin(angle);
 
-  Points[0].x := X1 + dy; Points[0].y := Y1 - dx;
-  Points[1].x := X1 - dy; Points[1].y := Y1 + dx;
-  Points[2].x := X2 - dy; Points[2].y := Y2 + dx;
-  Points[3].x := X2 + dy; Points[3].y := Y2 - dx;
+  Points[0].x := xa + W * Cos(app);
+  Points[0].y := ya + W * Sin(app);
+  Points[1].x := xa + W * Cos(amp);
+  Points[1].y := ya + W * Sin(amp);
+
+  Points[2].x := xb + W * Cos(amp);
+  Points[2].y := yb + W * Sin(amp);
+  Points[3].x := xb + W * Cos(app);
+  Points[3].y := yb + W * Sin(app);
 
   SP_PolygonSolidFill(Points, False);
 
@@ -7901,10 +7908,11 @@ Var
   Var
     Dv: aFloat;
     Dc: Integer;
-    Neg: Boolean;
+    Neg, Found: Boolean;
   Begin
     Neg := False;
     LastNum := 0;
+    Found := False;
     If (NativeUInt(p) < Len) And (p^ = Ord('=')) Then Begin
       Inc(p);
       GetVarName(False);
@@ -7922,6 +7930,7 @@ Var
       End;
       While (NativeUInt(p) < Len) And (p^ in [Ord('0')..Ord('9')]) Do Begin
         LastNum := (LastNum * 10) + p^ - 48;
+        Found := True;
         Inc(p);
       End;
       If NativeUint(p) < Len Then Begin
@@ -7931,16 +7940,16 @@ Var
           While (NativeUint(p) < Len) And (p^ in [Ord('0')..Ord('9')]) Do Begin
             Dv := ((p^ - 48) / Dc) + Dv;
             Dc := Dc * 10;
+            Found := True;
             Inc(p);
           End;
           If Dv <> 0 Then
             LastNum := LastNum + Dv;
         End;
       End;
-      if Neg Then LastNum := -LastNum;
     End;
-    If LastNum = 0 Then
-      LastNum := Default;
+    If Not Found Then LastNum := Default;
+    if Neg Then LastNum := -LastNum;
   End;
 
   Procedure Pyth;
@@ -8110,6 +8119,3 @@ Finalization
   DisplaySection.Free;
 
 end.
-
-
-

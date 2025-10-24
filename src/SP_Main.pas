@@ -380,7 +380,7 @@ End;
 
 Function SP_GetStatementFromOffset(Line, Offset: Integer): Integer;
 Var
-  numStatements: Integer;
+  numStatements, r: Integer;
   ofs1, ofs2: LongWord;
   Tokens: paString;
   Idx: pByte;
@@ -400,9 +400,11 @@ Begin
     Inc(Idx, SizeOf(LongWord));
 
     If NumStatements >= 1 Then Begin
-      For Result := 1 To numStatements Do Begin
+      Result := 0;
+      For r := 1 To numStatements Do Begin
+        Inc(Result);
         ofs1 := pLongWord(Idx)^;
-        If Result = numStatements Then
+        If r = numStatements Then
           ofs2 := Length(Tokens^)
         Else
           ofs2 := pLongWord(NativeUInt(Idx) + SizeOf(LongWord))^;

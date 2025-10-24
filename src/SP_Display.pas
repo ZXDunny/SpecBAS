@@ -976,7 +976,7 @@ Function SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen, AllowRes
 Var
   oW, oH: Integer; // Old output width/height
   oFS: Boolean;
-  l, t, w, h: NativeInt; // Target window left, top, width, height for SendMessage
+  l, t: NativeInt; // Target window left, top, width, height for SendMessage
   r: TRect;
 Begin
   SetPerformingDisplayChange(True);
@@ -1034,12 +1034,6 @@ Begin
       SetScreenResolution(sWidth, sHeight, FullScreen); // This changes physical screen res / window style
     End Else
       {$IFDEF OpenGL}ReScaleFlag := True{$ENDIF}; // Only scaling parameters changed, or no change
-
-    // Now, set the window size and position
-    // w, h here are the target Main.Width, Main.Height (including borders etc.)
-    // sWidth, sHeight are target Main.ClientWidth, Main.ClientHeight
-    w := sWidth;  // Target client width
-    h := sHeight; // Target client height
 
     SystemParametersInfo(SPI_GETWORKAREA, 0, @r, 0);
 

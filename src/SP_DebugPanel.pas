@@ -154,8 +154,6 @@ Begin
   FPDebugPanel.AllowLiterals := True;
 
   With FPDebugCombo Do Begin
-    BackgroundClr := debugCombo;
-    Transparent := False;
     SetBounds(Win^.Width - BSize - FPDebugPanelWidth, FPClientTop + BSize, Trunc(FPDebugPanelWidth * EDFONTSCALEX), FH);
     AddItem('Variables');
     AddItem('Watches');
@@ -166,9 +164,6 @@ Begin
     ItemIndex := LastDebugPanelIndex;
     CanFocus := False;
     FPDebugPanel.SetBounds(Left, Top + Height + BSize, Width, FPPaperHeight - (Height + BSize));
-    FPDebugPanel.BackgroundClr := debugPanel;
-    FPDebugPanel.HeaderClr := BackgroundClr;
-    FPDebugPanel.Transparent := False;
     FPDebugPanel.OnFocus := SP_DebugPanelActionProcs.SetFocus;
     FPDebugPanel.SortByAlpha := True;
     FPDebugPanel.OnChoose := SP_DebugPanelActionProcs.DblClick;

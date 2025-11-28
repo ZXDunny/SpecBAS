@@ -75,6 +75,7 @@ SP_PopupMenu = Class(SP_BaseComponent)
     Procedure SetDisabledFontClr(c: Byte); Override;
     Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetSeparatorClr(c: Byte);
+    Procedure SetBackgroundClr(c: Byte); Override;
 
     Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
@@ -244,6 +245,14 @@ Begin
 
 End;
 
+Procedure SP_PopUpMenu.SetBackgroundClr(c: Byte);
+Begin
+
+  fBackgroundClr := 3;
+  fMenuClr := c;
+
+End;
+
 Procedure SP_PopupMenu.SetDisabledFontClr(c: Byte);
 Var
   i: Integer;
@@ -392,11 +401,12 @@ Begin
 
   FillRect(0, 0, fWidth, fHeight, fMenuClr);
   if fBorder Then Begin
-    DrawRect(0, 0, fWidth -1, fHeight -1, fBorderClr);
+    DrawRect(0, 0, fWidth -1, fHeight -1, fShadowClr);
     DrawRect(0, 0, fWidth -2, fHeight -2, fBorderClr);
     SetPixel(fWidth -1, 0, fBackgroundClr);
     SetPixel(0, fHeight -1, fBackgroundClr);
     If Assigned(fParentMenu) and (fParentMenu is SP_WindowMenu) Then Begin
+      SetPixel(fWidth -1, 3, fBorderClr);
       i := SP_WindowMenu(fParentMenu).fCapWidth;
       if i > 0 Then
         DrawLine(1 + fCapOfs, 0, i + fCapOfs, 0, fMenuClr);

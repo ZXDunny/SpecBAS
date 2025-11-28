@@ -44,10 +44,12 @@ SP_ComboBox = Class(SP_BaseComponent)
 
   Public
 
+    Procedure Draw; Override;
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
     Procedure PerformKeyUp(Var Handled: Boolean); Override;
     Procedure SetBackgroundClr(c: Byte); Override;
     Procedure SetFontClr(c: Byte); Override;
+    Procedure SetShadowClr(c: Byte); Override;
     Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetDisabledFontClr(c: Byte); Override;
     Procedure SetChainControl(c: SP_BaseComponent); Override;
@@ -112,6 +114,8 @@ Begin
 
   fTypeName := 'spDropDown';
 
+  Transparent := True;
+  fBackGroundClr := 3;
   Edit := SP_Edit.Create(Self);
   Edit.Visible := False;
   fEditable := False;
@@ -126,13 +130,17 @@ Begin
   Edit.OnAccept := EditAccept;
   Edit.OnChange := EditChange;
   Edit.AllowLiterals := False;
+  Edit.fShadow := False;
   Btn := SP_Button.Create(Self);
   Btn.OnClick := OnBtnClick;
   Btn.OverrideScaling := True;
   Btn.Enabled := False;
+  Btn.fShadow := False;
+  Btn.Transparent := True;
   Border := True;
   CanFocus := True;
   fItemIndex := -1;
+  fShadow := True;
 
 End;
 
@@ -200,6 +208,22 @@ Begin
   Menu.BackgroundClr := c;
   Labl.BackgroundClr := c;
   Btn.BackgroundClr := c;
+
+  If c = 3 then // Ensure we get a proper transparency if the user selects index 3 as the background.
+    c := 4
+  else
+    c := 3;
+  Inherited;
+
+End;
+
+Procedure SP_ComboBox.SetShadowClr(c: Byte);
+Begin
+
+  Edit.ShadowClr := c;
+  Menu.ShadowClr := c;
+  Labl.ShadowClr := c;
+  Btn.ShadowClr := c;
   Inherited;
 
 End;
@@ -310,7 +334,7 @@ Begin
   If Assigned(Menu) Then Begin
 
     h := Max(ifH, Edit.Height);
-    Menu.MinWidth := w;
+    Menu.MinWidth := w + 1;
     Inherited;
 
     PlaceItems;
@@ -333,6 +357,13 @@ Begin
 
   Edit.Visible := Editable;
   Labl.Visible := Not Editable;
+
+End;
+
+Procedure SP_ComboBox.Draw;
+Begin
+
+  FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
 
 End;
 

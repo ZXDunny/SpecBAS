@@ -61,7 +61,7 @@ Begin
   fAlign := -1;
   fCaption := '';
   fTransparent := True;
-  fBackgroundClr := 255;
+  fBackgroundClr := SP_UIBtnBack;
   fBorder := False;
   fLines := TStringlist.Create;
 

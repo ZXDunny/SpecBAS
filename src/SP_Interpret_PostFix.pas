@@ -13278,6 +13278,9 @@ Begin
       Tkns := COMMAND_TOKENS;
     End;
 
+    If LineItem.Statement = -1 Then
+      Goto Jump;
+
     While LineItem.Line < SP_Program_Count Do Begin
       Position := LineItem.Statement;
       While Position <= Length(Tkns) Do Begin

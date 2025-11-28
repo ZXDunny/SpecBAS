@@ -131,7 +131,7 @@ Begin
     y := iy + Round(sp);
     For i := 0 To Count -1 Do Begin
       If fBorder Then
-        fItems[i].SetBounds(cFW, y, Width - cFW -1, cFH + hm)
+        fItems[i].SetBounds(cFW, y, Width - cFW -1, cFH + hm + 1)
       Else
         fItems[i].SetBounds(0, y, Width -1, cFH + hm);
       Inc(y, Round(cfH + sp));
@@ -226,6 +226,7 @@ Begin
   fItems[l].GroupIndex := Ord(IsRadioGroup);
   fItems[l].CheckColour := fCheckColor;
   fItems[l].fBorder := Not IsRadioGroup;
+  fItems[l].fShadowClr := ShadowClr;
   If fItems[l].Checked Then fItemIndex := l;
   PlaceItems;
   Paint;
@@ -252,6 +253,7 @@ Begin
   fItems[Index].CheckColour := fCheckColor;
   fItems[Index].GroupIndex := Ord(IsRadioGroup);
   fItems[Index].fBorder := Not IsRadioGroup;
+  fItems[Index].fShadowClr := ShadowClr;
   If fItems[Index].Checked Then fItemIndex := Index;
   PlaceItems;
   Paint;

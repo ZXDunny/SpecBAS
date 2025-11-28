@@ -90,7 +90,7 @@ Const
   SP_UIHalfLight                  = 249;
   SP_UI_HalfShadow                = 234;
   SP_UIShadow                     = 240;
-  SP_UIBtnBack                    = 248;
+  SP_UIBtnBack                    = 251; //248;
   SP_UIBtnBackFocus               = 248;
   SP_UIText                       = 0;
   SP_UITextDisabled               = 8;
@@ -100,7 +100,7 @@ Const
   SP_UISelectionUnfocusedOutline  = 0;
   SP_UIUnfocusedSelection         = 8;
   SP_UIBorder                     = 0;
-  SP_UIBackground                 = 7;
+  SP_UIBackground                 = 251;
   SP_UIMenuSeparator              = 8;
   SP_UIScrollThumb                = 0;
   SP_UIScrollTrack                = 8;
@@ -768,6 +768,7 @@ Begin
     End;
     If Assigned(Control) Then Begin
       Control.fIDNumber := SP_GetNextControlID;
+      Control.ShadowClr := 0;
       Control.SetBounds(x, y, w, h);
       Result := Control.fIDNumber;
       ControlRegistry.Add(Result, Control);

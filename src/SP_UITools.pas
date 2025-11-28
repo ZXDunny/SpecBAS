@@ -352,6 +352,7 @@ Begin
   pBtn.Enabled := True;
 
   PathEdt := SP_Edit.Create(Win^.Component);
+  PathEdt.BackgroundClr := SP_UIBackground;
   PathEdt.SetBounds(pBtn.Left + pBtn.Width + nBw, pBtn.Top, w - pBtn.Width - (nBw * 3), Fh);
   If PackageIsOpen Then
     Str := SP_GetPackageDir
@@ -379,6 +380,7 @@ Begin
   okBtn.CentreCaption;
 
   FilenameEdt := SP_Edit.Create(Win^.Component);
+  FilenameEdt.BackgroundClr := SP_UIBackground;
   FilenameEdt.SetBounds(pBtn.Left, okBtn.Top - (Fh + 6 + nBh), pBtn.Width + nBw + PathEdt.Width, Fh);
   If SP_FileExists(Filename) Then
     FilenameEdt.Text := SP_ExtractFileName(Filename)
@@ -502,6 +504,7 @@ Begin
     searchEdt.Editable := True;
     replaceEdt := SP_ComboBox.Create(Win^.Component);
     replaceEdt.AddStrings(ReplaceHistory);
+    replaceEdt.BackgroundClr := SP_UIBackground;
     replaceEdt.SetBounds(searchEdt.Left, searchLbl.Top + searchLbl.Height + nbh, searchEdt.Width, searchLbl.Height);
     replaceEdt.Editable := True;
     replaceEdt.OnAccept := Accept;
@@ -751,7 +754,7 @@ Begin
     FW := FONTWIDTH;
   End;
 
-  w := (45 * FW) + (Bh * 2);
+  w := ((5 + Max(Length(Caption), 10)) * FW) + (Bh * 2);
   h := ((FH + 6) * 2) + FPCaptionHeight + (Bh * 3);
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
   SP_GetWindowDetails(FDWindowID, Win, Error);
@@ -963,11 +966,14 @@ begin
   cmbType.BackgroundClr := SP_UIBackground;
 
   edtLine := SP_Edit.Create(Win^.Component);
+  edtLine.BackgroundClr := SP_UIBackground;
   edtLine.OnChange := edtLineChange;
   edtCondition := SP_Edit.Create(Win^.Component);
+  edtCondition.BackgroundClr := SP_UIBackground;
   edtCondition.OnChange := edtLineChange;
   edtCondition.AllowLiterals := True;
   edtPassCount := SP_Edit.Create(Win^.Component);
+  edtPassCount.BackgroundClr := SP_UIBackground;
   edtPassCount.OnChange := edtLineChange;
 
   lblLine := SP_Label.Create(Win^.Component);

@@ -98,6 +98,7 @@ Begin
   fTrackFillDisabledColour := 8;
   fKind := spHorizontal;
   fMouseIsDown := False;
+  fShadow := True;
 
 End;
 

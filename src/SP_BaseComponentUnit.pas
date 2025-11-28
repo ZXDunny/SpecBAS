@@ -120,6 +120,8 @@ SP_BaseComponent = Class
     fOnFocus: SP_FocusEvent;
     fName: aString;
     fBorder: Boolean;
+    fShadow: Boolean;
+    fShadowClr: Byte;
     fBorderClr: Byte;
     fTransparent: Boolean;
     fMinWidth, fMinHeight, fMaxWidth, fMaxHeight: Integer;
@@ -195,6 +197,8 @@ SP_BaseComponent = Class
     Procedure SetFontClr(c: Byte); Virtual;
     Procedure SetErrorClr(c: Byte); Virtual;
     Procedure SetDisabledFontClr(c: Byte); Virtual;
+    Procedure SetShadow(b: Boolean); Virtual;
+    Procedure SetShadowClr(c: Byte); Virtual;
     Procedure SetAlign(newAlign: Integer); Virtual;
     Procedure SetOnFocus(e: SP_FocusEvent); Virtual;
     Procedure SetOverrideScaling(b: Boolean);
@@ -273,6 +277,8 @@ SP_BaseComponent = Class
     Procedure Set_Anchors(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Anchors: aString;
     Procedure Set_BackgroundClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_BackgroundClr: aString;
     Procedure Set_FontClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_FontClr: aString;
+    Procedure Set_Shadow(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Shadow: aString;
+    Procedure Set_ShadowClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ShadowClr: aString;
     Procedure Set_ErrorClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ErrorClr: aString;
     Procedure Set_Width(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Width: aString;
     Procedure Set_Height(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Height: aString;
@@ -342,6 +348,8 @@ SP_BaseComponent = Class
     Property OnPaintAfter:  SP_PaintEvent       read fOnPaintAfter  write fOnPaintAfter;
     Property BackgroundClr: Byte                read fBackgroundClr write SetBackgroundClr;
     Property FontClr:       Byte                read fFontClr       write SetFontClr;
+    Property Shadow:        Boolean             read fShadow        write SetShadow;
+    Property ShadowClr:     Byte                read fShadowClr     write SetShadowClr;
     Property ErrorClr:      Byte                read fErrorClr      write SetErrorClr;
     Property Width:         Integer             read fWidth         write SetWidth;
     Property Height:        Integer             read fHeight        write SetHeight;
@@ -1298,6 +1306,9 @@ Begin
   x1 := 0; y1 := 0; x2 := Width -1; y2 := Height -1;
 
   DrawRect(x1, y1, x2, y2, 0);
+  Fillrect(x1+1, y1+1, x2-1, y2-1, SP_UIBtnBack);
+  exit;
+
   Inc(x1); Inc(y1); Dec(x2); Dec(y2);
   If Pressed Then Begin
     DrawRect(x1, y1, x2, y2, 0);
@@ -1327,6 +1338,10 @@ Begin
   If ValidRect(r) Then Begin
 
     x1 := r.Left; y1 := r.Top; x2 := r.Right -1; y2 := r.Bottom -1;
+
+    DrawRect(x1, y1, x2, y2, 0);
+    Fillrect(x1+1, y1+1, x2-1, y2-1, SP_UIBtnBack);
+    exit;
 
     FillRect(x1, y1, x2, y2, 0);
     Inc(x1); Inc(y1); Dec(x2); Dec(y2);
@@ -1455,6 +1470,8 @@ Begin
     fUnfocusedHighlightClr := Owner.fUnfocusedHighlightClr;
     fHighlightClr := Owner.fHighlightClr;
   End;
+  fShadow := False;
+  fShadowClr := 238;
   fTransparent := False;
   fErrorClr := 2;
   fEnabled := True;
@@ -1854,6 +1871,26 @@ Begin
 
 End;
 
+Procedure SP_BaseComponent.SetShadow(b: Boolean);
+Begin
+
+  If fShadow <> b Then Begin
+    fShadow := b;
+    Paint;
+  End;
+
+End;
+
+Procedure SP_BaseComponent.SetShadowClr(c: Byte);
+Begin
+
+  If fShadowClr <> c Then Begin
+    fShadowClr := c;
+    Paint;
+  End;
+
+End;
+
 Procedure SP_BaseComponent.SetUnfocusedHighlightClr(c: Byte);
 Begin
 
@@ -2149,8 +2186,8 @@ End;
 
 Procedure SP_BaseComponent.Render(Dst: pByte; dW, dH: Integer);
 Var
-  dX, dY, W, W2, SrcX, SrcY, SrcW, SrcH, Idx: Integer;
-  Src: pByte;
+  dX, dY, W, W2, SrcX, SrcY, SrcW, SrcH, Idx, x1, y1, x2, y2: Integer;
+  Src, Ptr: pByte;
   TC: Byte;
 Begin
 
@@ -2183,6 +2220,7 @@ Begin
     If dX + W2 >= dW Then SrcW := dW - dX Else SrcW := Min(W2, dW);
     If dY + Height >= dH Then SrcH := dH - dY Else SrcH := Min(Height, dH);
 
+    Ptr := Dst;
     Src := @fTempCanvas[0];
     Inc(Src, (W * SrcY) + SrcX);
     Inc(Dst, (dW * dY) + dX);
@@ -2228,7 +2266,32 @@ Begin
         Dec(SrcH);
       End;
     End;
-
+    If fShadow Then Begin
+      x1 := fLeft + fWidth;
+      y1 := fTop +1;
+      y2 := fTop + fHeight;
+      If SP_LineClip(x1, y1, x1, y2, 0, 0, DW, DH) Then Begin
+        Inc(Ptr, (dW * y1) + x1);
+        While y1 <> y2 do begin
+          Ptr^ := fShadowClr;
+          Inc(y1);
+          Inc(Ptr, DW);
+        End;
+        Ptr^ := fShadowClr;
+      End;
+      x1 := fLeft + 1;
+      x2 := fLeft + fWidth -1;
+      y1 := fTop + fHeight;
+      If SP_LineClip(x1, y1, x1, y2, 0, 0, DW, DH) Then Begin
+        Dec(Ptr, fWidth -1);
+        While x1 <> x2 do begin
+          Ptr^ := fShadowClr;
+          Inc(x1);
+          Inc(Ptr);
+        End;
+        Ptr^ := fShadowClr;
+      End;
+    End;
   End;
 
 End;
@@ -2692,6 +2755,8 @@ Begin
   RegisterProperty('anchors', Get_Anchors, Set_Anchors, ':lrtb|lrtb');
   RegisterProperty('backgroundclr', Get_BackgroundClr, Set_BackgroundClr, ':v|v');
   RegisterProperty('fontclr', Get_FontClr, Set_FontClr, ':v|v');
+  RegisterProperty('shadow', Get_Shadow, Set_Shadow, ':v|v');
+  RegisterProperty('shadowclr', Get_ShadowClr, Set_ShadowClr, ':v|v');
   RegisterProperty('errorclr', Get_ErrorClr , Set_ErrorClr, ':v|v');
   RegisterProperty('width', Get_Width , Set_Width, ':v|v');
   RegisterProperty('height', Get_Height , Set_Height, ':v|v');
@@ -3041,6 +3106,26 @@ End;
 Function  SP_BaseComponent.Get_FontClr: aString;
 Begin
   Result := IntToString(fFontClr);
+End;
+
+Procedure SP_BaseComponent.Set_Shadow(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Shadow := Boolean(StringToInt(s, Ord(fShadow)));
+End;
+
+Function  SP_BaseComponent.Get_Shadow: aString;
+Begin
+  Result := IntToString(Ord(fShadow));
+End;
+
+Procedure SP_BaseComponent.Set_ShadowClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  ShadowClr := StringToInt(s, fShadowClr);
+End;
+
+Function  SP_BaseComponent.Get_ShadowClr: aString;
+Begin
+  Result := IntToString(fShadowClr);
 End;
 
 Procedure SP_BaseComponent.Set_ErrorClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);

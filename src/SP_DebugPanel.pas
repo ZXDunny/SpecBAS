@@ -183,10 +183,10 @@ Begin
     FPDebugBPAdd := SP_Button.Create(Win^.Component);
     FPDebugBPAdd.OnClick := SP_DebugPanelActionProcs.ButtonClick;
     FPSizeGrabber.SetBounds(Left - BSize, Top, BSize, FPPaperHeight);
+    FPSizeGrabber.Transparent := True;
     FPSizeGRabber.Border := False;
     FPSizeGrabber.Caption := '';
     FPSizeGrabber.Erase := True;
-    FPSizeGrabber.Transparent := False;
     FPSizeGrabber.OnMouseDown := SP_MenuActionProcs.GrabberMouseDown;
     FPSizeGrabber.OnMouseMove := SP_MenuActionProcs.GrabberMouseMove;
     FPSizeGrabber.OnMouseUp := SP_MenuActionProcs.GrabberMouseUp;

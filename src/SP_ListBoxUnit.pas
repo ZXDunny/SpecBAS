@@ -225,6 +225,7 @@ Begin
   fSortedColumnClr := SP_UIHighlight;
   fMouseMode := 0;
   fCount := 0;
+  fShadow := True;
 
 End;
 

@@ -284,7 +284,7 @@ Begin
           DrawLine(e.Left, e.Top, e.Left, e.Bottom, fBorderClr);
           DrawLine(e.Right, e.Top, e.Right, e.Bottom, fBorderClr);
           DrawLine(e.Left, e.Top, e.Right, e.Top, fBorderClr);
-          DrawLine(e.Right +1, e.Top +1, e.Right +1, e.Bottom, fBorderClr);
+          DrawLine(e.Right +1, e.Top +1, e.Right +1, e.Bottom, fShadowClr);
         End;
       End;
 

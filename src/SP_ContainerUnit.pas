@@ -72,6 +72,8 @@ Begin
   fTypeName := 'spContainer';
 
   fCaption := '';
+  fTransparent := True;
+  fBackgroundClr := 255;
   fErase := True;
 
 End;

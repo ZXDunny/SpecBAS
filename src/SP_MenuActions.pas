@@ -4,7 +4,7 @@ unit SP_MenuActions;
 
 interface
 
-Uses SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_ButtonUnit,
+Uses Math, SyncObjs, SysUtils, SP_Tokenise, SP_BaseComponentUnit, SP_WindowMenuUnit, SP_PopUpMenuUnit, SP_ButtonUnit,
      SP_TabBarUnit, SP_LabelUnit, SP_EditUnit, SP_ContainerUnit, SP_Interpret_PostFix, SP_Util;
 
 Type
@@ -183,7 +183,7 @@ Begin
 
   With Control Do Begin
     If Assigned(FPSearchBox) then
-      Print(FPSearchBox.Left - (FPFw * 4 + BSIZE), 5, 'Find', 0, -1, EdFontScaleX, EdFontScaleY, False, False, False, False);
+      Print(Max(FPSearchBox.Left - (FPFw * 4 + BSIZE), 2), 5, 'Find', 0, -1, EdFontScaleX, EdFontScaleY, False, False, False, False);
     DrawLine(0, 0, fWidth -1, 0, fBorderClr);
     DrawLine(0, 1, fWidth -1, 1, 15);
     DrawLine(0, fHeight -1, fWidth -1, fHeight -1, SP_UIShadow);

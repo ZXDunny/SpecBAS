@@ -89,6 +89,7 @@ Begin
   fTrackFillColour := 4; // Fill with Green by default
   fTrackFillDisabledColour := 8;
   fKind := spHorizontal;
+  fShadow := True;
 
 End;
 

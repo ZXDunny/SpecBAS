@@ -121,7 +121,7 @@ Begin
   fGfxMode := 0;
   fGfxLock := 0;
   fValidText := True;
-  fBackgroundClr := 7;
+  fBackgroundClr := SP_UIBtnBack;
   fBorder := True;
   fEditable := True;
   fTransparent := False;
@@ -129,6 +129,7 @@ Begin
   fUndoList := TStringList.Create;
   fRedoList := TStringList.Create;
   AddOverrideControl(Self);
+  fShadow := True;
 
   fFlashTimer := AddTimer(Self, FLASHINTERVAL, FlashTimer, False, False)^.ID;
 

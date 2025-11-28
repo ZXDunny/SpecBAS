@@ -17,6 +17,7 @@ SP_Button = Class(SP_BaseComponent)
     fCaption:    aString;
     fState:      SP_ButtonState;
     fCaptionPos: TPoint;
+    fDrawShadow: Boolean;
 
     Procedure SetCaption(s: aString);
     Procedure SetCaptionPos(p: TPoint);
@@ -58,18 +59,21 @@ Begin
   Inherited;
 
   fTypeName := 'spButton';
+  fShadow := True;
 
   If Owner is SP_ScrollBar Then Begin
     iSX := 1;
     iSY := 1;
     iFH := fH;
     iFW := fW;
+    fShadow := False;
   End;
 
   fBorder := True;
   fState := spNormal;
-  fBackgroundClr := SP_UIBtnBack;
-  fTransparent := False;
+  fBackgroundClr := 255; // unlikely to be used
+  fTransparent := True;
+  fDrawShadow := fShadow;
   Paint;
 
 End;
@@ -130,6 +134,7 @@ Begin
 
   If fState = spNormal Then Begin
 
+    fShadow := fDrawShadow;
     If Border Then DrawBtnFrame(fBorder, False);
     If Enabled Then
       Print(fCaptionPos.x, fCaptionPos.y, Caption, fFontClr, -1, iSX, iSY, False, False, False, False)
@@ -138,7 +143,8 @@ Begin
 
   End Else Begin
 
-    If Border Then DrawBtnFrame(fBorder, True);
+    fShadow := False;
+    If Border Then DrawBtnFrame(Rect(1, 1, fWidth, fHeight), fBorder, True);
     If Enabled Then
       Print(fCaptionPos.x+Ord(Border), fCaptionPos.y+Ord(Border), Caption, fFontClr, -1, iSX, iSY, False, False, False, False)
     Else

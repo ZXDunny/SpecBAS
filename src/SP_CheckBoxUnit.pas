@@ -142,8 +142,11 @@ Begin
   iY := (fHeight - iH) Div 2;
   If fGroupIndex = 0 Then Begin
     FillRect(0, iy - 2, 3 + iH, iY + iH + 1, SP_UIBtnBack);
-    If fBorder Then
+    If fBorder Then Begin
       DrawRect(0, iy - 2, 3 + iH, iY + iH + 1, bClr);
+      DrawLine(3 + iH +1, iy - 1, 3 + iH + 1, iy + iH + 2, fShadowClr);
+      DrawLine(1, iY + iH + 2, 3 + iH + 1, iy + iH + 2, fShadowClr);
+    End;
     If Checked Then
       PRINT(2, iy, #246, cClr, -1, iSC, iSC, False, False, False, False);
   End Else Begin

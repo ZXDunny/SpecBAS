@@ -618,7 +618,7 @@ begin
     begin
       DrawSpan(CX - x, CX + x, CY + y);
       if y > 0 then DrawSpan(CX - x, CX + x, CY - y);
-      p := p + (2 * (x - y)) + 5;
+      p := p + (2 * (x - y)) + 4;
       Inc(x);
       Dec(y);
     end;
@@ -680,7 +680,7 @@ begin
     end
     else
     begin
-      p := p + (2 * (x - y)) + 5;
+      p := p + (2 * (x - y)) + 4;
       Inc(x);
       Dec(y);
     end;

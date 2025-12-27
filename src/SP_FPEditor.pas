@@ -7826,8 +7826,7 @@ End;
 
 Procedure SP_FPExecuteEditLine(Var Line: aString);
 Var
-  b: Boolean;
-  TokensStr, Expr, s: aString;
+  TokensStr, Expr: aString;
   Tokens: paString;
   PreParseErrorCode, PreParseErrorLine, PreParseErrorStatement, Idx, LocalFlashState,
   saveCONTLINE, saveCONTSTATEMENT: Integer;
@@ -7970,33 +7969,7 @@ Begin
               Expr := aFloatToStr(SP_StackPtr^.Val) + ' '
             Else Begin
               Expr := SP_StackPtr^.Str;
-              Idx := 1;
-              b := False;
-              If Expr = '' Then
-                Expr := '""'
-              Else Begin
-                s := '';
-                While Idx <= Length(Expr) Do Begin
-                  If Expr[Idx] >= ' ' Then Begin
-                    If Not b Then Begin
-                      s := s + '"';
-                      b := True;
-                    End;
-                    s := s + Expr[Idx];
-                  End Else Begin
-                    If b Then Begin
-                      s := s + '"';
-                      b := False;
-                    End;
-                    s := s + '#' + IntToString(Ord(Expr[Idx]));
-                  End;
-                  Inc(Idx);
-                End;
-                If b Then
-                  s := s + '"';
-                Expr := s;
-              End;
-              Expr := Expr + ' ';
+              Expr := SP_MakePretty(Expr) + ' ';
               If Length(Expr) > 256 Then
                 Expr := Copy(Expr, 1, 256);
             End;

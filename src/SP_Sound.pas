@@ -57,7 +57,7 @@ Type
     Halted, IsASync, Playing: Boolean;
     Ticks: aFloat;
     Procedure Execute; Override;
-    Procedure SP_PLAY(Str: aString; SessionID: Integer; ASync: Boolean; Var Error: pSP_ErrorCode);
+    Procedure SP_PLAY(Const Str: aString; SessionID: Integer; ASync: Boolean; Var Error: pSP_ErrorCode);
     Procedure CheckMessages;
   End;
 
@@ -136,7 +136,7 @@ Const
 
 implementation
 
-Uses SP_Main, SP_Graphics, SP_MIDI;
+Uses SP_Main, SP_Graphics, SP_MIDI, SP_Variables;
 
 Procedure TChannelMonitor.Execute;
 Var
@@ -1698,7 +1698,7 @@ Begin
 
 End;
 
-Procedure TPLAYThread.SP_PLAY(Str: aString; SessionID: Integer; ASync: Boolean; Var Error: pSP_ErrorCode);
+Procedure TPLAYThread.SP_PLAY(Const Str: aString; SessionID: Integer; ASync: Boolean; Var Error: pSP_ErrorCode);
 Type
   TPLAYBracket = Record
     Position: Integer;
@@ -1706,37 +1706,466 @@ Type
   End;
 
 Var
-  i, j, k, l, v, bc, Idx, WaveSize, wSample, DeClickSize, BASS_Err, TripletCount, TripletNoteLen, FXStep, Offset, CurMIDIVoice,
+  v, bc, Idx, WaveSize, wSample, DeClickSize, BASS_Err, TripletCount, TripletNoteLen, FXStep, Offset, CurMIDIVoice,
   CurOctave, CurEffectLen, CurEFfect, CurVolume, CurNoteLen, LastNoteLen, CurSharpMode, CurMixMode, CurMIDIInstrument: Integer;
   Pitch, Hz, Phase, Amplitude, Duration, Scalar, ScaleInc, NoiseScale, VolScale, FXInc, FXValue: aFloat;
   EnableEffects, EnableVolume, TiedNote, IsMIDI: Boolean;
   BracketList: Array[0..10] of TPLAYBracket;
+  NoteStr, VarName: aString;
   TempError: TSP_ErrorCode;
   bBuffer: Array of Byte;
   Channel: HCHANNEL;
   oSample: SmallInt;
-  NoteStr: aString;
   Sample: HSAMPLE;
   Ch: aChar;
-
-  Function GetPLAYNumber: Integer;
-  Begin
-    Result := 0;
-    While (i <= l) And (Str[i] in ['0'..'9']) Do Begin
-      Result := (Result * 10) + Ord(Str[i]) - 48;
-      Inc(i);
-    End;
-  End;
-
-  Function CurNoteLen_Ticks: aFloat;
-  Begin
-    Result := ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000);
-  End;
 
 Const
 
   NoteLengths: Array[1..12] of Integer = (6, 9, 12, 18, 24, 36, 48, 72, 96, 4, 8, 16);
   Effects: Array[0..7] of aString = ('D00', 'A00', 'D11', 'A11', 'DDD', 'AAA', 'ADA', 'DAD');
+
+  Procedure PlayString(Const Str: aString);
+  Var
+    i, j, k, l: Integer;
+
+    Function GetVarName(IsString: Boolean): aString;
+    Begin
+      Result := '';
+      While (i < l) And (Str[i] in ['A'..'Z', 'a'..'z', '_', ' ']) Do Begin
+        Result := Result + Str[i];
+        Inc(i);
+      End;
+      While (i < l) And (Str[i] in ['A'..'Z', 'a'..'z', '_', '0'..'9', ' ']) Do Begin
+        Result := Result + Str[i];
+        Inc(i);
+      End;
+      If IsString And (Str[i] = '$') Then Begin Result := Result + '$'; Inc(i); End;
+    End;
+
+    Function GetPLAYNumber: Integer;
+    Begin
+      Result := 0;
+      If (i <= l) And (Str[i] = '=') Then Begin
+        Inc(i);
+        VarName := GetVarName(False);
+        j := SP_FindNumVar(Lower(VarName));
+        If j > -1 Then
+          Result := Round(NumVars[j]^.ContentPtr^.Value)
+        Else Begin
+          If Assigned(Error) Then
+            Error.Code := SP_ERR_MISSING_VAR;
+          Exit;
+        End;
+      End Else
+        While (i <= l) And (Str[i] in ['0'..'9']) Do Begin
+          Result := (Result * 10) + Ord(Str[i]) - 48;
+          Inc(i);
+        End;
+    End;
+
+    Function CurNoteLen_Ticks: aFloat;
+    Begin
+      Result := ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000);
+    End;
+
+  Begin
+    i := 1;
+    l := Length(Str);
+    While i <= l Do Begin
+      If (Assigned(Error) And (Error^.Code <> SP_ERR_OK)) or Halted Then Exit;
+      Ch := Str[i];
+      Case Ch of
+        #0..' ', 'N', ';': // Skip this, it's just a separator
+          Begin
+            Inc(i);
+          End;
+        '&', 'R': // Rest
+          Begin
+            Inc(i);
+            While (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
+              CheckMessages;
+              CB_YIELD;
+            End;
+            Ticks := Ticks + ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000);
+          End;
+        '#': // Sharpen next note - can be packed ("C####C')
+          Begin
+            Inc(CurSharpMode);
+            Inc(i);
+          End;
+        '$': // Flatten next note - can also be packed
+          Begin
+            Dec(CurSharpMode);
+            Inc(i);
+          End;
+        'a'..'g', 'A'..'G': // Play a note (or rest) using information we've gathered
+          Begin
+            NoteStr := Ch;
+            NoteStr := NoteStr + aChar(Ord(CurOctave) + 48);
+            Pitch := SP_StringToSemiTones('!' + NoteStr, TempError) + CurSharpMode;
+            Hz := SP_SemiTonesToHz(Pitch);
+            Case CurMixMode of
+              0: Begin VolScale := 0; NoiseScale := 0;   End;
+              1: Begin VolScale := 1; NoiseScale := 0;   End;
+              2: Begin VolScale := 1; NoiseScale := 0.5; End;
+              3: Begin VolScale := 1; NoiseScale := 1;   End;
+            Else
+              Begin
+                VolScale := 1; NoiseScale := 0;
+              End;
+            End;
+            If EnableVolume Then Begin
+              Scalar := AYLogVolume(CurVolume);
+              VolScale := VolScale * Scalar;
+            End;
+            If Not IsMIDI Then Begin
+              Amplitude := 32767 * VolScale;
+              Duration := (1/(96/CurNoteLen)) * 4;
+              WaveSize := Ceil(Duration * 44100 * 2);
+              SetLength(bBuffer, WaveSize);
+              if CurMIDIInstrument = -1 Then Begin
+                // No instrument specified, so use a sine wave
+                Phase := 0;
+                Idx := 0;
+                While Idx < WaveSize Do Begin
+                  wSample := Round(Amplitude * Sign(Sin(Phase)));
+                  If NoiseScale > 0 Then
+                    wSample := Round((wSample * (1 - NoiseScale)) + ((Random - 0.5) * NoiseScale * Amplitude * 2));
+                  pWord(@bBuffer[Idx])^ := Word(wSample);
+                  Phase := Phase + ((2 * Pi * Hz) / 44100);
+                  Inc(Idx, 2);
+                End;
+              End Else Begin
+                // Instrument has been set, so pull it out of the bank (if appropriate) and cache it at 44.1Khz/16/2 format
+                // If already cached, use that.
+              End;
+              If EnableEffects Then Begin
+                j := 0;
+                FXStep := 1;
+                While J < WaveSize Do Begin
+                  Case Effects[CurEffect][FXStep] of
+                    'A': // Attack
+                      Begin
+                        FXValue := 0;
+                        FXInc := 1/CurEffectLen;
+                      End;
+                    'D': // Decay
+                      Begin
+                        FXValue := 1;
+                        FXInc := -1/CurEffectLen;
+                      End;
+                    '0': // Silence
+                      Begin
+                        FXValue := 0;
+                        FXInc := 0;
+                      End;
+                    '1': // Tone
+                      Begin
+                        FXValue := 1;
+                        FXInc := 0;
+                      End;
+                  Else
+                    Begin
+                      FXInc := 0;
+                      FXValue := 1;
+                    End;
+                  End;
+                  Offset := j;
+                  For k := 0 to CurEffectLen -1 Do Begin
+                    Scalar := AYLogVolume(FXValue);
+                    oSample := Round(pSmallInt(@bBuffer[Offset])^ * Scalar);
+                    pSmallInt(@bBuffer[Offset])^ := oSample;
+                    FXValue := FXValue + FXInc;
+                    Inc(Offset, 2);
+                    If Offset >= WaveSize Then Break;
+                  End;
+                  Inc(j, CurEffectLen * 2);
+                  Inc(FXStep);
+                  If FXStep = 4 Then FXStep := 2;
+                End;
+              End;
+              DeClickSize := Min(44, WaveSize Div 4);
+              Scalar := 0;
+              ScaleInc := 1/DeClickSize;
+              For j := 0 to DeClickSize -1 Do Begin
+                oSample := Round(pSmallInt(@bBuffer[j * 2])^ * Scalar);
+                pSmallInt(@bBuffer[j * 2])^ := oSample;
+                oSample := Round(pSmallInt(@bBuffer[WaveSize - ((j + 1) * 2)])^ * Scalar);
+                pSmallInt(@bBuffer[WaveSize - ((j + 1) * 2)])^ := oSample;
+                Scalar := Scalar + ScaleInc;
+              End;
+              Sample := BASS_SampleCreate(WaveSize, 44100, 1, 1, BASS_SAMPLE_OVER_POS);
+              BASS_Err := BASS_ErrorGetCode;
+              if BASS_Err = 0 Then Begin
+                BASS_SampleSetData(Sample, @bBuffer[0]);
+                Channel := BASS_SampleGetChannel(Sample, true);
+                BASS_ChannelPlay(Channel, True);
+                While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
+                  CheckMessages;
+                  CB_YIELD;
+                End;
+                BASS_SampleFree(Sample);
+                Ticks := Ticks + CurNoteLen_Ticks;
+              End Else
+                Exit;
+            End Else Begin
+              SendMIDIBytes([(CurMIDIVoice -1) or $C0, Max(CurMIDIInstrument, 0), 0, 0]);
+              SendMIDIBytes([(CurMIDIVoice -1) or $90, Trunc(Pitch + 60), CurVolume * 8, 0]);
+              While (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
+                CheckMessages;
+                CB_YIELD;
+              End;
+              SendMIDIBytes([(CurMIDIVoice -1) or $80, Trunc(Pitch + 60), $40, 0]);
+              Ticks := Ticks + CurNoteLen_Ticks;
+            End;
+            If TripletCount > 0 Then Begin
+              Dec(TripletCount);
+              CurNoteLen := TripletNoteLen
+            End Else
+              CurNoteLen := LastNoteLen;
+            CurSharpMode := 0;
+            Inc(i);
+          End;
+        'L': // Sets note length, just check a number follows
+          Begin
+            Inc(i);
+            If (i > Length(Str)) Or (Not (Str[i] in ['0'..'9'])) Then Begin
+              If Assigned(Error) Then
+                Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+              Exit;
+            End;
+          End;
+        '0'..'9': // Set note duration. 10, 11 and 12 are Triplets.
+          Begin
+            CurSharpMode := 0;
+            v := GetPLAYNumber;
+            If (v >= 1) and (v <= 12) Then Begin
+              If v < 10 Then Begin
+                LastNoteLen := NoteLengths[v];
+                If TiedNote Then
+                  CurNoteLen := CurNoteLen + LastNoteLen
+                Else
+                  CurNoteLen := LastNoteLen;
+              End Else Begin
+                TripletCount := 2;
+                TripletNoteLen := NoteLengths[v];
+                If TiedNote Then
+                  CurNoteLen := CurNoteLen + TripletNoteLen
+                Else
+                  CurNoteLen := TripletNoteLen;
+              End;
+            End Else Begin
+              If Assigned(Error) Then
+                Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+              Exit;
+            End;
+            TiedNote := False;
+          End;
+        '_': // Tied note length follows
+          Begin
+            TiedNote := True;
+            Inc(i);
+          End;
+        'I': // Set MIDI instrument
+          Begin
+            Inc(i);
+            v := GetPLAYNumber;
+            If Not IsMIDI Then
+              CurMIDIInstrument := v
+            Else
+              If (v >= 0) And (v <= 127) Then
+                CurMIDIInstrument := v
+              Else Begin
+                If Assigned(Error) Then
+                  Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+                Exit;
+              End;
+          End;
+        'O': // Set Octave 0 to 8
+          Begin
+            Inc(i);
+            v := GetPLAYNumber;
+            If (v >= 0) and (v <= 8) Then
+              CurOctave := v
+            Else Begin
+              If Assigned(Error) Then
+                Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+              Exit;
+            End;
+          End;
+        '<': // Shift an octave down
+          Begin
+            Inc(i);
+            If CurOctave > 0 Then
+              Dec(CurOctave);
+          End;
+        '>': // Shift an octave up
+          Begin
+            Inc(i);
+            If CurOctave < 8 Then
+              Inc(CurOctave);
+          End;
+        '(': // Stack a repeat point.
+          Begin
+            Inc(i);
+            Inc(bc);
+            If bc < 5 Then Begin
+              BracketList[bc].Position := i;
+              BracketList[bc].Repeated := False;
+            End Else Begin
+              If Assigned(Error) Then
+                Error^.Code := SP_ERR_TOO_MANY_BRACKETS;
+              Exit;
+            End;
+          End;
+        ')': // UnStack a repeat point and jump to it.
+          Begin
+            Inc(i);
+            If bc >= 0 Then Begin
+              If Not BracketList[bc].Repeated Then Begin
+                BracketList[bc].Repeated := True;
+                i := BracketList[bc].Position;
+              End Else Begin
+                Dec(bc);
+              End;
+            End Else Begin
+              i := 1;
+            End;
+          End;
+        'T': // Set tempo. Broadcast the tempo change to all PLAY threads with the same sessionID.
+          Begin
+            Inc(i);
+            v := GetPLAYNumber;
+            If (v >= 60) And (v <= 240) Then Begin
+              PLAYTempoChange(SessionID, v);
+            End Else Begin
+              If Assigned(Error) Then
+                Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+              Exit;
+            End;
+          End;
+        'M': // Mixer. Set 0 = Tone, 1 = Noise, 2 = Tone + Noise for this channel
+          Begin
+            Inc(i);
+            v := GetPLAYNumber;
+            If (v >= 0) And (v <= 3) Then
+              CurMixMode := v
+            Else Begin
+              If Assigned(Error) Then
+                Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+              Exit;
+            End;
+          End;
+        'V': // Set Volume mode, 0 to 15
+          Begin
+            Inc(i);
+            v := GetPLAYNumber;
+            If (v >= 0) and (v <= 15) Then Begin
+              EnableVolume := True;
+              EnableEffects := False;
+              CurVolume := v;
+            End Else Begin
+              If Assigned(Error) Then
+                Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+              Exit;
+            End;
+          End;
+        'U': // Enable waveform effects - set volume to 15.
+          Begin
+            EnableVolume := False;
+            EnableEffects := True;
+            CurVolume := 15;
+            Inc(i);
+          End;
+        'X': // Effect duration - 0 to 65535. 1Hz = 6928. Converts to samples per envelope cycle
+          Begin
+            Inc(i);
+            v := GetPLAYNumber;
+            If (v >= 0) And (v <= 65535) Then Begin
+              if v = 0 then v := 1;
+              CurEffectLen := Round((v/(1773500/256)) * 44100);
+            End Else Begin
+              If Assigned(Error) Then
+                Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+              Exit;
+            End;
+          End;
+        'W': // Select the waveform effect to apply to subsequent notes
+          Begin
+            Inc(i);
+            v := GetPLAYNumber;
+            If (v >= 0) and (v <= 7) Then
+              CurEffect := v
+            Else Begin
+              If Assigned(Error) Then
+                Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+              Exit;
+            End;
+          End;
+        'H': // Stop all playback. Send a signal to all PLAY threads with this sessionID to quit.
+          Begin
+            i := l;
+            PLAYSignalHalt(SessionID);
+            Exit;
+          End;
+        '!': // Comment block - skip to next '!' or the end of the string.
+          Begin
+            Inc(i);
+            While (i <= l) and (Str[i] <> '!') Do Inc(i);
+            If i >= l Then Exit Else Inc(i);
+          End;
+        'S': // Play a string from a String-Variable
+          Begin
+            Inc(i);
+            VarName := GetVarName(True);
+            If (VarName <> '') And (VarName[Length(VarName)] = '$') Then Begin
+              Idx := SP_FindStrVar(Lower(Copy(VarName, 1, Length(VarName) -1)));
+              If Idx > -1 Then Begin
+                NoteStr := StrVars[Idx]^.ContentPtr^.Value;
+                PlayString(NoteStr);
+              End Else Begin
+                If Assigned(Error) Then
+                  Error.Code := SP_ERR_MISSING_VAR;
+                Exit;
+              End;
+            End Else Begin
+              If Assigned(Error) Then
+                Error.Code := SP_ERR_MISSING_VAR;
+              Exit;
+            End;
+          End;
+        'Y': // Assign MIDI track number (1 to 16)
+          Begin
+            Inc(i);
+            v := GetPLAYNumber;
+            If (v >= 1) and (v <= 16) Then Begin
+              IsMIDI := True;
+              CurMIDIVoice := v;
+              CurMIDIInstrument := -1;
+            End Else Begin
+              If Assigned(Error) Then
+                Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
+              Exit;
+            End;
+          End;
+        'Z': // Send a byte to the MIDI device
+          Begin
+            Inc(i);
+            v := GetPLAYNumber;
+            SendMIDIBytes([v And $FF]);
+          End;
+      Else
+        Begin
+          // Error - Invalid Note Name
+          If Assigned(Error) Then Begin
+            Error^.Code := SP_ERR_INVALID_NOTE;
+            ERRStr := Ch;
+          End;
+          Exit;
+        End;
+      End;
+    End;
+  End;
 
 Begin
 
@@ -1765,361 +2194,7 @@ Begin
   IsMIDI := False;
   bc := -1;
 
-  i := 1;
-  l := Length(Str);
-  While i <= l Do Begin
-    If (Assigned(Error) And (Error^.Code <> SP_ERR_OK)) or Halted Then Exit;
-    Ch := Str[i];
-    Case Ch of
-      'N': // Skip this, it's just a separator
-        Begin
-          Inc(i);
-        End;
-      '&', 'R': // Rest
-        Begin
-          Inc(i);
-          While (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
-            CheckMessages;
-            CB_YIELD;
-          End;
-          Ticks := Ticks + ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000);
-        End;
-      '#': // Sharpen next note - can be packed ("C####C')
-        Begin
-          Inc(CurSharpMode);
-          Inc(i);
-        End;
-      '$': // Flatten next note - can also be packed
-        Begin
-          Dec(CurSharpMode);
-          Inc(i);
-        End;
-      'a'..'g', 'A'..'G': // Play a note (or rest) using information we've gathered
-        Begin
-          NoteStr := Ch;
-          NoteStr := NoteStr + aChar(Ord(CurOctave) + 48);
-          Pitch := SP_StringToSemiTones('!' + NoteStr, TempError) + CurSharpMode;
-          Hz := SP_SemiTonesToHz(Pitch);
-          Case CurMixMode of
-            0: Begin VolScale := 0; NoiseScale := 0;   End;
-            1: Begin VolScale := 1; NoiseScale := 0;   End;
-            2: Begin VolScale := 1; NoiseScale := 0.5; End;
-            3: Begin VolScale := 1; NoiseScale := 1;   End;
-          Else
-            Begin
-              VolScale := 1; NoiseScale := 0;
-            End;
-          End;
-          If EnableVolume Then Begin
-            Scalar := AYLogVolume(CurVolume);
-            VolScale := VolScale * Scalar;
-          End;
-          If Not IsMIDI Then Begin
-            Amplitude := 32767 * VolScale;
-            Duration := (1/(96/CurNoteLen)) * 4;
-            WaveSize := Ceil(Duration * 44100 * 2);
-            SetLength(bBuffer, WaveSize);
-            if CurMIDIInstrument = -1 Then Begin
-              // No instrument specified, so use a sine wave
-              Phase := 0;
-              Idx := 0;
-              While Idx < WaveSize Do Begin
-                wSample := Round(Amplitude * Sign(Sin(Phase)));
-                If NoiseScale > 0 Then
-                  wSample := Round((wSample * (1 - NoiseScale)) + ((Random - 0.5) * NoiseScale * Amplitude * 2));
-                pWord(@bBuffer[Idx])^ := Word(wSample);
-                Phase := Phase + ((2 * Pi * Hz) / 44100);
-                Inc(Idx, 2);
-              End;
-            End Else Begin
-              // Instrument has been set, so pull it out of the bank (if appropriate) and cache it at 44.1Khz/16/2 format
-              // If already cached, use that.
-            End;
-            If EnableEffects Then Begin
-              j := 0;
-              FXStep := 1;
-              While J < WaveSize Do Begin
-                Case Effects[CurEffect][FXStep] of
-                  'A': // Attack
-                    Begin
-                      FXValue := 0;
-                      FXInc := 1/CurEffectLen;
-                    End;
-                  'D': // Decay
-                    Begin
-                      FXValue := 1;
-                      FXInc := -1/CurEffectLen;
-                    End;
-                  '0': // Silence
-                    Begin
-                      FXValue := 0;
-                      FXInc := 0;
-                    End;
-                  '1': // Tone
-                    Begin
-                      FXValue := 1;
-                      FXInc := 0;
-                    End;
-                Else
-                  Begin
-                    FXInc := 0;
-                    FXValue := 1;
-                  End;
-                End;
-                Offset := j;
-                For k := 0 to CurEffectLen -1 Do Begin
-                  Scalar := AYLogVolume(FXValue);
-                  oSample := Round(pSmallInt(@bBuffer[Offset])^ * Scalar);
-                  pSmallInt(@bBuffer[Offset])^ := oSample;
-                  FXValue := FXValue + FXInc;
-                  Inc(Offset, 2);
-                  If Offset >= WaveSize Then Break;
-                End;
-                Inc(j, CurEffectLen * 2);
-                Inc(FXStep);
-                If FXStep = 4 Then FXStep := 2;
-              End;
-            End;
-            DeClickSize := Min(44, WaveSize Div 4);
-            Scalar := 0;
-            ScaleInc := 1/DeClickSize;
-            For j := 0 to DeClickSize -1 Do Begin
-              oSample := Round(pSmallInt(@bBuffer[j * 2])^ * Scalar);
-              pSmallInt(@bBuffer[j * 2])^ := oSample;
-              oSample := Round(pSmallInt(@bBuffer[WaveSize - ((j + 1) * 2)])^ * Scalar);
-              pSmallInt(@bBuffer[WaveSize - ((j + 1) * 2)])^ := oSample;
-              Scalar := Scalar + ScaleInc;
-            End;
-            Sample := BASS_SampleCreate(WaveSize, 44100, 1, 1, BASS_SAMPLE_OVER_POS);
-            BASS_Err := BASS_ErrorGetCode;
-            if BASS_Err = 0 Then Begin
-              BASS_SampleSetData(Sample, @bBuffer[0]);
-              Channel := BASS_SampleGetChannel(Sample, true);
-              BASS_ChannelPlay(Channel, True);
-              While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
-                CheckMessages;
-                CB_YIELD;
-              End;
-              BASS_SampleFree(Sample);
-              Ticks := Ticks + CurNoteLen_Ticks;
-            End Else
-              Exit;
-          End Else Begin
-            SendMIDIBytes([(CurMIDIVoice -1) or $C0, Max(CurMIDIInstrument, 0), 0, 0]);
-            SendMIDIBytes([(CurMIDIVoice -1) or $90, Trunc(Pitch + 60), CurVolume * 8, 0]);
-            While (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
-              CheckMessages;
-              CB_YIELD;
-            End;
-            SendMIDIBytes([(CurMIDIVoice -1) or $80, Trunc(Pitch + 60), $40, 0]);
-            Ticks := Ticks + CurNoteLen_Ticks;
-          End;
-          If TripletCount > 0 Then Begin
-            Dec(TripletCount);
-            CurNoteLen := TripletNoteLen
-          End Else
-            CurNoteLen := LastNoteLen;
-          CurSharpMode := 0;
-          Inc(i);
-        End;
-      '0'..'9': // Set note duration. 10, 11 and 12 are Triplets.
-        Begin
-          CurSharpMode := 0;
-          v := GetPLAYNumber;
-          If (v >= 1) and (v <= 12) Then Begin
-            If v < 10 Then Begin
-              LastNoteLen := NoteLengths[v];
-              If TiedNote Then
-                CurNoteLen := CurNoteLen + LastNoteLen
-              Else
-                CurNoteLen := LastNoteLen;
-            End Else Begin
-              TripletCount := 2;
-              TripletNoteLen := NoteLengths[v];
-              If TiedNote Then
-                CurNoteLen := CurNoteLen + TripletNoteLen
-              Else
-                CurNoteLen := TripletNoteLen;
-            End;
-          End Else Begin
-            If Assigned(Error) Then
-              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-            Exit;
-          End;
-          TiedNote := False;
-        End;
-      '_': // Tied note length follows
-        Begin
-          TiedNote := True;
-          Inc(i);
-        End;
-      'I': // Set MIDI instrument
-        Begin
-          Inc(i);
-          v := GetPLAYNumber;
-          If Not IsMIDI Then
-            CurMIDIInstrument := v
-          Else
-            If (v >= 0) And (v <= 127) Then
-              CurMIDIInstrument := v
-            Else Begin
-              If Assigned(Error) Then
-                Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-              Exit;
-            End;
-        End;
-      'O': // Set Octave 0 to 8
-        Begin
-          Inc(i);
-          v := GetPLAYNumber;
-          If (v >= 0) and (v <= 8) Then
-            CurOctave := v
-          Else Begin
-            If Assigned(Error) Then
-              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-            Exit;
-          End;
-        End;
-      '(': // Stack a repeat point.
-        Begin
-          Inc(i);
-          Inc(bc);
-          If bc < 5 Then Begin
-            BracketList[bc].Position := i;
-            BracketList[bc].Repeated := False;
-          End Else Begin
-            If Assigned(Error) Then
-              Error^.Code := SP_ERR_TOO_MANY_BRACKETS;
-            Exit;
-          End;
-        End;
-      ')': // UnStack a repeat point and jump to it.
-        Begin
-          Inc(i);
-          If bc >= 0 Then Begin
-            If Not BracketList[bc].Repeated Then Begin
-              BracketList[bc].Repeated := True;
-              i := BracketList[bc].Position;
-            End Else Begin
-              Dec(bc);
-            End;
-          End Else Begin
-            i := 1;
-          End;
-        End;
-      'T': // Set tempo. Broadcast the tempo change to all PLAY threads with the same sessionID.
-        Begin
-          Inc(i);
-          v := GetPLAYNumber;
-          If (v >= 60) And (v <= 240) Then Begin
-            PLAYTempoChange(SessionID, v);
-          End Else Begin
-            If Assigned(Error) Then
-              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-            Exit;
-          End;
-        End;
-      'M': // Mixer. Set 0 = Tone, 1 = Noise, 2 = Tone + Noise for this channel
-        Begin
-          Inc(i);
-          v := GetPLAYNumber;
-          If (v >= 0) And (v <= 3) Then
-            CurMixMode := v
-          Else Begin
-            If Assigned(Error) Then
-              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-            Exit;
-          End;
-        End;
-      'V': // Set Volume mode, 0 to 15
-        Begin
-          Inc(i);
-          v := GetPLAYNumber;
-          If (v >= 0) and (v <= 15) Then Begin
-            EnableVolume := True;
-            EnableEffects := False;
-            CurVolume := v;
-          End Else Begin
-            If Assigned(Error) Then
-              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-            Exit;
-          End;
-        End;
-      'U': // Enable waveform effects - set volume to 15.
-        Begin
-          EnableVolume := False;
-          EnableEffects := True;
-          CurVolume := 15;
-          Inc(i);
-        End;
-      'X': // Effect duration - 0 to 65535. 1Hz = 6928. Converts to samples per envelope cycle
-        Begin
-          Inc(i);
-          v := GetPLAYNumber;
-          If (v >= 0) And (v <= 65535) Then Begin
-            if v = 0 then v := 1;
-            CurEffectLen := Round((v/(1773500/256)) * 44100);
-          End Else Begin
-            If Assigned(Error) Then
-              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-            Exit;
-          End;
-        End;
-      'W': // Select the waveform effect to apply to subsequent notes
-        Begin
-          Inc(i);
-          v := GetPLAYNumber;
-          If (v >= 0) and (v <= 7) Then
-            CurEffect := v
-          Else Begin
-            If Assigned(Error) Then
-              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-            Exit;
-          End;
-        End;
-      'H': // Stop all playback. Send a signal to all PLAY threads with this sessionID to quit.
-        Begin
-          i := l;
-          PLAYSignalHalt(SessionID);
-          Exit;
-        End;
-      '!': // Comment block - skip to next '!' or the end of the string.
-        Begin
-          Inc(i);
-          While (i <= l) and (Str[i] <> '!') Do Inc(i);
-          If i >= l Then Exit Else Inc(i);
-        End;
-      'Y': // Assign MIDI track number (1 to 16)
-        Begin
-          Inc(i);
-          v := GetPLAYNumber;
-          If (v >= 1) and (v <= 16) Then Begin
-            IsMIDI := True;
-            CurMIDIVoice := v;
-            CurMIDIInstrument := -1;
-          End Else Begin
-            If Assigned(Error) Then
-              Error^.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
-            Exit;
-          End;
-        End;
-      'Z': // Send a byte to the MIDI device
-        Begin
-          Inc(i);
-          v := GetPLAYNumber;
-          SendMIDIBytes([v And $FF]);
-        End;
-    Else
-      Begin
-        // Error - Invalid Note Name
-        If Assigned(Error) Then Begin
-          Error^.Code := SP_ERR_INVALID_NOTE;
-          ERRStr := Ch;
-        End;
-        Exit;
-      End;
-    End;
-  End;
+  PlayString(Str);
 
 End;
 

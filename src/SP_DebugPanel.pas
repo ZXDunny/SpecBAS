@@ -156,6 +156,7 @@ Begin
   With FPDebugCombo Do Begin
     SetBounds(Win^.Width - BSize - FPDebugPanelWidth, FPClientTop + BSize, Trunc(FPDebugPanelWidth * EDFONTSCALEX), FH);
     AddItem('Variables');
+    AddItem('SysVars');
     AddItem('Watches');
     AddItem('Breakpoints');
     AddItem('Labels');
@@ -283,6 +284,7 @@ Var
 Const
 
   PoINameT: Array[0..2] of aString = ('@', 'Proc', 'Fn');
+  BoolStrs: Array[0..1] of aString = ('False', 'True');
 
   Procedure SetButtons;
   Var
@@ -304,7 +306,7 @@ Const
             ShowBtns := True;
           End;
         End;
-      1, 2: // Watches and breakpoints
+      2, 3: // Watches and breakpoints
         Begin
           FPDebugBPAdd.Visible := True;
           If FPDebugPanel.Enabled Then Begin
@@ -361,7 +363,6 @@ Begin
             End Else Begin
               OldVars := TAnsiStringlist.Create;
               OldContents := TAnsiStringlist.Create;
-
               For i := 0 To Count -1 Do Begin
                 s := FPDebugPanel.Items[i];
                 if s[1] = ' ' then s := Copy(s, 2);
@@ -404,7 +405,74 @@ Begin
               OldContents.Free;
             End;
           End;
-        1: // Watches
+        1: // SysVars
+          Begin
+            Clear;
+            MaxP := 0;
+            MaxW := 0;
+            For i := 0 To High(SysVars) Do Begin
+              vName := SysVars[i].Name;
+              MaxP := Max(MaxP, Length(vName));
+              Case SysVars[i].svType Of
+                svString:
+                  Begin
+                    vName := ' $' + #255 + ' ' + vName;
+                    vContent := ' ' + SP_MakePretty(SP_GetSysVarS(SysVars[i].Name, Error));
+                  End;
+                svArray:
+                  Begin
+                    vName := ' A' + #255 + ' ' + vName;
+                    vContent := ' ' + SP_MakePretty(SP_GetSysVarS(SysVars[i].Name, Error));
+                  End;
+                svBoolean:
+                  Begin
+                    vName := ' B' + #255 + ' ' + vName;
+                    vContent := ' ' + BoolStrs[Round(SP_GetSysVarN(SysVars[i].Name, Error))];
+                  End;
+                svLongWord:
+                  Begin
+                    vName := ' L' + #255 + ' ' + vName;
+                    vContent := ' ' + aString(FloatToStr(SP_GetSysVarN(SysVars[i].Name, Error)));
+                  End;
+                svaFloat:
+                  Begin
+                    vName := ' F' + #255 + ' ' + vName;
+                    vContent := ' ' + aString(FloatToStr(SP_GetSysVarN(SysVars[i].Name, Error)));
+                  End;
+                svInteger:
+                  Begin
+                    vName := ' I' + #255 + ' ' + vName;
+                    vContent := ' ' + aString(FloatToStr(SP_GetSysVarN(SysVars[i].Name, Error)));
+                  End;
+                svPointer:
+                  Begin
+                    vName := ' P' + #255 + ' ' + vName;
+                    vContent := ' ' + aString(FloatToStr(SP_GetSysVarN(SysVars[i].Name, Error)));
+                  End;
+                svByte:
+                  Begin
+                    vName := ' b' + #255 + ' ' + vName;
+                    vContent := ' ' + aString(FloatToStr(SP_GetSysVarN(SysVars[i].Name, Error)));
+                  End;
+                svColour:
+                  Begin
+                    vName := ' C' + #255 + ' ' + vName;
+                    vContent := ' $' + IntToHex(Round(SP_GetSysVarN(SysVars[i].Name, Error)), 8);
+                  End;
+              End;
+              MaxW := Max(MaxW, Length(vContent));
+              vName := vName + #255 + vContent;
+              Add(vName);
+            End;
+            MaxW := Max(10, MaxW);
+            MaxP := Max(6, MaxP +1);
+            AddHeader(' Type', 2 * iFW);
+            AddHeader(' Name', MaxP * iFW);
+            AddHeader(' Contents', MaxW * iFW);
+            Enabled := True;
+            Sort(0);
+          End;
+        2: // Watches
           Begin
             If Length(SP_WatchList) = 0 then Begin
               Clear;
@@ -455,7 +523,7 @@ Begin
               OldWatches.Free;
             End;
           End;
-        2: // Breakpoints
+        3: // Breakpoints
           Begin
             SP_MakeBreakpointList(List);
             If Integer(List.Objects[0]) = -1 Then Begin
@@ -503,7 +571,7 @@ Begin
               Enabled := True;
             End;
           End;
-        3: // Labels - double click to jump
+        4: // Labels - double click to jump
           Begin
             Clear;
             MaxW := 0;
@@ -529,7 +597,7 @@ Begin
               Enabled := False;
             End;
           End;
-        4: // Procedures/functions
+        5: // Procedures/functions
           Begin
             Clear;
             MaxW := 0;
@@ -556,7 +624,7 @@ Begin
               Enabled := False;
             End;
           End;
-        5: // Character Set
+        6: // Character Set
           Begin
             Clear;
             MaxW := 5;
@@ -604,11 +672,11 @@ Begin
             Enabled := True;
             Sort(0);
           End;
-        6: // Disassembly
+        7: // Disassembly
           Begin
 
           End;
-        7: // Map
+        8: // Map
           Begin
 
           End;
@@ -728,6 +796,10 @@ Begin
           End;
           SP_DisplayFPListing(-1);
         End;
+      1: // SysVars - highlight all sysvarss
+        Begin
+
+        End;
       3: // Labels - highlight all @Label instances
         Begin
           Index := Integer(FPDebugPanel.Objects[Index]);
@@ -809,27 +881,30 @@ Begin
     0: // Variables - edit the var
       Begin
       End;
-    1: // Watches - edit the watch
+    1: // SysVars
+      Begin
+      End;
+    2: // Watches - edit the watch
       Begin
         AddControlMsg(clEditWatch, LongWordToString(FPDebugPanel.SelectedIndex));
       End;
-    2: // Breakpoints - edit the breakpoint
+    3: // Breakpoints - edit the breakpoint
       Begin
         SP_EditBreakpoint(Index, False);
       End;
-    3: // Labels - double click to jump to that label declaration
+    4: // Labels - double click to jump to that label declaration
       Begin
         s := EDITLINE;
         EDITLINE := '@' + FPPoIList[Index].Name;
         SP_FPBringToEditor(0, 0, Error, False);
         EDITLINE := s;
       End;
-    4: // Procs and FNs - jump to declaration
+    5: // Procs and FNs - jump to declaration
       Begin
         PROGLINE := SP_GetLineNumberFromIndex(FPPoiList[Index].Line);
         SP_FPScrollToLine(PROGLINE, FPPoIList[Index].Statement);
       End;
-    5: // Character set - paste character at cursor pos
+    6: // Character set - paste character at cursor pos
       Begin
         kInfo.KeyCode := Integer(FPDebugPanel.Objects[Index]);
         kInfo.keyChar := aChar(kInfo.KeyCode);
@@ -855,7 +930,10 @@ Begin
     0: // Variables
       Begin
       End;
-    1: // Watches
+    1: // SysVars
+      Begin
+      End;
+    2: // Watches
       Begin
         If Sender = FPDebugBPEdt Then Begin
           AddControlMsg(clEditWatch, LongWordToString(FPDebugPanel.SelectedIndex));
@@ -867,7 +945,7 @@ Begin
               SP_DeleteWatch(FPDebugPanel.SelectedIndex);
             End;
       End;
-    2: // Breakpoints
+    3: // Breakpoints
       Begin
         If Sender = FPDebugBPEdt Then Begin
           SP_EditBreakPoint(FPDebugPanel.SelectedIndex, False);
@@ -879,16 +957,16 @@ Begin
               SP_EditBreakPoint(FPDebugPanel.SelectedIndex, True);
             End;
       End;
-    3: // Labels
+    4: // Labels
       Begin
       End;
-    4: // Procs and Fns
+    5: // Procs and Fns
       Begin
       End;
-    5: // Disassembly
+    6: // Disassembly
       Begin
       End;
-    6: // Program map
+    7: // Program map
       Begin
       End;
   End;

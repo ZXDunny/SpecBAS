@@ -8655,9 +8655,9 @@ Begin
 
   // AT numexpr,numexpr
 
-  X := SP_StackPtr^.Val;
+  X := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
-  Y := SP_StackPtr^.Val;
+  Y := Round(SP_StackPtr^.Val);
   Dec(SP_StackPtr);
 
   IF T_CENTRE Then SP_FlushCentreBuffer(Info);

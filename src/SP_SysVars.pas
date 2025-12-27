@@ -1479,6 +1479,7 @@ Const
    svInteger = 5;
    svPointer = 6;
    svByte = 7;
+   svColour = 8;
 
    spButton = 0;
    spCheckBox = 1;
@@ -1800,22 +1801,22 @@ Const
    (Name: 'NUBMODE1'; svType: svInteger; Size: 4; Data: @NUBMODE1),
    (Name: 'NUBMODE2'; svType: svInteger; Size: 4; Data: @NUBMODE1),
    (Name: 'BATTLEVEL'; svType: svInteger; Size: 4; Data: @BATTLEVEL),
-   (Name: 'CBLACK'; svType: svLongWord; Size: 4; Data: @CBLACK),
-   (Name: 'CBLUE'; svType: svLongWord; Size: 4; Data: @CBLUE),
-   (Name: 'CRED'; svType: svLongWord; Size: 4; Data: @CRED),
-   (Name: 'CMAGENTA'; svType: svLongWord; Size: 4; Data: @CMAGENTA),
-   (Name: 'CGREEN'; svType: svLongWord; Size: 4; Data: @CGREEN),
-   (Name: 'CCYAN'; svType: svLongWord; Size: 4; Data: @CCYAN),
-   (Name: 'CYELLOW'; svType: svLongWord; Size: 4; Data: @CYELLOW),
-   (Name: 'CWHITE'; svType: svLongWord; Size: 4; Data: @CWHITE),
-   (Name: 'CGREY'; svType: svLongWord; Size: 4; Data: @CGREY),
-   (Name: 'CBRIGHTBLUE'; svType: svLongWord; Size: 4; Data: @CBRIGHTBLUE),
-   (Name: 'CBRIGHTRED'; svType: svLongWord; Size: 4; Data: @CBRIGHTRED),
-   (Name: 'CBRIGHTMAGENTA'; svType: svLongWord; Size: 4; Data: @CBRIGHTMAGENTA),
-   (Name: 'CBRIGHTGREEN'; svType: svLongWord; Size: 4; Data: @CBRIGHTGREEN),
-   (Name: 'CBRIGHTCYAN'; svType: svLongWord; Size: 4; Data: @CBRIGHTCYAN),
-   (Name: 'CBRIGHTYELLOW'; svType: svLongWord; Size: 4; Data: @CBRIGHTYELLOW),
-   (Name: 'CBRIGHTWHITE'; svType: svLongWord; Size: 4; Data: @CBRIGHTWHITE),
+   (Name: 'CBLACK'; svType: svColour; Size: 4; Data: @CBLACK),
+   (Name: 'CBLUE'; svType: svColour; Size: 4; Data: @CBLUE),
+   (Name: 'CRED'; svType: svColour; Size: 4; Data: @CRED),
+   (Name: 'CMAGENTA'; svType: svColour; Size: 4; Data: @CMAGENTA),
+   (Name: 'CGREEN'; svType: svColour; Size: 4; Data: @CGREEN),
+   (Name: 'CCYAN'; svType: svColour; Size: 4; Data: @CCYAN),
+   (Name: 'CYELLOW'; svType: svColour; Size: 4; Data: @CYELLOW),
+   (Name: 'CWHITE'; svType: svColour; Size: 4; Data: @CWHITE),
+   (Name: 'CGREY'; svType: svColour; Size: 4; Data: @CGREY),
+   (Name: 'CBRIGHTBLUE'; svType: svColour; Size: 4; Data: @CBRIGHTBLUE),
+   (Name: 'CBRIGHTRED'; svType: svColour; Size: 4; Data: @CBRIGHTRED),
+   (Name: 'CBRIGHTMAGENTA'; svType: svColour; Size: 4; Data: @CBRIGHTMAGENTA),
+   (Name: 'CBRIGHTGREEN'; svType: svColour; Size: 4; Data: @CBRIGHTGREEN),
+   (Name: 'CBRIGHTCYAN'; svType: svColour; Size: 4; Data: @CBRIGHTCYAN),
+   (Name: 'CBRIGHTYELLOW'; svType: svColour; Size: 4; Data: @CBRIGHTYELLOW),
+   (Name: 'CBRIGHTWHITE'; svType: svColour; Size: 4; Data: @CBRIGHTWHITE),
    (Name: 'LASTFRAMETIME'; svType: svaFloat; Size: 8; Data: @LASTFRAMETIME),
    (Name: 'FDIST'; svType: svaFloat; Size: 8; Data: @FDIST),
    (Name: 'SORGX'; svType: svaFloat; Size: 8; Data: @SORGX),
@@ -1970,6 +1971,10 @@ Begin
         Begin
           Result := pByte(SysVars[Idx].Data)^;
         End;
+      svColour:
+        Begin
+          Result := pLongWord(SysVars[Idx].Data)^;
+        End;
     End;
 
   End Else
@@ -2046,7 +2051,7 @@ Begin
         Begin
           pBoolean(SysVars[Idx].Data)^ := Round(Val) <> 0;
         End;
-      svLongWord:
+      svLongWord, svColour:
         Begin
           If (Val >= 0) And (Val <= $FFFFFFFF) Then
             pLongWord(SysVars[Idx].Data)^ := Round(Val)

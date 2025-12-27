@@ -103,7 +103,7 @@ Function  GetMillisecond(T: Afloat): Integer; Inline;
 Function  HexDump(ptr: pByte; Size, MaxWidth: Integer): aString;
 Function  RawHexDump(ptr: pByte; Size: Integer): aString;
 Function  ReadRawHex(Var Src: aString): aString;
-Function  IntToHex(Value, Digits: Integer): aString;
+Function  IntToHex(Value, Digits: LongWord): aString;
 Function  IntToFrac(Value: Integer): aFloat; inline;
 Function  CopyFile(sSource, sDest: string): boolean;
 Procedure CopyDir(sSource, sDest: string);
@@ -127,6 +127,7 @@ Function  InsertLiterals(Const s: aString): aString;
 Procedure Swap(Var a, b: Integer);
 Function  Limited(v, a, b: Integer): Integer;
 Procedure RevString(var s: aString);
+Function  SP_MakePretty(Expr: aString): aString;
 
 Var
 
@@ -1198,13 +1199,15 @@ Begin
 
 End;
 
-Function IntToHex(Value, Digits: Integer): aString;
+Function IntToHex(Value, Digits: LongWord): aString;
 Begin
   Result := '';
-  If Value < 16 Then
-    Result := Result + aChar('0') + aString('0123456789ABCDEF')[Value + 1]
-  Else
-    Result := Result + aString('0123456789ABCDEF')[(Value Shr 4)+ 1] + aString('0123456789ABCDEF')[(Value And $F) + 1];
+  While Value > 0 Do Begin
+    Result := aString('0123456789ABCDEF')[(Value And $F) + 1] + Result;
+    Value := Value Shr 4;
+  End;
+  While Length(Result) < Digits Do
+    Result := '0' + Result;
 End;
 
 Function HexDump(ptr: pByte; Size, MaxWidth: Integer): aString;
@@ -1711,6 +1714,40 @@ Begin
     End;
   End;
 
+End;
+
+Function SP_MakePretty(Expr: aString): aString;
+Var
+  Idx: Integer;
+  b: Boolean;
+  s: aString;
+Begin
+  Idx := 1;
+  b := False;
+  If Expr = '' Then
+    Result := '""'
+  Else Begin
+    s := '';
+    While Idx <= Length(Expr) Do Begin
+      If Expr[Idx] >= ' ' Then Begin
+        If Not b Then Begin
+          s := s + '"';
+          b := True;
+        End;
+        s := s + Expr[Idx];
+      End Else Begin
+        If b Then Begin
+          s := s + '"';
+          b := False;
+        End;
+        s := s + '#' + IntToString(Ord(Expr[Idx]));
+      End;
+      Inc(Idx);
+    End;
+    If b Then
+      s := s + '"';
+    Result := s;
+  End;
 End;
 
 Initialization

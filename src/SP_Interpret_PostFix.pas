@@ -14629,6 +14629,7 @@ Begin
     CBOLD := 0;
     CITALIC := 0;
     CSTROKE := 1;
+    CPROP := 0;
     CFONT := SYSFONT;
     SP_Reset_Temp_Colours;
     SP_CLS(CPAPER);
@@ -20016,7 +20017,7 @@ Begin
     SP_SetDrawingWindow(Gfx);
     SP_CLS(8);
     CINK := 0; CPAPER := 8; T_INK := 0; T_PAPER := 8;
-    CFONT := SYSFONT; T_FONT := SYSFONT;
+    CFONT := SYSFONT; T_FONT := SYSFONT; CPROP := 0;
 
     cx := 0; cy := 0;
     For i := 0 To List.Count -1 Do Begin

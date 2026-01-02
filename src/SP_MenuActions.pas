@@ -182,8 +182,8 @@ Class Procedure SP_MenuActionProcs.FPEditorSearchBarPaint(Control: SP_BaseCompon
 Begin
 
   With Control Do Begin
-    If Assigned(FPSearchBox) then
-      Print(Max(FPSearchBox.Left - (FPFw * 4 + BSIZE), 2), 5, 'Find', 0, -1, EdFontScaleX, EdFontScaleY, False, False, False, False);
+    If Assigned(FPSearchBox) Then
+      Print(Max(FPSearchBox.Left - (SP_GetPropTextWidth(EDITORFONT, 'Find', '') + BSIZE), 2), 5, 'Find', 0, -1, EdFontScaleX, EdFontScaleY, False, False, False, False);
     DrawLine(0, 0, fWidth -1, 0, fBorderClr);
     DrawLine(0, 1, fWidth -1, 1, 15);
     DrawLine(0, fHeight -1, fWidth -1, fHeight -1, SP_UIShadow);
@@ -222,6 +222,8 @@ Begin
   FH := Trunc(FONTHEIGHT * EDFONTSCALEY);
 
   SP_GetWindowDetails(FPWindowID, Win, Error);
+  Win^.Component.Proportional := True;
+
   FPSearchPanel := SP_Container.Create(Win^.Component);
   FPSearchPanel.Visible := False;
   FPSearchPanel.BackgroundClr := 251;
@@ -280,6 +282,7 @@ Begin
   SP_GetWindowDetails(FPWindowID, Win, Error);
 
   FPMenu := SP_WindowMenu.Create(Win^.Component);
+  FPMenu.Proportional := True;
 
   FPFileMenu := SP_PopUpMenu.Create(Win^.Component, FPMenu);
   FPRecentMenu := SP_PopUpMenu.Create(Win^.Component, FPFileMenu);
@@ -425,6 +428,7 @@ Begin
   FPEditorStatusLabel.AutoSize := True;
   FPEditorStatusLabel.TextAlign := 0;
   FPEditorStatusLabel.TextJustify := 1;
+  FPEditorStatusLabel.Proportional := True;
 
   SP_GetWindowDetails(DWWindowID, Win, Error);
   FPDirectStatusLabel := SP_Label.Create(Win^.Component);
@@ -433,6 +437,7 @@ Begin
   FPDirectStatusLabel.AutoSize := True;
   FPDirectStatusLabel.TextAlign := 0;
   FPDirectStatusLabel.TextJustify := 1;
+  FPDirectStatusLabel.Proportional := True;
 
   FPMenu.Permanent := True;
 

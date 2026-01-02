@@ -139,7 +139,10 @@ Begin
 
   If fCaption <> '' Then Begin
     cl := fFontClr;
-    tw := (Length(fCaption) * iFW) + fW;
+    If Proportional Then
+      tw := TextWidth(fCaption) + fW
+    Else
+      tw := (Length(fCaption) * iFW) + fW;
     If fKind = spHorizontal Then Begin
       If fIntPos < tw Then Begin
         tx := fIntPos + fW;
@@ -153,7 +156,10 @@ Begin
         cl := fCapInvColour;
       End Else
         ty := Height - 1 - fIntPos + fH;
-      tx := (Width - (iFW * Length(fCaption))) Div 2;
+      If Proportional Then
+        tx := (Width - TextWidth(fCaption)) Div 2
+      Else
+        tx := (Width - (iFW * Length(fCaption))) Div 2;
     End;
     PRINT(tx, ty, fCaption, cl, -1, iSX, iSY, False, False, False, False);
   End;

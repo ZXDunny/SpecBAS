@@ -52,6 +52,7 @@ Type
 
   SP_Character_Info = Packed Record
     Data: LongWord;
+    Offset, Width: Integer;
   End;
   pSP_Character_Info = ^SP_Character_Info;
 
@@ -117,6 +118,10 @@ Type
   Function  SP_Font_Bank_SetChar(ID: Integer; Character: Integer; Data: pByte; Invert: Boolean = False): Integer;
   Procedure SP_SetSystemFont(BankID: Integer; Error: TSP_ErrorCode);
   Function  SP_SetSpeccyStyleChar(ID, Character: Integer; Data: pByte): Integer;
+  Procedure SP_ProcessAllFontBanks;
+  Procedure SP_GetFontCharMetrics(BankID: Integer);
+  Procedure SP_GetCharWidth(Char: aChar; Bank: pSP_Bank; Var Offset, Width: Integer);
+  Function  SP_GetPropTextWidth(FontID: Integer; Text, Exclude: aString): Integer;
 
   Function  SP_Screen_Bank_Create(Width, Height: Integer): Integer;
   Procedure SP_SetWindowDefaults(Bank: pSP_Bank; Window: pSP_Window_Info; Left, Top, Width, Height, TransIdx, Bpp, Alpha: Integer);
@@ -529,6 +534,9 @@ Begin
 
           SP_GRAPHIC_BANK:
             pSP_Graphic_Info(@Bank^.Info[0])^.Data := @Bank^.Memory[0];
+
+          SP_FONT_BANK:
+            SP_GetFontCharMetrics(Bank^.ID);
 
         End;
 
@@ -967,6 +975,150 @@ Begin
 
 End;
 
+Procedure SP_ProcessAllFontBanks;
+Var
+  i: Integer;
+Begin
+
+  For i := 0 To Length(SP_BankList) -1 Do
+    If SP_BankList[i]^.DataType = SP_FONT_BANK Then
+      SP_GetFontCharMetrics(SP_BankList[i]^.ID);
+
+End;
+
+Procedure SP_GetFontCharMetrics(BankID: Integer);
+Var
+  i: Integer;
+  Bank: pSP_Bank;
+  FontInfo: pSP_Font_Info;
+Begin
+
+  BankID := SP_FindBankID(BankID);
+  Bank := SP_BankList[BankID];
+  If Bank^.DataType = SP_FONT_BANK Then Begin
+    FontInfo := @Bank^.Info[0];
+    For i := 0 To 255 Do
+      SP_GetCharWidth(aChar(i), Bank, FontInfo^.Font_Info[i].Offset, FontInfo^.Font_Info[i].Width);
+  End;
+
+End;
+
+Procedure SP_GetCharWidth(Char: aChar; Bank: pSP_Bank; Var Offset, Width: Integer);
+Var
+  CharW, CharH, TC, Cw: Integer;
+  Ptr: pByte;
+Begin
+
+  CharW := pSP_Font_Info(Bank^.Info)^.Width;
+  CharH := pSP_Font_Info(Bank^.Info)^.Height;
+  Offset := 0;
+  Width := CharW;
+  If Char > #127 Then Exit;
+  Ptr := @Bank^.Memory[pSP_Font_Info(Bank^.Info)^.Font_Info[Byte(Char)].Data];
+  If pSP_Font_Info(Bank^.Info)^.FontType = SP_FONT_TYPE_COLOUR Then Begin
+    If pSP_Font_Info(Bank^.Info)^.Transparent <> $FFFF Then
+      TC := pSP_Font_Info(Bank^.Info)^.Transparent And $FF
+    Else
+      Exit;
+  End Else
+    TC := 0;
+
+  Width := 0;
+  Offset := CharW;
+  While CharH > 0 Do Begin
+    Cw := 0;
+    While Cw < CharW Do Begin
+      If Ptr^ <> TC Then begin
+        If Cw < Offset Then Offset := Cw;
+        If Cw > Width Then Width := Cw;
+      End;
+      Inc(Ptr);
+      Inc(Cw);
+    End;
+    Dec(CharH);
+  End;
+
+  If Width > 0 Then
+    Width := Width - Offset
+  Else Begin
+    Offset := 0;
+    Width := 3;
+  End;
+
+  Inc(Width, CHSPACE);
+
+End;
+
+Function SP_GetPropTextWidth(FontID: Integer; Text, Exclude: aString): Integer;
+Var
+  Bank: pSP_Bank;
+  LiteralChar: Boolean;
+  BankID, Idx, c: Integer;
+  FontInfo: pSP_Font_Info;
+Begin
+
+  c := 0;
+  Result := 0;
+  BankID := SP_FindBankID(FontID);
+  Bank := SP_BankList[BankID];
+  If Bank^.DataType = SP_FONT_BANK Then Begin
+    FontInfo := @Bank^.Info[0];
+    Idx := 1;
+    LiteralChar := False;
+    While Idx <= Length(Text) Do Begin
+      If LiteralChar Then Begin
+        If Pos(Text[Idx], Exclude) = 0 Then Begin
+          Inc(c);
+          Inc(Result, FontInfo^.Font_Info[Ord(Text[Idx])].Width + Ord(Text[Idx] < #128));
+        End;
+        Inc(Idx);
+        LiteralChar := False;
+      End Else Begin
+        Case Ord(Text[Idx]) of
+          5: // Literal char
+            Begin
+              LiteralChar := True;
+              // The following char should be counted so do nothing
+            End;
+          16, 17, 18, 19, 20, 26, 27, 29:
+            Begin // INK, PAPER etc controls
+              Inc(Idx, SizeOf(LongWord));
+            End;
+          6..13:
+            Begin // Cursor et al control
+              Inc(Idx);
+            End;
+          21, 22:
+            Begin // MOVE, AT control
+              Inc(Idx, SizeOf(Integer) * 2);
+            End;
+          23:
+            Begin // TAB control
+              Inc(Idx, SizeOf(Integer));
+            End;
+          24:
+            Begin // CENTRE control
+              Inc(Idx, SizeOf(Integer));
+            End;
+          25:
+            Begin // SCALE control
+              Inc(Idx, SizeOf(aFloat) * 2);
+            End;
+        Else
+          Begin
+            If Pos(Text[Idx], Exclude) = 0 Then Begin
+              Inc(c);
+              Inc(Result, FontInfo^.Font_Info[Ord(Text[Idx])].Width + Ord(Text[Idx] < #128));
+            End;
+          End;
+        End;
+        Inc(Idx);
+      End;
+    End;
+  End;
+
+End;
+
 Function SP_Font_Bank_SetChar(ID: Integer; Character: Integer; Data: pByte; Invert: Boolean = False): Integer;
 Var
   Bank: pSP_Bank;
@@ -1103,6 +1255,7 @@ Begin
   Window^.Inverse := CINVERSE;
   Window^.stroke := CSTROKE;
   Window^.Over := COVER;
+  Window^.PropFont := CPROP;
   Window^.Transparent := Word(TransIDX);
   Window^.pr_posx := 0;
   Window^.pr_posy := 0;

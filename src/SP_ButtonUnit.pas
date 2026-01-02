@@ -102,7 +102,10 @@ Begin
     h := Round(iFH * iSY);
   End;
 
-  fCaptionPos.x := (fWidth - (Length(fCaption) * w)) Div 2;
+  If Proportional Then
+    fCaptionPos.x := Round(fWidth - (TextWidth(fCaption) * iSX)) Div 2
+  Else
+    fCaptionPos.x := (fWidth - (Length(fCaption) * w)) Div 2;
   fCaptionPos.y := (fHeight - h) Div 2;
   Paint;
 

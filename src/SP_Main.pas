@@ -286,9 +286,9 @@ Begin
     SCROLLCNT := (SCREENHEIGHT Div Height) -1;
     SP_CLS_Lower(CPAPER);
     If SCREENBPP = 8 Then
-      SP_TextOut(-1, 2, SCREENHEIGHT - 2 - Height, 'Scroll?', CINK, CPAPER, True)
+      SP_TextOut(-1, 2, SCREENHEIGHT - 2 - Height, 'Scroll?', CINK, CPAPER, False)
     Else
-      SP_TextOut32(-1, 2, SCREENHEIGHT - 2 - Height, 'Scroll?', CINK, CPAPER, True);
+      SP_TextOut32(-1, 2, SCREENHEIGHT - 2 - Height, 'Scroll?', CINK, CPAPER, False);
     SP_ForceScreenUpdate; // Make sure the message is shown
 
     Key := Nil;

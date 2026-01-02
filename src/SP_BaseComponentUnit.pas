@@ -125,6 +125,7 @@ SP_BaseComponent = Class
     fBorderClr: Byte;
     fTransparent: Boolean;
     fMinWidth, fMinHeight, fMaxWidth, fMaxHeight: Integer;
+    fProportional: Boolean;
     iFH, iFW, fH, fW: Integer;
     iSX, iSY: aFloat;
     fLastKeyChar: Byte;
@@ -195,6 +196,7 @@ SP_BaseComponent = Class
     Procedure SetUnfocusedHighlightClr(c: Byte); Virtual;
     Procedure SetBackgroundClr(c: Byte); Virtual;
     Procedure SetFontClr(c: Byte); Virtual;
+    Procedure SetProportional(b: Boolean); Virtual;
     Procedure SetErrorClr(c: Byte); Virtual;
     Procedure SetDisabledFontClr(c: Byte); Virtual;
     Procedure SetShadow(b: Boolean); Virtual;
@@ -204,6 +206,7 @@ SP_BaseComponent = Class
     Procedure SetOverrideScaling(b: Boolean);
     Procedure SetFont(ID: Integer);
     Function  GetHint: aString; Virtual;
+    Function  TextWidth(Text: aString): Integer;
     Procedure AlignChildren;
 
     Procedure DoErase;
@@ -277,6 +280,7 @@ SP_BaseComponent = Class
     Procedure Set_Anchors(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Anchors: aString;
     Procedure Set_BackgroundClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_BackgroundClr: aString;
     Procedure Set_FontClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_FontClr: aString;
+    Procedure Set_FontProp(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_FontProp: aString;
     Procedure Set_Shadow(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Shadow: aString;
     Procedure Set_ShadowClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ShadowClr: aString;
     Procedure Set_ErrorClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_ErrorClr: aString;
@@ -374,20 +378,21 @@ SP_BaseComponent = Class
     Property MaxWidth:      Integer             read fMaxWidth      write SetMaxWidth;
     Property MaxHeight:     Integer             read fMaxHeight     write SetMaxHeight;
     Property Canvas:        NativeUInt          read GetCanvas;
-    Property DisabledFontClr:   Byte            read fDisabledFontClr   write SetDisabledFontClr;
+    Property DisabledFontClr: Byte              read fDisabledFontClr   write SetDisabledFontClr;
     Property HighlightClr:  Byte                read fHighlightClr  write SetHighlightClr;
     Property UnfocusedHighlightClr: Byte        read fUnfocusedHighlightClr write SetUnfocusedHighlightClr;
     Property Transparent:   Boolean             read fTransparent   write SetTransparent;
     property OverrideScaling: Boolean           read fOverrideScl   write SetOverrideScaling;
-    Property OnFocus: SP_FocusEvent             read fOnFocus       write SetOnFocus;
-    Property Erase: Boolean                     read fErase         write fErase;
-    Property Font: Integer                      read fCurFontID     write SetFont;
+    Property OnFocus:       SP_FocusEvent       read fOnFocus       write SetOnFocus;
+    Property Erase:         Boolean             read fErase         write fErase;
+    Property Font:          Integer             read fCurFontID     write SetFont;
+    Property Proportional:  Boolean             read fProportional  write SetProportional;
     Property ParentWindowID: Integer            read fParentWindowID;
-    Property Hint: aString                      read GetHint        write fHint;
-    Property WantTAB: Boolean                   read fWantTAB       write fWantTAB;
-    Property Tag: Integer                       read fTag           write fTag;
-    Property Locked: Boolean                    read IsLocked;
-    Property TypeName: aString                  read fTypeName;
+    Property Hint:          aString             read GetHint        write fHint;
+    Property WantTAB:       Boolean             read fWantTAB       write fWantTAB;
+    Property Tag:           Integer             read fTag           write fTag;
+    Property Locked:        Boolean             read IsLocked;
+    Property TypeName:      aString             read fTypeName;
 
     Constructor Create(Owner: SP_BaseComponent);
     Destructor  Destroy; Override;
@@ -796,7 +801,7 @@ Begin
     yo := Round(cFH/2);
     Drawline(0, yo, cFW Div 2, yo, fBorderClr);
     if Caption <> '' then
-      Drawline(((Length(Caption) +1) * cFW) + (cFW Div 2), yo, Width -1, yo, fBorderClr)
+      Drawline(TextWidth(Caption + ' ') + cFW Div 2, yo, Width -1, yo, fBorderClr)
     else
       Drawline(cFW Div 2, yo, Width -1, yo, fBorderClr);
     Drawline(Width -1, yo, Width -1, Height -1, fBorderClr);
@@ -813,9 +818,9 @@ End;
 
 Procedure SP_BaseComponent.Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold, UseAccel, ShowAccel: Boolean);
 Var
-  BankID, CharW, CharH, Idx, cCount, ItalicOffset: Integer;
-  sx, sy, Cw, Ch, yp, xp, TC, t: Integer;
-  Transparent: Boolean;
+  BankID, CharW, CharH, Idx, cCount, ItalicOffset, xc: Integer;
+  sx, sy, Cw, Ch, yp, xp, TC, t, PropOffset, PropWidth: Integer;
+  Transparent, Prop: Boolean;
   FontBank: pSP_Font_Info;
   Bank: pSP_Bank;
   Dst, Coord, Char, pIdx, lIdx: pByte;
@@ -846,6 +851,7 @@ Begin
     End;
 
     Idx := 1;
+    Prop := Proportional;
     AbortChar:
     While Idx <= Length(Text) Do Begin
 
@@ -864,12 +870,21 @@ Begin
         End Else
           Char := @Bank^.Memory[FontBank^.Font_Info[Byte(curChar)].Data];
 
+        If Prop And (CurChar < #128) Then Begin
+          PropOffset := FontBank^.Font_Info[Byte(curChar)].Offset;
+          PropWidth := FontBank^.Font_Info[Byte(curChar)].Width;
+          Inc(PropWidth, Ord(Bold));
+        End Else Begin
+          PropOffset := 0;
+          PropWidth := FontBank^.Width -1;
+        End;
+
         If Italic Then
           ItalicOffset := (CharH Div ITALICSCALE) Shl 16
         Else
           ItalicOffset := 0;
         Coord := Dst;
-        Inc(Coord, (fWidth * Y) + X);
+        Inc(Coord, (fWidth * Y) + X - PropOffset);
         Inc(Coord, ItalicOffset Shr 16);
         if Italic Then Dec(Coord, ItalicScale Div 2);
 
@@ -880,11 +895,11 @@ Begin
           yp := 0;
           While CharH > 0 Do Begin
             pIdx := Char;
-            xp := 0;
+            xp := 0; xc := 0;
             SkipNextPaper := False;
             Inc(pIdx, FontBank^.Width * (yp Shr 16));
             While CharW > 0 Do Begin
-              If (X >= 0) And (Y >= 0) And (X < fWidth) And (Y < fHeight) Then
+              If (xc >= PropOffset) And (xc <= PropWidth + PropOffset) And (X >= 0) And (Y >= 0) And (X < fWidth) And (Y < fHeight) Then
                 If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
                   If Transparent Then Begin
                     lIdx := pByte(NativeUInt(pIdx) + (xp Shr 16));
@@ -906,7 +921,7 @@ Begin
                       SkipNextPaper := False;
               Inc(Coord);
               Inc(xp, sx);
-              Inc(X);
+              Inc(X); Inc(xc);
               Dec(CharW);
             End;
             Inc(Y);
@@ -923,30 +938,31 @@ Begin
           Inc(X, CharW);
         End Else Begin
           While CharH > 0 Do Begin
+            xc := 0;
             SkipNextPaper := False;
             While CharW > 0 Do Begin
-                If (X >= 0) And (Y >= 0) And (X < fWidth) And (Y < fHeight) Then
-                  If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
-                    If Transparent Then Begin
-                      If Char^ <> TC Then
-                        Coord^ := Char^;
-                    End Else
+              If (xc >= PropOffset) And (xc <= PropWidth + PropOffset) And (X >= 0) And (Y >= 0) And (X < fWidth) And (Y < fHeight) Then
+                If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
+                  If Transparent Then Begin
+                    If Char^ <> TC Then
                       Coord^ := Char^;
                   End Else
-                    If Char^ = 1 Then Begin
-                      Coord^ := Ink;
-                      If Bold And (X+1 < fWidth) Then Begin
-                        pByte(NativeUInt(Coord)+1)^ := Ink;
-                        SkipNextPaper := True;
-                      End;
-                    End Else
-                      If Not Transparent And Not SkipNextPaper Then
-                        Coord^ := Paper
-                      Else
-                        SkipNextPaper := False;
+                    Coord^ := Char^;
+                End Else
+                  If Char^ = 1 Then Begin
+                    Coord^ := Ink;
+                    If Bold And (X+1 < fWidth) Then Begin
+                      pByte(NativeUInt(Coord)+1)^ := Ink;
+                      SkipNextPaper := True;
+                    End;
+                  End Else
+                    If Not Transparent And Not SkipNextPaper Then
+                      Coord^ := Paper
+                    Else
+                      SkipNextPaper := False;
               Inc(Coord);
               Inc(Char);
-              Inc(X);
+              Inc(X); Inc(xc);
               Dec(CharW);
             End;
             Inc(Y);
@@ -965,7 +981,8 @@ Begin
         If ShowAccel And (curChar = '&') Then Begin
           Dec(X, CharW);
           Dec(Y);
-        End;
+        End Else
+          Dec(X, CharW - PropWidth -1);
 
       End Else Begin
 
@@ -1047,7 +1064,7 @@ Begin
               cCount := 0;
               While not (pIdx^ in [6..11, 13]) and (pIdx <= lIdx) Do Begin
                 Case pIdx^ Of
-                  16..20, 26, 27:
+                  16..20, 26, 27, 29:
                     Begin
                       Inc(pIdx, SizeOf(LongWord));
                     End;
@@ -1103,6 +1120,13 @@ Begin
             t := pLongWord(@Text[Idx+1])^;
             If t <> 8 Then
               Bold := t <> 0;
+            Inc(Idx, SizeOf(LongWord));
+          End;
+         29:
+          Begin
+            // PROPFONT control
+            t := pLongWord(@Text[Idx+1])^;
+            If t <> 8 Then Prop := t <> 0;
             Inc(Idx, SizeOf(LongWord));
           End;
         End;
@@ -1411,6 +1435,15 @@ Begin
 
 End;
 
+Function SP_BaseComponent.TextWidth(Text: aString): Integer;
+Begin
+
+  If Proportional Then
+    Result := SP_GetPropTextWidth(fCurFontID, Text, '')
+  Else
+    Result := Length(Text) * iFW;
+
+End;
 
 Constructor SP_BaseComponent.Create(Owner: SP_BaseComponent);
 Var
@@ -1449,6 +1482,7 @@ Begin
     fOwnerIndex := l;
     Inc(Owner.fNumComponents);
     fParentWindowID := Owner.fParentWindowID;
+    fProportional := Owner.Proportional;
   End Else Begin
     fOwnerIndex := 0;
     fParentType := spWindow;
@@ -1926,6 +1960,20 @@ Begin
 
   If fFontClr <> c Then Begin
     fFontClr := c;
+    Paint;
+  End;
+
+End;
+
+Procedure SP_BaseComponent.SetProportional(b: Boolean);
+Var
+  i: Integer;
+Begin
+
+  If fProportional <> b Then Begin
+    fProportional := b;
+    For i := 0 To Length(fComponentList) -1 Do
+      fComponentList[i].Proportional := b;
     Paint;
   End;
 
@@ -2755,6 +2803,7 @@ Begin
   RegisterProperty('anchors', Get_Anchors, Set_Anchors, ':lrtb|lrtb');
   RegisterProperty('backgroundclr', Get_BackgroundClr, Set_BackgroundClr, ':v|v');
   RegisterProperty('fontclr', Get_FontClr, Set_FontClr, ':v|v');
+  RegisterProperty('fontprop', Get_FontProp, Set_FontProp, ':v|v');
   RegisterProperty('shadow', Get_Shadow, Set_Shadow, ':v|v');
   RegisterProperty('shadowclr', Get_ShadowClr, Set_ShadowClr, ':v|v');
   RegisterProperty('errorclr', Get_ErrorClr , Set_ErrorClr, ':v|v');
@@ -3106,6 +3155,16 @@ End;
 Function  SP_BaseComponent.Get_FontClr: aString;
 Begin
   Result := IntToString(fFontClr);
+End;
+
+Procedure SP_BaseComponent.Set_FontProp(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Proportional := Boolean(StringToInt(s, Ord(Proportional)));
+End;
+
+Function  SP_BaseComponent.Get_FontProp: aString;
+Begin
+  Result := IntToString(Ord(fProportional));
 End;
 
 Procedure SP_BaseComponent.Set_Shadow(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);

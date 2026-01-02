@@ -82,6 +82,7 @@ Function  SP_Convert_INVERSE(Var Tokens: aString; Var Position: Integer; Var Err
 Function  SP_Convert_OVER(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_TRANSPARENT(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_STROKE(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Function  SP_Convert_PROP(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_Var_Assign(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_LET(Var Tokens: aString; Var KeyWordID: LongWord; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
 Function  SP_Convert_CLS(Var Tokens: aString; Var Position: Integer; Var KeyWordID: LongWord; Var Error: TSP_ErrorCode): aString;
@@ -580,6 +581,7 @@ Begin
     SP_KW_PAPER: Result := Result + SP_Convert_PAPER(Tokens, Position, Error);
     SP_KW_INVERSE: Result := Result + SP_Convert_INVERSE(Tokens, Position, Error);
     SP_KW_ITALIC: Result := Result + SP_Convert_INVERSE(Tokens, Position, Error);
+    SP_KW_PROP: Result := Result + SP_Convert_PROP(Tokens, Position, Error);
     SP_KW_BOLD: Result := Result + SP_Convert_INVERSE(Tokens, Position, Error);
     SP_KW_OVER: Result := Result + SP_Convert_OVER(Tokens, Position, Error);
     SP_KW_SCALE: Result := Result + SP_Convert_SCALE(KeywordID, Tokens, Position, Error);
@@ -6265,7 +6267,7 @@ Begin
                 Result := Result + Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
                 Expr := '';
               End;
-            SP_KW_INK, SP_KW_PAPER, SP_KW_INVERSE, SP_KW_TAB, SP_KW_OVER, SP_KW_ITALIC, SP_KW_BOLD, SP_KW_FONT:
+            SP_KW_INK, SP_KW_PAPER, SP_KW_INVERSE, SP_KW_TAB, SP_KW_OVER, SP_KW_ITALIC, SP_KW_BOLD, SP_KW_FONT, SP_KW_PROP:
               Begin
                 Inc(Position, 1+SizeOf(LongWord));
                 Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
@@ -6283,6 +6285,7 @@ Begin
                   SP_KW_TAB: KeywordID := SP_KW_PR_TAB;
                   SP_KW_OVER: KeyWordID := SP_KW_PR_OVER;
                   SP_KW_FONT: KeyWordID := SP_KW_PR_FONT;
+                  SP_KW_PROP: KeyWordID := SP_KW_PR_PROP;
                 End;
                 Result := Result + Expr + CreateToken(SP_KEYWORD, KeyWordPos, SizeOf(LongWord)) + LongWordToString(KeyWordID);
                 Expr := '';
@@ -6530,6 +6533,18 @@ Function  SP_Convert_STROKE(Var Tokens: aString; Var Position: Integer; Var Erro
 Begin
 
   // STROKE numexpr
+
+  Result := '';
+  Result := SP_Convert_Expr(Tokens, Position, Error, -1);
+  If Error.Code <> SP_ERR_OK then Exit;
+  If Error.ReturnType <> SP_VALUE Then Error.Code := SP_ERR_MISSING_NUMEXPR;
+
+End;
+
+Function  SP_Convert_PROP(Var Tokens: aString; Var Position: Integer; Var Error: TSP_ErrorCode): aString;
+Begin
+
+  // PROP numexpr
 
   Result := '';
   Result := SP_Convert_Expr(Tokens, Position, Error, -1);
@@ -11753,6 +11768,20 @@ Begin
 
   If Error.Code <> SP_ERR_OK Then Exit;
 
+  If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_UPDATE) Then Begin
+    Inc(Position, 1 + SizeOf(LongWord));
+    Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // FontID
+    If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
+      Error.Code := SP_ERR_MISSING_NUMEXPR;
+      Exit;
+    End;
+    Result := Expr;
+    KeyWordID := SP_KW_FONT_UPDATE;
+    Exit;
+  End;
+
+  If Error.Code <> SP_ERR_OK Then Exit;
+
   Expr := SP_Convert_Expr(Tokens, Position, Error, -1) + Expr; // FontID
   If Error.Code <> SP_ERR_OK Then Exit Else If Error.ReturnType <> SP_VALUE Then Begin
     Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -16179,7 +16208,7 @@ Begin
           End;
 
           Case KeyWord of
-            SP_KW_INK, SP_KW_PAPER, SP_KW_INVERSE, SP_KW_TAB, SP_KW_OVER, SP_KW_TRANSPARENT, SP_KW_TRANS, SP_KW_CENTRE:
+            SP_KW_INK, SP_KW_PAPER, SP_KW_INVERSE, SP_KW_TAB, SP_KW_OVER, SP_KW_TRANSPARENT, SP_KW_TRANS, SP_KW_CENTRE, SP_KW_FONT, SP_KW_PROP:
               Begin
                 Inc(Position, 1+SizeOf(LongWord));
                 Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
@@ -16194,6 +16223,8 @@ Begin
                   SP_KW_INVERSE: KeyWord := SP_KW_PR_INVERSE;
                   SP_KW_TAB: Keyword := SP_KW_PR_TAB;
                   SP_KW_OVER: KeyWord := SP_KW_PR_OVER;
+                  SP_KW_FONT: KeyWordID := SP_KW_PR_FONT;
+                  SP_KW_PROP: KeyWord := SP_KW_PR_PROP;
                   SP_KW_TRANSPARENT, SP_KW_TRANS:
                     Begin
                       KeyWord := SP_KW_PR_TRANSPARENT;

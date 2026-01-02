@@ -148,6 +148,7 @@ Begin
   CITALIC := 0;
   CBOLD := 0;
   SP_GetWindowDetails(Result, Win, Error);
+  Win^.Component.Proportional := True;
 
   For Idx := 0 To 255 Do Win^.Palette[Idx] := DefaultPalette[Idx];
 
@@ -335,7 +336,7 @@ Begin
     nBH := Min(Round(BH * T_SCALEY), 8);
   End;
 
-  w := DISPLAYWIDTH - (DISPLAYWIDTH Div 8);
+  w := DISPLAYWIDTH - (DISPLAYWIDTH Div 4);
   h := DISPLAYHEIGHT - (DISPLAYHEIGHT Div 8);
   FDWindowID := CreateToolWindow(Caption, (DISPLAYWIDTH - w) Div 2, (DISPLAYHEIGHT - h) Div 2, w, h);
   Dec(w, 2); // Account for the 1 pixel black border
@@ -343,6 +344,8 @@ Begin
   SP_SetDrawingWindow(FDWindowID);
 
   // Add controls - parent button, path, file list, filename, ok, cancel
+
+  Win^.Component.Proportional := True;
 
   pBtn := SP_Button.Create(Win^.Component);
   pBtn.SetBounds(nBw + 1, FPCaptionHeight + nBh, Fw + 4, Fh + 4);
@@ -368,14 +371,14 @@ Begin
 
   caBtn := SP_Button.Create(Win^.Component);
   caBtn.Caption := 'Cancel';
-  cw := Fw * (Length(caBtn.Caption) +2);
+  cw := caBtn.TextWidth(caBtn.Caption) + Fw * 2;
   caBtn.SetBounds(w - (cw + nBw) +1, h - (FH + 6) - nBh -1, cw, FH + 6);
   caBtn.CentreCaption;
   caBtn.Enabled := True;
 
   okBtn := SP_Button.Create(Win^.Component);
   okBtn.Caption := 'Okay';
-  cw := Fw * (Length(OkBtn.Caption) + 2);
+  cw := okBtn.TextWidth(OkBtn.Caption) + Fw * 2;
   okBtn.SetBounds(caBtn.Left - (cw + nBw), caBtn.Top, cw, FH + 6);
   okBtn.CentreCaption;
 

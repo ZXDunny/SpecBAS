@@ -374,7 +374,6 @@ Const
   SP_KW_LLIST               = 1254;
   SP_KW_TILE                = 1255;
 
-
   // These are meta-commands; they do not appear in listings, and are used during
   // execution only, having been inserted by the pre-processor.
 
@@ -756,10 +755,12 @@ Const
   SP_KW_CTRL_LIST           = 4426;
   SP_KW_PR_FONT             = 4427;
   SP_KW_CTRL_ERASE          = 4428;
+  SP_KW_PR_PROP             = 4429;
+  SP_KW_FONT_UPDATE         = 4430;
 
   // Names of the above meta-keywords - for use by the DEBUG command.
 
-  SP_Keyword_Names: Array[0..377] of aString =
+  SP_Keyword_Names: Array[0..379] of aString =
     ('PR INK', 'PR PAPER', 'PR INVERSE', 'PR TAB', 'PR AT', 'PR MOVE', 'GOTO', 'GOSUB', 'PALSHIFT',
      'READ ASSIGN', 'DRAWTO', 'SCR LOCK', 'SCR UNLOCK', 'SCR UPDATE', 'SCR RES', 'WIN NEW', 'WIN DEL',
      'WIN MOVE', 'WIN SIZE', 'WIN FRONT', 'WIN BACK', 'WIN SHOW', 'WIN HIDE', 'SCR GRAB', 'WIN GRAB',
@@ -812,7 +813,7 @@ Const
      'PALETTE APPLE HGR', 'PALETTE CPC', 'STREAM READLN', 'A-RECTANGLE TO', 'A-RECTFILL TO', 'RECTANGLE TO',
      'RECTFILL TO', 'WAIT KEY UP', 'FOR EACH STRING', 'ENUM BASE', 'ORG DIM', 'DRAW GML', 'WIN ORG DIM', 'GFX ORG DIM',
      'STREAM READ FILE', 'RAINBOW HSV', 'PR STROKE', 'DRAW CDELTA', 'A-DRAW CDELTA', 'TILEMAP DRAW TILE', 'CTRL NEW',
-     'CTRL SET', 'CTRL DO', 'CTRL LOCK', 'CTRL UNLOCK', 'CTRL LIST', 'PR FONT', 'CTRL ERASE');
+     'CTRL SET', 'CTRL DO', 'CTRL LOCK', 'CTRL UNLOCK', 'CTRL LIST', 'PR FONT', 'CTRL ERASE', 'PR PROP', 'FONT UPDATE');
 
   // List of Functions that are used in expressions. Again, MUST be in order.
   // Functions that take only one parameter have a space at the end of their name. All others have no spaces.

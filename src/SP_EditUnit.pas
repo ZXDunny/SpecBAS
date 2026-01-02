@@ -44,6 +44,7 @@ SP_Edit = Class(SP_BaseComponent)
     Procedure SetValidText(b: Boolean);
     Procedure SetSelStart(n: Integer);
     Procedure SetGhostText(s: aString);
+    Function  TextPixelWidth: Integer;
 
   Public
 
@@ -95,7 +96,7 @@ End;
 
 implementation
 
-Uses Math, SysUtils, SP_Components, SP_SysVars, SP_Input, SP_Sound, ClipBrd, SP_Interpret_PostFix;
+Uses Math, SysUtils, SP_Components, SP_SysVars, SP_Input, SP_Sound, ClipBrd, SP_Interpret_PostFix, SP_BankManager, SP_BankFiling;
 
 // SP_Edit
 
@@ -189,7 +190,7 @@ End;
 
 Procedure SP_Edit.Draw;
 Var
-  tl, ss, sc, p, Clr, fg, bg, yOfs: Integer;
+  tl, ss, sc, p, Clr, fg, bg, yOfs, x: Integer;
   s: aString;
   c: aChar;
 Begin
@@ -231,7 +232,11 @@ Begin
       ss := Min(fSelStart, fCursorPos);
       sc := (Max(fSelStart, fCursorPos) - ss) +1;
       s := InsertLiterals(Copy(fText, ss, sc));
-      Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), yOfs, s, Clr, p, iSX, iSY, False, False, False, False);
+      If Proportional Then Begin
+        x := TextWidth(Copy(fText, 1, ss -1));
+        Print(x - xoff + (Ord(fBorder) * 2), yOfs, s, Clr, p, iSX, iSY, False, False, False, False);
+      End Else
+        Print(((ss -1)*iFW)-xoff + (Ord(fBorder) * 2), yOfs, s, Clr, p, iSX, iSY, False, False, False, False);
     End;
 
     If Focused Then Begin
@@ -254,7 +259,11 @@ Begin
         Fg := fCursUnfocusedFG; Bg := fCursUnfocusedBG;
       End;
 
-      Print(((fCursorPos -1)* Round(iFW * iSX)) - xoff + (Ord(fBorder) * 2), yOfs, s, Fg, Bg, iSX, iSY, False, False, False, False);
+      If Proportional Then Begin
+        x := TextWidth(Copy(fText, 1, fCursorPos -1));
+        Print(x - xoff + (Ord(fBorder) * 2), yOfs, s, Fg, Bg, iSX, iSY, False, False, False, False);
+      End Else
+        Print(((fCursorPos -1) * Round(iFW * iSX)) - xoff + (Ord(fBorder) * 2), yOfs, s, Fg, Bg, iSX, iSY, False, False, False, False);
 
     End;
 
@@ -696,6 +705,8 @@ Begin
 End;
 
 Procedure SP_Edit.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+Var
+  i: Integer;
 Begin
 
   if not fEnabled Then Exit;
@@ -705,9 +716,16 @@ Begin
     Dec(Y, 2);
   end;
 
+  Inc(X, xoff);
+
   fMouseIsDown := True;
   SetFocus(True);
-  CursorPos := Min(Max((X Div iFW) +1, 0), Length(fText)+1);
+  If Proportional Then Begin
+    i := 1;
+    While (i < Length(fText) +1) And (TextWidth(Copy(fText, 1, i)) < X) Do Inc(i);
+    CursorPos := Min(i, Length(fText) +1);
+  End Else
+    CursorPos := Min(Max((X Div iFW) +1, 0), Length(fText)+1);
   If cKEYSTATE[K_SHIFT] = 0 Then
     fSelStart := fCursorPos;
   SP_PlaySystem(CLICKCHAN, CLICKBANK);
@@ -718,6 +736,8 @@ Begin
 End;
 
 Procedure SP_Edit.MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+Var
+  i: Integer;
 Begin
 
   if not fEnabled Then Exit;
@@ -728,7 +748,12 @@ Begin
   end;
 
   If fMouseIsDown Then
-    CursorPos := Max(1, (X Div iFW) +1);
+    If Proportional Then Begin
+      i := 1;
+      While (i < Length(fText) +1) And (TextWidth(Copy(fText, 1, i)) < X) Do Inc(i);
+      CursorPos := Min(i, Length(fText) +1);
+    End Else
+      CursorPos := Max(1, (X Div iFW) +1);
 
   Inherited;
 
@@ -773,6 +798,14 @@ Begin
 
 End;
 
+Function SP_Edit.TextPixelWidth: Integer;
+Begin
+  If Proportional Then
+    Result := TextWidth(fText)
+  Else
+    Result := Length(fText) * iFW;
+End;
+
 Procedure SP_Edit.SetTextNoUpdate(s: aString);
 Begin
 
@@ -784,10 +817,10 @@ Begin
     fSelStart := fCursorPos;
     if not Focused then begin
       if fRightJustify then begin
-        if iFW * Length(fText) < Width then
+        if TextPixelWidth < Width then
           xOff := 0
         else
-          xOff := -((Width - (Ord(fBorder) * 4)) - (iFW * Length(fText)))
+          xOff := -((Width - (Ord(fBorder) * 4)) - TextPixelWidth)
       end else
         xOff := 0;
     end;
@@ -797,16 +830,15 @@ Begin
 
 End;
 
-
 Procedure SP_Edit.SetCursorPos(v: Integer);
 Var
   x, m, n: Integer;
 Begin
 
   fCursorPos := Min(v, Length(fText)+1);
-  n := iFW * 3;
+  n := TextWidth(' ') * 3;
   m := Width - n;
-  x := (fCursorPos * iFW) - xOff;
+  x := TextWidth(Copy(fText, 1, fCursorPos -1)) - xOff;
   If x > m Then
     Inc(xOff, x - m)
   Else

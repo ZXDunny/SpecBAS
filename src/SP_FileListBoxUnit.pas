@@ -391,10 +391,12 @@ Begin
 
     Enabled := True;
 
-    AddHeader(' Filename', ((Width Div cfw) - 26) * cFW);
-    AddHeader(' Size', 12 * cFW);
+    AddHeader(' Filename', ((Width Div cfw) - 21) * cFW);
+    AddHeader(' Size', 7 * cFW);
     AddHeader(' Date', 12 * cFW);
     fHeaders[1].Justify := 1;
+    fHeaders[1].Proportional := True;
+    fHeaders[2].Proportional := False;
 
     For i := 0 To Files.Count -1 Do
       If Not ((Files[i][1] = '.') And (Integer(Files.Objects[i]) = 1)) Then

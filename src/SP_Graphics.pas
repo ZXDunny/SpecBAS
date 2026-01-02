@@ -87,7 +87,7 @@ Procedure SP_FillRect(X, Y, W, H: Integer; Colour: LongWord);
 Procedure SP_Scroll(Dy: Integer);
 Procedure SP_Reset_Temp_Colours; inline;
 Function  SP_GetFontBank: Integer;
-Function  SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Visible: Boolean; ShowSpecial: Boolean = False): Integer;
+Function  SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Proportional: Boolean; ShowSpecial: Boolean = False): Integer;
 Function  SP_PRINT(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: Integer; var Error: TSP_ErrorCode): Integer;
 Procedure SP_CLS(Paper: LongWord);
 Function  SP_Get_Contrasting_INK(Index: Integer): Integer;
@@ -831,6 +831,8 @@ Begin
   For Idx := 0 to 3 Do
     SP_SetSpeccyStyleChar(ID, Idx + 144, @Dithers[Idx * 8]);
 
+  SP_GetFontCharMetrics(ID);
+
 ENd;
 
 Procedure SP_InitialGfxSetup(W, H: Integer; IsNEW: Boolean);
@@ -855,6 +857,9 @@ Begin
   CSCALEY := 1;
   CSTROKE := 1;
   CTRANSPARENT := False;
+  CPROP := 0;
+
+  CHSPACE := 1;
 
   CBLACK := SP_Colour(0, 0, 0);
   CBLUE := SP_Colour(0, 0, 202);
@@ -938,7 +943,8 @@ Begin
         Window^.Italic := CITALIC;
         Window^.Bold := CBOLD;
         Window^.Over := COVER;
-        WIndow^.Font := CFONT;
+        Window^.Font := CFONT;
+        Window^.PropFont := CPROP;
         Window^.pr_posx := PRPOSX;
         Window^.pr_posy := PRPOSY;
         Window^.dr_posx := DRPOSX;
@@ -973,6 +979,7 @@ Begin
         Window^.Italic := CITALIC;
         Window^.Bold := CBOLD;
         Window^.Over := COVER;
+        Window^.PropFont := CPROP;
         Window^.pr_posx := PRPOSX;
         Window^.pr_posy := PRPOSY;
         Window^.dr_posx := DRPOSX;
@@ -1040,6 +1047,7 @@ Begin
       COVER := Window^.Over;
       CSTROKE := Window^.stroke;
       CFONT := Window^.Font;
+      CPROP := Window^.PropFont;
       CTRANSPARENT := Window^.FontTrans;
       WINDOWPOINTER := Window;
       SCRBANKPOINTER := Bank;
@@ -1091,6 +1099,7 @@ Begin
         CITALIC := Window^.Italic;
         CBOLD := Window^.Bold;
         CFONT := Window^.Font;
+        CPROP := Window^.PropFont;
         CTRANSPARENT := Window^.FontTrans;
         CSCALEX := Window^.scalex;
         CSCALEY := Window^.scaley;
@@ -2100,6 +2109,7 @@ Begin
   T_INK := CINK;
   T_PAPER := CPAPER;
   T_INVERSE := CINVERSE;
+  T_PROP := CPROP;
   T_OVER := COVER;
   T_CLIPX1 := CCLIPX1;
   T_CLIPX2 := CCLIPX2;
@@ -2136,9 +2146,9 @@ Begin
 
 End;
 
-Function SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Visible: Boolean; ShowSpecial: Boolean = False): Integer;
+Function SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Proportional: Boolean; ShowSpecial: Boolean = False): Integer;
 Var
-  CharW, CharH, Idx, cCount, OVER, ItalicOffset, DefPaper, nx: Integer;
+  CharW, CharH, Idx, cCount, OVER, ItalicOffset, DefPaper, nx, xc, PropOffset, PropWidth: Integer;
   sx, sy, Cw, Ch, yp, xp, TC, t: Integer;
   Transparent, ForceNextChar: Boolean;
   FontBank: pSP_Font_Info;
@@ -2146,6 +2156,7 @@ Var
   Coord, Char, pIdx, lIdx: pByte;
   IsScaled, SkipNextPaper: Boolean;
   ScaleX, ScaleY: aFloat;
+  curChar: aChar;
 
   Function SetFontAttrs(ID: Integer): Integer;
   Begin
@@ -2194,17 +2205,32 @@ Begin
     Idx := 1;
     While Idx <= Length(Text) Do Begin
 
-      If (Text[Idx] >= ' ') or ForceNextChar Then Begin
+      curChar := Text[Idx];
+      If (curChar >= ' ') or ForceNextChar Then Begin
 
         ForceNextChar := False;
-        Char := @Bank^.Memory[FontBank^.Font_Info[Byte(Text[Idx])].Data];
+        Char := @Bank^.Memory[FontBank^.Font_Info[Byte(curChar)].Data];
         If SCREENVISIBLE Then SP_SetDirtyRect(SCREENX + X, SCREENY + Y, SCREENX + X + CharW, SCREENY + Y + CharH);
+
+        If Proportional And (Text[Idx] < #128) Then Begin
+          PropOffset := FontBank^.Font_Info[Byte(curChar)].Offset;
+          PropWidth := FontBank^.Font_Info[Byte(curChar)].Width;
+          Inc(PropWidth, Ord(T_BOLD > 0));
+        End Else Begin
+          PropOffset := 0;
+          PropWidth := FontBank^.Width -1;
+        End;
+        If IsScaled Then Begin
+          PropOffset := Round(PropOffset * ScaleX);
+          PropWidth := Round(PropWidth * ScaleX);
+        End;
+
         If T_ITALIC > 0 Then
           ItalicOffset := (65536 Div ItalicScale) + (CharH Div ItalicScale) Shl 16
         Else
           ItalicOffset := 0;
         Coord := SCREENPOINTER;
-        Inc(Coord, (SCREENSTRIDE * Y) + X);
+        Inc(Coord, (SCREENSTRIDE * Y) + X - PropOffset);
         Inc(Coord, ItalicOffset Shr 16);
         if T_ITALIC > 0 Then Dec(Coord, ItalicScale Div 2);
 
@@ -2215,11 +2241,11 @@ Begin
           yp := 0;
           While CharH > 0 Do Begin
             pIdx := Char;
-            xp := 0;
+            xp := 0; xc := 0;
             SkipNextPaper := False;
             Inc(pIdx, Integer(FontBank.WIDTH) * (yp Shr 16));
             While CharW > 0 Do Begin
-              If (X >= T_CLIPX1) And (Y >= T_CLIPY1) And (X < T_CLIPX2) And (Y < T_CLIPY2) Then
+              If (xc >= PropOffset) And (xc <= PropWidth + PropOffset) And (X >= T_CLIPX1) And (Y >= T_CLIPY1) And (X < T_CLIPX2) And (Y < T_CLIPY2) Then
                 If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
                   If Transparent Then Begin
                     lIdx := pByte(NativeUInt(pIdx) + (xp Shr 16));
@@ -2261,7 +2287,7 @@ Begin
                         SkipNextPaper := False;
               Inc(Coord);
               Inc(xp, sx);
-              Inc(X);
+              Inc(X); Inc(xc);
               Dec(CharW);
             End;
             Inc(Y);
@@ -2281,9 +2307,10 @@ Begin
           Inc(X, CharW);
         End Else Begin
           While CharH > 0 Do Begin
+            xc := 0;
             SkipNextPaper := False;
             While CharW > 0 Do Begin
-                If (X >= T_CLIPX1) And (Y >= T_CLIPY1) And (X < T_CLIPX2) And (Y < T_CLIPY2) Then
+                If (xc >= PropOffset) And (xc <= PropWidth + PropOffset) And (X >= T_CLIPX1) And (Y >= T_CLIPY1) And (X < T_CLIPX2) And (Y < T_CLIPY2) Then
                   If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
                     If Transparent Then Begin
                       If Char^ <> TC Then
@@ -2323,7 +2350,7 @@ Begin
                           SkipNextPaper := False;
               Inc(Coord);
               Inc(Char);
-              Inc(X);
+              Inc(X); Inc(xc);
               Dec(CharW);
             End;
             Inc(Y);
@@ -2342,6 +2369,8 @@ Begin
           Inc(X, CharW);
         End;
 
+        Dec(X, CharW - PropWidth -1);
+
       End Else Begin
 
         // Control codes!
@@ -2354,7 +2383,7 @@ Begin
             Begin // PRINT comma
               nx := X + (TABSIZE * Cw);
               nx := Round(nx / (TABSIZE * Cw)) * (TABSIZE * Cw);
-              SP_TextOut(-1, X, Y, StringOfChar(aChar(' '), ((nx - x) Div Cw) +1), Ink, Paper, True);
+              SP_TextOut(-1, X, Y, StringOfChar(aChar(' '), ((nx - x) Div Cw) +1), Ink, Paper, False);
               X := nx;
             End;
           8:
@@ -2363,7 +2392,7 @@ Begin
             End;
           9:
             Begin // Cursor right
-              SP_TextOut(-1, X, Y, aString(' '), Ink, Paper, True);
+              SP_TextOut(-1, X, Y, aString(' '), Ink, Paper, False);
               X := (X + Cw) Mod SCREENWIDTH;
             End;
          10:
@@ -2455,7 +2484,7 @@ Begin
               nx := X Div Cw;
               tc := pLongWord(@Text[Idx+1])^;
               If tc < nx Then Inc(tc, SCREENWIDTH Div Cw);
-              SP_TextOut(-1, X, Y, StringOfChar(aChar(' '), tc - nx), Ink, Paper, True);
+              SP_TextOut(-1, X, Y, StringOfChar(aChar(' '), tc - nx), Ink, Paper, False);
               X := Round(PRPOSX);
               Y := ROUND(PRPOSY);
               Inc(Idx, SizeOf(LongWord));
@@ -2472,7 +2501,7 @@ Begin
               cCount := 0;
               While not (pIdx^ in [6..11, 13]) and (pIdx <= lIdx) Do Begin
                 Case pIdx^ Of
-                  16..20, 26, 27:
+                  16..20, 26, 27, 29:
                     Begin
                       Inc(pIdx, SizeOf(LongWord));
                     End;
@@ -2545,6 +2574,14 @@ Begin
          28:
           Begin
             Paper := DefPaper;
+            Inc(Idx, SizeOf(LongWord));
+          End;
+         29:
+          Begin
+            // PROPFONT control
+            t := pLongWord(@Text[Idx+1])^;
+            If t <> 8 Then
+              Proportional := t <> 0;
             Inc(Idx, SizeOf(LongWord));
           End;
         End;
@@ -4353,7 +4390,7 @@ Begin
     T_CLIPX1 := 0; T_CLIPY1 := 0; T_CLIPX2 := SCREENWIDTH; T_CLIPY2 := SCREENHEIGHT;
 
     If Bits32 Then
-      SP_TextOut32(-1, 0, 0, Result, T_INK, T_PAPER, True)
+      SP_TextOut32(-1, 0, 0, Result, T_INK, T_PAPER, False)
     Else
       SP_TextOut(-1, 0, 0, Result, T_INK And $FF, T_PAPER And $FF, False, UseLiterals);
 
@@ -5358,7 +5395,7 @@ End;
 Function SP_PRINT(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: Integer; var Error: TSP_ErrorCode): Integer;
 Var
   CharW, CharH, Idx, Scrolls, cCount, OVER, sx, sy, TInk, TPaper, ItalicOffset, nx: Integer;
-  yp, xp, Cw, Ch, TC, t: Integer;
+  yp, xp, Cw, Ch, TC, t, PropOffset, PropWidth, xc: Integer;
   Transparent, ForceNextChar: Boolean;
   FontBank: pSP_Font_info;
   Bank: pSP_Bank;
@@ -5367,6 +5404,7 @@ Var
   ScaleX, ScaleY: aFloat;
   Info: TSP_iInfo;
   pInfo: pSP_iInfo;
+  curChar: aChar;
 
   Procedure SetFontAttrs(ID: Integer);
   Var
@@ -5443,12 +5481,27 @@ Begin
           End;
         End;
 
-        If (Text[Idx] >= ' ') or (ForceNextChar) Then Begin
+        CurChar := Text[Idx];
+        If (CurChar >= ' ') or (ForceNextChar) Then Begin
 
           ForceNextChar := False;
-          Char := @Bank^.Memory[FontBank^.Font_Info[Byte(Text[Idx])].Data];
+          Char := @Bank^.Memory[FontBank^.Font_Info[Byte(CurChar)].Data];
 
-          If X + Cw > SCREENWIDTH Then Begin
+          If (T_PROP <> 0) And (CurChar < #128) Then Begin
+            PropOffset := FontBank^.Font_Info[Byte(curChar)].Offset;
+            PropWidth := FontBank^.Font_Info[Byte(curChar)].Width;
+            Inc(PropWidth, Ord(T_BOLD));
+          End Else Begin
+            PropOffset := 0;
+            PropWidth := FontBank^.Width -1;
+          End;
+
+          If IsScaled Then Begin
+            PropOffset := Round(PropOffset * ScaleX);
+            PropWidth := Round(PropWidth * ScaleX);
+          End;
+
+          If X + PropWidth > SCREENWIDTH Then Begin
             X := 0;
             Inc(Y, Ch);
           End;
@@ -5469,7 +5522,7 @@ Begin
           Else
             ItalicOffset := 0;
           Coord := SCREENPOINTER;
-          Inc(Coord, (SCREENSTRIDE * Y) + X);
+          Inc(Coord, (SCREENSTRIDE * Y) + X - PropOffset);
           Inc(Coord, ItalicOffset Shr 16);
           if T_ITALIC > 0 Then Dec(Coord, ItalicScale Div 2);
 
@@ -5493,51 +5546,53 @@ Begin
               yp := 0;
               While CharH > 0 Do Begin
                 pIdx := Char;
-                xp := 0;
+                xp := 0; xc := 0;
                 Inc(pIdx, FontBank^.WIDTH * (yp Shr 16));
                 SkipNextPaper := False;
                 While CharW > 0 Do Begin
-                  If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
-                    If Transparent Then Begin
-                      lIdx := pByte(NativeUInt(pIdx) + (xp Shr 16));
-                      If lIdx^ <> TC Then
+                  If (xc >= PropOffset) And (xc <= PropWidth + PropOffset) Then
+                    If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
+                      If Transparent Then Begin
+                        lIdx := pByte(NativeUInt(pIdx) + (xp Shr 16));
+                        If lIdx^ <> TC Then
+                          If Over > 0 Then Begin
+                            SP_OverPixelPtr(Coord, lIdx, T_OVER)
+                          End Else
+                            Coord^ := lIdx^;
+                      End Else
                         If Over > 0 Then Begin
+                          lIdx := pByte(NativeUInt(pIdx) + (xp Shr 16));
                           SP_OverPixelPtr(Coord, lIdx, T_OVER)
                         End Else
-                          Coord^ := lIdx^;
+                          Coord^ := pByte(NativeUInt(pIdx) + (xp Shr 16))^;
                     End Else
                       If Over > 0 Then Begin
-                        lIdx := pByte(NativeUInt(pIdx) + (xp Shr 16));
-                        SP_OverPixelPtr(Coord, lIdx, T_OVER)
+                        If pByte(NativeUInt(pIdx) + (xp Shr 16))^ = 1 Then Begin
+                          SP_OverPixelPtrVal(Coord, Ink, T_OVER);
+                          If (T_BOLD > 0) And (X+1 < T_CLIPX2) Then Begin
+                            SP_OverPixelPtrVal(pByte(NativeUInt(Coord)+1), Ink, T_OVER);
+                            SkipNextPaper := True;
+                          End;
+                        End Else
+                          If Not Transparent And Not SkipNextPaper Then
+                            SP_OverPixelPtrVal(Coord, Paper, T_OVER)
+                          Else
+                            SkipNextPaper := False;
                       End Else
-                        Coord^ := pByte(NativeUInt(pIdx) + (xp Shr 16))^;
-                  End Else
-                    If Over > 0 Then Begin
-                      If pByte(NativeUInt(pIdx) + (xp Shr 16))^ = 1 Then Begin
-                        SP_OverPixelPtrVal(Coord, Ink, T_OVER);
-                        If (T_BOLD > 0) And (X+1 < T_CLIPX2) Then Begin
-                          SP_OverPixelPtrVal(pByte(NativeUInt(Coord)+1), Ink, T_OVER);
-                          SkipNextPaper := True;
-                        End;
-                      End Else
-                        If Not Transparent And Not SkipNextPaper Then
-                          SP_OverPixelPtrVal(Coord, Paper, T_OVER)
-                        Else
-                          SkipNextPaper := False;
-                    End Else
-                      If pByte(NativeUInt(pIdx) + (xp Shr 16))^ = 1 Then Begin
-                        Coord^ := Ink;
-                        If (T_BOLD > 0) And (X+1 < T_CLIPX2) Then Begin
-                          pByte(NativeUInt(Coord)+1)^ := Ink;
-                          SkipNextPaper := True;
-                        End;
-                      End Else
-                        If Not Transparent And Not SkipNextPaper Then
-                          Coord^ := Paper
-                        Else
-                          SkipNextPaper := False;
+                        If pByte(NativeUInt(pIdx) + (xp Shr 16))^ = 1 Then Begin
+                          Coord^ := Ink;
+                          If (T_BOLD > 0) And (X+1 < T_CLIPX2) Then Begin
+                            pByte(NativeUInt(Coord)+1)^ := Ink;
+                            SkipNextPaper := True;
+                          End;
+                        End Else
+                          If Not Transparent And Not SkipNextPaper Then
+                            Coord^ := Paper
+                          Else
+                            SkipNextPaper := False;
                   Inc(Coord);
                   Inc(xp, sx);
+                  Inc(Xc);
                   Dec(CharW);
                 End;
                 CharW := Cw;
@@ -5552,8 +5607,10 @@ Begin
               Inc(X, CharW);
             End Else Begin
               While CharH > 0 Do Begin
+                xc := 0;
                 SkipNextPaper := False;
                 While CharW > 0 Do Begin
+                  If (xc >= PropOffset) And (xc <= PropWidth + PropOffset) Then
                     If FontBank^.FontType = SP_FONT_TYPE_COLOUR Then Begin
                       If Transparent Then Begin
                         If Char^ <> TC Then
@@ -5593,7 +5650,7 @@ Begin
                             SkipNextPaper := False;
                   Inc(Coord);
                   Inc(Char);
-                  Inc(X);
+                  Inc(X); Inc(xc);
                   Dec(CharW);
                 End;
                 Inc(Y);
@@ -5611,6 +5668,7 @@ Begin
             End;
           End Else
             Inc(X, CharW);
+          Dec(X, CharW - PropWidth -1);
         End Else Begin
           // Control codes!
           Case Ord(Text[Idx]) of
@@ -5622,7 +5680,7 @@ Begin
               Begin // PRINT comma
                 nx := X + (TABSIZE * Cw);
                 nx := Round(nX / (TABSIZE * Cw)) * (TABSIZE * Cw);
-                SP_TextOut(-1, X, Y, StringOfChar(aChar(' '), ((nx - x) Div Cw) +1), Ink, Paper, True);
+                SP_TextOut(-1, X, Y, StringOfChar(aChar(' '), ((nx - x) Div Cw) +1), Ink, Paper, False);
                 X := nx;
               End;
             8:
@@ -5631,7 +5689,7 @@ Begin
               End;
             9:
               Begin // Cursor right
-                SP_TextOut(-1, X, Y, aString(' '), Ink, Paper, True);
+                SP_TextOut(-1, X, Y, aString(' '), Ink, Paper, False);
                 X := (X + Cw) Mod SCREENWIDTH;
               End;
            10:
@@ -5741,7 +5799,7 @@ Begin
                 cCount := 0;
                 While not (pIdx^ in [6..11, 13]) and (pIdx <= lIdx) Do Begin
                   Case pIdx^ Of
-                    16..20, 26, 27:
+                    16..20, 26, 27, 29:
                       Begin
                         Inc(pIdx, SizeOf(LongWord));
                       End;
@@ -5811,6 +5869,14 @@ Begin
                   End Else Begin
                     T_BOLD := 0;
                   End;
+                Inc(Idx, SizeOf(LongWord));
+              End;
+             29:
+              Begin
+                // PROP control
+                t := pLongWord(@Text[Idx+1])^;
+                If t <> 8 Then
+                  T_PROP := Ord(t <> 0);
                 Inc(Idx, SizeOf(LongWord));
               End;
           End;

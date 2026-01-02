@@ -221,16 +221,21 @@ Begin
 
   For i := 0 To Length(fItems) -1 Do Begin
 
-    l := StripLen(fItems[i].Caption)+2;
-    if SP_Util.Pos('&', fItems[i].Caption) > 0 Then Dec(l);
+    If Proportional Then Begin
+      l := SP_GetPropTextWidth(fCurFontID, fItems[i].Caption, '&') + cFW;
+    End Else Begin
+      l := StripLen(fItems[i].Caption)+2;
+      if SP_Util.Pos('&', fItems[i].Caption) > 0 Then Dec(l);
+      l := l * cFW;
+    End;
     With r Do Begin
       Left := x;
-      Right := x + (cFW * l);
+      Right := x + l;
       Top := 2;
       Bottom := cFH + 4;
     End;
     fItems[i].Extents := r;
-    Inc(x, l * cFW);
+    Inc(x, l);
 
   End;
 
@@ -242,13 +247,14 @@ End;
 
 Procedure SP_WindowMenu.Draw;
 Var
-  i, c, ic, cfW: Integer;
+  i, c, ic, cfW, spW: Integer;
   MouseInSubMenu: Boolean;
   mp, rp: TPoint;
   e: TRect;
 Begin
 
   cfW := Round(iFW * iSX);
+  If Proportional Then spW := SP_GetPropTextWidth(fCurFontID, ' ', '') Else spW := cfW;
 
   FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
   DrawLine(0, fHeight -3, fWidth -1, fHeight -3, SP_UIHalfLight);
@@ -278,7 +284,8 @@ Begin
           If (Focused or PtInRect(Rect(0, 0, fWidth -1, fHeight -1), rp)) And Not MouseInSubMenu Then
             DrawRect(e, SP_UISelectionOutline);
         End Else Begin
-          e.Left := e.Left +2;
+          If Not Proportional Then
+            e.Left := e.Left +2;
           e.Top := e.Top -1;
           FillRect(e, SubMenu.fMenuClr);
           DrawLine(e.Left, e.Top, e.Left, e.Bottom, fBorderClr);
@@ -288,7 +295,7 @@ Begin
         End;
       End;
 
-      PRINT(Extents.Left + cFW -2, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, True, fAltDown And fEnabled);
+      PRINT(Extents.Left + spW -2, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, True, fAltDown And fEnabled);
 
     End;
 
@@ -307,7 +314,7 @@ Begin
   If fItems[i].Enabled And Assigned(fItems[i].SubMenu) And ShowSubMenu Then Begin
     p := Point(fLeft+fItems[i].Extents.Left, fTop+fItems[i].Extents.Bottom);
     fItems[i].SubMenu.fAltDown := fAltDown;
-    fItems[i].SubMenu.PopUp(p.x, p.y);
+    fItems[i].SubMenu.PopUp(p.x - 2 * Ord(Proportional), p.y);
     Paint;
   End;
   Paint;
@@ -486,7 +493,7 @@ Begin
           p := Point(fLeft+fItems[i].Extents.Left, fTop+fItems[i].Extents.Bottom);
           If Not fItems[i].SubMenu.Visible Then Begin
             fItems[i].SubMenu.fAltDown := fAltDown;
-            fItems[i].SubMenu.PopUp(p.x, p.y);
+            fItems[i].SubMenu.PopUp(p.x - 2 * Ord(Proportional), p.y);
             fItems[i].SubMenu.fIgnoreMouseUp := True;
           End Else Begin
             fItems[i].SubMenu.Close;
@@ -588,7 +595,7 @@ Begin
                     p := Point(fLeft+fItems[i].Extents.Left, fTop+fItems[i].Extents.Bottom);
                     If Not fItems[i].SubMenu.Visible Then Begin
                       fItems[i].SubMenu.fAltDown := fAltDown;
-                      fItems[i].SubMenu.PopUp(p.x, p.y);
+                      fItems[i].SubMenu.PopUp(p.x - 2 * Ord(Proportional), p.y);
                     End;
                   End;
                   If Not Locked And (Compiled_OnSelect <> '') Then

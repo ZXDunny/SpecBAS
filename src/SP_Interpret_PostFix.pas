@@ -436,6 +436,7 @@ Procedure SP_Interpret_OVER(Var Info: pSP_iInfo);
 Procedure SP_Interpret_TRANSPARENT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SCALE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_STROKE(Var Info: pSP_iInfo);
+Procedure SP_Interpret_PROP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_LET(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ENUM(Var Info: pSP_iInfo);
 Procedure SP_Interpret_ENUM_BASE(Var Info: pSP_iInfo);
@@ -574,6 +575,7 @@ Procedure SP_Interpret_FONT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FONT_NEW(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FONT_TRANS(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FONT_ERASE(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FONT_UPDATE(Var Info: pSP_iInfo);
 Procedure SP_Interpret_SAVE_BANK(Var Info: pSP_iInfo);
 Procedure SP_Interpret_LOAD_BANK(Var Info: pSP_iInfo);
 Procedure SP_Interpret_NEW_BANK(Var Info: pSP_iInfo);
@@ -8970,7 +8972,7 @@ Begin
       End;
     PRPOSX := (SCREENWIDTH - Round(cCount * FONTWIDTH * T_SCALEX)) Div 2;
 
-    If SP_TextOut(-1, Round(PRPOSX), Round(PRPOSY), T_CENTRETEXT, T_INK, T_PAPER, True) = SP_ERR_PRINT_ABANDONED Then
+    If SP_TextOut(-1, Round(PRPOSX), Round(PRPOSY), T_CENTRETEXT, T_INK, T_PAPER, False) = SP_ERR_PRINT_ABANDONED Then
       Info^.Error^.Code := SP_ERR_BREAK;
 
   End;
@@ -9240,13 +9242,13 @@ Begin
     Else
       If Not T_CENTRE Then Begin
         If SCREENBPP = 8 Then Begin
-          If SP_TextOut(-1, Round(PRPOSX), Round(PRPOSY), PrItem, T_INK, T_PAPER, True) = SP_ERR_PRINT_ABANDONED Then Begin
+          If SP_TextOut(-1, Round(PRPOSX), Round(PRPOSY), PrItem, T_INK, T_PAPER, T_PROP <> 0) = SP_ERR_PRINT_ABANDONED Then Begin
             Info^.Error^.Code := SP_ERR_BREAK;
             T_USINGMASK := '';
             Exit;
           End;
         End Else
-          If SP_TextOut32(-1, Round(PRPOSX), Round(PRPOSY), PrItem, T_INK, T_PAPER, True) = SP_ERR_PRINT_ABANDONED Then Begin
+          If SP_TextOut32(-1, Round(PRPOSX), Round(PRPOSY), PrItem, T_INK, T_PAPER, T_PROP <> 0) = SP_ERR_PRINT_ABANDONED Then Begin
             Info^.Error^.Code := SP_ERR_BREAK;
             T_USINGMASK := '';
             Exit;
@@ -9480,6 +9482,14 @@ Begin
 
 End;
 
+Procedure SP_Interpret_PR_PROP(Var Info: pSP_iInfo);
+Begin
+
+  T_PROP := LongWord(Round(SP_StackPtr^.Val));
+  Dec(SP_StackPtr);
+
+End;
+
 Procedure SP_Interpret_PR_CURSOR(Var Info: pSP_iInfo);
 Var
   Spt: pSP_StackItem;
@@ -9562,6 +9572,22 @@ Begin
     SP_GetWindowDetails(SCREENBANK, Window, Info^.Error^);
     If Info^.Error^.Code = SP_ERR_OK Then
       Window^.stroke:= CSTROKE;
+  End;
+  Dec(SP_StackPtr);
+
+End;
+
+Procedure SP_Interpret_PROP(Var Info: pSP_iInfo);
+Var
+  Window: pSP_Window_Info;
+Begin
+
+  If Round(SP_StackPtr^.Val) > 0 Then Begin
+    CPROP := Round(SP_StackPtr^.Val);
+    T_PROP := CPROP;
+    SP_GetWindowDetails(SCREENBANK, Window, Info^.Error^);
+    If Info^.Error^.Code = SP_ERR_OK Then
+      Window^.PropFont:= CPROP;
   End;
   Dec(SP_StackPtr);
 
@@ -15989,6 +16015,26 @@ Begin
     Info^.Error^.Code := SP_ERR_BANK_PROTECTED;
 
 End;
+
+Procedure SP_Interpret_FONT_UPDATE(Var Info: pSP_iInfo);
+Var
+  FontID, Index: Integer;
+Begin
+
+  FontID := Round(SP_StackPtr^.Val);
+  Dec(SP_StackPtr);
+
+  Index := SP_FindBankID(FontID);
+  If Index > 0 Then Begin
+    If SP_BankList[Index]^.DataType = SP_FONT_BANK Then
+      SP_GetFontCharMetrics(FontID)
+    Else
+      Info^.Error^.Code := SP_ERR_INVALID_BANK;
+  End Else
+    Info^.Error^.Code := SP_ERR_BANK_NOT_FOUND;
+
+End;
+
 
 Procedure SP_Interpret_SAVE_BANK(Var Info: pSP_iInfo);
 Var
@@ -26884,7 +26930,7 @@ Begin
       SP_PRINT(-1, Round(PRPOSX), Round(PRPOSY), -1, PrItem, T_INK, T_PAPER, Info^.Error^)
     Else
       If Not T_CENTRE Then Begin
-        If SP_TextOut32Alpha(-1, Round(PRPOSX), Round(PRPOSY), PrItem, T_INK, T_PAPER, True) = SP_ERR_PRINT_ABANDONED Then Begin
+        If SP_TextOut32Alpha(-1, Round(PRPOSX), Round(PRPOSY), PrItem, T_INK, T_PAPER, False) = SP_ERR_PRINT_ABANDONED Then Begin
           Info^.Error^.Code := SP_ERR_BREAK;
           T_USINGMASK := '';
           Exit;
@@ -27882,6 +27928,7 @@ Initialization
   InterpretProcs[SP_KW_FONT_NEW] := @SP_Interpret_FONT_NEW;
   InterpretProcs[SP_KW_FONT_TRANS] := @SP_Interpret_FONT_TRANS;
   InterpretProcs[SP_KW_FONT_ERASE] := @SP_Interpret_FONT_ERASE;
+  InterpretProcs[SP_KW_FONT_UPDATE] := @SP_Interpret_FONT_UPDATE;
   InterpretProcs[SP_KW_WAIT] := @SP_Interpret_WAIT;
   InterpretProcs[SP_KW_WAIT_KEY] := @SP_Interpret_WAIT_KEY;
   InterpretProcs[SP_KW_WAIT_KEY_PRESS] := @SP_Interpret_WAIT_KEY_PRESS;
@@ -28213,6 +28260,8 @@ Initialization
   InterpretProcs[SP_KW_DRAW_GW] := @SP_Interpret_DRAW_GW;
   InterpretProcs[SP_KW_STROKE] := @SP_Interpret_STROKE;
   InterpretProcs[SP_KW_PR_STROKE] := @SP_Interpret_PR_STROKE;
+  InterpretProcs[SP_KW_PROP] := @SP_Interpret_PROP;
+  InterpretProcs[SP_KW_PR_PROP] := @SP_Interpret_PR_PROP;
   InterpretProcs[SP_KW_CTRL_NEW] := @SP_Interpret_CTRL_NEW;
   InterpretProcs[SP_KW_CTRL_PROP] := @SP_Interpret_CTRL_PROP;
   InterpretProcs[SP_KW_CTRL_DO] := @SP_Interpret_CTRL_DO;

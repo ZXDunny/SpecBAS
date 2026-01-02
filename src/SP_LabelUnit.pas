@@ -64,6 +64,7 @@ Begin
   fBackgroundClr := SP_UIBtnBack;
   fBorder := False;
   fLines := TStringlist.Create;
+  fProportional := Owner.Proportional;
 
 End;
 
@@ -78,12 +79,13 @@ End;
 procedure SP_Label.WrapCaption;
 var
   CurrentLine: aString;
-  CurrentCharIdx: Integer;
+  CurrentCharIdx, i: Integer;
   LineCharCount: Integer;
   LastSeparatorIdx: Integer;
   WordStartIdx: Integer;
   CharWidth: Integer;
   maxw: Integer;
+  b: Boolean;
 begin
   fLines.Clear;
   CurrentLine := '';
@@ -95,14 +97,13 @@ begin
 
   If AutoSize Then
     maxw := MAXINT
-  else
+  Else
     maxw := fWidth div Round(iFW * iSX);
 
-  while CurrentCharIdx <= Length(fCaption) do
-  begin
-    case Ord(fCaption[CurrentCharIdx]) of
+  While CurrentCharIdx <= Length(fCaption) Do Begin
+    Case Ord(fCaption[CurrentCharIdx]) Of
       13: // Carriage return
-        begin
+        Begin
           fLines.Add(CurrentLine);
           CurrentLine := '';
           LineCharCount := 0;
@@ -112,47 +113,54 @@ begin
           Continue;
         end;
       6, 7, 8, 9, 10: // PRINT comma, Cursor Left/right/up/down
-        begin
+        Begin
           CurrentLine := CurrentLine + fCaption[CurrentCharIdx];
           Inc(CurrentCharIdx);
           Inc(LineCharCount);
           LastSeparatorIdx := 0;
           Continue;
         end;
-      15, 16, 17, 18, 19, 20, 23, 24, 26, 27: // FONT/INK/PAPER/OVER/TRANSPARENT/INVERSE/TAB/ITALIC/BOLD control
-        begin
+      15, 16, 17, 18, 19, 20, 23, 24, 26, 27, 29: // FONT/INK/PAPER/OVER/TRANSPARENT/INVERSE/TAB/ITALIC/BOLD control
+        Begin
           CurrentLine := CurrentLine + Copy(fCaption, CurrentCharIdx, SizeOf(LongWord) +1);
           Inc(CurrentCharIdx, SizeOf(LongWord) +1);
           LastSeparatorIdx := 0;
           Continue;
         end;
       21, 22: // MOVE, AT control
-        begin
+        Begin
           CurrentLine := CurrentLine + Copy(fCaption, CurrentCharIdx, (SizeOf(LongWord) * 2)+1);
           Inc(CurrentCharIdx, (SizeOf(LongWord) * 2)+1);
           LastSeparatorIdx := 0;
           Continue;
         end;
       25: // SCALE control
-        begin
+        Begin
           CurrentLine := CurrentLine + Copy(fCaption, CurrentCharIdx, (SizeOf(aFloat) * 2) +1);
           Inc(CurrentCharIdx, (SizeOf(aFloat) * 2)+1);
           LastSeparatorIdx := 0;
           Continue;
         end;
       else
-        begin
-          if (maxw > 0) And ((LineCharCount + CharWidth) > maxw) then
-          begin
-            if LastSeparatorIdx > 0 then
-            begin
+        Begin
+          If Proportional Then
+            b := textWidth(CurrentLine) > maxw
+          Else
+           b := (maxw > 0) And ((LineCharCount + CharWidth) > maxw);
+          If b Then Begin
+            if LastSeparatorIdx > 0 then Begin
               fLines.Add(Copy(fCaption, WordStartIdx, LastSeparatorIdx - WordStartIdx));
               CurrentCharIdx := LastSeparatorIdx + 1;
-            end
-            else
-            begin
-              fLines.Add(Copy(fCaption, WordStartIdx, maxw));
-              CurrentCharIdx := WordStartIdx + maxw;
+            end else begin
+              If Proportional Then Begin
+                i := 1;
+                While (i + WordStartIdx <= Length(fCaption)) And (TextWidth(Copy(fCaption, WordStartIdx, i)) < fWidth) Do Inc(i);
+                fLines.Add(Copy(fCaption, WordStartIdx, i));
+                CurrentCharIdx := WordStartIdx + maxw;
+              End Else Begin
+                fLines.Add(Copy(fCaption, WordStartIdx, maxw));
+                CurrentCharIdx := WordStartIdx + maxw;
+              End;
             end;
             CurrentLine := '';
             LineCharCount := 0;
@@ -160,12 +168,10 @@ begin
             WordStartIdx := CurrentCharIdx;
             Continue;
           end;
-          if fCaption[CurrentCharIdx] in Seps then
-          begin
+          if fCaption[CurrentCharIdx] in Seps then begin
             LastSeparatorIdx := CurrentCharIdx;
           end;
-          if (CurrentLine = '') and (fCaption[CurrentCharIdx] = ' ') then
-          begin
+          if (CurrentLine = '') and (fCaption[CurrentCharIdx] = ' ') then begin
             Inc(CurrentCharIdx);
             WordStartIdx := CurrentCharIdx;
             Continue;
@@ -192,16 +198,23 @@ Begin
 
   If (fWidth < cFW) and Not fAutoSize Then Exit;
 
-  WrapCaption;
+  If fCaption <> '' Then WrapCaption;
 
   maxw := 0;
   For i := 0 To fLines.Count -1 Do Begin
-    l := StripLen(fLines[i]);
+    If Proportional Then Begin
+      l := TextWidth(fLines[i]);
+    End Else Begin
+      l := StripLen(fLines[i]);
+    End;
     If l > maxw Then maxw := l;
   End;
 
   If fAutoSize Then Begin
-    Width := maxw * cFW;
+    If Proportional Then
+      Width := maxw
+    Else
+      Width := maxw * cFW;
     Height := Max(fLines.Count, 1) * cFH;
   End;
 
@@ -249,11 +262,17 @@ Begin
           End;
         0:
           Begin // Centre
-            x := ((fWidth - bOffs) - (StripLen(fLines[i]) * cFW)) Div 2;
+            If Proportional Then
+              x := ((fWidth - bOffs) - TextWidth(fLines[i])) Div 2
+            Else
+              x := ((fWidth - bOffs) - (StripLen(fLines[i]) * cFW)) Div 2;
           End;
         1:
           Begin // Right Justify
-            x := (fWidth - bOffs) - (StripLen(fLines[i]) * cFW);
+            If Proportional Then
+              x := (fWidth - bOffs) - TextWidth(fLines[i])
+            Else
+              x := (fWidth - bOffs) - (StripLen(fLines[i]) * cFW);
           End;
       End;
       If fEnabled Then
@@ -266,6 +285,11 @@ Begin
 
   End Else Begin
 
+    If Proportional Then
+      i := TextWidth(fCaption)
+    Else
+      i := fCapLen * cFW;
+
     Case fAlign of
       -1: y := 0;
        0: y := (fHeight - cFH) Div 2;
@@ -274,8 +298,8 @@ Begin
 
     Case fJustify Of
       -1: x := bOffs;
-       0: x := ((fWidth - bOffs) - (fCaplen * cFW)) Div 2;
-       1: x := (fWidth - bOffs) - (fCaplen * cFW);
+       0: x := ((fWidth - bOffs) - i) Div 2;
+       1: x := (fWidth - bOffs) - i;
     End;
     If fEnabled Then
       PRINT(x, y, fCaption, fFontClr, -1, iSX, iSY, False, False, False, False)

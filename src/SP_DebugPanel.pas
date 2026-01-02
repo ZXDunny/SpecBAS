@@ -655,6 +655,7 @@ Begin
                   25: vContent := 'SCALE';
                   26: vContent := 'ITALIC';
                   27: vContent := 'BOLD';
+                  29: vContent := 'PROP';
                 Else
                   Begin
                     vContent := aChar(5) + aChar(i And $FF);

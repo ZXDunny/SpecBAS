@@ -17,6 +17,7 @@ SP_ListBoxHeader = Record
   Caption: aString;
   Width:   Integer;
   Justify: Integer; // -1 left, 0 centre, 1 right
+  Proportional: Boolean;
 
 End;
 
@@ -347,6 +348,7 @@ Begin
   fHeaders[fHCount].Caption := Value.Caption;
   fHeaders[fHCount].Width := Value.Width;
   fHeaders[fHCount].Justify := Value.Justify;
+  fHeaders[fHCount].Proportional := Value.Proportional;
   Inc(fHCount);
   SetUIElements;
 
@@ -359,6 +361,7 @@ Begin
   fHeaders[fHCount].Caption := Caption;
   fHeaders[fHCount].Width := Width;
   fHeaders[fHCount].Justify := -1;
+  fHeaders[fHCount].Proportional := Proportional;
   Inc(fHCount);
   SetUIElements;
 
@@ -373,10 +376,12 @@ Begin
   For i := fHCount DownTo Index +1 Do Begin
     fHeaders[i].Caption := fHeaders[i -1].Caption;
     fHeaders[i].Width := fHeaders[i -1].Width;
+    fHeaders[i].Justify := fHeaders[i -1].Justify;
   End;
   fHeaders[Index].Caption := Value.Caption;
   fHeaders[Index].Width := Value.Width;
   fHeaders[Index].Justify := Value.Justify;
+  fHeaders[Index].Proportional := Value.Proportional;
   Inc(fHCount);
   SetUIElements;
 
@@ -391,10 +396,12 @@ Begin
   For i := fHCount DownTo Index +1 Do Begin
     fHeaders[i].Caption := fHeaders[i -1].Caption;
     fHeaders[i].Width := fHeaders[i -1].Width;
+    fHeaders[i].Justify := fHeaders[i -1].Justify;
   End;
   fHeaders[Index].Caption := Caption;
   fHeaders[Index].Width := Width;
   fHeaders[Index].Justify := -1;
+  fHeaders[Index].Proportional := Proportional;
   Inc(fHCount);
   SetUIElements;
 
@@ -410,6 +417,7 @@ Begin
     fHeaders[i].Caption := fHeaders[i+1].Caption;
     fHeaders[i].Width := fHeaders[i+1].Width;
     fHeaders[i].Justify := fHeaders[i+1].Justify;
+    fHeaders[i].Proportional := fHeaders[i+1].Proportional;
   End;
   SetLength(fHeaders, fHCount);
 
@@ -424,6 +432,7 @@ Begin
     fHeaders[Index].Caption := Value.Caption;
     fHeaders[Index].Width := Value.Width;
     fHeaders[Index].Justify := Value.Justify;
+    fHeaders[Index].Proportional := Value.Proportional;
     SetUIElements;
   End;
 
@@ -438,6 +447,7 @@ Begin
     Result.Caption := fHeaders[Index].Caption;
     Result.Width := fHeaders[Index].Width;
     Result.Justify := fHeaders[Index].Justify;
+    Result.Proportional := fHeaders[Index].Proportional;
   End;
 
 End;
@@ -739,9 +749,14 @@ Begin
   End Else Begin
 
     t := 0;
-    For i := 0 To Length(fStrings) -1 Do
-      t := Max(t, Length(fStrings[i]));
-    t := t * cFW;
+    If Proportional Then Begin
+      For i := 0 To Length(fStrings) -1 Do
+        t := Max(t, TextWidth(fStrings[i]));
+    End Else Begin
+      For i := 0 To Length(fStrings) -1 Do
+        t := Max(t, Length(fStrings[i]));
+      t := t * cFW;
+    End;
 
   End;
 
@@ -787,9 +802,10 @@ End;
 
 Procedure SP_ListBox.Draw;
 Var
-  c1, c2, c3: Byte;
   r: TRect;
-  yp, i, j, py, hx, ps, sx1, sx2, cfW, cfH: Integer;
+  p: Boolean;
+  c1, c2, c3: Byte;
+  yp, i, j, l, py, hx, ps, sx1, sx2, cfW, cfH: Integer;
   s, s2, pr: aString;
 
   Procedure DrawSelectionRect;
@@ -863,15 +879,27 @@ Begin
 
         SP_ReplaceAll(Copy(s, 1, ps-1), '\$FF', #255, s2);
         If Assigned(OnTextPrep) Then s2 := OnTextPrep(s2, j, i);
+
+        p := fProportional;
+        fProportional := fHeaders[j].Proportional;
+        If fProportional Then
+          l := TextWidth(s2)
+        Else
+          l := Length(s2) * cFW;
+
         Case fHeaders[j].Justify of
          -1: Print(hx + fClientRgn.Left, py, s2, c1, -1, iSX, iSY, False, False, False, False);
-          0: Print(hx + fClientRgn.Left + (fHeaders[j].Width - (Length(s2)*cFW)) Div 2, py, s2, c1, -1, iSX, iSY, False, False, False, False);
-          1: Print(hx + fClientRgn.Left + (fHeaders[j].Width - (Length(s2)*cFW)), py, s2, c1, -1, iSX, iSY, False, False, False, False);
+          0: Print(hx + fClientRgn.Left + (fHeaders[j].Width - l) Div 2, py, s2, c1, -1, iSX, iSY, False, False, False, False);
+          1: Print(hx + fClientRgn.Left + (fHeaders[j].Width - l), py, s2, c1, -1, iSX, iSY, False, False, False, False);
         End;
+
+        fProportional := p;
+
         If ps > 0 Then
           s := Copy(s, ps +1)
         Else
           s := '';
+
         Inc(hx, fHeaders[j].Width);
       End;
 
@@ -932,8 +960,12 @@ Begin
         c1 := fFontClr
       Else
         c1 := fDisabledFontClr;
+      If Proportional Then
+        l := TextWidth(fHeaders[j].Caption) + cFW
+      Else
+        l := (Length(fHeaders[j].Caption) +1) * cFW;
       Print(hx + (Ord(fBorder) * 2), Ord(fBorder) * 2, fHeaders[j].Caption, c1, -1, iSX, iSY, False, False, False, False);
-      Print(hx + (Ord(fBorder) * 2) + ((Length(fHeaders[j].Caption) +1) * cFW), ((cFH - fH) Div 2) + (Ord(fBorder) * 2), pr, fSortIndClr, -1, 1, 1, False, False, False, False);
+      Print(hx + (Ord(fBorder) * 2) + l, ((cFH - fH) Div 2) + (Ord(fBorder) * 2), pr, fSortIndClr, -1, 1, 1, False, False, False, False);
       Inc(hx, fHeaders[j].Width);
 
     End;

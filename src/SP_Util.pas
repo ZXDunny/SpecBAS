@@ -1206,7 +1206,7 @@ Begin
     Result := aString('0123456789ABCDEF')[(Value And $F) + 1] + Result;
     Value := Value Shr 4;
   End;
-  While Length(Result) < Digits Do
+  While LongWord(Length(Result)) < Digits Do
     Result := '0' + Result;
 End;
 

@@ -125,7 +125,6 @@ Begin
 
 End;
 
-
 // SP_ContainerCollection
 
 Constructor SP_ContainerCollection.Create(Owner: SP_BaseComponent);

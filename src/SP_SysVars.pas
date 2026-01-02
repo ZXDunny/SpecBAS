@@ -409,6 +409,7 @@ Var
   COVER:                    Integer;      // Current state of the OVER flag
   CTRANSPARENT:             Boolean;      // Current state of the TRANSPARENT flag for mono text
   CSTROKE:                  aFloat;       // Current line width for DRAW, PLOT et al
+  CPROP:                    Integer;      // Current proportional font mode
   CCLIPX1:                  Integer;      // Current clip rect
   CCLIPY1:                  Integer;
   CCLIPX2:                  Integer;
@@ -443,11 +444,13 @@ Var
   T_CENTRE_Y:               Integer;
   T_STROKE:                 aFloat;
   T_FONT:                   Integer;
+  T_PROP:                   Integer;
   OUTBUFFER:                aString;
   OUTSET:                   Boolean;
   OUTWORKSP:                aString;
   COUTSTRM:                 Integer;
   COUTMODE:                 Integer;      // OUT redirects to screen (0), variable (1) or stream (2)
+  CHSPACE:                  Integer;      // Padding between characters in pixels for proportional fonts.
 
   DRPOSX:                   aFloat;       // The x-coordinate of the last point plotted
   DRPOSY:                   aFloat;       // The y-coordinate of the last point plotted
@@ -626,8 +629,8 @@ Const
      0, 0, 0, 0, 0, 0, 0, 0,
 
      0, 0, 0, 0, 0, 0, 0, 0,
-     0, 0, 1, 0, 0, 1, 0, 0,
-     0, 0, 1, 0, 0, 1, 0, 0,
+     0, 0, 1, 0, 1, 0, 0, 0,
+     0, 0, 1, 0, 1, 0, 0, 0,
      0, 0, 0, 0, 0, 0, 0, 0,
      0, 0, 0, 0, 0, 0, 0, 0,
      0, 0, 0, 0, 0, 0, 0, 0,
@@ -1639,7 +1642,7 @@ Const
     (Name: 'SPSLIDER'; Value: spSlider)
     );
 
-  SysVars: Array[0..257] of TSysVar =
+  SysVars: Array[0..258] of TSysVar =
   ((Name: 'BUILDSTR'; svType: svString; Size: 0; Data: @BUILDSTR),
    (Name: 'SCROLLBTNS'; svType: svBoolean; Size: 1; Data: @SCROLLBTNS),
    (Name: 'ANIMSPEED'; svType: svLongWord; Size: 4; Data: @ANIMSPEED),
@@ -1748,6 +1751,7 @@ Const
    (Name: 'LISTWINY'; svType: svInteger; Size: 4; Data: @LISTWINY),
    (Name: 'LISTWINW'; svType: svInteger; Size: 4; Data: @LISTWINW),
    (Name: 'LISTWINH'; svType: svInteger; Size: 4; Data: @LISTWINH),
+   (Name: 'CHSPACE'; svType: svInteger; Size: 4; Data: @CHSPACE),
    (Name: 'CCOMMANDWINDOW'; svType: svBoolean; Size: 1; Data: @CCOMMANDWINDOW),
    (Name: 'CLISTWINDOW'; svType: svBoolean; Size: 1; Data: @CLISTWINDOW),
    (Name: 'COMMANDWINX'; svType: svInteger; Size: 4; Data: @COMMANDWINX),
@@ -1911,9 +1915,9 @@ Const
 
 implementation
 
-Uses SP_Editor;
+Uses SP_Editor, SP_BankManager;
 
-Function SP_FindSysVar(ID: aString): Integer;
+Function SP_FindSysVar(Var ID: aString): Integer;
 Begin
 
   ID := Upper(ID);
@@ -2081,6 +2085,11 @@ Begin
             Error.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
         End;
     End;
+
+    // Some sysvars require action after they are set
+
+    If ID = 'CHSPACE' Then
+      SP_ProcessAllFontBanks;
 
   End Else
     Error.Code := SP_ERR_INVALID_SYSVAR;

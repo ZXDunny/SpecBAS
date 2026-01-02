@@ -50,6 +50,7 @@ Type
 
   SP_Character_Info = Packed Record
     Data: LongWord;
+    Offset, Width: Integer;
   End;
   pSP_Character_Info = ^SP_Character_Info;
 
@@ -64,7 +65,7 @@ Type
   pSP_Font_Info = ^SP_Font_Info;
 
   SP_Window_Info = Record
-    ID, Width, Height, Stride, Inverse, Over, Italic, Bold,
+    ID, Width, Height, Stride, Inverse, Over, Italic, Bold, PropFont,
     Left, Top, FontBankID, SpriteCount, scrollcnt, bpp, Menu, CaptionHeight, PrevWin, Font: Integer;
     heading, orgx, orgy, orgw, orgh, winscalex, winscaley, scalex, scaley: aFloat;
     clipx1, clipy1, clipx2, clipy2: Integer; winscale, winorigin, flip: Boolean;
@@ -599,6 +600,7 @@ Begin
                 Font^.Font_Info[Idx].Data := Idx * Font^.Width * Font^.Height;
 
               GetData;
+              SP_GetFontCharMetrics(Bank^.ID);
 
             End Else
 

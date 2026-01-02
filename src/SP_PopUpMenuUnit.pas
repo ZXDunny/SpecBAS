@@ -146,7 +146,7 @@ Function ShortCutToString(i: Integer): aString;
 
 implementation
 
-Uses Math, SP_WindowMenuUnit, SP_BankFiling, SP_Components, SP_Graphics, SP_Input, SP_SysVars, SP_Sound, SP_FPEditor, SP_Tokenise, SP_Interpret_PostFix;
+Uses Math, SP_WindowMenuUnit, SP_BankManager, SP_BankFiling, SP_Components, SP_Graphics, SP_Input, SP_SysVars, SP_Sound, SP_FPEditor, SP_Tokenise, SP_Interpret_PostFix;
 
 // SP_PopupMenu
 
@@ -220,6 +220,7 @@ Begin
   fCount := 0;
   fSepClr := SP_UIMenuSeparator;
   If Assigned(ParentMenu) Then Begin
+    fProportional := ParentMenu.Proportional;
     fDisabledFontClr := SP_WindowMenu(ParentMenu).fDisabledFontClr;
     fHighlightClr := SP_WindowMenu(ParentMenu).fHighlightClr;
     fMenuClr := SP_WindowMenu(ParentMenu).fSubMenuClr;
@@ -297,8 +298,7 @@ End;
 
 Procedure SP_PopUpMenu.CalculateSizes;
 Var
-  x, y, w, h, mw, mx, i, ol, l, t, bs, cfW, cfH: Integer;
-  SubsPresent: Boolean;
+  x, y, w, h, mw, mx, i, ol, l, t, bs, cfW, cfH, spW: Integer;
   Win: pSP_Window_Info;
   r: TRect;
 Begin
@@ -309,20 +309,18 @@ Begin
 
   cfW := Round(iFW * iSX);
   cfH := Round(iFH * iSY);
+  If Proportional Then spW := SP_GetPropTextWidth(fCurFontID, ' ', '') Else spW := cfW;
 
   y := 2;
   mw := 0;
   mx := 3;
   fShortcutLen := 0;
-  SubsPresent := False;
   For i := 0 To Length(fItems) -1 Do Begin
     x := 3;
     w := 0;
     With fItems[i] Do Begin
       If Visible Then Begin
-        If Assigned(SubMenu) Then
-          SubsPresent := True
-        Else
+        If Not Assigned(SubMenu) Then
           If Checkable Then Begin
             Inc(w, cFW + 4);
             Inc(x, cFW + 4);
@@ -330,19 +328,27 @@ Begin
             Inc(w, cFW);
             Inc(x, cFW);
           End;
-        Inc(w, StripLen(Caption) * cFW);
-        If Shortcut <> 0 Then Begin
-          l := Length(ShortcutToString(ShortCut));
-          fShortcutLen := Max(fShortcutLen, l);
+        If Proportional Then Begin
+          Inc(w, SP_GetPropTextWidth(fCurFontID, Caption, '&'));
+          If Shortcut <> 0 Then Begin
+            l := SP_GetPropTextWidth(fCurFontID, ShortcutToString(ShortCut), '');
+            fShortcutLen := Max(fShortcutLen, l);
+          End;
+        End Else Begin
+          Inc(w, StripLen(Caption) * cFW);
+          If Shortcut <> 0 Then Begin
+            l := Length(ShortcutToString(ShortCut)) * cFW;
+            fShortcutLen := Max(fShortcutLen, l);
+          End;
+          if SP_Util.Pos('&', Caption) > 0 Then Dec(w, cFW);
         End;
-        if SP_Util.Pos('&', Caption) > 0 Then Dec(w, cFW);
         If x > mx Then mx := x;
         If w > mw Then mw := w;
       End;
     End;
   End;
   if fShortcutLen > 0 then
-    mw := mw + ((fShortcutLen +2) * cFW);
+    mw := mw + fShortcutLen + 2 * spW;
   For i := 0 To Length(fItems) -1 Do Begin
     With r do Begin
       Left := mx;
@@ -352,14 +358,10 @@ Begin
         Bottom := y + cFH;
         inc(y, cFH + 2)
       End Else Begin
-        right := mx + mw - (cFW * 2);
+        right := mx + mw - cfW;
         Bottom := y + cFH;
         inc(y, cFH + 2);
       End;
-      If SubsPresent Then
-        Inc(Right, cFW * 2)
-      Else
-        Inc(Right, cFW);
     End;
     fItems[i].Extents := r;
   End;
@@ -368,7 +370,7 @@ Begin
 
   l := Left; ol := l;
   t := Top;
-  w := mw + mx + cFW + (Ord(SubsPresent) * cFW) + bs;
+  w := mw + mx + spW + bs;
   h := y + 2 + bs;
 
   Win := GetWindowDetails;
@@ -389,7 +391,7 @@ End;
 
 Procedure SP_PopUpMenu.Draw;
 Var
-  y, i, c, ic, cfW: Integer;
+  y, i, c, ic, cfW, l: Integer;
   MouseInSubMenu: Boolean;
   mp, rp: TPoint;
   cChar: aChar;
@@ -409,7 +411,7 @@ Begin
       SetPixel(fWidth -1, 3, fBorderClr);
       i := SP_WindowMenu(fParentMenu).fCapWidth;
       if i > 0 Then
-        DrawLine(1 + fCapOfs, 0, i + fCapOfs, 0, fMenuClr);
+        DrawLine(1 + fCapOfs, 0, i + fCapOfs + 2 * Ord(Proportional), 0, fMenuClr);
     End;
   End;
 
@@ -446,15 +448,21 @@ Begin
       If Caption <> '-' Then Begin
         PRINT(Extents.Left, Extents.Top +1, Caption, ic, -1, iSX, iSY, False, False, True, fAltDown And fEnabled);
         If Shortcut <> 0 Then Begin
-          s := ShortcutToString(Shortcut) + '  ';
-          PRINT(Extents.Right - cFW * Length(s), Extents.Top +1, s, fSepClr, -1, iSX, iSY, False, False, False, False);
+          If Proportional Then Begin
+            s := ShortcutToString(Shortcut);
+            l := SP_GetPropTextWidth(fCurFontID, s, '');
+            PRINT(Extents.Right - (cfW + l), Extents.Top +1, s, fSepClr, -1, iSX, iSY, False, False, False, False);
+          End Else Begin
+            s := ShortcutToString(Shortcut) + ' ';
+            PRINT(Extents.Right - cFW * Length(s), Extents.Top +1, s, fSepClr, -1, iSX, iSY, False, False, False, False);
+          End;
         End;
       End Else Begin
         y := Trunc(((Extents.Bottom - Extents.Top)/2) + Extents.Top);
         DrawLine(Extents.Left, y, Extents.Right, y, fSepClr);
       End;
       If Assigned(SubMenu) Then
-        PRINT(Extents.Right - cFW * 2, Extents.Top +1, #247, ic, -1, iSX, iSY, False, False, False, False);
+        PRINT(Extents.Right - cFW, Extents.Top +1, #247, ic, -1, iSX, iSY, False, False, False, False);
 
     End;
 

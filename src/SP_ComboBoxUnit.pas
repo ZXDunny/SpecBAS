@@ -370,8 +370,10 @@ End;
 Procedure SP_ComboBox.OnBtnClick;
 Begin
 
-  If Menu.fCount > 0 Then
+  If Menu.fCount > 0 Then Begin
+    Menu.Proportional := Proportional;
     Menu.PopUp(Left, Top + Height + (Ord(Not fBorder) * 2) -1);
+  End;
 
 End;
 

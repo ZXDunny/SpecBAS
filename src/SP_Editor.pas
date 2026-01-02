@@ -305,9 +305,9 @@ Begin
       End;
       PosX := PRPOSX; PosY := PRPOSY;
       If SCREENBPP = 8 Then Begin
-        SP_TEXTOUT(-1, CURSORX, CURSORY, aChar(CURSORCHAR), Fg, Bg, True);
+        SP_TEXTOUT(-1, CURSORX, CURSORY, aChar(CURSORCHAR), Fg, Bg, T_PROP <> 0);
       End Else Begin
-        SP_TEXTOUT32(-1, CURSORX, CURSORY, aChar(CURSORCHAR), Fg, Bg, True);
+        SP_TEXTOUT32(-1, CURSORX, CURSORY, aChar(CURSORCHAR), Fg, Bg, T_PROP <> 0);
       End;
       PRPOSX := PosX;
       PRPOSY := PosY;
@@ -702,7 +702,7 @@ Begin
   If OptionList[0] <> '' Then Begin
 
     SP_FillRect(0, 0, WinW, fH + 2, cBlack);
-    SP_TextOut(-1, bWidth +1, 1, aString(OptionList[0]), 15, 0, True);
+    SP_TextOut(-1, bWidth +1, 1, aString(OptionList[0]), 15, 0, False);
     SP_DrawStripe(@SP_BankList[SP_FindBankID(SCREENBANK)]^.Memory[0], Win^.Width, fW, fH);
     yOff := bHeight + 2;
 
@@ -722,10 +722,10 @@ Begin
       For Idx := 1 to OptionList.Count -1 Do Begin
         If Idx = CurOption Then Begin
           SP_FillRect(bWidth +1, yOff + (Idx * fH), WinW - ((bWidth * 2) + 2), fH, cCyan);
-          SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cCyan, True)
+          SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cCyan, False)
         End Else Begin
           SP_FillRect(bWidth +1, yOff + (Idx * fH), WinW - ((bWidth * 2) + 2), fH, cWhite);
-          SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cWhite, True);
+          SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cWhite, False);
         End;
       End;
       Update := False;

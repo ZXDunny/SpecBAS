@@ -671,6 +671,7 @@ Begin
   CINVERSE := 0;
   CITALIC := 0;
   CBOLD := 0;
+  CPROP := 0;
   CURSORPOS := 1;
   DWSelP := 1;
   SP_GetWindowDetails(DWWindowID, Win, Error);
@@ -788,7 +789,7 @@ Begin
     SP_DrawStripe(Win^.Surface, Win^.Width, iFPFw, iFPFh, 100, Focused);
 
   If SizeGrip Then
-    SP_TextOut(FB, Win^.Width -(iFPFw + 6), Win^.Height - (iFPFh + 6), EdCSc + #250, gripClr, winBack, True);
+    SP_TextOut(FB, Win^.Width -(iFPFw + 6), Win^.Height - (iFPFh + 6), EdCSc + #250, gripClr, winBack, False);
 
   SP_SetDirtyRect(Win^.Left, Win^.Top, Win^.Left + Win^.Width -1, Win^.Top + Win^.Height);
   SP_SetDrawingWindow(Window);
@@ -1395,16 +1396,16 @@ Begin
       // Up arrow
 
       If UpEnabled Then
-        SP_TextOut(-1, UpRect.Left, UpRect.Top, EdCSc + UpChar, scrollActive, -1, True)
+        SP_TextOut(-1, UpRect.Left, UpRect.Top, EdCSc + UpChar, scrollActive, -1, False)
       Else
-        SP_TextOut(-1, UpRect.Left, UpRect.Top, EdCSc + UpChar, scrollInactive, -1, True);
+        SP_TextOut(-1, UpRect.Left, UpRect.Top, EdCSc + UpChar, scrollInactive, -1, False);
 
       // Down Arrow
 
       If DownEnabled Then
-        SP_TextOut(-1, DownRect.Left, DownRect.Top, EdCSc + DownChar, scrollActive, -1, True)
+        SP_TextOut(-1, DownRect.Left, DownRect.Top, EdCSc + DownChar, scrollActive, -1, False)
       Else
-        SP_TextOut(-1, DownRect.Left, DownRect.Top, EdCSc + DownChar, scrollInactive, -1, True);
+        SP_TextOut(-1, DownRect.Left, DownRect.Top, EdCSc + DownChar, scrollInactive, -1, False);
 
     End;
 
@@ -2499,9 +2500,9 @@ Begin
             NumberLine := SP_StringOfChar(aChar(' '), FPGutterWidth - Cpx) + NumberLine;
             If DoDraw Then
               If ContainsSelection Then
-                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, gutterClr, True)
+                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, gutterClr, False)
               Else
-                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, -1, True);
+                SP_TextOut(-1, FPPaperLeft +1, OfsY, EDSc + NumberLine, 0, -1, False);
             DoDrawSt := False;
             Listing.Flags[Idx].Line := LineNum;
             Listing.Flags[Idx].Statement := 1;
@@ -2531,10 +2532,10 @@ Begin
             If Highlight Then Begin
               if ContainsSelection or ShowingBraces or FPShowingSearchResults then i := LineClr Else i := -1;
               s := SP_StriphighlightedTrailingSpaces(Copy(CodeLine, cIdx));
-              SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + s, 0, i, True, True);
+              SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + s, 0, i, False, True);
             End Else Begin
               if ContainsSelection or ShowingBraces or FPShowingSearchResults then i := pClr Else i := -1;
-              SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + Copy(CodeLine, cIdx), 0, i, True, True);
+              SP_TextOut(-1, OfsX + FPPaperLeft +1, OfsY, Edsc + NumberLine + IndStr + Copy(CodeLine, cIdx), 0, i, False, True);
             End;
           T_CLIPX1 := FPClientLeft;
         End;
@@ -2557,7 +2558,7 @@ Begin
           llbpx := FPPaperLeft +2; llbpy := OfsY + ((FPFh - 8) Div 2);
           For i := -1 to 1 Do
             For j := -1 to 1 Do
-              SP_TextOut(-1, llbpx +i, llbpy +j, #243, 2, -1, True); // Circle
+              SP_TextOut(-1, llbpx +i, llbpy +j, #243, 2, -1, False); // Circle
           SP_FillRect(llbpx +1, llbpy + (FONTHEIGHT Div 2) -1, FONTWIDTH -2, 2, 15); // White bar
         End;
 
@@ -2568,12 +2569,12 @@ Begin
           l := FPPaperLeft + 10 + bmOffset;
           For i := -1 to 1 Do
             For j := -1 to 1 Do
-              SP_TextOut(-1, l+i, OfsY + ((FPFh - 8) Div 2) +j, #253, 0, -1, True);
+              SP_TextOut(-1, l+i, OfsY + ((FPFh - 8) Div 2) +j, #253, 0, -1, False);
           If PROGSTATE = SP_PR_RUN Then
             i := 2
           Else
             i := 6;
-          SP_TextOut(-1, l, OfsY + ((FPFh - 8) Div 2), #253, i, -1, True);
+          SP_TextOut(-1, l, OfsY + ((FPFh - 8) Div 2), #253, i, -1, False);
           DrawnCONTlocation := True;
         End;
 
@@ -2588,7 +2589,7 @@ Begin
             Else
               Ps := gClr;
           If DoDraw And DoDrawSt Then
-            SP_TextOut(-1, FPPaperLeft + (FPGutterWidth * FPFw) - (Length(NumberLine) * 8) - ((FPFw - 8) Div 2) +1, OfsY + ((FPFh - 8) Div 2), IntToString(St), Ps -4, -1, True);
+            SP_TextOut(-1, FPPaperLeft + (FPGutterWidth * FPFw) - (Length(NumberLine) * 8) - ((FPFw - 8) Div 2) +1, OfsY + ((FPFh - 8) Div 2), IntToString(St), Ps -4, -1, False);
           Listing.Flags[Idx].Line := LineNum;
           Listing.Flags[Idx].Statement := St;
         End;
@@ -2599,34 +2600,34 @@ Begin
           Case cIdx of
             spLineNull:
               Begin
-                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, gclr -1, -1, True);
-                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #244, gclr +1, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, gclr -1, -1, False);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #244, gclr +1, -1, False);
               End;
             spLineOk:
               Begin
-                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 0, -1, True);
-                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #244, 4, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 0, -1, False);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #244, 4, -1, False);
               End;
             spLineError:
               Begin
-                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #243, 0, -1, True);
-                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 2, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #243, 0, -1, False);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 2, -1, False);
               End;
             spLineDirty:
               Begin
-                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 0, -1, True);
-                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #244, 1, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 0, -1, False);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #244, 1, -1, False);
               End;
             spLineDuplicate:
               Begin
-                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #243, 0, -1, True);
-                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 6, -1, True);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #243, 0, -1, False);
+                SP_TextOut(-1, j, OfsY + ((FPFh - 8) Div 2), #245, 6, -1, False);
               End;
           End;
         End;
         // Draw bookmarks if necessary
         If DoDraw And (bmIdx >= 0) Then
-          SP_TextOut(-1, FPPaperLeft + 2, OfsY + ((FPFh - 8) Div 2), IntToString(bmIdx), 6, 1, True);
+          SP_TextOut(-1, FPPaperLeft + 2, OfsY + ((FPFh - 8) Div 2), IntToString(bmIdx), 6, 1, False);
         // Restore scaling
         If DoDraw Then Begin
           T_SCALEX := fx;
@@ -2964,7 +2965,7 @@ Begin
   End;
 
   sz := Max(EDFONTSCALEX, EDFONTSCALEY);
-  SP_TEXTOUT(-1, DWPaperLeft, DWPaperTop, #25 + aFloatToString(sz) + aFloatToString(sz) + Ch, Fg, Bg, True);
+  SP_TEXTOUT(-1, DWPaperLeft, DWPaperTop, #25 + aFloatToString(sz) + aFloatToString(sz) + Ch, Fg, Bg, False);
 
   SP_SetSystemFont(Font, Err);
   SP_SetDrawingWindow(WindowID);
@@ -2999,7 +3000,7 @@ Begin
   if CURSORCHAR < 32 Then s := #5 + s;
   If CURSORITALIC <> 0 Then s := #26 + LongWordToString(1) + s;
   If CURSORBOLD <> 0 Then s := #27 + LongWordToString(1) + s;
-  SP_TEXTOUT(-1, CURSORX, CURSORY, EdSc + s, Fg, Bg, True, True);
+  SP_TEXTOUT(-1, CURSORX, CURSORY, EdSc + s, Fg, Bg, False, True);
 
   SP_ClearEditorClipping;
   SP_SetSystemFont(Font, Err);
@@ -3050,7 +3051,7 @@ Begin
   s := aChar(CURSORCHAR);
   if CURSORCHAR < 32 Then
     s := #5 + s;
-  SP_TEXTOUT(-1, CURSORX, CURSORY, EdSc + s, Fg, Bg, True, True);
+  SP_TEXTOUT(-1, CURSORX, CURSORY, EdSc + s, Fg, Bg, False, True);
 
   SP_SetSystemFont(Font, Err);
 
@@ -5997,7 +5998,7 @@ Begin
       Inc(Idx);
       Dec(TLen);
     End;
-    SP_TextOut(-1, DWTextLeft, Y, EdSc + cText, 0 + (8 * Ord(FocusedWindow <> fwDirect)), 7, True, True);
+    SP_TextOut(-1, DWTextLeft, Y, EdSc + cText, 0 + (8 * Ord(FocusedWindow <> fwDirect)), 7, False, True);
     Inc(Y, FPFh);
   End;
 
@@ -7409,12 +7410,12 @@ Begin
       COVER := 0;
       T_INK := 0;
       T_OVER := 0;
-      SP_TextOut(-1, 1 + BSize, Integer(BSize) + FPCaptionHeight, EdSc + ErrorText, 0, 7, True);
+      SP_TextOut(-1, 1 + BSize, Integer(BSize) + FPCaptionHeight, EdSc + ErrorText, 0, 7, False);
       SP_SetWindowVisible(ERRORWINDOW, False, Error);
     End Else Begin
       SP_FillRect(0, 0, WinW, WinH, 0);
-      SP_TextOut(FONTBANKID, 8, 8, Text, 2, 0, True);
-      SP_TextOut(FONTBANKID, 16, 40, 'Version ' + BuildStr, 7,0,True);
+      SP_TextOut(FONTBANKID, 8, 8, Text, 2, 0, False);
+      SP_TextOut(FONTBANKID, 16, 40, 'Version ' + BuildStr, 7, 0, False);
     End;
 
     SP_InvalidateWholeDisplay;
@@ -7502,12 +7503,12 @@ Begin
       Cnt := WinH - 4;
       x := 48;
       While x > 0 Do Begin
-        SP_TextOut(FONTBANKID, WinW - x, Cnt, StripeText, 0, 0, True);
+        SP_TextOut(FONTBANKID, WinW - x, Cnt, StripeText, 0, 0, False);
         Dec(Cnt, 16);
         Dec(x, 8);
       End;
       T_SCALEY := 1;
-      SP_TextOut(FONTBANKID, 16, WinH - 22, #127+' '+IntToString(CurrentYear)+' ZX Development Ltd.'{#13'        ZXDunny    Windows/Pandora/OSX'#13'        Piez       Linux'#13'        Chris      Pi'}, 232, 0, True);
+      SP_TextOut(FONTBANKID, 16, WinH - 22, #127+' '+IntToString(CurrentYear)+' ZX Development Ltd.'{#13'        ZXDunny    Windows/Pandora/OSX'#13'        Piez       Linux'#13'        Chris      Pi'}, 232, 0, False);
       SP_InvalidateWholeDisplay;
       SP_NeedDisplayUpdate := True;
       SP_WaitForSync;
@@ -9335,7 +9336,7 @@ End;
 
 Function SP_CheckProgram(OnlyErrors: Boolean = False): Boolean;
 Var
-  Idx, i: Integer;
+  Idx: Integer;
   HasDirty, HasErrors: Boolean;
 Label
   ErrorCheck;
@@ -9355,12 +9356,12 @@ Begin
     End;
 
     If HasErrors Then Begin
-      Listing.FPCLine := Idx;
+{      Listing.FPCLine := Idx;
       i := 1;
       If Listing[Listing.FPCLine] <> '' Then
       While (i < Length(Listing[Listing.FPCLine])) And (Listing[Listing.FPCLine][i] in ['0'..'9', ' ']) Do
         Inc(i);
-      Listing.FPCPos := i;
+      Listing.FPCPos := i;}
       Break;
     End;
   End;

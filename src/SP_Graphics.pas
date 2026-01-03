@@ -3398,13 +3398,13 @@ Begin
 
   if (rX = 0) or (ry = 0) then exit;
 
-  If Rx = Ry Then
+  If SCREENBPP = 8 Then Begin
 
-    SP_DrawCircle(Cx, Cy, Rx)
+    If Rx = Ry Then
 
-  Else Begin
+      SP_DrawCircle(Cx, Cy, Rx)
 
-    If SCREENBPP = 8 Then Begin
+    Else
 
       If T_STROKE > 1 Then Begin
         SP_DrawThickEllipse(CX, CY, Rx, Ry, Angle);
@@ -3416,14 +3416,12 @@ Begin
         DrawConnectedEllipse;
       End;
 
-    End Else
+  End Else
 
-      SP_DrawEllipse32(Cx, Cy, Rx, Ry, Angle);
+    SP_DrawEllipse32(Cx, Cy, Rx, Ry, Angle);
 
-    If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - Rx, (SCREENY + Cy) - Ry, SCREENX + Cx + Rx, SCREENY + Cy + Ry);
-    SP_BankList[0]^.Changed := True;
-
-  End;
+  If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + Cx) - Rx, (SCREENY + Cy) - Ry, SCREENX + Cx + Rx, SCREENY + Cy + Ry);
+  SP_BankList[0]^.Changed := True;
 
 End;
 
@@ -3575,11 +3573,13 @@ var
 begin
 
  If T_STROKE > 1 Then Begin
+
     If SCREENBPP = 8 Then
       SP_DrawThickEllipse(CX, CY, R, R, 0)
     Else
       SP_DrawThickEllipse32(CX, CY, R, R, 0);
     Inc(R, Ceil(T_STROKE / 2));
+
   End Else Begin
 
     if R = 0 then
@@ -3618,6 +3618,7 @@ begin
 
   If SCREENVISIBLE Then SP_SetDirtyRect((SCREENX + CX) - R, (SCREENY + CY) - R, SCREENX + CX + R, SCREENY + CY + R);
   SP_BankList[0]^.Changed := True;
+
 end;
 
 Procedure SP_DrawSolidCircle(CX, CY, R: Integer);

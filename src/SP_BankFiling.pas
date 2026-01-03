@@ -600,7 +600,6 @@ Begin
                 Font^.Font_Info[Idx].Data := Idx * Font^.Width * Font^.Height;
 
               GetData;
-              SP_GetFontCharMetrics(Bank^.ID);
 
             End Else
 
@@ -875,6 +874,11 @@ Begin
         Begin
           Gfx := pSP_Graphic_Info(@SP_BankList[BankID].Info[0]);
           Gfx^.Data := @Bank^.Memory[0];
+        End;
+
+      SP_FONT_BANK:
+        Begin
+          SP_GetFontCharMetrics(SP_BankList[BankID].ID);
         End;
 
     End;

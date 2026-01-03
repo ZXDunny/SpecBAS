@@ -165,6 +165,7 @@ Begin
     ItemIndex := LastDebugPanelIndex;
     CanFocus := False;
     FPDebugPanel.SetBounds(Left, Top + Height + BSize, Width, FPPaperHeight - (Height + BSize));
+    FPDebugPanel.CanUserSort := True;
     FPDebugPanel.OnFocus := SP_DebugPanelActionProcs.SetFocus;
     FPDebugPanel.SortByAlpha := True;
     FPDebugPanel.OnChoose := SP_DebugPanelActionProcs.DblClick;

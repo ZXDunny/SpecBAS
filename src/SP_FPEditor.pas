@@ -728,10 +728,10 @@ Procedure SP_Decorate_Window(WindowID: Integer; Title: aString; Clear, SizeGrip,
 Var
   Win: pSP_Window_Info;
   Err: TSP_ErrorCode;
-  Window, sp, FB: Integer;
+  Window, sp, FB, i: Integer;
   Stroke: aFloat;
   iFPFh, iFPFw: Integer;
-  iEDSC: aString;
+  iEDSC, s: aString;
 Begin
 
   Window := SCREENBANK;
@@ -770,17 +770,20 @@ Begin
   SP_FillRect(0, 0, Win^.Width, iFPFh +2, capBack);
 
   Sp := (Win^.Width - ((iFPFw * 4)) - iFPFh *2) - iFPFw;
-  If iFPFw * Length(Title) > Sp Then
-    Title := SP_CopyClrs(Title, 1, Sp Div iFPFw);
+  s := ''; i := 1;
+  While (i <= Length(Title)) And (SP_GetPropTextWidth(T_FONT, s, '') < Sp) Do Begin
+    s := s + Title[i];
+    Inc(i);
+  End;
 
   Stroke := T_STROKE;
   T_STROKE := 1;
   If Focused Then T_INK := 0;
   SP_DrawRectangle(0, 0, Win^.Width -1, Win^.Height -1);
   If Focused Then
-    SP_TextOut(FB, iFPFw Div 2, 1, iEdSc + Title, capText, capBack, True)
+    SP_TextOut(FB, iFPFw Div 2, 1, iEdSc + s, capText, capBack, True)
   Else
-    SP_TextOut(FB, iFPFw Div 2, 1, iEdSc + Title, capInactive, CapBack, True);
+    SP_TextOut(FB, iFPFw Div 2, 1, iEdSc + s, capInactive, CapBack, True);
 
 
   If WindowID = DWWindowID Then

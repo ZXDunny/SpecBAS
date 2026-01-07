@@ -333,7 +333,7 @@ Begin
 
   If Assigned(Menu) Then Begin
 
-    h := Max(ifH, Edit.Height);
+    h := Max(ifH, Edit.Height + 3);
     Menu.MinWidth := w + 1;
     Inherited;
 
@@ -344,16 +344,23 @@ Begin
 End;
 
 Procedure SP_ComboBox.PlaceItems;
+Var
+  spcW: Integer;
 Begin
 
-  DoErase;
-
-  Btn.SetBounds(Width - Height, 0, Height, Height);
+  Btn.SetBounds(Width - Height -1, 0, Height + 1, Height);
   Btn.Caption := #252;
   Btn.CentreCaption;
 
-  Edit.SetBounds(0, 0, Width - Height + 1, Height -1);
-  Labl.SetBounds(0, 0, Width - Height + 1, Edit.Height);
+  If Proportional Then
+    spcW := TextWidth(' ')
+  Else
+    spcW := 1;
+  Edit.Border := False;
+  Labl.Border := False;
+
+  Edit.SetBounds(spcW, 1, Width - Height - spcW -1, Height -2);
+  Labl.SetBounds(spcW, 1, Width - Height - spcW -1, Height -2);
 
   Edit.Visible := Editable;
   Labl.Visible := Not Editable;
@@ -364,6 +371,9 @@ Procedure SP_ComboBox.Draw;
 Begin
 
   FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
+  DrawRect(0, 0, fWidth - Btn.Width +1, fHeight -1, fBorderClr);
+  If Proportional Then
+    FillRect(1, 1, TextWidth(' '), fHeight -2, Edit.BackgroundClr);
 
 End;
 
@@ -387,7 +397,7 @@ begin
 
   fBorder := b;
   Btn.Border := b;
-  Edit.Border := b;
+  Edit.Border := b And Not Proportional;
   Labl.Border := b;
   Menu.Border := b;
   PlaceItems;

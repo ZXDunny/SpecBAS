@@ -501,7 +501,7 @@ Begin
     If fNeedPaint Then
       SetUIElements;
     If fNeedScroll <> -1 Then
-      fVScroll.ScrollInView(fNeedScroll);
+      ScrollInView(True);
   End;
 
 End;

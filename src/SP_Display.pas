@@ -976,7 +976,7 @@ Function SetScreen(Width, Height, sWidth, sHeight: Integer; FullScreen, AllowRes
 Var
   oW, oH: Integer; // Old output width/height
   oFS: Boolean;
-  l, t: NativeInt; // Target window left, top, width, height for SendMessage
+  l, t, sw, sh: NativeInt; // Target window left, top, width, height for SendMessage
   r: TRect;
 Begin
   SetPerformingDisplayChange(True);
@@ -1051,8 +1051,10 @@ Begin
         // but we calculated them from client sWidth, sHeight. AdjustWindowRect might be needed
         // if WM_RESIZEMAIN doesn't handle client-to-window size conversion.
         // For simplicity, let's assume WM_RESIZEMAIN takes client dimensions and adjusts.
-        l := ((r.Right - r.Left) - sWidth) Div 2; // Center based on client width
-        t := ((r.Bottom - r.Top) - sHeight) Div 2; // Center based on client height
+        sw := Main.Width - Main.ClientWidth + sWidth;
+        sh := Main.Height - Main.ClientHeight + sHeight;
+        l := ((r.Right - r.Left) - sW) Div 2; // Center based on client width
+        t := ((r.Bottom - r.Top) - sH) Div 2; // Center based on client height
       End Else Begin
         l := WINLEFT;
         t := WINTOP;
@@ -1201,8 +1203,6 @@ begin
     If (oFS <> FullScreen) or (Width <> oW) or (Height <> oH) Then Begin
       Main.BorderStyle := bsNone;
       Result := ChangeDisplaySettingsEx(PChar(MonitorName), DeviceMode, 0, CDS_FULLSCREEN, nil) = DISP_CHANGE_SUCCESSFUL;
-      // After changing, window might need to be explicitly sized to the new full screen
-      SetWindowPos(Main.Handle, HWND_TOPMOST, REALSCREENLEFT, REALSCREENTOP, Width, Height, SWP_SHOWWINDOW);
     End Else
       Result := True; // No change needed
     SPFULLSCREEN := True;

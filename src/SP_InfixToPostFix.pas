@@ -2150,7 +2150,7 @@ Begin
 
               End;
 
-            SP_FN_REPLACES, SP_FN_REPLACEMATCHS, SP_FN_FILEREQ:
+            SP_FN_REPLACES, SP_FN_REPLACEMATCHS:
               Begin
 
                 // Takes three string parameters, returns a string
@@ -2174,6 +2174,47 @@ Begin
                         Exit;
                       End Else
                         Stack[StackPtr] := SP_STRING;
+                    End;
+                  End;
+                End Else Begin
+                  Position := Token^.TokenPos;
+                  Error.Code := SP_ERR_SYNTAX_ERROR;
+                  Exit;
+                End;
+
+              End;
+
+            SP_FN_FILEREQ:
+              Begin
+
+                // Takes three string parameters, one numeric, returns a string
+
+                If StackPtr > 1 Then Begin
+                  If Stack[StackPtr] <> SP_VALUE Then Begin
+                    Error.Code := SP_ERR_MISSING_NUMEXPR;
+                    Position := Token^.TokenPos;
+                    Exit;
+                  End Else Begin
+                    Dec(StackPtr);
+                    If Stack[StackPtr] <> SP_STRING Then Begin
+                      Error.Code := SP_ERR_MISSING_STREXPR;
+                      Position := Token^.TokenPos;
+                      Exit;
+                    End Else Begin
+                      Dec(StackPtr);
+                      If Stack[StackPtr] <> SP_STRING Then Begin
+                        Error.Code := SP_ERR_MISSING_STREXPR;
+                        Position := Token^.TokenPos;
+                        Exit;
+                      End Else Begin
+                        Dec(StackPtr);
+                        If Stack[StackPtr] <> SP_STRING Then Begin
+                          Error.Code := SP_ERR_MISSING_STREXPR;
+                          Position := Token^.TokenPos;
+                          Exit;
+                        End Else
+                          Stack[StackPtr] := SP_STRING;
+                      End;
                     End;
                   End;
                 End Else Begin
@@ -4262,11 +4303,41 @@ Begin
                           Error.Code := SP_ERR_MISSING_STREXPR;
                           Exit;
                         End;
-                      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ')') Then Begin
+                      If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
                         Inc(Position, 2);
+                        If (Byte(Tokens[Position]) = SP_KEYWORD) Then Begin
+                          If (pLongWord(@Tokens[Position +1])^ = SP_KW_LOAD) Then Begin
+                            FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
+                            Error.ReturnType := SP_VALUE;
+                          End Else
+                            If (pLongWord(@Tokens[Position +1])^ = SP_KW_SAVE) Then Begin
+                              FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(1);
+                              Error.ReturnType := SP_VALUE;
+                            End;
+                          Inc(Position, 1 + SizeOf(LongWord));
+                        End Else
+                          FnResult := FnResult + SP_Convert_Expr(Tokens, Position, Error, -1);
+                        If Error.Code <> SP_ERR_OK Then
+                          Exit
+                        Else
+                          If Error.ReturnType <> SP_VALUE Then Begin
+                            Error.Code := SP_ERR_MISSING_NUMEXPR;
+                            Exit;
+                          End;
+                        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ')') Then Begin
+                          Inc(Position, 2);
+                        End Else Begin
+                          Error.Code := SP_ERR_MISSING_BRACKET;
+                          Exit;
+                        End;
                       End Else Begin
-                        Error.Code := SP_ERR_MISSING_BRACKET;
-                        Exit;
+                        If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ')') Then Begin
+                          Inc(Position, 2);
+                          FnResult := FnResult + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
+                        End Else Begin
+                          Error.Code := SP_ERR_MISSING_BRACKET;
+                          Exit;
+                        End;
                       End;
                     End Else Begin
                       Error.Code := SP_ERR_MISSING_COMMA;

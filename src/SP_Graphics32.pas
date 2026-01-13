@@ -3363,6 +3363,7 @@ Begin
   SP_NeedDisplayUpdate := True;
   SP_ConvertToOrigin_d(PRPOSX, PRPOSY);
   SP_ConvertToOrigin_d(DRPOSX, DRPOSY);
+  SP_InvalidateWholeDisplay;
 
 End;
 

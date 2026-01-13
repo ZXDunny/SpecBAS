@@ -8620,7 +8620,11 @@ End;
 Procedure SP_Interpret_FN_FILEREQ(Var Info: pSP_iInfo);
 Var
   Caption, Dir, Mask: aString;
+  SaveMode: Boolean;
 Begin
+
+  SaveMode := SP_StackPtr^.Val <> 0;
+  Dec(SP_StackPtr);
 
   Mask := SP_StackPtr^.Str;
   Dec(SP_StackPtr);
@@ -8629,7 +8633,7 @@ Begin
   Dec(SP_StackPtr);
 
   Caption := SP_StackPtr^.Str;
-  SP_StackPtr^.Str := OpenFileReq(Caption, Dir, Mask, False, Info^.Error^);
+  SP_StackPtr^.Str := OpenFileReq(Caption, Dir, Mask, SaveMode, Info^.Error^);
 
 End;
 

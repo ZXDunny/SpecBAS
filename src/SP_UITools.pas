@@ -262,16 +262,17 @@ Var
   p: aString;
 Begin
 
-  If s = '' Then AcceptDir(Sender, '') Else Begin
-    If s <> #0 Then Begin
-      p := FilesList.Directory;
-      If Copy(p, Length(p), 1) <> '/' Then
-        p := p + '/';
-      ToolStrResult := p + s;
-    End Else
-      ToolStrResult := '';
-    ToolWindowDone := True;
-  End;
+  If okBtn.Enabled Then
+    If s = '' Then AcceptDir(Sender, '') Else Begin
+      If s <> #0 Then Begin
+        p := FilesList.Directory;
+        If Copy(p, Length(p), 1) <> '/' Then
+          p := p + '/';
+        ToolStrResult := p + s;
+      End Else
+        ToolStrResult := '';
+      ToolWindowDone := True;
+    End;
 
 End;
 
@@ -296,6 +297,8 @@ Begin
     okBtn.Enabled := SP_FileExists(s) or (ToolMode = 2);
   End Else
     okBtn.Enabled := False;
+
+  FileNameEdt.ValidText := okBtn.Enabled;
 
 End;
 

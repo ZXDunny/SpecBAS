@@ -580,6 +580,7 @@ Var
   Win: pSP_Window_Info;
   Done, Update: Boolean;
   Key: pSP_KeyInfo;
+  Str: aString;
 
   Function GetOptionAt(X, Y: Integer): Integer;
   Var
@@ -627,6 +628,21 @@ Var
 
   End;
 
+  Procedure DrawOptions;
+  Var
+    Idx: Integer;
+  Begin
+    For Idx := 1 to OptionList.Count -1 Do Begin
+      If Idx = CurOption Then Begin
+        SP_FillRect(bWidth +1, yOff + (Idx * fH), WinW - ((bWidth * 2) + 2), fH, cCyan);
+        SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cCyan, T_PROP <> 0)
+      End Else Begin
+        SP_FillRect(bWidth +1, yOff + (Idx * fH), WinW - ((bWidth * 2) + 2), fH, cWhite);
+        SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cWhite, T_PROP <> 0);
+      End;
+    End;
+  End;
+
 Begin
 
   EditorSaveFPS := FPS;
@@ -644,8 +660,10 @@ Begin
   Offset := SizeOf(LongWord) +1;
   For Idx := 1 To NumOptions Do Begin
     StrLen := pLongWord(@Options[Offset])^;
-    OptionList.Add(Copy(Options, Offset + SizeOf(LongWord), StrLen));
+    Str := Copy(Options, Offset + SizeOf(LongWord), StrLen);
+    OptionList.Add(Str);
     Inc(Offset, SizeOf(LongWord) + StrLen);
+    StrLen := SP_TextWidth(Str);
     If StrLen > MaxWidth Then
       MaxWidth := StrLen;
   End;
@@ -660,10 +678,10 @@ Begin
   bWidth := fW Div 2;
   bHeight := fH Div 2;
   If OptionList[0] <> '' Then Begin
-    WinW := Max(((7 + Length(OptionList[0])) * fW) + bWidth, Min(DISPLAYWIDTH, (MaxWidth * fW) + (bWidth * 2) + 2));
+    WinW := Max(((7 + SP_TextWidth(OptionList[0]))) + bWidth, Min(DISPLAYWIDTH, (MaxWidth) + (bWidth * 2) + 2));
     WinH := Min(DISPLAYHEIGHT, (NumOptions * fH) + (bHeight * 2) + 3);
   End Else Begin
-    WinW := Min(DISPLAYWIDTH, (MaxWidth * fW) + (bWidth * 2) + 2);
+    WinW := Min(DISPLAYWIDTH, MaxWidth + (bWidth * 2) + 2);
     WinH := Min(DISPLAYHEIGHT, ((NumOptions -1) * fH) + (bHeight * 2) + 2);
   End;
 
@@ -710,24 +728,20 @@ Begin
 
     yOff := (bHeight +1) - fH;
 
+  CurOption := 1;
+  DrawOptions;
+
+  While (KEYSTATE[K_RETURN] <> 0) And Not QUITMSG Do CB_Yield;
+
   // Now enter the main loop, drawing the options and waiting/responding on user input.
   // Allowed keys are up/down/enter/escape/home/end. Mouse may also be used, if the mouse is currently visible.
   // This is a modified version of the routines used by the INPUT systems above.
 
   Done := False;
-  CurOption := 1;
   Repeat
 
     If Update Then Begin
-      For Idx := 1 to OptionList.Count -1 Do Begin
-        If Idx = CurOption Then Begin
-          SP_FillRect(bWidth +1, yOff + (Idx * fH), WinW - ((bWidth * 2) + 2), fH, cCyan);
-          SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cCyan, False)
-        End Else Begin
-          SP_FillRect(bWidth +1, yOff + (Idx * fH), WinW - ((bWidth * 2) + 2), fH, cWhite);
-          SP_TextOut(-1, bWidth +1, yOff + (Idx * fH), aString(OptionList[Idx]), cBlack, cWhite, False);
-        End;
-      End;
+      DrawOptions;
       Update := False;
     End;
 
@@ -735,7 +749,11 @@ Begin
       CB_Yield;
       Key := SP_GetNextKey(FRAMES);
     Until Assigned(Key) or M_DOWNFLAG or M_UPFLAG or M_MOVEFLAG or QUITMSG;
-    If QUITMSG Then Exit;
+
+    If QUITMSG Then Begin
+      OptionList.Free;
+      Exit;
+    End;
 
     If M_DOWNFLAG Then SP_MenuHandleMouseDown(MOUSEX, MOUSEY);
     If M_UPFLAG Then SP_MenuHandleMouseUp(MOUSEX, MOUSEY, Done);

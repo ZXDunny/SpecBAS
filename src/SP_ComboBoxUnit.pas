@@ -444,6 +444,7 @@ End;
 Procedure SP_ComboBox.SetText(s: aString);
 Var
   i: Integer;
+  ns: aString;
 Begin
 
   fItemIndex := -1;
@@ -453,8 +454,15 @@ Begin
       Break;
     End;
 
-  Edit.Text := s;
-  Labl.Caption := s;
+  i := 1;
+  Edit.Text := ns;
+  ns := ''; s := s + ' ';
+  While (i <= Length(s)) And (TextWidth(ns) < Labl.Width) Do Begin
+    ns := ns + s[i];
+    Inc(i);
+  End;
+  ns := Copy(ns, 1, Length(ns) -1);
+  Labl.Caption := ns;
 
 End;
 

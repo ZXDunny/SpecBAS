@@ -12565,6 +12565,10 @@ Begin
     CSCALEX := 1;
     CSCALEY := 1;
     CSTROKE := 1;
+    SP_CaseListPtr := -1;
+    SP_ProcsListPtr := -1;
+    SP_ProcStackPtr := -1;
+    SP_ONCtrlListPtr := -1;
     SP_Reset_Temp_Colours;
     If Filename <> 's:autosave' Then
       SP_CLS(CPAPER);

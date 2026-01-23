@@ -819,7 +819,7 @@ End;
 Procedure SP_BaseComponent.Print(X, Y: Integer; const Text: aString; Ink, Paper: Integer; ScaleX, ScaleY: aFloat; Italic, Bold, UseAccel, ShowAccel: Boolean);
 Var
   BankID, CharW, CharH, Idx, cCount, ItalicOffset, xc: Integer;
-  sx, sy, Cw, Ch, yp, xp, TC, t, PropOffset, PropWidth: Integer;
+  sx, sy, Cw, Ch, yp, xp, TC, t, PropOffset, PropWidth, ScaleXi: Integer;
   Transparent, Prop: Boolean;
   FontBank: pSP_Font_Info;
   Bank: pSP_Bank;
@@ -871,13 +871,14 @@ Begin
           Char := @Bank^.Memory[FontBank^.Font_Info[Byte(curChar)].Data];
 
         If Prop And (CurChar < #128) Then Begin
-          PropOffset := FontBank^.Font_Info[Byte(curChar)].Offset;
-          PropWidth := FontBank^.Font_Info[Byte(curChar)].Width;
-          Inc(PropWidth, Ord(Bold));
+          PropOffset := Round(FontBank^.Font_Info[Byte(curChar)].Offset * ScaleX);
+          PropWidth := Round(FontBank^.Font_Info[Byte(curChar)].Width * ScaleX);
+          Inc(PropWidth, Round(Ord(Bold) * ScaleX));
         End Else Begin
           PropOffset := 0;
           PropWidth := FontBank^.Width -1;
         End;
+        ScaleXi := Round(ScaleX);
 
         If Italic Then
           ItalicOffset := (CharH Div ITALICSCALE) Shl 16
@@ -982,7 +983,7 @@ Begin
           Dec(X, CharW);
           Dec(Y);
         End Else
-          Dec(X, CharW - PropWidth -1);
+          Dec(X, CharW - PropWidth - ScaleXi);
 
       End Else Begin
 
@@ -1442,6 +1443,8 @@ Begin
     Result := SP_GetPropTextWidth(fCurFontID, Text, '')
   Else
     Result := Length(Text) * iFW;
+
+  Result := Round(Result * iSX);
 
 End;
 

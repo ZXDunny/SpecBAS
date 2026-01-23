@@ -2158,7 +2158,7 @@ End;
 Function SP_PRINT32(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: LongWord; var Error: TSP_ErrorCode): Integer;
 Var
   TInk, TPaper: LongWord;
-  Idx, CharW, CharH, Scrolls, cCount, sx, sy, ItalicOffset, nx: Integer;
+  Idx, CharW, CharH, Scrolls, cCount, sx, sy, ItalicOffset, nx, ScaleXi: Integer;
   yp, xp, Cw, Ch, TC, t, PropOffset, PropWidth, xc: Integer;
   Transparent, ForceNextChar: Boolean;
   FontBank: pSP_Font_info;
@@ -2265,6 +2265,7 @@ Begin
             PropOffset := Round(PropOffset * ScaleX);
             PropWidth := Round(PropWidth * ScaleX);
           End;
+          ScaleXi := Round(ScaleX);
 
           If X + PropWidth > SCREENWIDTH Then Begin
             X := 0;
@@ -2410,7 +2411,7 @@ Begin
             End;
           End Else
             Inc(X, CharW);
-          Dec(X, CharW - PropWidth -1);
+          Dec(X, CharW - PropWidth - ScaleXi);
         End Else Begin
           // Control codes!
           Case Ord(Text[Idx]) of
@@ -2640,7 +2641,7 @@ End;
 Function SP_TextOut32(BankID, X, Y: Integer; const Text: aString; Ink, Paper: LongWord; Proportional: Boolean; ShowSpecial: Boolean = False): Integer;
 Var
   CharW, CharH, Idx, cCount, ItalicOffset, DefPaper, nx, xc, PropOffset, PropWidth: Integer;
-  sx, sy, Cw, Ch, yp, xp, TC, t: Integer;
+  sx, sy, Cw, Ch, yp, xp, TC, t, ScaleXi: Integer;
   Transparent, ForceNextChar: Boolean;
   FontBank: pSP_Font_Info;
   Bank: pSP_Bank;
@@ -2716,6 +2717,7 @@ Begin
           PropOffset := Round(PropOffset * ScaleX);
           PropWidth := Round(PropWidth * ScaleX);
         End;
+        ScaleXi := Round(ScaleX);
 
         If T_ITALIC > 0 Then
           ItalicOffset := (65536 Div ItalicScale) + (CharH Div ItalicScale) Shl 16
@@ -2828,7 +2830,7 @@ Begin
           Dec(Y, CharH);
           Inc(X, CharW);
         End;
-        Dec(X, CharW - PropWidth -1);
+        Dec(X, CharW - PropWidth - ScaleXi);
       End Else Begin
         // Control codes!
         Case Ord(Text[Idx]) of

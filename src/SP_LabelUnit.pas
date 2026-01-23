@@ -98,7 +98,10 @@ begin
   If AutoSize Then
     maxw := MAXINT
   Else
-    maxw := fWidth div Round(iFW * iSX);
+    If fProportional Then
+      maxw := fWidth
+    Else
+      maxw := fWidth div Round(iFW * iSX);
 
   While CurrentCharIdx <= Length(fCaption) Do Begin
     Case Ord(fCaption[CurrentCharIdx]) Of

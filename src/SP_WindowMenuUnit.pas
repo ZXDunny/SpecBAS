@@ -222,7 +222,7 @@ Begin
   For i := 0 To Length(fItems) -1 Do Begin
 
     If Proportional Then Begin
-      l := SP_GetPropTextWidth(fCurFontID, fItems[i].Caption, '&') + cFW;
+      l := Round(SP_GetPropTextWidth(fCurFontID, fItems[i].Caption, '&') * iSX) + cFW;
     End Else Begin
       l := StripLen(fItems[i].Caption)+2;
       if SP_Util.Pos('&', fItems[i].Caption) > 0 Then Dec(l);
@@ -254,7 +254,10 @@ Var
 Begin
 
   cfW := Round(iFW * iSX);
-  If Proportional Then spW := SP_GetPropTextWidth(fCurFontID, ' ', '') Else spW := cfW;
+  If Proportional Then
+    spW := Round(SP_GetPropTextWidth(fCurFontID, ' ', '') * iSX)
+  Else
+    spW := cfW;
 
   FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
   DrawLine(0, fHeight -3, fWidth -1, fHeight -3, SP_UIHalfLight);

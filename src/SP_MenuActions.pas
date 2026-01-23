@@ -183,7 +183,7 @@ Begin
 
   With Control Do Begin
     If Assigned(FPSearchBox) Then
-      Print(Max(FPSearchBox.Left - (SP_GetPropTextWidth(EDITORFONT, 'Find', '') + BSIZE), 2), 5, 'Find', 0, -1, EdFontScaleX, EdFontScaleY, False, False, False, False);
+      Print(Max(FPSearchBox.Left - (Round(SP_GetPropTextWidth(EDITORFONT, 'Find', '') * EdFontScaleX) + BSIZE), 2), 5, 'Find', 0, -1, EdFontScaleX, EdFontScaleY, False, False, False, False);
     DrawLine(0, 0, fWidth -1, 0, fBorderClr);
     DrawLine(0, 1, fWidth -1, 1, 15);
     DrawLine(0, fHeight -1, fWidth -1, fHeight -1, SP_UIShadow);

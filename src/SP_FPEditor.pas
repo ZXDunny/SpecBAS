@@ -729,7 +729,7 @@ Var
   Win: pSP_Window_Info;
   Err: TSP_ErrorCode;
   Window, sp, FB, i: Integer;
-  Stroke: aFloat;
+  Stroke, Scale: aFloat;
   iFPFh, iFPFw: Integer;
   iEDSC, s: aString;
 Begin
@@ -741,11 +741,13 @@ Begin
     iFPFW := Trunc(EDFONTWIDTH * EDFONTSCALEX);
     iFPFH := Trunc(EDFONTHEIGHT * EDFONTSCALEY);
     iEdSc := #25 + aFloatToString(EDFONTSCALEX) + aFloatToString(EDFONTSCALEY);
+    Scale := EDFONTSCALEX;
   End Else Begin
     FB := FONTBANKID;
     iFPFH := Round(FONTHEIGHT * T_SCALEY);
     iFPFW := Round(FONTWIDTH * T_SCALEX);
     iEdSc := #25 + aFloatToString(T_SCALEX) + aFloatToString(T_SCALEY);
+    Scale := T_SCALEX;
   End;
   T_FONT := FB;
 
@@ -771,7 +773,7 @@ Begin
 
   Sp := (Win^.Width - ((iFPFw * 4)) - iFPFh *2) - iFPFw;
   s := ''; i := 1;
-  While (i <= Length(Title)) And (SP_GetPropTextWidth(T_FONT, s, '') < Sp) Do Begin
+  While (i <= Length(Title)) And (Round(SP_GetPropTextWidth(T_FONT, s, '') * Scale) < Sp) Do Begin
     s := s + Title[i];
     Inc(i);
   End;
@@ -7304,8 +7306,11 @@ Begin
     If LineNum = -2 Then Begin
       If Error.Line < 0 Then
         Error.Line := 0
-      Else
+      Else Begin
+        If Error.Line >= SP_Program_Count Then
+          Error.Line := SP_Program_Count -1;
         Error.Line := pLongWord(@SP_Program[Error.Line][2])^;
+      End;
     End Else
       Error.Line := SP_GetLineNumberFromText(Listing[LineNum]);
     tempText := ErrorMessages[Error.Code];
@@ -7893,7 +7898,11 @@ Begin
         PreParseErrorCode := Error.Code;
         PreParseErrorLine := Error.Line;
         PreParseErrorStatement := Error.Statement;
-        Error.Code := SP_ERR_OK;
+        If Error.Code <> SP_ERR_OK Then Begin
+          Error.Line := -2;
+          Error.Statement := 1;
+          Error.Code := SP_ERR_OK;
+        End;
         Error.ReturnType := 0;
         PROGSTATE := SP_PR_RUN;
         ClearFlags;

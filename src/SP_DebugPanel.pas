@@ -154,7 +154,7 @@ Begin
   FPDebugPanel.AllowLiterals := True;
 
   With FPDebugCombo Do Begin
-    SetBounds(Win^.Width - BSize - FPDebugPanelWidth, FPClientTop + BSize, Trunc(FPDebugPanelWidth * EDFONTSCALEX), FH);
+    SetBounds(Win^.Width - BSize - FPDebugPanelWidth, FPClientTop + BSize, FPDebugPanelWidth, FH);
     AddItem('Variables');
     AddItem('SysVars');
     AddItem('Watches');

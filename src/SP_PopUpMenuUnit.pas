@@ -309,7 +309,10 @@ Begin
 
   cfW := Round(iFW * iSX);
   cfH := Round(iFH * iSY);
-  If Proportional Then spW := SP_GetPropTextWidth(fCurFontID, ' ', '') Else spW := cfW;
+  If Proportional Then
+    spW := Round(SP_GetPropTextWidth(fCurFontID, ' ', '') * iSX)
+  Else
+    spW := cfW;
 
   y := 2;
   mw := 0;
@@ -329,9 +332,9 @@ Begin
             Inc(x, cFW);
           End;
         If Proportional Then Begin
-          Inc(w, SP_GetPropTextWidth(fCurFontID, Caption, '&'));
+          Inc(w, Round(SP_GetPropTextWidth(fCurFontID, Caption, '&') * iSX));
           If Shortcut <> 0 Then Begin
-            l := SP_GetPropTextWidth(fCurFontID, ShortcutToString(ShortCut), '');
+            l := Round(SP_GetPropTextWidth(fCurFontID, ShortcutToString(ShortCut), '') * iSX);
             fShortcutLen := Max(fShortcutLen, l);
           End;
         End Else Begin
@@ -450,7 +453,7 @@ Begin
         If Shortcut <> 0 Then Begin
           If Proportional Then Begin
             s := ShortcutToString(Shortcut);
-            l := SP_GetPropTextWidth(fCurFontID, s, '');
+            l := Round(SP_GetPropTextWidth(fCurFontID, s, '') * iSX);
             PRINT(Extents.Right - (cfW + l), Extents.Top +1, s, fSepClr, -1, iSX, iSY, False, False, False, False);
           End Else Begin
             s := ShortcutToString(Shortcut) + ' ';

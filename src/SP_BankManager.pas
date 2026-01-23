@@ -120,6 +120,7 @@ Type
   Function  SP_SetSpeccyStyleChar(ID, Character: Integer; Data: pByte): Integer;
   Procedure SP_ProcessAllFontBanks;
   Procedure SP_GetFontCharMetrics(BankID: Integer);
+  Function  SP_TextWidth(Text: aString): Integer;
   Procedure SP_GetCharWidth(Char: aChar; Bank: pSP_Bank; Var Offset, Width: Integer);
   Function  SP_GetPropTextWidth(FontID: Integer; Text, Exclude: aString): Integer;
 
@@ -600,7 +601,7 @@ Begin
           Inc(Idx);
         EDITORFONT := SP_BankList[Idx]^.ID;
       End;
-      If SCREENBANK = -SP_BankList[Index]^.ID Then Begin
+      If Abs(SCREENBANK) = SP_BankList[Index]^.ID Then Begin
         SCREENBANK := -1;
         SP_SetDrawingWindow(0);
       End;
@@ -1046,6 +1047,18 @@ Begin
   End;
 
   Inc(Width, CHSPACE);
+
+End;
+
+Function SP_TextWidth(Text: aString): Integer;
+Begin
+
+  If T_PROP <> 0 Then
+    Result := SP_GetPropTextWidth(FONTBANKID, Text, '')
+  Else
+    Result := Length(Text) * FONTWIDTH;
+
+  Result := Round(Result * T_SCALEX);
 
 End;
 

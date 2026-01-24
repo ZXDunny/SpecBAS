@@ -333,7 +333,7 @@ Begin
 
   If Assigned(Menu) Then Begin
 
-    h := Max(ifH, Edit.Height + 3);
+    h := Max(ifH, Edit.Height + 4);
     Menu.MinWidth := w + 1;
     Inherited;
 
@@ -358,8 +358,9 @@ Begin
     spcW := 1;
   Edit.Border := False;
   Labl.Border := False;
+  Edit.Shadow := False;
 
-  Edit.SetBounds(spcW, 1, Width - Height - spcW -1, Height -2);
+  Edit.SetBounds(2, 2, Width - Height -3, Height -1);
   Labl.SetBounds(spcW, 1, Width - Height - spcW -1, Height -2);
 
   Edit.Visible := Editable;
@@ -371,9 +372,9 @@ Procedure SP_ComboBox.Draw;
 Begin
 
   FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
-  DrawRect(0, 0, fWidth - Btn.Width +1, fHeight -1, fBorderClr);
+  DrawRect(0, 0, fWidth, fHeight -1, fBorderClr);
   If Proportional Then
-    FillRect(1, 1, TextWidth(' '), fHeight -2, Edit.BackgroundClr);
+    FillRect(1, 1, fWidth, fHeight -2, Edit.BackgroundClr);
 
 End;
 
@@ -455,7 +456,7 @@ Begin
     End;
 
   i := 1;
-  Edit.Text := ns;
+  Edit.Text := s;
   ns := ''; s := s + ' ';
   While (i <= Length(s)) And (TextWidth(ns) < Labl.Width) Do Begin
     ns := ns + s[i];

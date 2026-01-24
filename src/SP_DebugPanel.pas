@@ -336,6 +336,7 @@ Const
       End;
       If Btn.Visible Then Begin
         Dec(xPos, FW + (BSize * 3));
+        Btn.Proportional := False;
         Btn.SetBounds(xPos, FPDebugPanel.Top + FPDebugPanel.Height + BSize, FW + (BSize * 2), FH + (BSize * 2));
         Btn.Caption := Caps[i];
         Btn.CentreCaption;
@@ -399,6 +400,7 @@ Begin
               MaxP := Max(6, MaxP +1);
               AddHeader(' Name', MaxP * iFW);
               AddHeader(' Contents', MaxW * iFW);
+              fHeaders[1].Proportional := False;
               //SortByAlpha := True;
               //Sort(0);
               Enabled := True;
@@ -470,6 +472,7 @@ Begin
             AddHeader(' Type', 2 * iFW);
             AddHeader(' Name', MaxP * iFW);
             AddHeader(' Contents', MaxW * iFW);
+            fHeaders[2].Proportional := False;
             Enabled := True;
             Sort(0);
           End;
@@ -633,6 +636,9 @@ Begin
             AddHeader(' Hex ', MaxW * iFW);
             AddHeader(' Dec ', MaxW * IfW);
             AddHeader(' Character ', MaxP * iFW);
+            fHeaders[0].Proportional := False;
+            fHeaders[1].Proportional := False;
+            fHeaders[2].Proportional := False;
             For i := 0 to 255 Do Begin
               vName := IntToString(i);
               If i < 32 Then Begin

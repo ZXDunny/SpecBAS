@@ -2148,7 +2148,7 @@ End;
 
 Function SP_TextOut(BankID, X, Y: Integer; const Text: aString; Ink, Paper: Integer; Proportional: Boolean; ShowSpecial: Boolean = False): Integer;
 Var
-  CharW, CharH, Idx, cCount, OVER, ItalicOffset, DefPaper, nx, xc, PropOffset, PropWidth, ScaleXi: Integer;
+  CharW, CharH, Idx, cCount, OVER, ItalicOffset, DefPaper, nx, xc, PropOffset, PropWidth: Integer;
   sx, sy, Cw, Ch, yp, xp, TC, t: Integer;
   Transparent, ForceNextChar: Boolean;
   FontBank: pSP_Font_Info;
@@ -2214,11 +2214,11 @@ Begin
 
         If Proportional And (Text[Idx] < #128) Then Begin
           PropOffset := FontBank^.Font_Info[Byte(curChar)].Offset;
-          PropWidth := FontBank^.Font_Info[Byte(curChar)].Width;
+          PropWidth := FontBank^.Font_Info[Byte(curChar)].Width +1;
           Inc(PropWidth, Ord(T_BOLD > 0));
         End Else Begin
           PropOffset := 0;
-          PropWidth := FontBank^.Width -1;
+          PropWidth := FontBank^.Width;
         End;
         If IsScaled Then Begin
           PropOffset := Round(PropOffset * ScaleX);
@@ -2233,7 +2233,6 @@ Begin
         Inc(Coord, (SCREENSTRIDE * Y) + X - PropOffset);
         Inc(Coord, ItalicOffset Shr 16);
         if T_ITALIC > 0 Then Dec(Coord, ItalicScale Div 2);
-        ScaleXi := Round(ScaleX);
 
         If IsScaled Then Begin
           // Scaled character
@@ -2370,7 +2369,7 @@ Begin
           Inc(X, CharW);
         End;
 
-        Dec(X, CharW - PropWidth - ScaleXi);
+        Dec(X, CharW - PropWidth);
 
       End Else Begin
 
@@ -5396,7 +5395,7 @@ End;
 
 Function SP_PRINT(BankID, X, Y, CPos: Integer; const Text: aString; Ink, Paper: Integer; var Error: TSP_ErrorCode): Integer;
 Var
-  CharW, CharH, Idx, Scrolls, cCount, OVER, sx, sy, TInk, TPaper, ItalicOffset, nx, ScaleXi: Integer;
+  CharW, CharH, Idx, Scrolls, cCount, OVER, sx, sy, TInk, TPaper, ItalicOffset, nx: Integer;
   yp, xp, Cw, Ch, TC, t, PropOffset, PropWidth, xc: Integer;
   Transparent, ForceNextChar: Boolean;
   FontBank: pSP_Font_info;
@@ -5491,11 +5490,11 @@ Begin
 
           If (T_PROP <> 0) And (CurChar < #128) Then Begin
             PropOffset := FontBank^.Font_Info[Byte(curChar)].Offset;
-            PropWidth := FontBank^.Font_Info[Byte(curChar)].Width;
+            PropWidth := FontBank^.Font_Info[Byte(curChar)].Width +1;
             Inc(PropWidth, Ord(T_BOLD));
           End Else Begin
             PropOffset := 0;
-            PropWidth := FontBank^.Width -1;
+            PropWidth := FontBank^.Width;
           End;
 
           If IsScaled Then Begin
@@ -5523,7 +5522,6 @@ Begin
             ItalicOffset := (65536 Div ItalicScale) + (CharH Div ItalicScale) Shl 16
           Else
             ItalicOffset := 0;
-          ScaleXi := Round(ScaleX);
           Coord := SCREENPOINTER;
           Inc(Coord, (SCREENSTRIDE * Y) + X - PropOffset);
           Inc(Coord, ItalicOffset Shr 16);
@@ -5671,7 +5669,7 @@ Begin
             End;
           End Else
             Inc(X, CharW);
-          Dec(X, CharW - PropWidth - ScaleXi);
+          Dec(X, CharW - PropWidth);
         End Else Begin
           // Control codes!
           Case Ord(Text[Idx]) of

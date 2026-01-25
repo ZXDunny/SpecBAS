@@ -2237,7 +2237,7 @@ End;
 Procedure SP_BaseComponent.Render(Dst: pByte; dW, dH: Integer);
 Var
   dX, dY, W, W2, SrcX, SrcY, SrcW, SrcH, Idx, x1, y1, x2, y2: Integer;
-  Src, Ptr: pByte;
+  Src, PtrA, PtrB: pByte;
   TC: Byte;
 Begin
 
@@ -2270,7 +2270,7 @@ Begin
     If dX + W2 >= dW Then SrcW := dW - dX Else SrcW := Min(W2, dW);
     If dY + Height >= dH Then SrcH := dH - dY Else SrcH := Min(Height, dH);
 
-    Ptr := Dst;
+    PtrA := Dst; PtrB := Dst;
     Src := @fTempCanvas[0];
     Inc(Src, (W * SrcY) + SrcX);
     Inc(Dst, (dW * dY) + dX);
@@ -2318,28 +2318,30 @@ Begin
     End;
     If fShadow Then Begin
       x1 := fLeft + fWidth;
+      x2 := x1;
       y1 := fTop +1;
       y2 := fTop + fHeight;
-      If SP_LineClip(x1, y1, x1, y2, 0, 0, DW, DH) Then Begin
-        Inc(Ptr, (dW * y1) + x1);
+      If SP_LineClip(x1, y1, x2, y2, 0, 0, DW, DH) Then Begin
+        Inc(PtrA, (dW * y1) + x1);
         While y1 <> y2 do begin
-          Ptr^ := fShadowClr;
+          PtrA^ := fShadowClr;
           Inc(y1);
-          Inc(Ptr, DW);
+          Inc(PtrA, DW);
         End;
-        Ptr^ := fShadowClr;
+        PtrA^ := fShadowClr;
       End;
       x1 := fLeft + 1;
       x2 := fLeft + fWidth -1;
       y1 := fTop + fHeight;
-      If SP_LineClip(x1, y1, x1, y2, 0, 0, DW, DH) Then Begin
-        Dec(Ptr, fWidth -1);
+      y2 := y1;
+      If SP_LineClip(x1, y1, x2, y2, 0, 0, DW, DH) Then Begin
+        Inc(PtrB, (dW * y1) + x1);
         While x1 <> x2 do begin
-          Ptr^ := fShadowClr;
+          PtrB^ := fShadowClr;
           Inc(x1);
-          Inc(Ptr);
+          Inc(PtrB);
         End;
-        Ptr^ := fShadowClr;
+        PtrB^ := fShadowClr;
       End;
     End;
   End;

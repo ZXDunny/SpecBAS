@@ -2,30 +2,30 @@
 <BorlandProject>
 	<Transactions>
     <Transaction>2021/04/02 22:58:05.000.848,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2021/04/02 22:58:27.000.139,D:\Projects\SpecBAS\src\SP_SliderUnit.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2021/04/02 22:58:27.000.139,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_SliderUnit.pas</Transaction>
     <Transaction>2021/05/23 13:23:13.000.064,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2021/05/23 13:23:38.000.563,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_ProgressBarUnit.pas</Transaction>
+    <Transaction>2021/05/23 13:23:38.000.563,D:\Projects\SpecBAS\src\SP_ProgressBarUnit.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2022/03/18 13:55:53.000.131,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2022/03/18 13:56:12.000.812,D:\Projects\SpecBAS\src\SP_ToolTipWindow.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2022/03/18 13:56:12.000.812,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_ToolTipWindow.pas</Transaction>
     <Transaction>2022/07/17 14:29:03.000.630,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2022/07/17 14:29:48.000.901,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\RunTimeCompiler.pas</Transaction>
+    <Transaction>2022/07/17 14:29:48.000.901,D:\Projects\SpecBAS\src\RunTimeCompiler.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2022/10/22 22:53:45.000.948,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2022/10/22 22:54:03.000.640,D:\Projects\SpecBAS\src\SP_Util2.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2022/10/22 22:54:03.000.640,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_Util2.pas</Transaction>
     <Transaction>2023/01/04 15:29:46.000.591,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2023/01/04 15:32:11.000.216,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_SyncObjs.pas</Transaction>
+    <Transaction>2023/01/04 15:32:11.000.216,D:\Projects\SpecBAS\src\SP_SyncObjs.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2023/02/07 13:12:26.000.371,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2023/02/07 13:12:40.000.258,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_MIDI.pas</Transaction>
+    <Transaction>2023/02/07 13:12:40.000.258,D:\Projects\SpecBAS\src\SP_MIDI.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2024/02/20 13:42:01.000.313,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2024/02/20 13:50:50.000.249,D:\Projects\SpecBAS\src\SP_Display.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2024/02/20 13:50:50.000.249,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_Display.pas</Transaction>
     <Transaction>2024/04/07 11:16:53.000.194,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2024/04/07 11:17:09.000.299,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_PreRun.pas</Transaction>
+    <Transaction>2024/04/07 11:17:09.000.299,D:\Projects\SpecBAS\src\SP_PreRun.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2024/05/19 12:31:11.000.729,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2024/05/19 12:31:30.000.968,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_Testing.pas</Transaction>
+    <Transaction>2024/05/19 12:31:30.000.968,D:\Projects\SpecBAS\src\SP_Testing.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
     <Transaction>2024/05/19 12:31:48.000.797,D:\Projects\SpecBAS\src\SP_Testing.pas=</Transaction>
     <Transaction>2025/03/24 22:53:19.000.782,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2025/03/24 22:53:42.000.175,D:\Projects\SpecBAS\src\SP_Compiler.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2025/03/24 22:53:42.000.175,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_Compiler.pas</Transaction>
     <Transaction>2025/06/01 16:43:35.000.546,=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
-    <Transaction>2025/06/01 16:43:50.000.753,D:\Projects\SpecBAS\src\SP_Graphics32Alpha.pas=D:\Projects\SpecBAS\src\Unit1.pas</Transaction>
+    <Transaction>2025/06/01 16:43:50.000.753,D:\Projects\SpecBAS\src\Unit1.pas=D:\Projects\SpecBAS\src\SP_Graphics32Alpha.pas</Transaction>
   </Transactions>
 	<ProjectSortOrder AutoSort="0" SortType="0">
     <File Path="MainForm.pas"/>

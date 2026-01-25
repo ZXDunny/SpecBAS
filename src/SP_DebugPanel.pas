@@ -112,10 +112,9 @@ Begin
     If Delta <> 0 Then Begin
       DisplaySection.Enter;
       SP_GetWindowDetails(FPWindowID, Win, Error);
-      FPDebugCombo.SetBounds(Win^.Width - BSize - FPDebugPanelWidth, FPClientTop + BSize, Trunc(FPDebugPanelWidth * EDFONTSCALEX), FH);
+      FPDebugCombo.SetBounds(Win^.Width - BSize - FPDebugPanelWidth, FPClientTop + BSize, FPDebugPanelWidth, FH);
       FPDebugPanel.SetBounds(FPDebugCombo.Left, FPDebugPanel.Top, FPDebugPanelWidth, FPDebugPanel.Height);
       FPSizeGrabber.SetBounds(FPDebugCombo.Left - BSize, FPDebugCombo.Top, BSize, FPPaperHeight);
-
       SP_UpdateAfterDebug;
       DisplaySection.Leave;
     End;
@@ -276,7 +275,7 @@ End;
 Procedure SP_FillDebugPanel;
 Var
   Changed: Boolean;
-  i, MaxW, MaxWC, MaxP, p, j, OldP: Integer;
+  i, MaxW, MaxWC, MaxP, p, j, OldP, cFW: Integer;
   s, vType, vName, vContent, vExtra, vPass: aString;
   List, OldVars, OldContents, OldWatches, OldExprs: TAnsiStringlist;
   Error: TSP_ErrorCode;
@@ -354,6 +353,7 @@ Begin
 
     With FPDebugPanel Do Begin
       Lock;
+      cFW := Round(iFW * iSX);
       Case FPDebugCombo.ItemIndex of
         0: // Variables
           Begin
@@ -398,8 +398,8 @@ Begin
               End;
               MaxW := Max(10, MaxW);
               MaxP := Max(6, MaxP +1);
-              AddHeader(' Name', MaxP * iFW);
-              AddHeader(' Contents', MaxW * iFW);
+              AddHeader(' Name', MaxP * cFW);
+              AddHeader(' Contents', MaxW * cFW);
               fHeaders[1].Proportional := False;
               //SortByAlpha := True;
               //Sort(0);
@@ -469,9 +469,9 @@ Begin
             End;
             MaxW := Max(10, MaxW);
             MaxP := Max(6, MaxP +1);
-            AddHeader(' Type', 2 * iFW);
-            AddHeader(' Name', MaxP * iFW);
-            AddHeader(' Contents', MaxW * iFW);
+            AddHeader(' Type', 2 * cFW);
+            AddHeader(' Name', MaxP * cFW);
+            AddHeader(' Contents', MaxW * cFW);
             fHeaders[2].Proportional := False;
             Enabled := True;
             Sort(0);
@@ -519,8 +519,8 @@ Begin
                 End;
                 Add(s + #255 + vContent);
               End;
-              AddHeader(' Expr', Max(6, MaxW) * iFW);
-              AddHeader(' Result', Max(7, MaxP) * iFW);
+              AddHeader(' Expr', Max(6, MaxW) * cFW);
+              AddHeader(' Result', Max(7, MaxP) * cFW);
               Sort(0);
               Enabled := True;
               OldExprs.Free;
@@ -564,13 +564,13 @@ Begin
               MaxP := Max(6, MaxP);
               MaxWC := Max(10, MaxWC);
               Hdr.Caption := ' ';
-              Hdr.Width := 2 * iFW;
+              Hdr.Width := 2 * cFW;
               Hdr.Justify := 0;
               AddHeader(Hdr);
-              AddHeader(' Line', MaxW * iFW);
-              AddHeader(' Pass', MaxP * iFW);
+              AddHeader(' Line', MaxW * cFW);
+              AddHeader(' Pass', MaxP * cFW);
               If MaxWC > 0 Then
-                AddHeader(' Condition', MaxWC * iFW);
+                AddHeader(' Condition', MaxWC * cFW);
               Sort(0);
               Enabled := True;
             End;
@@ -593,8 +593,8 @@ Begin
             If Count > 0 Then Begin
               MaxW := Max(6, MaxW);
               MaxP := Max(16, MaxP);
-              AddHeader(' Name', MaxP * iFW);
-              AddHeader(' Line:Statement', MaxW * iFW);
+              AddHeader(' Name', MaxP * cFW);
+              AddHeader(' Line:Statement', MaxW * cFW);
               Enabled := True;
             End Else Begin
               Add(' No labels defined');
@@ -619,8 +619,8 @@ Begin
             If Count > 0 Then Begin
               MaxW := Max(6, MaxW);
               MaxP := Max(16, MaxP);
-              AddHeader(' Name', MaxP * iFW);
-              AddHeader(' Line:Statement', MaxW * iFW);
+              AddHeader(' Name', MaxP * cFW);
+              AddHeader(' Line:Statement', MaxW * cFW);
               Enabled := True;
               Sort(0);
             End Else Begin
@@ -633,9 +633,9 @@ Begin
             Clear;
             MaxW := 5;
             MaxP := 13;
-            AddHeader(' Hex ', MaxW * iFW);
-            AddHeader(' Dec ', MaxW * IfW);
-            AddHeader(' Character ', MaxP * iFW);
+            AddHeader(' Hex ', MaxW * cFW);
+            AddHeader(' Dec ', MaxW * cFW);
+            AddHeader(' Character ', MaxP * cFW);
             fHeaders[0].Proportional := False;
             fHeaders[1].Proportional := False;
             fHeaders[2].Proportional := False;

@@ -1659,15 +1659,16 @@ Begin
 End;
 
 Procedure Delay(ms: Integer);
-Var
-  t, ot: aFloat;
+//Var
+//  t, ot: aFloat;
 Begin
 
-  ot := CB_GETTICKS;
+{  ot := CB_GETTICKS;
   Repeat
     CB_YIELD;
     t := CB_GETTICKS
-  Until t - ot >= ms;
+  Until t - ot >= ms;}
+  CB_YIELD(ms);
 
 End;
 

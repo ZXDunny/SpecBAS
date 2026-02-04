@@ -731,7 +731,7 @@ Begin
   CurOption := 1;
   DrawOptions;
 
-  While (KEYSTATE[K_RETURN] <> 0) And Not QUITMSG Do CB_Yield;
+  While (KEYSTATE[K_RETURN] <> 0) And Not QUITMSG Do CB_Yield(1);
 
   // Now enter the main loop, drawing the options and waiting/responding on user input.
   // Allowed keys are up/down/enter/escape/home/end. Mouse may also be used, if the mouse is currently visible.
@@ -746,7 +746,7 @@ Begin
     End;
 
     Repeat
-      CB_Yield;
+      CB_Yield(FRAME_MS);
       Key := SP_GetNextKey(FRAMES);
     Until Assigned(Key) or M_DOWNFLAG or M_UPFLAG or M_MOVEFLAG or QUITMSG;
 

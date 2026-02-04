@@ -42,6 +42,11 @@ Type
   Procedure HandleMouse;
   Procedure FrameLoop;
   Procedure WaitForDisplayInit;
+  procedure SmartSleep(const AMilliseconds: aFloat);
+
+const
+  CREATE_WAITABLE_TIMER_HIGH_RESOLUTION = $00000002;
+  TIMER_ALL_ACCESS = $1F0003;
 
 Var
 
@@ -88,6 +93,7 @@ Var
   FrameProcessedEvent: TEvent; // Create in InitSystem, Free in FinalizeSystem
   G_DisplayChangeLock: TCriticalSection;
   G_PerformingDisplayChange_Internal: Boolean;
+  _CreateWaitableTimerExW: function(lpTimerAttributes: PSecurityAttributes; lpTimerName: LPCWSTR; dwFlags: DWORD; dwDesiredAccess: DWORD): THandle; stdcall;
 
 
 Const
@@ -403,7 +409,7 @@ End;
 Procedure WaitForDisplayInit;
 Begin
   // Wait for the display to start
-  While StartTime = 0 Do CB_YIELD;
+  While StartTime = 0 Do CB_YIELD(1);
 End;
 
 {$IFDEF RefreshThread}
@@ -413,7 +419,7 @@ Begin
     If Assigned(RefreshTimer) and (Not RefreshTimer.IsPaused) Then Begin // Added Assigned check
       RefreshTimer.ShouldPause := True;
       Repeat
-        CB_YIELD;
+        CB_YIELD(10);
       Until RefreshTimer.IsPaused or (Not RefreshThreadAlive); // Prevent infinite loop on shutdown
     End;
   End;
@@ -426,7 +432,7 @@ Begin
      begin
         RefreshTimer.ShouldPause := False;
         Repeat
-          CB_YIELD;
+          CB_YIELD(10);
         Until Not RefreshTimer.IsPaused or (Not RefreshThreadAlive); // Prevent infinite loop
      end;
   End;
@@ -523,7 +529,7 @@ Begin
     NEXTFRAMETIME := ((FRAMES + 1) * FRAME_MS) + StartTime;
     SleepTime := Trunc(NEXTFRAMETIME - CB_GETTICKS);
 
-    If SleepTime > 2 Then Begin
+{    If SleepTime > 2 Then Begin
       If SleepTime <= 4 Then
         Sleep(1)
       Else If SleepTime <= 6 Then
@@ -532,11 +538,59 @@ Begin
         Sleep(Trunc(Min(FRAME_MS, SleepTime / 1.6)));
       end;
     End Else
-      While CB_GETTICKS < NEXTFRAMETIME Do SwitchToThread;
+      While CB_GETTICKS < NEXTFRAMETIME Do SwitchToThread;}
+
+    SmartSleep(SleepTime);
 
   End Else
     Sleep(1); // Not time for a new frame yet, sleep a bit.
 End;
+
+procedure SmartSleep(const AMilliseconds: aFloat);
+var
+  hTimer: THandle;
+  DueTime: Int64;
+  Start, NowTime: aFloat;
+begin
+  // 1. Try High-Resolution Waitable Timer (Windows 10 1803+)
+  // This is the "Gold Standard": High precision, near 0% CPU usage.
+  if Assigned(_CreateWaitableTimerExW) then
+  begin
+    // Create an anonymous, high-resolution timer
+    hTimer := _CreateWaitableTimerExW(nil, nil, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
+    if hTimer <> 0 then
+    try
+      // Convert ms to 100-nanosecond intervals (negative for relative time)
+      // 1 ms = 10,000 ticks
+      DueTime := -Round(AMilliseconds * 10000);
+      if SetWaitableTimer(hTimer, DueTime, 0, nil, nil, False) then
+      begin
+        WaitForSingleObject(hTimer, INFINITE);
+        Exit; // Success, we are done
+      end;
+    finally
+      CloseHandle(hTimer);
+    end;
+  end;
+
+  // 2. Fallback: Hybrid Sleep (Sleep + Spin)
+  // Used if the OS is too old for High-Res timers.
+  // We sleep for most of the time to save CPU, then spin for the last bit.
+  Start := GetTicks;
+
+  // If the delay is large enough (> 2ms), use standard Sleep() to bridge the gap.
+  // We subtract 2ms (or more safe margin) to ensure we wake up BEFORE the target.
+  if AMilliseconds > 2.0 then
+    Sleep(Trunc(AMilliseconds - 2)); // Sleep uses minimal CPU
+
+  // Spin-wait for the remaining tiny duration to achieve high precision
+  // This uses CPU but only for < 2ms.
+  repeat
+    NowTime := GetTicks;
+    // Optional: usage of YieldProcessor or Sleep(0) can be added here,
+    // but pure spinning gives the absolute best precision for the final micro-slice.
+  until (NowTime - Start) >= AMilliseconds;
+end;
 
 {$IFDEF RefreshThread}
 Procedure TRefreshThread.Execute;
@@ -554,7 +608,7 @@ Begin
     If ShouldPause Then Begin
       IsPaused := True;
       Repeat
-        CB_YIELD; // Sleep(1)
+        CB_YIELD(1);
       Until Not ShouldPause Or Terminated Or QUITMSG; // Added Terminated/QUITMSG checks
       IsPaused := False;
       // Reset timing after pause to prevent a large jump
@@ -1444,6 +1498,7 @@ Initialization
   StartTime := 0;
   G_DisplayChangeLock := TCriticalSection.Create;
   FrameProcessedEvent := TEvent.Create;
+  @_CreateWaitableTimerExW := GetProcAddress(GetModuleHandle(kernel32), 'CreateWaitableTimerExW');
 
 Finalization
 

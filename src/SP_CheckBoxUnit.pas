@@ -18,6 +18,8 @@ SP_CheckBox = Class(SP_BaseComponent)
     fType: Integer;
     fGroupIndex: Integer;
     fCheckColor: Byte;
+    fUserClicked: Boolean;
+    fDown: Boolean;
 
     User_OnChecked: aString;
     Compiled_OnChecked: aString;
@@ -28,9 +30,12 @@ SP_CheckBox = Class(SP_BaseComponent)
     Procedure PerformKeyDown(Var Handled: Boolean); Override;
     Procedure DoCheck(b: Boolean);
     Procedure SetCheckColor(c: Byte);
+    Procedure SetDown(b: Boolean);
     Procedure Draw; Override;
 
+    Procedure MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
+    Procedure MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
 
     Property Caption: aString read fCaption write SetCaption;
     Property Checked: Boolean read fChecked write SetChecked;
@@ -38,6 +43,7 @@ SP_CheckBox = Class(SP_BaseComponent)
     Property OnCheck: SP_CheckEvent read fOnChecked write fOnChecked;
     Property CheckType: Integer read fType write SetType;
     Property GroupIndex: Integer read fGroupIndex write fGroupIndex;
+    Property Down: Boolean read fDown write SetDown;
 
     Constructor Create(Owner: SP_BaseComponent);
 
@@ -54,7 +60,7 @@ End;
 
 implementation
 
-Uses Math, SP_Interpret_PostFix, SP_Input, SP_Components, SP_Sound, SP_SysVars;
+Uses Windows, Types, Classes, Math, SP_Interpret_PostFix, SP_Input, SP_Components, SP_Sound, SP_SysVars;
 
 // SP_CheckBox
 
@@ -71,22 +77,37 @@ Begin
   fTransparent := True;
   fBackgroundClr := 255;
   fBorder := True;
+  fDown := False;
+
+End;
+
+Procedure SP_CheckBox.SetDown(b: Boolean);
+Begin
+
+  If fDown <> b Then Begin
+    fDown := b;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_CheckBox.SetCheckColor(c: Byte);
 Begin
 
-  fCheckColor := c;
-  Paint;
+  If fCheckColor <> c Then Begin
+    fCheckColor := c;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_CheckBox.SetCaption(s: aString);
 Begin
 
-  fCaption := s;
-  Paint;
+  If fCaption <> s Then Begin
+    fCaption := s;
+    Paint;
+  End;
 
 End;
 
@@ -107,14 +128,16 @@ End;
 Procedure SP_CheckBox.SetType(t: Integer);
 Begin
 
-  fType := t;
-  Paint;
+  If fType <> t Then Begin
+    fType := t;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_CheckBox.Draw;
 Var
-  dX, dy, iH, iY, bClr, cClr, capClr, cFW, cFH: Integer;
+  dX, dy, iH, iY, bClr, cClr, bOfs, capClr, cFW, cFH: Integer;
   iSC: aFloat;
 Begin
 
@@ -135,20 +158,24 @@ Begin
     capClr := fDisabledFontClr;
   End;
 
+  bOfs := Ord(fDown);
+
   dX := cFW + 4;
   dY := (fHeight - cFH) Div 2;
   iSC := Min(iSX, iSY);
   iH := Min(cFW, cFH);
   iY := (fHeight - iH) Div 2;
   If fGroupIndex = 0 Then Begin
-    FillRect(0, iy - 2, 3 + iH, iY + iH + 1, SP_UIBtnBack);
+    FillRect(0 + bOfs, iy - 2 + bOfs, 3 + iH + bOfs, iY + iH + 1 + bOfs, SP_UIBtnBack);
     If fBorder Then Begin
-      DrawRect(0, iy - 2, 3 + iH, iY + iH + 1, bClr);
-      DrawLine(3 + iH +1, iy - 1, 3 + iH + 1, iy + iH + 2, fShadowClr);
-      DrawLine(1, iY + iH + 2, 3 + iH + 1, iy + iH + 2, fShadowClr);
+      DrawRect(0 + bOfs, iy - 2 + bOfs, 3 + iH + bOfs, iY + iH + 1 + bOfs, bClr);
+      If Not fDown Then Begin
+        DrawLine(3 + iH +1, iy - 1, 3 + iH + 1, iy + iH + 2, fShadowClr);
+        DrawLine(1, iY + iH + 2, 3 + iH + 1, iy + iH + 2, fShadowClr);
+      End;
     End;
     If Checked Then
-      PRINT(2, iy, #246, cClr, -1, iSC, iSC, False, False, False, False);
+      PRINT(2 + bOfs, iy + bOfs, #246, cClr, -1, iSC, iSC, False, False, False, False);
   End Else Begin
     PRINT(2, dy + ((cFH - iH) Div 2), #243, SP_UiBtnBack, -1, iSC, iSC, False, False, False, False);
     If Checked Then
@@ -197,6 +224,22 @@ Begin
 
 End;
 
+Procedure SP_CheckBox.MouseMove(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+Var
+  cFW, cFH, iH, iY, bOfs: Integer;
+Begin
+
+  If fUserClicked Then Begin
+    cfW := Round(iFW * iSX);
+    cfH := Round(iFH * iSY);
+    iH := Min(cFW, cFH);
+    iY := (fHeight - iH) Div 2;
+    bOfs := Ord(fDown);
+    Down := PtInRect(Rect(0 + bOfs, iy - 2 + bOfs, 3 + iH + bOfs, iY + iH + 1 + bOfs), Point(X, Y));
+  End;
+
+End;
+
 Procedure SP_CheckBox.MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer);
 Begin
 
@@ -204,8 +247,18 @@ Begin
 
   If Enabled And (Btn = 1) Then Begin
     DoCheck(Not Checked);
+    fUserClicked := True;
+    Down := True;
     SP_PlaySystem(CLICKCHAN, CLICKBANK);
   End;
+
+End;
+
+Procedure SP_CheckBox.MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer);
+Begin
+
+  fUserClicked := False;
+  Down := False;
 
 End;
 

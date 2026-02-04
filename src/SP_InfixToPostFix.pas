@@ -1226,7 +1226,7 @@ Begin
 
             // Functions that take one numeric parameter and return a numeric:
 
-            SP_FN_SIN, SP_FN_COS, SP_FN_TAN, SP_FN_ASN, SP_FN_ACS, SP_FN_ATN, SP_FN_LN, SP_FN_EXP, SP_FN_iRGBtoHSV, SP_FN_iHSVtoRGB,
+            SP_FN_SIN, SP_FN_COS, SP_FN_TAN, SP_FN_ASN, SP_FN_ACS, SP_FN_ATN, SP_FN_LN, SP_FN_LOG, SP_FN_EXP, SP_FN_iRGBtoHSV, SP_FN_iHSVtoRGB,
             SP_FN_INT, SP_FN_SQR, SP_FN_SGN, SP_FN_ABS, SP_FN_USR, SP_FN_NOT, SP_FN_WINW, SP_FN_WINH, SP_FN_WINX, SP_FN_WINY,
             SP_FN_FRAC, SP_FN_CEIL, SP_FN_FLOOR, SP_FN_ODD, SP_FN_EVEN, SP_FN_TRUNC, SP_FN_RED,
             SP_FN_GREEN, SP_FN_BLUE, SP_FN_RGB, SP_FN_KEY, SP_FN_iRGBF, SP_FN_iRGBN, SP_FN_HSV, SP_FN_RGBC,
@@ -3148,7 +3148,7 @@ Begin
 
             // Functions that take one Parameter:
 
-            SP_FN_SIN, SP_FN_COS, SP_FN_TAN, SP_FN_ASN, SP_FN_ACS, SP_FN_ATN, SP_FN_LN, SP_FN_EXP, SP_FN_INT, SP_FN_SQR,
+            SP_FN_SIN, SP_FN_COS, SP_FN_TAN, SP_FN_ASN, SP_FN_ACS, SP_FN_ATN, SP_FN_LN, SP_FN_LOG, SP_FN_EXP, SP_FN_INT, SP_FN_SQR,
             SP_FN_SGN, SP_FN_ABS, SP_FN_USR, SP_FN_NOT, SP_FN_CODE, SP_FN_VAL, SP_FN_LEN, SP_FN_VALS, SP_FN_WINX, SP_FN_WINY,
             SP_FN_STRS, SP_FN_CHRS, SP_FN_FRAC, SP_FN_CEIL, SP_FN_FLOOR, SP_FN_ODD, SP_FN_EVEN, SP_FN_TRUNC, SP_FN_LOWS,
             SP_FN_UPS, SP_FN_RED, SP_FN_GREEN, SP_FN_BLUE, SP_FN_RGB, SP_FN_HEXS, SP_FN_BINS, SP_FN_KEY, SP_FN_HSV, SP_FN_RGBC,
@@ -8811,14 +8811,14 @@ Var
   Expr: aString;
 Begin
 
-  // CURVE [INK|OVER numexpr;]x1,y1 TO x2,y2[,x3 TO y3..],n
+  // CURVE [INK|OVER numexpr;]x1,y1 TO x2,y2[ TO ,x3,y3..],n
 
   SP_AlphaCheck(KeyWordID, Tokens, Position);
 
   Result := SP_Convert_Embedded_Colours(Tokens, Position, Error);
   If Error.Code <> SP_ERR_OK Then Exit;
 
-  Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+  Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // x1
   If Error.Code <> SP_ERR_OK Then Exit;
   If Error.ReturnType <> SP_VALUE Then Begin
     Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8827,7 +8827,7 @@ Begin
   Result := Result + Expr;
   If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
     Inc(Position, 2);
-    Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+    Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // y1
     If Error.Code <> SP_ERR_OK Then Exit;
     If Error.ReturnType <> SP_VALUE Then Begin
       Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8836,7 +8836,7 @@ Begin
     Result := Result + Expr;
     If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
       Inc(Position, 1 + SizeOf(LongWord));
-      Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+      Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // x2
       If Error.Code <> SP_ERR_OK Then Exit;
       If Error.ReturnType <> SP_VALUE Then Begin
         Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8845,7 +8845,7 @@ Begin
       Result := Result + Expr;
       If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
         Inc(Position, 2);
-        Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+        Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // y2
         If Error.Code <> SP_ERR_OK Then Exit;
         If Error.ReturnType <> SP_VALUE Then Begin
           Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8854,7 +8854,7 @@ Begin
         Result := Result + Expr;
         If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
           Inc(Position, 2);
-          Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+          Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // ns
           If Error.Code <> SP_ERR_OK Then Exit;
           If Error.ReturnType <> SP_VALUE Then Begin
             Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8865,7 +8865,7 @@ Begin
         End Else
           If (Byte(Tokens[Position]) = SP_KEYWORD) And (pLongWord(@Tokens[Position +1])^ = SP_KW_TO) Then Begin
             Inc(Position, 1 + SizeOf(LongWord));
-            Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+            Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // x3
             If Error.Code <> SP_ERR_OK Then Exit;
             If Error.ReturnType <> SP_VALUE Then Begin
               Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8874,7 +8874,7 @@ Begin
             Result := Result + Expr;
             If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
               Inc(Position, 2);
-              Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+              Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // y3
               If Error.Code <> SP_ERR_OK Then Exit;
               If Error.ReturnType <> SP_VALUE Then Begin
                 Error.Code := SP_ERR_MISSING_NUMEXPR;
@@ -8883,24 +8883,26 @@ Begin
               Result := Result + Expr;
               If (Byte(Tokens[Position]) = SP_SYMBOL) And (Tokens[Position +1] = ',') Then Begin
                 Inc(Position, 2);
-                Expr := SP_Convert_Expr(Tokens, Position, Error, -1);
+                Expr := SP_Convert_Expr(Tokens, Position, Error, -1); // ns
                 If Error.Code <> SP_ERR_OK Then Exit;
                 If Error.ReturnType <> SP_VALUE Then Begin
                   Error.Code := SP_ERR_MISSING_NUMEXPR;
                   Exit;
                 End;
                 Result := Result + Expr;
-                Case KeyWordID of
-                  SP_KW_CURVE: KeyWordID := SP_KW_CURVE_EX;
-                  SP_KW_ACURVE: KeyWordID := SP_KW_ACURVE_EX;
-                End;
-                Exit;
               End Else
-                Error.Code := SP_ERR_ILLEGAL_CHAR;
+                Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
+              Case KeyWordID of
+                SP_KW_CURVE: KeyWordID := SP_KW_CURVE_EX;
+                SP_KW_ACURVE: KeyWordID := SP_KW_ACURVE_EX;
+              End;
+              Exit;
             End Else
               Error.Code := SP_ERR_ILLEGAL_CHAR;
-          End Else
-            Error.Code := SP_ERR_ILLEGAL_CHAR;
+          End Else Begin
+            Result := Result + CreateToken(SP_VALUE, 0, SizeOf(aFloat)) + aFloatToString(0);
+            Exit;
+          End;
       End Else
         Error.Code := SP_ERR_ILLEGAL_CHAR;
     End Else

@@ -4878,7 +4878,7 @@ Begin
                 SP_ClearAllKeys;
                 Repeat
                   Key := SP_GetNextKey(FRAMES);
-                  CB_YIELD;
+                  CB_YIELD(10);
                 Until (Assigned(Key) And (Key.KeyCode <> K_SHIFT)) or M_DOWNFLAG;
                 M_DOWNFLAG := False;
                 SYSTEMSTATE := ss_EDITOR;
@@ -6822,7 +6822,7 @@ Begin
                 SP_ClearAllKeys;
                 Repeat
                   Key := SP_GetNextKey(FRAMES);
-                  CB_YIELD;
+                  CB_YIELD(10);
                 Until (Assigned(Key) And (Key.KeyCode <> K_SHIFT)) or M_DOWNFLAG;
                 M_DOWNFLAG := False;
                 SYSTEMSTATE := ss_EDITOR;
@@ -7278,8 +7278,6 @@ Begin
   SP_HaltAllControls;
 
   SP_Interpreter_Ready := True;
-  CB_YIELD;
-
   Window := SCREENBANK;
   REPCOUNT := FRAMES;
 
@@ -9380,7 +9378,7 @@ Begin
 
   if Not OnlyErrors Then
     If HasDirty Then Begin
-      CB_YIELD;
+      CB_YIELD(10);
       Goto ErrorCheck;
     End;
 

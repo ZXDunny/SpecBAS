@@ -107,6 +107,7 @@ Begin
 
   fTypeName := 'spEdit';
 
+  fMaxHeight := iFH + 4;
   fText := '';
   xoff := 0;
   fCursorPos := 1;
@@ -150,33 +151,41 @@ End;
 Procedure SP_Edit.SetGhostText(s: aString);
 Begin
 
-  fGhostText := s;
-  Paint;
+  If fGhostText <> s Then Begin
+    fGhostText := s;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_Edit.SetValidText(b: Boolean);
 Begin
 
-  fValidText := b;
-  Paint;
+  If fValidText <> b Then Begin
+    fValidText := b;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_Edit.SetSelStart(n: Integer);
 Begin
 
-  fSelStart := n;
-  Paint;
+  If fSelStart <> n Then Begin
+    fSelStart := n;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_Edit.SetEditable(b: Boolean);
 Begin
 
-  fEditable := b;
-  fCanFocus := b;
-  SetFocus(fEditable And Focused);
+  If fEditable <> b Then Begin
+    fEditable := b;
+    fCanFocus := b;
+    SetFocus(fEditable And Focused);
+  End;
 
 End;
 
@@ -778,8 +787,10 @@ End;
 Procedure SP_Edit.SetRightJustify(b: Boolean);
 begin
 
-  fRightJustify := b;
-  SetText(fText);
+  If fRightJustify <> b Then Begin
+    fRightJustify := b;
+    SetText(fText);
+  End;
 
 end;
 
@@ -835,17 +846,19 @@ Var
   x, m, n: Integer;
 Begin
 
-  fCursorPos := Min(v, Length(fText)+1);
-  n := TextWidth(' ') * 3;
-  m := Width - n;
-  x := TextWidth(Copy(fText, 1, fCursorPos -1)) - xOff;
-  If x > m Then
-    Inc(xOff, x - m)
-  Else
-    If x < n Then
-      Dec(xOff, n - x);
-  xOff := Max(0, xOff);
-  Paint;
+  If fCursorPos <> v Then Begin
+    fCursorPos := Min(v, Length(fText)+1);
+    n := TextWidth(' ') * 3;
+    m := Width - n;
+    x := TextWidth(Copy(fText, 1, fCursorPos -1)) - xOff;
+    If x > m Then
+      Inc(xOff, x - m)
+    Else
+      If x < n Then
+        Dec(xOff, n - x);
+    xOff := Max(0, xOff);
+    Paint;
+  End;
 
 End;
 

@@ -180,12 +180,14 @@ Var
   i: Integer;
 Begin
 
-  fDisabledFontClr := c;
-  For i := 0 To Length(fItems) -1 Do
-    If Assigned(fItems[i].SubMenu) Then
-      fItems[i].SubMenu.DisabledFontClr := c;
+  If fDisabledFontClr <> c Then Begin
+    fDisabledFontClr := c;
+    For i := 0 To Length(fItems) -1 Do
+      If Assigned(fItems[i].SubMenu) Then
+        fItems[i].SubMenu.DisabledFontClr := c;
 
-  Paint;
+    Paint;
+  End;
 
 End;
 
@@ -194,12 +196,14 @@ Var
   i: Integer;
 Begin
 
-  fHighlightClr := c;
-  For i := 0 To Length(fItems) -1 Do
-    If Assigned(fItems[i].SubMenu) Then
-      fItems[i].SubMenu.HighlightClr := c;
+  If fHighlightClr <> c Then Begin
+    fHighlightClr := c;
+    For i := 0 To Length(fItems) -1 Do
+      If Assigned(fItems[i].SubMenu) Then
+        fItems[i].SubMenu.HighlightClr := c;
 
-  Paint;
+    Paint;
+  End;
 
 End;
 
@@ -279,7 +283,7 @@ Begin
         ic := fDisabledFontClr;
       End;
       e.Left := Extents.Left -2; e.Top := Extents.Top;
-      e.Right := Extents.Right -3; e.Bottom := Extents.Bottom;
+      e.Right := Extents.Right - 3 + 2 * Ord(fProportional); e.Bottom := Extents.Bottom;
       If Selected Then Begin
         If Not Assigned(SubMenu) Or Not SubMenu.Visible Then Begin
           FillRect(e, c);
@@ -805,15 +809,18 @@ End;
 Procedure SP_WindowMenu.Set_ItemEnabled(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Var
   Idx, p: Integer;
+  b: Boolean;
 Begin
 
   p := Pos(':', s);
   If p >= 0 Then Begin
     Idx := StringToInt(Copy(s, 1, p -1)) -1;
     s := Copy(s, p +1);
-    If (Idx >= 0) And (Idx < Count) Then
-      MenuItems[idx].Enabled := StringToInt(s, Ord(MenuItems[Idx].Enabled)) <> 0;
-    Paint;
+    b := StringToInt(s, Ord(MenuItems[Idx].Enabled)) <> 0;
+    If (Idx >= 0) And (Idx < Count) And (MenuItems[Idx].Enabled <> b) Then Begin
+      MenuItems[idx].Enabled := b;
+      Paint;
+    End;
   End Else
     Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
 
@@ -834,15 +841,18 @@ End;
 Procedure SP_WindowMenu.Set_ItemVisible(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Var
   Idx, p: Integer;
+  b: Boolean;
 Begin
 
   p := Pos(':', s);
   If p >= 0 Then Begin
     Idx := StringToInt(Copy(s, 1, p -1)) -1;
     s := Copy(s, p +1);
-    If (Idx >= 0) And (Idx < Count) Then
-      MenuItems[idx].Visible := StringToInt(s, Ord(MenuItems[Idx].Visible)) <> 0;
-    Paint;
+    b := StringToInt(s, Ord(MenuItems[Idx].Visible)) <> 0;
+    If (Idx >= 0) And (Idx < Count) And (MenuItems[Idx].Visible <> b) Then Begin
+      MenuItems[idx].Visible := b;
+      Paint;
+    End;
   End Else
     Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
 

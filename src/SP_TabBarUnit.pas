@@ -138,8 +138,10 @@ End;
 Procedure SP_TabBar.SetTab(Index: Integer; s: aString);
 Begin
 
-  fTabs[Index] := s;
-  Paint;
+  If fTabs[Index] <> s Then Begin
+    fTabs[Index] := s;
+    Paint;
+  End;
 
 End;
 

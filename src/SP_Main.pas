@@ -42,7 +42,7 @@ Uses
 
 Type
 
-  TCB_YieldProc = Procedure;
+  TCB_YieldProc = Procedure(const ms: aFloat);
   TCB_MsgProc = Procedure;
   TCB_QuitProc = Procedure;
   TCB_GetTicks = Function: aFloat;

@@ -53,7 +53,7 @@ End;
 Procedure SP_CheckList.SetItemChecked(Index: Integer; State: Boolean);
 Begin
 
-  If (Index >= 0) And (Index < Length(fItems)) Then
+  If (Index >= 0) And (Index < Length(fItems)) And (fItems[Index].Checked <> State) Then
     fItems[Index].Checked := State;
 
 End;

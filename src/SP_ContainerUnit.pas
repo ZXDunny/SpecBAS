@@ -98,8 +98,10 @@ End;
 Procedure SP_Container.SetCaption(s: aString);
 Begin
 
-  fCaption := s;
-  Paint;
+  If fCaption <> s Then Begin
+    fCaption := s;
+    Paint;
+  End;
 
 End;
 

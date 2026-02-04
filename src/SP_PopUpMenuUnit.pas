@@ -168,13 +168,15 @@ End;
 Procedure SP_MenuItem.SetCaption(s: aString);
 Begin
 
-  fCaption := s;
-  If Assigned(Owner) Then Begin
-    If IsWindowMenu Then
-      SP_WindowMenu(Owner).CalculateSizes
-    Else
-      SP_PopUpMenu(Owner).CalculateSizes;
-    Owner.Paint;
+  If fCaption <> s Then Begin
+    fCaption := s;
+    If Assigned(Owner) Then Begin
+      If IsWindowMenu Then
+        SP_WindowMenu(Owner).CalculateSizes
+      Else
+        SP_PopUpMenu(Owner).CalculateSizes;
+      Owner.Paint;
+    End;
   End;
 
 End;
@@ -185,22 +187,24 @@ Var
 Begin
   // Handles group IDs. If checked and the group ID is > 0 then all other items WITH THAT GROUP ID will
   // uncheck. You cannot uncheck a groupID'd item - you have to check another in the same group.
-  gi := fGroupID;
-  if (Not IsWindowMenu) and (gi > 0) Then Begin
-    if b And Assigned(Owner) Then Begin
-      fChecked := b;
-      With SP_PopUpMenu(Owner) Do Begin
-        for i := 0 To Count -1 Do
-          if MenuItems[i] <> Self Then
-            if (MenuItems[i].GroupID = gi) and MenuItems[i].fChecked Then Begin
-              MenuItems[i].fChecked := False;
-              If MenuItems[i].Enabled And Assigned(MenuItems[i].OnClick) Then
-                MenuItems[i].OnClick(Self.Owner, i);
-            End;
+  If fChecked <> b Then Begin
+    gi := fGroupID;
+    if (Not IsWindowMenu) and (gi > 0) Then Begin
+      if b And Assigned(Owner) Then Begin
+        fChecked := b;
+        With SP_PopUpMenu(Owner) Do Begin
+          for i := 0 To Count -1 Do
+            if MenuItems[i] <> Self Then
+              if (MenuItems[i].GroupID = gi) and MenuItems[i].fChecked Then Begin
+                MenuItems[i].fChecked := False;
+                If MenuItems[i].Enabled And Assigned(MenuItems[i].OnClick) Then
+                  MenuItems[i].OnClick(Self.Owner, i);
+              End;
+        End;
       End;
-    End;
-  End Else
-    fChecked := b;
+    End Else
+      fChecked := b;
+  End;
 End;
 
 Constructor SP_PopUpMenu.Create(Owner: SP_BaseComponent; ParentMenu: SP_BaseComponent);
@@ -249,8 +253,10 @@ End;
 Procedure SP_PopUpMenu.SetBackgroundClr(c: Byte);
 Begin
 
-  fBackgroundClr := 3;
-  fMenuClr := c;
+  If fMenuClr <> c Then Begin
+    fBackgroundClr := 3;
+    fMenuClr := c;
+  End;
 
 End;
 
@@ -259,12 +265,14 @@ Var
   i: Integer;
 Begin
 
-  fDisabledFontClr := c;
-  For i := 0 To Length(fItems) -1 Do
-    If Assigned(fItems[i].SubMenu) Then
-      fItems[i].SubMenu.DisabledFontClr := c;
+  If fDisabledFontClr <> c Then Begin
+    fDisabledFontClr := c;
+    For i := 0 To Length(fItems) -1 Do
+      If Assigned(fItems[i].SubMenu) Then
+        fItems[i].SubMenu.DisabledFontClr := c;
 
-  Paint;
+    Paint;
+  End;
 
 End;
 
@@ -273,12 +281,14 @@ Var
   i: Integer;
 Begin
 
-  fHighlightClr := c;
-  For i := 0 To Length(fItems) -1 Do
-    If Assigned(fItems[i].SubMenu) Then
-      fItems[i].SubMenu.HighlightClr := c;
+  If fHighlightClr <> c Then Begin
+    fHighlightClr := c;
+    For i := 0 To Length(fItems) -1 Do
+      If Assigned(fItems[i].SubMenu) Then
+        fItems[i].SubMenu.HighlightClr := c;
 
-  Paint;
+    Paint;
+  End;
 
 End;
 
@@ -287,12 +297,14 @@ Var
   i: Integer;
 Begin
 
-  fSepClr := c;
-  For i := 0 To Length(fItems) -1 Do
-    If Assigned(fItems[i].SubMenu) Then
-      fItems[i].SubMenu.SeparatorClr := c;
+  If fSepClr <> c Then Begin
+    fSepClr := c;
+    For i := 0 To Length(fItems) -1 Do
+      If Assigned(fItems[i].SubMenu) Then
+        fItems[i].SubMenu.SeparatorClr := c;
 
-  Paint;
+    Paint;
+  End;
 
 End;
 
@@ -414,7 +426,7 @@ Begin
       SetPixel(fWidth -1, 3, fBorderClr);
       i := SP_WindowMenu(fParentMenu).fCapWidth;
       if i > 0 Then
-        DrawLine(1 + fCapOfs, 0, i + fCapOfs + 2 * Ord(Proportional), 0, fMenuClr);
+        DrawLine(1 + fCapOfs, 0, i + fCapOfs + 4 * Ord(Proportional), 0, fMenuClr);
     End;
   End;
 
@@ -667,7 +679,7 @@ End;
 Procedure SP_PopUpMenu.SetItemCaption(Index: Integer; Caption: aString);
 Begin
 
-  If (Index >= 0) And (Index < fCount) Then Begin
+  If (Index >= 0) And (Index < fCount) And (fItems[Index].Caption <> Caption) Then Begin
     fItems[Index].Caption := Caption;
     CalculateSizes;
     Paint;
@@ -1406,7 +1418,7 @@ Begin
     If (Idx >= 0) And (Idx < Count) Then Begin
       ID := StringToInt(s, -1);
       If ControlRegistry.TryGetValue(ID, Control) And (Control Is SP_PopUpMenu) Then
-        MenuItems[idx].fSubMenu := SP_PopUpMenu(Control);
+        MenuItems[idx].SubMenu := SP_PopUpMenu(Control);
     End Else
       Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
   End Else

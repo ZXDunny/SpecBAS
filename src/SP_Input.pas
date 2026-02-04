@@ -268,7 +268,7 @@ Procedure WaitForKey;
 Begin
 
   Repeat
-    CB_YIELD;
+    CB_YIELD(FRAME_MS);
   Until Length(ActiveKeys) > 0;
 
 End;

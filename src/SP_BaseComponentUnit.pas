@@ -336,61 +336,61 @@ SP_BaseComponent = Class
 
     {Properties}
 
-    Property Align:         Integer             read fAlign         write SetAlign;
-    Property Anchors:       SP_AnchorSet        read fAnchors       write fAnchors;
-    Property Name:          aString             read fName          write fName;
+    Property Align:         Integer             read fAlign           write SetAlign;
+    Property Anchors:       SP_AnchorSet        read fAnchors         write fAnchors;
+    Property Name:          aString             read fName            write fName;
     Property ControlCount:  Integer             read fNumComponents;
-    Property OnMouseMove:   SP_MouseEvent       read fOnMouseMove   write fOnMouseMove;
-    Property OnMouseDown:   SP_MouseEvent       read fOnMouseDown   write fOnMouseDown;
-    Property OnMouseUp:     SP_MouseEvent       read fOnMouseUp     write fOnMouseUp;
-    Property OnMouseEnter:  SP_BaseEvent        read fOnMouseEnter  write fOnMouseEnter;
-    Property OnMouseLeave:  SP_BaseEvent        read fOnMouseLeave  write fOnMouseLeave;
-    Property OnMouseWheel:  SP_MouseWheelEvent  read fOnMouseWheel  write fOnMouseWheel;
-    Property OnKeyDown:     SP_KeyEvent         read fOnKeyDown     write fOnKeyDown;
-    Property OnKeyUp:       SP_KeyEvent         read fOnKeyUp       write fOnKeyUp;
-    Property OnPaintBefore: SP_PaintEvent       read fOnPaintBefore write fOnPaintBefore;
-    Property OnPaintAfter:  SP_PaintEvent       read fOnPaintAfter  write fOnPaintAfter;
-    Property BackgroundClr: Byte                read fBackgroundClr write SetBackgroundClr;
-    Property FontClr:       Byte                read fFontClr       write SetFontClr;
-    Property Shadow:        Boolean             read fShadow        write SetShadow;
-    Property ShadowClr:     Byte                read fShadowClr     write SetShadowClr;
-    Property ErrorClr:      Byte                read fErrorClr      write SetErrorClr;
-    Property Width:         Integer             read fWidth         write SetWidth;
-    Property Height:        Integer             read fHeight        write SetHeight;
-    Property Left:          Integer             read fLeft          write SetLeft;
-    Property Top:           Integer             read fTop           write SetTop;
-    Property WindowID:      Integer             read fWindowID      write SetWindowID;
-    Property OnResize:      SP_ResizeEvent      read fOnResize      write fOnResize;
-    Property Enabled:       Boolean             read fEnabled       write SetEnabled;
-    Property Visible:       Boolean             read fVisible       write SetVisible;
-    Property CanFocus:      Boolean             read fCanFocus      write fCanFocus;
-    Property Focused:       Boolean             read GetFocused     write SetFocus;
-    Property OnDblClick:    SP_MouseEvent       read fOnDblClick    write fOnDblClick;
-    Property ChainControl:  SP_BaseComponent    read fChainControl  write SetChainControl;
-    Property OnClick:       SP_ClickEvent       read fOnClick       write fOnClick;
-    Property OnAbort:       SP_AbortEvent       read fOnAbort       write fOnAbort;
-    Property OnShow:        SP_VisibleEvent     read fOnShow        write fOnShow;
-    Property OnHide:        SP_VisibleEvent     read fOnHide        write fOnHide;
+    Property OnMouseMove:   SP_MouseEvent       read fOnMouseMove     write fOnMouseMove;
+    Property OnMouseDown:   SP_MouseEvent       read fOnMouseDown     write fOnMouseDown;
+    Property OnMouseUp:     SP_MouseEvent       read fOnMouseUp       write fOnMouseUp;
+    Property OnMouseEnter:  SP_BaseEvent        read fOnMouseEnter    write fOnMouseEnter;
+    Property OnMouseLeave:  SP_BaseEvent        read fOnMouseLeave    write fOnMouseLeave;
+    Property OnMouseWheel:  SP_MouseWheelEvent  read fOnMouseWheel    write fOnMouseWheel;
+    Property OnKeyDown:     SP_KeyEvent         read fOnKeyDown       write fOnKeyDown;
+    Property OnKeyUp:       SP_KeyEvent         read fOnKeyUp         write fOnKeyUp;
+    Property OnPaintBefore: SP_PaintEvent       read fOnPaintBefore   write fOnPaintBefore;
+    Property OnPaintAfter:  SP_PaintEvent       read fOnPaintAfter    write fOnPaintAfter;
+    Property BackgroundClr: Byte                read fBackgroundClr   write SetBackgroundClr;
+    Property FontClr:       Byte                read fFontClr         write SetFontClr;
+    Property Shadow:        Boolean             read fShadow          write SetShadow;
+    Property ShadowClr:     Byte                read fShadowClr       write SetShadowClr;
+    Property ErrorClr:      Byte                read fErrorClr        write SetErrorClr;
+    Property Width:         Integer             read fWidth           write SetWidth;
+    Property Height:        Integer             read fHeight          write SetHeight;
+    Property Left:          Integer             read fLeft            write SetLeft;
+    Property Top:           Integer             read fTop             write SetTop;
+    Property WindowID:      Integer             read fWindowID        write SetWindowID;
+    Property OnResize:      SP_ResizeEvent      read fOnResize        write fOnResize;
+    Property Enabled:       Boolean             read fEnabled         write SetEnabled;
+    Property Visible:       Boolean             read fVisible         write SetVisible;
+    Property CanFocus:      Boolean             read fCanFocus        write fCanFocus;
+    Property Focused:       Boolean             read GetFocused       write SetFocus;
+    Property OnDblClick:    SP_MouseEvent       read fOnDblClick      write fOnDblClick;
+    Property ChainControl:  SP_BaseComponent    read fChainControl    write SetChainControl;
+    Property OnClick:       SP_ClickEvent       read fOnClick         write fOnClick;
+    Property OnAbort:       SP_AbortEvent       read fOnAbort         write fOnAbort;
+    Property OnShow:        SP_VisibleEvent     read fOnShow          write fOnShow;
+    Property OnHide:        SP_VisibleEvent     read fOnHide          write fOnHide;
     Property BoundsRect:    TRect               read fBoundsrect;
-    Property Border:        Boolean             read fBorder        write SetBorder;
-    Property MinWidth:      Integer             read fMinWidth      write SetMinWidth;
-    Property MinHeight:     Integer             read fMinHeight     write SetMinHeight;
-    Property MaxWidth:      Integer             read fMaxWidth      write SetMaxWidth;
-    Property MaxHeight:     Integer             read fMaxHeight     write SetMaxHeight;
+    Property Border:        Boolean             read fBorder          write SetBorder;
+    Property MinWidth:      Integer             read fMinWidth        write SetMinWidth;
+    Property MinHeight:     Integer             read fMinHeight       write SetMinHeight;
+    Property MaxWidth:      Integer             read fMaxWidth        write SetMaxWidth;
+    Property MaxHeight:     Integer             read fMaxHeight       write SetMaxHeight;
     Property Canvas:        NativeUInt          read GetCanvas;
-    Property DisabledFontClr: Byte              read fDisabledFontClr   write SetDisabledFontClr;
-    Property HighlightClr:  Byte                read fHighlightClr  write SetHighlightClr;
+    Property DisabledFontClr: Byte              read fDisabledFontClr write SetDisabledFontClr;
+    Property HighlightClr:  Byte                read fHighlightClr    write SetHighlightClr;
     Property UnfocusedHighlightClr: Byte        read fUnfocusedHighlightClr write SetUnfocusedHighlightClr;
-    Property Transparent:   Boolean             read fTransparent   write SetTransparent;
-    property OverrideScaling: Boolean           read fOverrideScl   write SetOverrideScaling;
-    Property OnFocus:       SP_FocusEvent       read fOnFocus       write SetOnFocus;
-    Property Erase:         Boolean             read fErase         write fErase;
-    Property Font:          Integer             read fCurFontID     write SetFont;
-    Property Proportional:  Boolean             read fProportional  write SetProportional;
+    Property Transparent:   Boolean             read fTransparent     write SetTransparent;
+    property OverrideScaling: Boolean           read fOverrideScl     write SetOverrideScaling;
+    Property OnFocus:       SP_FocusEvent       read fOnFocus         write SetOnFocus;
+    Property Erase:         Boolean             read fErase           write fErase;
+    Property Font:          Integer             read fCurFontID       write SetFont;
+    Property Proportional:  Boolean             read fProportional    write SetProportional;
     Property ParentWindowID: Integer            read fParentWindowID;
-    Property Hint:          aString             read GetHint        write fHint;
-    Property WantTAB:       Boolean             read fWantTAB       write fWantTAB;
-    Property Tag:           Integer             read fTag           write fTag;
+    Property Hint:          aString             read GetHint          write fHint;
+    Property WantTAB:       Boolean             read fWantTAB         write fWantTAB;
+    Property Tag:           Integer             read fTag             write fTag;
     Property Locked:        Boolean             read IsLocked;
     Property TypeName:      aString             read fTypeName;
 
@@ -766,16 +766,20 @@ End;
 Procedure SP_BaseComponent.SetTransparent(Value: Boolean);
 Begin
 
-  fTransparent := Value;
-  Paint;
+  If fTransparent <> Value Then Begin
+    fTransparent := Value;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_BaseComponent.SetFont(ID: integer);
 begin
 
-  fCurFontID := ID;
-  Paint;
+  If fCurFontID <> ID Then Begin
+    fCurFontID := ID;
+    Paint;
+  End;
 
 end;
 
@@ -2009,32 +2013,33 @@ Var
   OldWidth: Integer;
 Begin
 
-  DisplaySection.Enter;
+  If fWidth <> w Then Begin
+    DisplaySection.Enter;
 
-  UpdateBackground;
-  OldWidth := Width;
-  w := Min(Max(w, fMinWidth), fMaxWidth);
-  If aRight in fAnchors Then Begin
-    fLeft := Left - (w - fWidth);
-    fSetLeft := fLeft;
-  End;
-  fWidth := w;
-  fSetWidth := fWidth;
+    UpdateBackground;
+    OldWidth := Width;
+    w := Min(Max(w, fMinWidth), fMaxWidth);
+    If aRight in fAnchors Then Begin
+      fLeft := Left - (w - fWidth);
+      fSetLeft := fLeft;
+    End;
+    fWidth := w;
+    fSetWidth := fWidth;
 
-  SetAlign(fAlign);
+    SetAlign(fAlign);
 
-  fSize := fWidth * fHeight;
-  SetLength(fCanvas, fsize);
-  SetLength(fTempCanvas, fsize);
-  fValidCanvas := (fWidth > 0) And (fHeight > 0);
-  fBoundsRect := Rect(Left, Top, Left + Width, Top + Height);
+    fSize := fWidth * fHeight;
+    SetLength(fCanvas, fsize);
+    SetLength(fTempCanvas, fsize);
+    fValidCanvas := (fWidth > 0) And (fHeight > 0);
+    fBoundsRect := Rect(Left, Top, Left + Width, Top + Height);
 
-  DisplaySection.Leave;
+    DisplaySection.Leave;
 
-  Paint;
+    Paint;
 
-  If OldWidth <> Width Then
     DoResize(Width - OldWidth, 0);
+  End;
 
 End;
 
@@ -2043,106 +2048,119 @@ Var
   OldHeight: Integer;
 Begin
 
-  DisplaySection.Enter;
+  If fHeight <> h Then Begin
+    DisplaySection.Enter;
 
-  UpdateBackground;
-  OldHeight := Height;
-  h := Min(Max(h, fMinHeight), fMaxHeight);
-  If aBottom in fAnchors then Begin
-    fTop := Top - (h - fHeight);
-    fSetTop := fTop;
-  End;
-  fHeight := h;
-  fSetHeight := fHeight;
+    UpdateBackground;
+    OldHeight := Height;
+    h := Min(Max(h, fMinHeight), fMaxHeight);
+    If aBottom in fAnchors then Begin
+      fTop := Top - (h - fHeight);
+      fSetTop := fTop;
+    End;
+    fHeight := h;
+    fSetHeight := fHeight;
 
-  SetAlign(fAlign);
+    SetAlign(fAlign);
 
-  fSize := fWidth * fHeight;
-  SetLength(fCanvas, fsize);
-  SetLength(fTempCanvas, fsize);
-  fValidCanvas := (fWidth > 0) And (fHeight > 0);
-  fBoundsRect := Rect(Left, Top, Left + Width, Top + Height);
+    fSize := fWidth * fHeight;
+    SetLength(fCanvas, fsize);
+    SetLength(fTempCanvas, fsize);
+    fValidCanvas := (fWidth > 0) And (fHeight > 0);
+    fBoundsRect := Rect(Left, Top, Left + Width, Top + Height);
 
-  DisplaySection.Leave;
+    DisplaySection.Leave;
 
-  Paint;
+    Paint;
 
-  If OldHeight <> Height Then
     DoResize(0, Height - OldHeight);
+  End;
 
 End;
 
 Procedure SP_BaseComponent.SetLeft(X: Integer);
 Begin
 
-  DisplaySection.Enter;
+  If fLeft <> X Then Begin
+    DisplaySection.Enter;
 
-  UpdateBackground;
-{  If aRight in fAnchors Then Begin
-    fWidth := Width - (X - fLeft);
-    fSetWidth := fWidth;
-  End;}
-  fLeft := X;
-  fSetLeft := fLeft;
-  SetAlign(fAlign);
-  fBoundsRect.Left := fLeft;
+    UpdateBackground;
+  {  If aRight in fAnchors Then Begin
+      fWidth := Width - (X - fLeft);
+      fSetWidth := fWidth;
+    End;}
+    fLeft := X;
+    fSetLeft := fLeft;
+    SetAlign(fAlign);
+    fBoundsRect.Left := fLeft;
 
-  DisplaySection.Leave;
+    DisplaySection.Leave;
 
-  Paint;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_BaseComponent.SetTop(Y: Integer);
 Begin
 
-  DisplaySection.Enter;
+  If fTop <> Y Then Begin
+    DisplaySection.Enter;
 
-  UpdateBackground;
-{  If aBottom in fAnchors Then Begin
-    fHeight := Height - (Y - fTop);
-    fSetHeight := Height;
-  End; }
-  fTop := Y;
-  fSetTop := fTop;
-  SetAlign(fAlign);
-  fBoundsRect.Top := Y;
+    UpdateBackground;
+  {  If aBottom in fAnchors Then Begin
+      fHeight := Height - (Y - fTop);
+      fSetHeight := Height;
+    End; }
+    fTop := Y;
+    fSetTop := fTop;
+    SetAlign(fAlign);
+    fBoundsRect.Top := Y;
 
-  DisplaySection.Leave;
+    DisplaySection.Leave;
 
-  Paint;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_BaseComponent.SetMinWidth(w: Integer);
 Begin
 
-  fMinWidth := w;
-  SetWidth(Width);
+  If fMinWidth <> w Then Begin
+    fMinWidth := w;
+    SetWidth(Width);
+  End;
 
 End;
 
 Procedure SP_BaseComponent.SetMinHeight(h: Integer);
 Begin
 
-  fMinHeight := h;
-  SetHeight(Height);
+  If fMinHeight <> h Then Begin
+    fMinHeight := h;
+    SetHeight(Height);
+  End;
 
 End;
 
 Procedure SP_BaseComponent.SetMaxWidth(w: Integer);
 Begin
 
-  fMaxWidth := w;
-  SetWidth(Width);
+  If fMaxWidth <> w Then Begin
+    fMaxWidth := w;
+    SetWidth(Width);
+  End;
 
 End;
 
 Procedure SP_BaseComponent.SetMaxHeight(h: Integer);
 Begin
 
-  fMaxHeight := h;
-  SetHeight(Height);
+  If fMaxHeight <> h Then Begin
+    fMaxHeight := h;
+    SetHeight(Height);
+  End;
 
 End;
 
@@ -3020,7 +3038,7 @@ End;
 
 Procedure SP_BaseComponent.Set_Tag(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
-  Width := StringToInt(s, fTag);
+  fTag := StringToInt(s, fTag);
 End;
 
 Function SP_BaseComponent.Get_Tag: aString;
@@ -3143,7 +3161,7 @@ End;
 
 Procedure SP_BaseComponent.Set_BackgroundClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
-  fBackgroundClr := StringToInt(s, fBackgroundClr);
+  BackgroundClr := StringToInt(s, fBackgroundClr);
 End;
 
 Function  SP_BaseComponent.Get_BackgroundClr: aString;
@@ -3153,7 +3171,7 @@ End;
 
 Procedure SP_BaseComponent.Set_FontClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
-  fFontClr := StringToInt(s, fFontClr);
+  FontClr := StringToInt(s, fFontClr);
 End;
 
 Function  SP_BaseComponent.Get_FontClr: aString;
@@ -3193,7 +3211,7 @@ End;
 
 Procedure SP_BaseComponent.Set_ErrorClr(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
-  fErrorClr := StringToInt(s, fErrorClr);
+  ErrorClr := StringToInt(s, fErrorClr);
 End;
 
 Function  SP_BaseComponent.Get_ErrorClr: aString;

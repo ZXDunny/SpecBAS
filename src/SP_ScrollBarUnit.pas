@@ -180,9 +180,11 @@ End;
 Procedure SP_Scrollbar.SetShowButtons(b: Boolean);
 Begin
 
-  fShowButtons := b;
-  SetUIElements;
-  Paint;
+  If fShowButtons <> b then Begin
+    fShowButtons := b;
+    SetUIElements;
+    Paint;
+  End;
 
 End;
 

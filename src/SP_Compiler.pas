@@ -150,7 +150,7 @@ Begin
   If Assigned(CompilerThread) Then Begin
     CompilerThread.Finish := True;
     Repeat
-      CB_YIELD;
+      CB_YIELD(1);
     Until Not CompilerRunning;
     CompilerThread := nil;
   End;

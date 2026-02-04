@@ -185,9 +185,11 @@ End;
 Procedure SP_ComboBox.SetChainControl(c: SP_BaseComponent);
 Begin
 
-  Edit.ChainControl := c;
-  Menu.ChainControl := c;
-  Inherited;
+  If ChainControl <> c Then Begin
+    Edit.ChainControl := c;
+    Menu.ChainControl := c;
+    Inherited;
+  End;
 
 End;
 
@@ -253,8 +255,10 @@ End;
 Procedure SP_ComboBox.SetHighlightClr(c: Byte);
 Begin
 
-  Menu.HighlightClr := c;
-  Paint;
+  If Menu.HighlightClr <> c Then Begin
+    Menu.HighlightClr := c;
+    Paint;
+  End;
 
 End;
 
@@ -323,7 +327,7 @@ End;
 Procedure SP_ComboBox.SetCaption(Index: Integer; s: aString);
 Begin
 
-  If (Index >= 0) and (Index < Menu.Count) Then
+  If (Index >= 0) and (Index < Menu.Count) And (Menu.fItems[Index].Caption <> s) Then
     Menu.fItems[Index].Caption := s;
 
 End;
@@ -394,17 +398,21 @@ begin
 end;
 
 Procedure SP_ComboBox.SetBorder(b: Boolean);
+Var
+  oBorder: Boolean;
 begin
 
+  oBorder := fBorder;
   fBorder := b;
   Btn.Border := b;
   Edit.Border := b And Not Proportional;
   Labl.Border := b;
   Menu.Border := b;
   PlaceItems;
-  Paint;
+  If fBorder <> oBorder Then
+    Paint;
 
-end;
+End;
 
 Procedure SP_ComboBox.OnMenuSelect(Sender: SP_BaseComponent; ItemIndex: Integer);
 begin
@@ -436,9 +444,11 @@ End;
 Procedure SP_ComboBox.SetEditable(b: Boolean);
 Begin
 
-  Edit.Editable := b;
-  fEditable := b;
-  PlaceItems;
+  If fEditable <> b Then Begin
+    Edit.Editable := b;
+    fEditable := b;
+    PlaceItems;
+  End;
 
 End;
 

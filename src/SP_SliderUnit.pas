@@ -169,50 +169,62 @@ End;
 Procedure SP_Slider.SetThumbColour(Idx: Integer);
 Begin
 
-  fThumbColour := Idx;
-  Paint;
+  If fThumbColour <> Idx Then Begin
+    fThumbColour := Idx;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_Slider.SetTrackColour(Idx: Integer);
 Begin
 
-  fTrackColour := Idx;
-  Paint;
+  If fTrackColour <> Idx Then Begin
+    fTrackColour := Idx;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_Slider.SetFillColour(Idx: Integer);
 Begin
 
-  fTrackFillColour := Idx;
-  Paint;
+  If fTrackFillColour <> Idx Then Begin
+    fTrackFillColour := Idx;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_Slider.SetFillDisabledColour(Idx: Integer);
 Begin
 
-  fTrackFillDisabledColour := Idx;
-  Paint;
+  If fTrackFillDisabledColour <> Idx Then Begin
+    fTrackFillDisabledColour := Idx;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_Slider.SetMin(Value: aFloat);
 Begin
 
-  fMin := Value;
-  SetUIElements;
-  Paint;
+  If fMin <> Value Then Begin
+    fMin := Value;
+    SetUIElements;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_Slider.SetMax(Value: aFloat);
 Begin
 
-  fMax := Value;
-  SetUIElements;
-  Paint;
+  If fMax <> Value Then Begin
+    fMax := Value;
+    SetUIElements;
+    Paint;
+  End;
 
 End;
 
@@ -225,14 +237,14 @@ Begin
   fPosition := Value;
   If fPosition < fMin Then fPosition := fMin;
   If fPosition > fMax Then fPosition := fMax;
-  SetUIElements;
-  Paint;
 
   If oPos <> fPosition Then Begin
     If Assigned(OnChange) Then
       OnChange(fPosition - oPos, fPosition);
     If Not Locked And (Compiled_OnChange <> '') Then
       SP_AddOnEvent(Compiled_OnChange);
+    SetUIElements;
+    Paint;
   End;
 
 End;

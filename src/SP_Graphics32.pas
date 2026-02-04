@@ -66,6 +66,7 @@ Type
   Procedure SP_DrawLine32Ex(X1, Y1, X2, Y2: aFloat);
   Procedure SP_DrawSpeccyCurve32(X, Y, Angle: aFloat);
   Procedure SP_DrawCurve32(CurveStartX, CurveStartY, X, Y, CurveEndX, CurveEndY: aFloat; N: Integer);
+  Procedure SP_DrawCurveAdaptive32(x1, y1, cx, cy, x2, y2: aFloat);
   Procedure SP_DrawEllipse32(CX, CY, Rx, Ry: Integer; Angle: aFloat);
   Procedure SP_DrawThickEllipse32(CX, CY, R1, R2: Integer; Angle: aFloat);
   Procedure SP_DrawTexEllipse8To32(CX, CY, Rx, Ry: Integer; Angle: aFloat; const TextureStr: aString; tW, tH: LongWord);
@@ -2152,6 +2153,35 @@ Begin
     SP_DrawLine32(omt2 * CurveStartX + omt2t * X + t2 * CurveEndX - DRPOSX, omt2 * CurveStartY + omt2t * Y + t2 * CurveEndY - DRPOSY);
 
   End;
+
+End;
+
+Procedure SP_DrawCurveAdaptive32(x1, y1, cx, cy, x2, y2: aFloat);
+const
+  FLATNESS_TOLERANCE = 0.5;
+  MAX_RECURSION = 10;
+
+  Procedure Recurse(p1x, p1y, cp1x, cp1y, p2x, p2y: aFloat; Level: Integer);
+  Var
+    m1x, m1y, m2x, m2y, mx, my: aFloat;
+  Begin
+    If (Level > MAX_RECURSION) or (Abs(p1x + p2x - 2 * cp1x) + Abs(p1y + p2y - 2 * cp1y) < FLATNESS_TOLERANCE) Then
+      SP_DrawLine32(p2x - DRPOSX, p2y - DRPOSY)
+    Else Begin
+      m1x := (p1x + cp1x) * 0.5;
+      m1y := (p1y + cp1y) * 0.5;
+      m2x := (cp1x + p2x) * 0.5;
+      m2y := (cp1y + p2y) * 0.5;
+      mx := (m1x + m2x) * 0.5;
+      my := (m1y + m2y) * 0.5;
+      Recurse(p1x, p1y, m1x, m1y, mx, my, Level + 1);
+      Recurse(mx, my, m2x, m2y, p2x, p2y, Level + 1);
+    End;
+  End;
+
+Begin
+
+  Recurse(x1, y1, cx, cy, x2, y2, 0);
 
 End;
 

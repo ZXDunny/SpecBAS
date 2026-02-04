@@ -113,6 +113,9 @@ SP_ListBox = Class(SP_BaseComponent)
     Procedure     InsertHeader(Index: Integer; Caption: aString; Width: Integer); Overload;
     Procedure     DeleteHeader(Index: Integer);
     Procedure     Sort(Index: Integer);
+    Procedure     SetSorted(b: Boolean);
+    Procedure     SetSortedBy(i: Integer);
+    Procedure     SetSortDir(d: Integer);
 
     Property      Items[Index: Integer]:     aString          read GetItem          write SetItem;
     Property      Objects[Index: Integer]:   TObject          read GetObject        write SetObject;
@@ -135,6 +138,9 @@ SP_ListBox = Class(SP_BaseComponent)
     Property      SortedColumnClr:           Integer          read fSortedColumnClr write SetSortedColumnClr;
     Property      SelectedIndex:             Integer          read fSelectedIdx;
     Property      AllowLiterals:             Boolean          read fAllowLiterals   write fAllowLiterals;
+    Property      Sorted:                    Boolean          read fSorted          write SetSorted;
+    Property      SortedBy:                  Integer          read fSortedBy        write SetSortedBy;
+    Property      SortDir:                   Integer          read fSortDir         write SetSortDir;
 
     Constructor   Create(Owner: SP_BaseComponent);
     Destructor    Destroy; Override;
@@ -237,12 +243,48 @@ Begin
 
 End;
 
+Procedure SP_ListBox.SetSorted(b: Boolean);
+Begin
+
+  If fSorted <> b Then Begin
+    fSorted := b;
+    If fSorted Then
+      Sort(fSortedBy);
+  End;
+
+End;
+
+
+Procedure SP_ListBox.SetSortedBy(i: Integer);
+Begin
+
+  If fSortedBy <> i Then Begin
+    fSortedBy := i;
+    If fSorted Then
+      Sort(fSortedBy);
+  End;
+
+End;
+
+Procedure SP_ListBox.SetSortDir(d: Integer);
+Begin
+
+  If fSortDir <> d Then Begin
+    fSortDir := d;
+    If fSorted Then
+      Sort(fSortedBy);
+  End;
+
+End;
+
 Procedure SP_ListBox.SetBackgroundClr(c: Byte);
 Begin
 
-  Inherited;
-  fVScroll.BackgroundClr := c;
-  fHScroll.BackgroundClr := c;
+  If fBackgroundClr <> c Then Begin
+    Inherited;
+    fVScroll.BackgroundClr := c;
+    fHScroll.BackgroundClr := c;
+  End;
 
 End;
 
@@ -289,28 +331,32 @@ End;
 Procedure SP_ListBox.SetFontClr(c: Byte);
 Begin
 
-  fHScroll.FontClr := c;
-  fVScroll.FontClr := c;
-  Inherited;
+  If fFontClr <> c Then Begin
+    fHScroll.FontClr := c;
+    fVScroll.FontClr := c;
+    Inherited;
+  End;
 
 End;
 
 Procedure SP_ListBox.SetDisabledFontClr(c: Byte);
 Begin
 
-  fHScroll.DisabledFontClr := c;
-  fVScroll.DisabledFontClr := c;
-  Inherited;
+  If fDisabledFontClr <> c Then Begin
+    fHScroll.DisabledFontClr := c;
+    fVScroll.DisabledFontClr := c;
+    Inherited;
+  End;
 
 End;
 
 Procedure SP_ListBox.SetItem(Index: Integer; Value: aString);
 Begin
 
-  If (Index >= 0) And (Index < Length(fStrings)) Then
+  If (Index >= 0) And (Index < Length(fStrings)) And (fStrings[Index] <> Value) Then Begin
     fStrings[Index] := Value;
-  Paint;
-
+    Paint;
+  End;
 End;
 
 Function SP_ListBox.GetItem(Index: Integer): aString;
@@ -488,8 +534,10 @@ End;
 Procedure SP_ListBox.SetShowHeaders(b: Boolean);
 Begin
 
-  fShowHeaders := b;
-  SetUIElements;
+  If fShowHeaders <> b Then Begin
+    fShowHeaders := b;
+    SetUIElements;
+  End;
 
 End;
 
@@ -1344,6 +1392,7 @@ End;
 Procedure SP_ListBox.Set_Item(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Var
   Idx, p: Integer;
+  s2: aString;
 Begin
 
   p := Pos(':', s);
@@ -1351,8 +1400,11 @@ Begin
     Idx := StringToInt(Copy(s, 1, p -1)) -1;
     s := Copy(s, p +1);
     If (Idx >= 0) And (Idx < Count) Then
-      SP_ReplaceAll(s, '|', #255, fStrings[Idx]);
-    Paint;
+      SP_ReplaceAll(s, '|', #255, s2);
+    If fStrings[idx] <> s2 Then Begin
+      fStrings[Idx] := s2;
+      Paint;
+    End;
   End Else
     Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
 
@@ -1439,7 +1491,7 @@ End;
 Procedure SP_ListBox.Set_ColColor(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
 
-  fHeaderClr := StringToInt(s, fHeaderClr);
+  HeaderClr := StringToInt(s, fHeaderClr);
   Paint;
 
 End;
@@ -1517,12 +1569,14 @@ Begin
     If (Idx >= 0) and (Idx < Count) Then Begin
       s := Copy(s, p +1);
       b := StringToInt(s, Ord(fSelected[Idx])) <> 0;
-      fSelected[Idx] := b;
-      If b Then Begin
-        fSelectedIdx := Idx;
-        fLastSelected := Idx;
-        ScrollInView(False);
-        Paint;
+      If fSelected[Idx] <> b Then Begin
+        fSelected[Idx] := b;
+        If b Then Begin
+          fSelectedIdx := Idx;
+          fLastSelected := Idx;
+          ScrollInView(False);
+          Paint;
+        End;
       End;
     End Else
       Error.Code := SP_ERR_INVALID_PROPERTY_VALUE;
@@ -1546,7 +1600,7 @@ End;
 Procedure SP_ListBox.Set_MultiSel(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
 
-  fMultiSelect := StringToInt(s, 0) <> 0;
+  MultiSelect := StringToInt(s, 0) <> 0;
 
 End;
 
@@ -1560,7 +1614,7 @@ End;
 Procedure SP_ListBox.Set_Sorted(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
 
-  fSorted := StringToInt(s, 0) <> 0;
+  Sorted := StringToInt(s, 0) <> 0;
 
 End;
 
@@ -1588,7 +1642,7 @@ End;
 Procedure SP_ListBox.Set_SortCol(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
 
-  fSortedBy := StringToInt(s, 0) -1;
+  SortedBy := StringToInt(s, 0) -1;
 
 End;
 
@@ -1619,9 +1673,7 @@ End;
 Procedure SP_ListBox.Set_SortDir(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
 Begin
 
-  fSortDir := StringToInt(s, fSortDir);
-  If fSorted Then
-    Sort(fSortedBy);
+  SortDir := StringToInt(s, fSortDir);;
 
 End;
 

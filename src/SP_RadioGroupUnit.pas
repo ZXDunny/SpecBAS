@@ -143,12 +143,16 @@ End;
 Procedure SP_RadioGroup.SetCheckColor(c: Byte);
 Var
   i: Integer;
+  b: Boolean;
 Begin
 
-  For i := 0 To Length(fItems) -1 Do
+  b := False;
+  For i := 0 To Length(fItems) -1 Do Begin
+    b := b or (fItems[i].CheckColour <> c);
     fItems[i].CheckColour := c;
+  End;
 
-  Paint;
+  If b Then Paint;
 
 End;
 
@@ -164,9 +168,10 @@ End;
 Procedure SP_RadioGroup.SetItemCaption(Index: Integer; s: aString);
 Begin
 
-  If (Index >= 0) And (Index < Length(fItems)) Then
+  If (Index >= 0) And (Index < Length(fItems)) And (fItems[Index].Caption <> s) Then Begin
     fItems[Index].Caption := s;
-  Paint;
+    Paint;
+  End;
 
 End;
 
@@ -292,9 +297,11 @@ End;
 Procedure SP_RadioGroup.SetCaption(s: aString);
 Begin
 
-  fCaption := s;
-  PlaceItems;
-  Paint;
+  If fCaption <> s Then Begin
+    fCaption := s;
+    PlaceItems;
+    Paint;
+  End;
 
 End;
 

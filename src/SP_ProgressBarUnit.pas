@@ -42,6 +42,7 @@ SP_ProgressBar = Class(SP_BaseComponent)
     Procedure SetPos(Value: aFloat);
     Procedure SetKind(Value: SP_ScrollBarKind);
     Procedure SetCaption(Str: aString);
+    Procedure SetCapType(ct: SP_CapType);
     Procedure SetUIElements;
 
     Property Caption: aString read fCaption write SetCaption;
@@ -53,6 +54,7 @@ SP_ProgressBar = Class(SP_BaseComponent)
     Property Max: aFloat read fMax write SetMax;
     Property Kind: SP_ScrollbarKind read fKind write SetKind;
     Property Position: aFloat read fPosition write SetPos;
+    Property CapType: SP_CapType read fCapType write SetCapType;
 
     // User Properties
 
@@ -100,21 +102,34 @@ Begin
 
 End;
 
+Procedure SP_ProgressBar.SetCapType(ct: SP_CapType);
+Begin
+
+  If fCapType <> ct Then Begin
+    fCapType := ct;
+    Paint;
+  End;
+
+End;
+
 Procedure SP_ProgressBar.SetCaption(Str: aString);
 Begin
 
-  fCaption := Str;
-  Paint;
+  If fCaption <> Str Then Begin
+    fCaption := Str;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_ProgressBar.SetUIElements;
 Begin
 
-  If fKind = spHorizontal Then
-    fIntPos := Trunc((Width - 2 * Ord(fBorder)) * ((fPosition - fMin) / (fMax - fMin)))
-  Else
-    fIntPos := Trunc((Height - 2 * Ord(fBorder)) * ((fPosition - fMin) / (fMax - fMin)));
+  If fMax - fMin > 0 Then
+    If fKind = spHorizontal Then
+      fIntPos := Trunc((Width - 2 * Ord(fBorder)) * ((fPosition - fMin) / (fMax - fMin)))
+    Else
+      fIntPos := Trunc((Height - 2 * Ord(fBorder)) * ((fPosition - fMin) / (fMax - fMin)));
 
 End;
 
@@ -186,80 +201,96 @@ End;
 Procedure SP_ProgressBar.SetCapColour(Idx: Integer);
 Begin
 
-  fCapColour := Idx;
-  Paint;
+  If fCapColour <> Idx Then Begin
+    fCapColour := Idx;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_ProgressBar.SetCapInvColour(Idx: Integer);
 Begin
 
-  fCapInvColour := Idx;
-  Paint;
+  If fCapInvColour <> Idx Then Begin
+    fCapInvColour := Idx;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_ProgressBar.SetTrackColour(Idx: Integer);
 Begin
 
-  fTrackColour := Idx;
-  Paint;
+  If fTrackColour <> Idx Then Begin
+    fTrackColour := Idx;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_ProgressBar.SetFillColour(Idx: Integer);
 Begin
 
-  fTrackFillColour := Idx;
-  Paint;
+  If fTrackFillColour <> Idx Then Begin
+    fTrackFillColour := Idx;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_ProgressBar.SetFillDisabledColour(Idx: Integer);
 Begin
 
-  fTrackFillDisabledColour := Idx;
-  Paint;
+  If fTrackFillDisabledColour <> Idx Then Begin
+    fTrackFillDisabledColour := Idx;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_ProgressBar.SetMin(Value: aFloat);
 Begin
 
-  fMin := Value;
-  SetUIElements;
-  Paint;
+  If fMin <> Value Then Begin
+    fMin := Value;
+    SetUIElements;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_ProgressBar.SetMax(Value: aFloat);
 Begin
 
-  fMax := Value;
-  SetUIElements;
-  Paint;
+  If fMax <> Value Then Begin
+    fMax := Value;
+    SetUIElements;
+    Paint;
+  End;
 
 End;
 
 Procedure SP_ProgressBar.SetPos(Value: aFloat);
 Begin
 
-  fPosition := Value;
-  If fPosition < fMin Then fPosition := fMin;
-  If fPosition > fMax Then fPosition := fMax;
+  If fPosition <> Value Then Begin
+    fPosition := Value;
+    If fPosition < fMin Then fPosition := fMin;
+    If fPosition > fMax Then fPosition := fMax;
 
-  If fCapType = spPercent Then Begin
-    fCaption := IntToString(Round(((fPosition - fMin)/(fMax - fMin)) * 100)) + '%';
-  End Else
-    If fCapType = spValue Then Begin
-      fCaption := aString(aFloatToStr(fPosition));
-    End;
+    If fCapType = spPercent Then Begin
+      fCaption := IntToString(Round(((fPosition - fMin)/(fMax - fMin)) * 100)) + '%';
+    End Else
+      If fCapType = spValue Then Begin
+        fCaption := aString(aFloatToStr(fPosition));
+      End;
 
-  If Assigned(fOnChange) Then
-    fOnChange(Self);
+    If Assigned(fOnChange) Then
+      fOnChange(Self);
 
-  SetUIElements;
-  Paint;
+    SetUIElements;
+    Paint;
+  End;
 
 End;
 
@@ -407,13 +438,13 @@ Begin
 
   if s <> '' Then Begin
     if s[1] = '0' Then
-      fCapType := spUser
+      CapType := spUser
     else
       if s[1] = '1' Then
-        fCapType := spPercent
+        CapType := spPercent
       else
         if s[1] = '2' Then
-          fCapType := spValue;
+          CapType := spValue;
 
     Paint;
 

@@ -2967,7 +2967,7 @@ Begin
   If Not BLOCKSPRITES Then Begin
     BLOCKSPRITES := True;
     Repeat
-      CB_YIELD;
+      CB_YIELD(FRAME_MS);
     Until Not DRAWINGSPRITES;
   End;
 

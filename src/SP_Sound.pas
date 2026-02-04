@@ -447,7 +447,7 @@ Begin
       SoundEnabled := (BASS_ErrorGetCode = 0) And SoundEnabled;
       If SoundEnabled Then
         Repeat
-          CB_YIELD;
+          CB_YIELD(0.1);
         Until BASS_ChannelGetPosition(Channel, BASS_POS_BYTE) >= 0;
     End;
 
@@ -1687,7 +1687,7 @@ Begin
 
       // Wait for the sample to finish. Pressing ESC will BREAK, other keys are ignored.
 
-      While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (KEYSTATE[K_Escape] = 0) Do CB_YIELD;
+      While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (KEYSTATE[K_Escape] = 0) Do CB_YIELD(1);
       If KEYSTATE[K_Escape] = 1 Then BREAKSIGNAL := True;
 
       BASS_SampleFree(Sample);
@@ -1784,7 +1784,7 @@ Const
             Inc(i);
             While (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
               CheckMessages;
-              CB_YIELD;
+              CB_YIELD(CurNoteLen_Ticks);
             End;
             Ticks := Ticks + ((1/(96/CurNoteLen)) * (60 / CurTempo) * 4 * 1000);
           End;
@@ -1902,7 +1902,7 @@ Const
                 BASS_ChannelPlay(Channel, True);
                 While (BASS_ChannelIsActive(Channel) = BASS_ACTIVE_PLAYING) And (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
                   CheckMessages;
-                  CB_YIELD;
+                  CB_YIELD(CurNoteLen_Ticks);
                 End;
                 BASS_SampleFree(Sample);
                 Ticks := Ticks + CurNoteLen_Ticks;
@@ -1913,7 +1913,7 @@ Const
               SendMIDIBytes([(CurMIDIVoice -1) or $90, Trunc(Pitch + 60), CurVolume * 8, 0]);
               While (CB_GETTICKS - Ticks < CurNoteLen_Ticks) And Not Halted Do Begin
                 CheckMessages;
-                CB_YIELD;
+                CB_YIELD(CurNoteLen_Ticks);
               End;
               SendMIDIBytes([(CurMIDIVoice -1) or $80, Trunc(Pitch + 60), $40, 0]);
               Ticks := Ticks + CurNoteLen_Ticks;
@@ -2221,7 +2221,7 @@ Begin
   ErrorCode := SP_ERR_OK;
 
   While PLAYSessionIsActive(SessionID) Do
-    CB_YIELD;
+    CB_YIELD(1);
 
 End;
 
@@ -2251,7 +2251,7 @@ Begin
   ErrorCode := SP_ERR_OK;
 
   Repeat
-    CB_YIELD;
+    CB_YIELD(1);
     AllPlaying := True;
     For i := 0 To High(PLAYPool) Do
       AllPlaying := AllPlaying And PLAYPool[i].Playing;
@@ -2528,7 +2528,7 @@ Begin
   If i = -1 Then Begin
     If Assigned(BEEPMonitor) Then
       BEEPMonitor.Terminate;
-    While Length(PLAYPool) > 0 Do CB_YIELD;
+    While Length(PLAYPool) > 0 Do CB_YIELD(1);
   End;
 
 End;

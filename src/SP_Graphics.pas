@@ -112,6 +112,7 @@ Procedure SP_DrawSolidCircle(CX, CY, R: Integer);
 
 Procedure SP_SetPixel(X, Y: aFloat);
 Procedure SP_DrawCurve(CurveStartX, CurveStartY, X, Y, CurveEndX, CurveEndY: aFloat; N: Integer);
+Procedure SP_DrawCurveAdaptive(x1, y1, cx, cy, x2, y2: aFloat);
 Procedure SP_GetRegion(Src: pByte; SrcW, SrcH: LongWord; Var Dest: aString; rX, rY, rW, rH, T: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_PutRegion(Dst: pByte; dX, dY: Integer; dW, dH: LongWord; Src: pByte; SrcLen: Integer; RotAngle, Scale: aFloat; Var cX1, cY1, cX2, cY2: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_PutRegion_NO_OVER(Dst: pByte; dX, dY: Integer; dW, dH: LongWord; Src: pByte; SrcLen: Integer; Var cX1, cY1, cX2, cY2: Integer; Var Error: TSP_ErrorCode);
@@ -659,7 +660,7 @@ const
 Begin
   if SP_Display.IsPerformingDisplayChange or QUITMSG then
   begin
-    CB_YIELD; // Interpreter thread just yields a bit, doesn't get stuck
+    CB_YIELD(1); // Interpreter thread just yields a bit, doesn't get stuck
     Exit;
   end;
   if Assigned(FrameProcessedEvent) then
@@ -674,7 +675,7 @@ Begin
   end
   else
   begin
-    CB_YIELD; // Fallback if event not set up
+    CB_YIELD(1); // Fallback if event not set up
   end;
 End;
 
@@ -1417,7 +1418,7 @@ Begin
       SIZINGMAIN := True;
       CB_SetScreenRes(Window^.WIDTH, Window^.HEIGHT, SCALEWIDTH, SCALEHEIGHT, FullScreen, AllowResize);
       Repeat
-        CB_YIELD;
+        CB_YIELD(FRAME_MS);
       Until Not SIZINGMAIN;
       SP_CLS(CPAPER);
       MOUSEVISIBLE := OldMouse;
@@ -2179,6 +2180,10 @@ Var
   End;
 
 Begin
+
+  Ink := Ink And $FF;
+  If Paper <> -1 Then
+    Paper := Paper And $FF;
 
   ForceNextChar := False;
   If T_INVERSE <> 0 Then Begin
@@ -4039,7 +4044,7 @@ Begin
 
   t := 0;
 
-  For Idx := 1 to N Do Begin
+  For Idx := 0 to N Do Begin
 
     omt := (1 - t);
     omt2 := omt * omt;
@@ -4049,6 +4054,35 @@ Begin
     SP_DrawLine(omt2 * CurveStartX + omt2t * X + t2 * CurveEndX - DRPOSX, omt2 * CurveStartY + omt2t * Y + t2 * CurveEndY - DRPOSY);
 
   End;
+
+End;
+
+Procedure SP_DrawCurveAdaptive(x1, y1, cx, cy, x2, y2: aFloat);
+const
+  FLATNESS_TOLERANCE = 0.5;
+  MAX_RECURSION = 10;
+
+  Procedure Recurse(p1x, p1y, cp1x, cp1y, p2x, p2y: aFloat; Level: Integer);
+  Var
+    m1x, m1y, m2x, m2y, mx, my: aFloat;
+  Begin
+    If (Level > MAX_RECURSION) or (Abs(p1x + p2x - 2 * cp1x) + Abs(p1y + p2y - 2 * cp1y) < FLATNESS_TOLERANCE) Then
+      SP_DrawLine(p2x - DRPOSX, p2y - DRPOSY)
+    Else Begin
+      m1x := (p1x + cp1x) * 0.5;
+      m1y := (p1y + cp1y) * 0.5;
+      m2x := (cp1x + p2x) * 0.5;
+      m2y := (cp1y + p2y) * 0.5;
+      mx := (m1x + m2x) * 0.5;
+      my := (m1y + m2y) * 0.5;
+      Recurse(p1x, p1y, m1x, m1y, mx, my, Level + 1);
+      Recurse(mx, my, m2x, m2y, p2x, p2y, Level + 1);
+    End;
+  End;
+
+Begin
+
+  Recurse(x1, y1, cx, cy, x2, y2, 0);
 
 End;
 
@@ -5445,6 +5479,9 @@ Begin
     SP_FlushOUTBuffer(pInfo);
 
   End Else Begin
+
+    Ink := Ink And $FF;
+    Paper := Paper And $FF;
 
     If T_INVERSE <> 0 Then Begin
       Idx := Ink;

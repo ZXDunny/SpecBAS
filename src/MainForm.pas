@@ -80,7 +80,7 @@ type
     Procedure Execute; Override;
   End;
 
-  Procedure YieldProc; inline;
+  Procedure YieldProc(const ms: aFloat); inline;
   Procedure MsgProc; inline;
   Procedure GetKeyState;
   Function  GetTicks: aFloat;
@@ -542,7 +542,7 @@ begin
   End;
 
   While InterpreterThreadAlive {$IFDEF RefreshThread} And RefreshThreadAlive{$ENDIF} Do
-    CB_YIELD;
+    CB_YIELD(1);
 
   PARAMS.Free;
 
@@ -1146,10 +1146,10 @@ Begin
 
 End;
 
-Procedure YieldProc; inline;
+Procedure YieldProc(const ms: aFloat); inline;
 Begin
 
-  TThread.Sleep(1);
+  SmartSleep(1);
   LASTINKEYFRAME := FRAMES;
 
 End;

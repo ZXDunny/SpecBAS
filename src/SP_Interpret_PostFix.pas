@@ -245,6 +245,7 @@ Procedure SP_Interpret_FN_ASNH(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_ACSH(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_ATNH(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_LN(Var Info: pSP_iInfo);
+Procedure SP_Interpret_FN_LOG(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_EXP(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_INT(Var Info: pSP_iInfo);
 Procedure SP_Interpret_FN_SQR(Var Info: pSP_iInfo);
@@ -7190,7 +7191,7 @@ Begin
   Inc(SP_StackPtr);
   // Important - yield CPU if necessary to ensure that
   // keyboard messages are processed
-  If FRAMES <> LASTINKEYFRAME Then CB_YIELD;
+  If FRAMES <> LASTINKEYFRAME Then CB_YIELD(1);
   // Now get the keyboard state
   With SP_StackPtr^ Do Begin
     Str := GetLastKeyChar;
@@ -7204,7 +7205,7 @@ Begin
   // Like INKEY$ but returns a raw keycode -
   // for keys like F1 to F12 that don't have an ascii char representation
   Inc(SP_StackPtr);
-  If FRAMES <> LASTINKEYFRAME Then CB_YIELD;
+  If FRAMES <> LASTINKEYFRAME Then CB_YIELD(1);
   With SP_StackPtr^ Do Begin
     Val := GetLastKeyCode;
     If KEYSTATE[K_ESCAPE] = 1 Then BreakSignal := True;
@@ -7571,6 +7572,15 @@ Begin
     SP_StackPtr^.Val := Ln(SP_StackPtr^.Val)
   Else Begin
     Info^.Error^.Code := SP_ERR_INVALID_ARGUMENT;
+  End;
+End;
+
+Procedure SP_Interpret_FN_LOG(Var Info: pSP_iInfo);
+Begin
+  If SP_StackPtr^.Val > 0 Then
+    SP_StackPtr^.Val := Log10(SP_StackPtr^.Val)
+  Else Begin
+    SP_StackPtr^.Val := 0;
   End;
 End;
 
@@ -10376,7 +10386,7 @@ Begin
 RunIt :
 
   While Length(ActiveKeys) <> 0 Do
-    CB_YIELD;
+    CB_YIELD(FRAME_MS);
 
   SP_CLS(CPAPER);
   SP_GOSUB_STACKLEN := MAXDEPTH;
@@ -11517,11 +11527,11 @@ Begin
   If Delay > 0 Then Begin
     Delay := FRAMES + Delay;
     Repeat
-      CB_YIELD;
+      CB_YIELD(FRAME_MS);
     Until (FRAMES >= Delay) or (Length(ActiveKeys) <> 0) or QUITMSG;
   End Else
     Repeat
-      CB_YIELD;
+      CB_YIELD(FRAME_MS);
     Until (Length(ActiveKeys) <> 0) or QUITMSG;
 
   If KEYSTATE[K_ESCAPE] = 1 Then BreakSignal := True;
@@ -12372,10 +12382,16 @@ Begin
     Y2 := (SCREENHEIGHT - 1) - Y2;
   End;
 
-  If SCREENBPP = 8 Then
-    SP_DrawCurve(DRPOSX, DRPOSY, X1, Y1, X2, Y2, N)
-  Else
-    SP_DrawCurve32(DRPOSX, DRPOSY, X1, Y1, X2, Y2, N);
+  If N = 0 Then Begin
+    If SCREENBPP = 8 Then
+      SP_DrawCurveAdaptive(DRPOSX, DRPOSY, X1, Y1, X2, Y2)
+    Else
+      SP_DrawCurveAdaptive32(DRPOSX, DRPOSY, X1, Y1, X2, Y2);
+  End Else
+    If SCREENBPP = 8 Then
+      SP_DrawCurve(DRPOSX, DRPOSY, X1, Y1, X2, Y2, N)
+    Else
+      SP_DrawCurve32(DRPOSX, DRPOSY, X1, Y1, X2, Y2, N);
 
   SP_NeedDisplayUpdate := True;
 
@@ -12415,10 +12431,16 @@ Begin
   DRPOSY := Y1;
 
   SKIPFIRSTPOINT := False;
-  If SCREENBPP = 8 Then
-    SP_DrawCurve(X1, Y1, X2, Y2, X3, Y3, N)
-  Else
-    SP_DrawCurve32(X1, Y1, X2, Y2, X3, Y3, N);
+  If N <> 0 Then Begin
+    If SCREENBPP = 8 Then
+      SP_DrawCurve(X1, Y1, X2, Y2, X3, Y3, N)
+    Else
+      SP_DrawCurve32(X1, Y1, X2, Y2, X3, Y3, N);
+  End Else
+    If SCREENBPP = 8 Then
+      SP_DrawCurveAdaptive(X1, Y1, X2, Y2, X3, Y3)
+    Else
+      SP_DrawCurveAdaptive32(X1, Y1, X2, Y2, X3, Y3);
 
   SP_NeedDisplayUpdate := True;
 
@@ -15023,7 +15045,7 @@ End;
 Procedure SP_Interpret_YIELD(Var Info: pSP_iInfo);
 Begin
 
-  CB_Yield;
+  CB_Yield(1);
 
 End;
 
@@ -16136,7 +16158,7 @@ Begin
     SP_NeedDisplayUpdate := False;
     SP_ForceScreenUpdate;
     While (CB_GETTICKS < TargetTicks) And (KEYSTATE[K_ESCAPE] = 0) And Not (BREAKSIGNAL Or QUITMSG) Do
-      CB_YIELD;
+      CB_YIELD(FRAME_MS);
     SCREENLOCK := OldScreenLock;
   End Else
     If Delay = 0 Then // WAIT SCREEN - forces a display update
@@ -16145,7 +16167,7 @@ Begin
       CurrentTicks := Round(CB_GetTicks);
       TargetTicks := CurrentTicks + Delay;
       Repeat
-        if Delay >= 10 then CB_YIELD;
+        if Delay >= 10 then CB_YIELD(FRAME_MS);
       Until (CB_GetTicks >= TargetTicks) or (KEYSTATE[K_ESCAPE] = 1) or BREAKSIGNAL or QUITMSG;
     End;
 
@@ -26572,7 +26594,10 @@ Begin
     Y2 := (SCREENHEIGHT - 1) - Y2;
   End;
 
-  SP_DrawCurve32Alpha(DRPOSX, DRPOSY, X1, Y1, X2, Y2, N);
+  If N <> 0 Then
+    SP_DrawCurve32Alpha(DRPOSX, DRPOSY, X1, Y1, X2, Y2, N)
+  Else
+    SP_DrawCurveAdaptive32Alpha(DRPOSX, DRPOSY, X1, Y1, X2, Y2);
   SP_NeedDisplayUpdate := True;
 
 End;
@@ -26614,7 +26639,10 @@ Begin
   DRPOSY := Y1;
 
   SKIPFIRSTPOINT := False;
-  SP_DrawCurve32Alpha(X1, Y1, X2, Y2, X3, Y3, N);
+  If N <> 0 Then
+    SP_DrawCurve32Alpha(X1, Y1, X2, Y2, X3, Y3, N)
+  Else
+    SP_DrawCurveAdaptive32Alpha(X1, Y1, X2, Y2, X3, Y3);
   SP_NeedDisplayUpdate := True;
 
 End;
@@ -28376,6 +28404,7 @@ Initialization
   InterpretProcs[SP_FN_ACSH] := @SP_Interpret_FN_ACSH;
   InterpretProcs[SP_FN_ATNH] := @SP_Interpret_FN_ATNH;
   InterpretProcs[SP_FN_LN] := @SP_Interpret_FN_LN;
+  InterpretProcs[SP_FN_LOG] := @SP_Interpret_FN_LOG;
   InterpretProcs[SP_FN_EXP] := @SP_Interpret_FN_EXP;
   InterpretProcs[SP_FN_INT] := @SP_Interpret_FN_INT;
   InterpretProcs[SP_FN_SQR] := @SP_Interpret_FN_SQR;

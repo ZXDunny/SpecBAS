@@ -22,13 +22,20 @@ unit SP_Strings;
 
 interface
 
-Uses SysUtils, Math, SP_Util, SP_Errors, SP_Tokenise;
+Uses SysUtils, StrUtils, Math, SP_Util, SP_Errors, SP_Tokenise;
 
 Type
 
-  TBackRef = Record
-    RegExp, Matched: aString;
+  TTokenKind = (tkChar, tkSet, tkAny, tkStartAnchor, tkEndAnchor, tkEnd);
+
+  TRegexToken = Record
+    Kind: TTokenKind;
+    Data: aString;      // Holds the char, or the set of chars 'abc..z'
+    Min, Max: Integer;  // Quantifiers: {0,1}, {0,Max}, {1,Max}
+    Negate: Boolean;    // For [^...] sets
   End;
+
+  TCompiledRegex = Array of TRegexToken;
 
   TUsingItem = Record
     Kind: Byte;       // 0 = Value, 1 = String
@@ -36,11 +43,30 @@ Type
     Text: aString;
   End;
 
+  // Internal record to hold the "Rules" for a specific numeric field
+  TNumericMask = Record
+    IsValid: Boolean;
+    TotalWidth: Integer;      // How many chars wide (min)
+    Decimals: Integer;        // Digits after dot
+    HasDot: Boolean;
+    ThousandSep: Boolean;     // Insert commas
+    Currency: aString;         // '$', '£', or ''
+    SignMode: (smNone, smMinusOnly, smAlways); // '', '-', '+'
+    FillChar: aChar;           // The character to pad with (default space)
+    IsLiteral: Boolean;       // Used if we parsed a literal instead of a field
+    LiteralChar: aChar;
+  End;
+
+  // Internal record for string fields
+  TStringMask = Record
+    IsValid: Boolean;
+    Mode: (smFirst, smAll, smPartial);
+    Len: Integer;
+  End;
+
 // Regular Expression engine
 
 Function SP_Regexp(RegExp, Text: aString; Var Index: Integer; Var Error: TSP_ErrorCode): Integer;
-Function SP_Match(Const RegExp, Text: aString; rIdx: Integer; Var tIdx: Integer; Var Match: aString; Var Error: TSP_ErrorCode): Boolean;
-Function SP_MatchOneOf(Matches: aString; txPtr: pByte; Literal: Boolean; Var Accum: aString): Boolean;
 
 // USING and USING$ functionality
 
@@ -50,541 +76,266 @@ implementation
 
 // RegExp engine. Supports:
 //
+// ^     Matches the start of the string (Anchored start)
+// $     Matches the end of the string (Anchored end)
 // .     Match any character
 // *     Match any number (or none) of the preceding item
 // +     Match at least one of the preceding item
 // ?     Match none, or once only
-// []    creates a set of matches that must match at least one
-// [-[]] inserts a list of subtractions into a set of matches
-// [^]   creates a set of matches that must not match
-// |     separates optional regexes
-// ()    Creates a sub-expression
-// {m}   Repeats the previous item m times
-// {m,}  Repeats the previous item at least m times
-// {,n}  Match optionally no more than n times
-// {m,n} Repeats the previous item at least m and not more than n times
-// $     Matches the end of the string
-// ^     Matches the start of the string
-// \     Escape a character
-// \n    Recalls a sub-expression's match, local to the current regex or sub-expression
-// \xFF  Matches the character represented by the Hexadecimal number given
+// []    Creates a set of matches (e.g. [abc] or [a-z])
+// [^]   Creates a set of matches that must NOT match (e.g. [^0-9])
+// \     Escape a character (treats next char as literal)
+// \d    Matches any digit [0-9]
+// \D    Matches any non-digit [^0-9]
+// \w    Matches any word character [a-z, A-Z, 0-9, _]
+// \W    Matches any non-word character
+// \s    Matches whitespace [Space, Tab]
+// \S    Matches non-whitespace
+// \n    Matches Newline (#10)
+// \r    Matches Carriage Return (#13)
+// \t    Matches Tab (#9)
+// \xHH  Matches the character represented by the Hexadecimal number given
 
-Function SP_RegExp(RegExp, Text: aString; Var Index: Integer; Var Error: TSP_ErrorCode): Integer;
+Function CompileRegExp(Const RegExp: aString; Var Error: TSP_ErrorCode): TCompiledRegex;
 Var
-  rIdx, tIdx, ctIdx, txLen: Integer;
-  Match: aString;
-Begin
+  i, Len, HexVal: Integer;
+  sData: aString;
+  SetNegated: Boolean;
 
-  // Performs regular expression matching of RegExp onto Text. Returns the position
-  // of the first match. This is just the wrapper function called by the interpreter.
-  // Returns the last matched character in Index, for counting purposes.
+  // Define standard sets for \w, \d etc
+  const
+    // Note: Constructing these strings is a bit "heavy" but standard for this approach
+    cDigits = '0123456789';
+    cWord   = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';
+    cSpace  = ' ' + #9; // Space and Tab
 
-  If RegExp = '' Then
-
-    Result := 0
-
-  Else Begin
-
-    ctIdx := Index -1;
-    Result := 0;
-    txLen := Length(Text) +1;
-
-    While Result = 0 Do Begin
-
-      rIdx := 1;
-      Inc(ctIdx);
-      tIdx := ctIdx;
-      If tIdx = txLen Then Exit;
-
-      If SP_Match(RegExp, Text, rIdx, tIdx, Match, Error) Then Begin
-        Result := ctIdx;
-        Index := tIdx;
-      End Else
-        Result := 0;
-
-      If Error.Code <> SP_ERR_OK Then Exit;
-
+  // (Helper AddToken same as before, with the variable name fix applied)
+  Procedure AddToken(aKind: TTokenKind; aData: aString; aMin, aMax: Integer; aNeg: Boolean = False);
+  Begin
+    SetLength(Result, Length(Result) + 1);
+    With Result[High(Result)] Do Begin
+      Kind := aKind; Data := aData; Min := aMin; Max := aMax; Negate := aNeg;
     End;
-
   End;
 
+  Function HexToInt(C1, C2: aChar): Integer;
+  Var
+    C: aChar;
+  Begin
+    // Helper to convert 2 chars to int
+    // High nibble
+    C := UpCase(C1);
+    If C in ['0'..'9'] Then Result := (Ord(C)-48) Shl 4 Else Result := (Ord(C)-55) Shl 4;
+    // Low nibble
+    C := UpCase(C2);
+    If C in ['0'..'9'] Then Result := Result + (Ord(C)-48) Else Result := Result + (Ord(C)-55);
+  End;
+
+  Procedure ParseCharSet;
+  Var StartSet, RangeStart, RangeEnd: Integer;
+  Begin
+    sData := ''; SetNegated := False;
+    Inc(i); // Skip '['
+    If (i <= Len) and (RegExp[i] = '^') Then Begin SetNegated := True; Inc(i); End;
+
+    StartSet := i;
+    While i <= Len Do Begin
+      If (RegExp[i] = ']') and (i > StartSet) Then Begin Inc(i); Exit; End;
+
+      If (RegExp[i] = '-') and (i > StartSet) and (i < Len) and (RegExp[i+1] <> ']') Then Begin
+        RangeStart := Ord(sData[Length(sData)]) + 1;
+        Inc(i); // Skip '-'
+        RangeEnd := Ord(RegExp[i]);
+        While RangeStart <= RangeEnd Do Begin sData := sData + aChar(RangeStart); Inc(RangeStart); End;
+        Inc(i);
+      End Else Begin
+        If RegExp[i] = '\' Then Begin Inc(i); End;
+        if i <= Len then sData := sData + RegExp[i];
+        Inc(i);
+      End;
+    End;
+  End;
+
+Begin
+  i := 1; Len := Length(RegExp); SetLength(Result, 0);
+
+  While i <= Len Do Begin
+    Case RegExp[i] of
+      '^': Begin AddToken(tkStartAnchor, '', 1, 1); Inc(i); End;
+      '$': Begin AddToken(tkEndAnchor, '', 1, 1); Inc(i); End;
+      '.': Begin AddToken(tkAny, '', 1, 1); Inc(i); End;
+      '[': Begin ParseCharSet; AddToken(tkSet, sData, 1, 1, SetNegated); End;
+      '\': Begin
+             Inc(i); // Move past the backslash
+             If i <= Len Then Begin
+               Case RegExp[i] of
+                 // Hexadecimal \xFF
+                 'x': Begin
+                        If i + 2 <= Len Then Begin
+                          HexVal := HexToInt(RegExp[i+1], RegExp[i+2]);
+                          AddToken(tkChar, aChar(HexVal), 1, 1);
+                          Inc(i, 3);
+                        End Else Begin
+                          // Malformed hex, treat 'x' as literal
+                          AddToken(tkChar, 'x', 1, 1);
+                          Inc(i);
+                        End;
+                      End;
+
+                 // Shorthand Classes
+                 'd': Begin AddToken(tkSet, cDigits, 1, 1); Inc(i); End;
+                 'D': Begin AddToken(tkSet, cDigits, 1, 1, True); Inc(i); End; // Negated
+                 'w': Begin AddToken(tkSet, cWord, 1, 1); Inc(i); End;
+                 'W': Begin AddToken(tkSet, cWord, 1, 1, True); Inc(i); End;   // Negated
+                 's': Begin AddToken(tkSet, cSpace, 1, 1); Inc(i); End;
+                 'S': Begin AddToken(tkSet, cSpace, 1, 1, True); Inc(i); End;  // Negated
+
+                 // Common Escapes
+                 'n': Begin AddToken(tkChar, #10, 1, 1); Inc(i); End;
+                 'r': Begin AddToken(tkChar, #13, 1, 1); Inc(i); End;
+                 't': Begin AddToken(tkChar, #9, 1, 1); Inc(i); End;
+
+                 // Any other character (e.g. \. or \\) is a literal
+                 Else Begin
+                   AddToken(tkChar, RegExp[i], 1, 1);
+                   Inc(i);
+                 End;
+               End;
+             End;
+           End;
+      Else
+        Begin
+          AddToken(tkChar, RegExp[i], 1, 1);
+          Inc(i);
+        End;
+    End;
+
+    // Check Quantifiers (*, +, ?)
+    If (Length(Result) > 0) and (i <= Len) Then Begin
+      Case RegExp[i] of
+        '*': Begin Result[High(Result)].Min := 0; Result[High(Result)].Max := MaxInt; Inc(i); End;
+        '+': Begin Result[High(Result)].Min := 1; Result[High(Result)].Max := MaxInt; Inc(i); End;
+        '?': Begin Result[High(Result)].Min := 0; Result[High(Result)].Max := 1; Inc(i); End;
+      End;
+    End;
+  End;
+  AddToken(tkEnd, '', 0, 0);
 End;
 
-Function SP_Match(Const RegExp, Text: aString; rIdx: Integer; Var tIdx: Integer; Var Match: aString; Var Error: TSP_ErrorCode): Boolean;
+// -----------------------------------------------------------------------------
+// MATCHER: Recursive Backtracking Engine
+// -----------------------------------------------------------------------------
+Function MatchRecursive(Const Tokens: TCompiledRegex; TknIdx: Integer; Const Text: aString; TxtIdx: Integer; Var MatchLen: Integer): Boolean;
 Var
-  MatchList, SubExpr, SubMatch: aString;
-  RgLen, TxLen, Idx, BraceCount, Count, ctIdx, m, n: Integer;
-  rgPtr, rgEnd, rgAnchor: pByte;
-  Literal, Matched: Boolean;
-  SubExprs: Array of aString;
-  NumSubExprs: Integer;
-  Chr: aChar;
-Label
-  Start, NextOption, Finish;
+  Token: TRegexToken;
+  i, MatchCount, Limit: Integer;
 
-  Function StrToInt(Const Text: aString; Var Position: Integer): Integer;
+  Function MatchesChar(C: aChar): Boolean;
   Begin
-    If Text[Position] in ['0'..'9'] Then Begin
-      Result := 0;
-      While (Position <= Length(Text)) And (Text[Position] in ['0'..'9']) Do Begin
-        Result := (Result * 10) + Ord(Text[Position]) - 48;
-        Inc(Position);
-      End;
-    End Else
-      Result := -1;
-  End;
-
-  Procedure ProcessSubtraction(Var MatchList: aString; Var Ptr, EndPtr: pByte);
-  Var
-    SubtractionList: aString;
-    Idx, Psn: Integer;
-    Chr: aChar;
-  Begin
-    SubtractionList := '';
-    While Ptr <> EndPtr Do Begin
-      If Ptr^ = Ord('-') Then Begin
-        Inc(Ptr);
-        If (Ptr = EndPtr) or (Ptr^ = Ord(']')) or (SubtractionList = '+') or (SubtractionList = '-') Then
-          SubtractionList := SubtractionList + '-'
-        Else Begin
-          For Idx := Ord(SubtractionList[Length(SubtractionList)])+1 To Ptr^ Do
-            SubtractionList := SubtractionList + aChar(Idx);
-          Inc(Ptr);
-          If (Ptr < EndPtr -1) And (Ptr^ = Ord('-')) and (pByte(Ptr +1)^ = Ord('[')) Then Begin
-            Inc(Ptr, 2);
-            ProcessSubtraction(SubtractionList, Ptr, EndPtr);
-          End Else
-            Dec(Ptr);
-        End;
-      End Else
-        If Ptr^ = Ord(']') Then Begin
-          If SubtractionList = '' Then
-            SubtractionList := SubtractionList + ']'
-          Else
-            Break;
-        End Else
-          If Ptr^ = Ord('\') Then Begin
-            Inc(Ptr);
-            If Ptr = EndPtr Then
-              SubtractionList := SubtractionList + '\'
-            Else
-              SubtractionList := SubtractionList + aChar(Ptr^);
-          End Else
-            SubtractionList := SubtractionList + aChar(Ptr^);
-      Inc(Ptr);
-    End;
-    If MatchList[1] = '+' Then Begin
-      For Idx := 1 To Length(SubtractionList) Do Begin
-        Chr := SubtractionList[Idx];
-        Repeat
-          Psn := Pos(Chr, MatchList);
-          If Psn > 1 Then
-            MatchList := Copy(MatchList, 1, Psn -1) + Copy(MatchList, Psn +1, Length(MatchList));
-        Until Psn < 2;
-      End;
-    End Else Begin
-      For Idx := 1 To Length(SubtractionList) Do Begin
-        Chr := SubtractionList[Idx];
-        Repeat
-          Psn := Pos(Chr, MatchList);
-          If Psn < 2 Then
-            MatchList := MatchList + Chr;
-        Until Psn < 2;
-      End;
+    Case Token.Kind of
+      tkAny:  Result := True;
+      tkChar: Result := C = Token.Data[1];
+      tkSet:  Result := (Pos(C, Token.Data) > 0) Xor Token.Negate;
+      Else    Result := False;
     End;
   End;
 
 Begin
+  // 1. Success condition: End of Regex
+  If (TknIdx > High(Tokens)) or (Tokens[TknIdx].Kind = tkEnd) Then Begin
+    MatchLen := TxtIdx; // Return where we finished
+    Result := True;
+    Exit;
+  End;
 
-  // The meat of the regular expression parser.
-  // Start by picking up a valid matchable character.
+  Token := Tokens[TknIdx];
+
+  // 2. Handle Anchors
+  If Token.Kind = tkStartAnchor Then Begin
+    // Only valid if we are at the very start of the string (assuming index 1 based)
+    // Note: The caller handles the loop, so here we just check if TxtIdx is 1
+    If TxtIdx <> 1 Then Exit(False);
+    Result := MatchRecursive(Tokens, TknIdx + 1, Text, TxtIdx, MatchLen);
+    Exit;
+  End;
+  If Token.Kind = tkEndAnchor Then Begin
+    If TxtIdx > Length(Text) Then
+      Result := MatchRecursive(Tokens, TknIdx + 1, Text, TxtIdx, MatchLen)
+    Else
+      Result := False;
+    Exit;
+  End;
+
+  // 3. Greedy Matching logic for Char, Set, Any
+
+  // Max characters we can possibly consume
+  If Token.Max = MaxInt Then Limit := Length(Text) - TxtIdx + 1 Else Limit := Token.Max;
+
+  // Consume as many as possible
+  MatchCount := 0;
+  While (MatchCount < Limit) and (TxtIdx + MatchCount <= Length(Text)) Do Begin
+    If MatchesChar(Text[TxtIdx + MatchCount]) Then Inc(MatchCount) Else Break;
+  End;
+
+  // 4. Backtracking Loop
+  // If we found enough to satisfy Min, try to match the REST.
+  // If the REST fails, give up one char and try again.
+  If MatchCount >= Token.Min Then Begin
+    For i := MatchCount DownTo Token.Min Do Begin
+      If MatchRecursive(Tokens, TknIdx + 1, Text, TxtIdx + i, MatchLen) Then Begin
+        Result := True;
+        Exit;
+      End;
+    End;
+  End;
 
   Result := False;
-
-  Literal := False;
-  SubExpr := '';
-  Match := '';
-  NumSubExprs := 0;
-
-  ctIdx := tIdx;
-  RgLen := Length(RegExp);
-  rgEnd := pByte(@RegExp[RgLen]) +1;
-  TxLen := Length(Text);
-
-  Start:
-
-  While rIdx <= rgLen Do Begin
-
-    MatchList := '+';
-
-    Case RegExp[rIdx] of
-
-      '.': // Match any character
-          Begin
-            MatchList := '+.';
-          End;
-      '(': // A sub-expression, lookahead. Don't do anything yet, just collect it up to the closing
-           // bracket.
-          Begin
-            BraceCount := 1;
-            SubExpr := '';
-            While True Do Begin
-              Inc(rIdx);
-              If rIdx <= rgLen Then Begin
-                Case RegExp[rIdx] of
-                  '(':  Inc(BraceCount);
-                  ')':  Begin
-                          Dec(BraceCount);
-                          If BraceCount = 0 Then Break;
-                        End;
-                Else
-                  SubExpr := SubExpr + RegExp[rIdx];
-                End;
-              End Else Begin
-                Error.Code := SP_ERR_REGEXP_ERROR;
-                Goto Finish;
-              End;
-            End;
-            SetLength(SubExprs, Length(SubExprs) +1);
-            SubExprs[Length(SubExprs) -1] := '';
-            Inc(NumSubExprs);
-          End;
-      '[': // Create a list of characters to match, or not-match
-          Begin
-            Inc(rIdx);
-            MatchList := '+';
-            rgPtr := @RegExp[rIdx];
-            rgAnchor := rgPtr;
-            While rgPtr <> rgEnd Do Begin
-              If rgPtr^ = Ord('^') Then Begin
-                // a ^ character, if it's the first in the list, indicates
-                // that the following characters should *not* be matched. Otherwise
-                // It's a literal caret.
-                If Matchlist = '+' Then
-                  Matchlist[1] := '-'
-                Else
-                  Matchlist := Matchlist + '^';
-              End Else
-                If rgPtr^ = Ord(']') Then Begin
-                  // A closing bracket - if it's the first (or second after the "^") character,
-                  // then it's a literal bracket. Otherwise it closes the list.
-                  If (Matchlist = '-') or (Matchlist = '+') Then
-                    Matchlist := Matchlist + ']'
-                  Else Begin
-                    Literal := True;
-                    Break;
-                  End;
-                End Else
-                  If rgPtr^ = Ord('-') Then Begin
-                    // a "-" denotes a sequence, such as "a-z" or "0-9". Unless it's the first (after the "^")
-                    // or last character, in which case it's a literal "-".
-                    Inc(rgPtr);
-                    If (rgPtr = rgEnd) or (rgPtr^ = Ord(']')) or (Matchlist = '+') or (Matchlist = '-') Then
-                      Matchlist := Matchlist + '-'
-                    Else Begin
-                      For Idx := Ord(Matchlist[Length(Matchlist)])+1 To rgPtr^ Do
-                        Matchlist := Matchlist + aChar(Idx);
-                      // After a - symbol, we can have a subtraction list. Subtraction lists can be
-                      // recursive, so beware of those. Starts with a "-[" and follows the usual rules.
-                      Inc(rgPtr);
-                      If (rgPtr < rgEnd -1) and (rgPtr^ = Ord('-')) and (pByte(rgPtr +1)^ = Ord('[')) Then Begin
-                        Inc(rgPtr, 2);
-                        ProcessSubtraction(MatchList, rgPtr, rgEnd);
-                      End Else
-                        Dec(rgPtr);
-                    End;
-                  End Else
-                    // A backslash denotes a literal character, unless it's the last char in the list,
-                    // where it's a literal backslash.
-                    If rgPtr^ = Ord('\') Then Begin
-                      Inc(rgPtr);
-                      If rgPtr = rgEnd Then
-                        Matchlist := Matchlist + '\'
-                      Else
-                        Matchlist := Matchlist + aChar(rgPtr^);
-                    End Else
-                      Matchlist := Matchlist + aChar(rgPtr^);
-              Inc(rgPtr);
-            End;
-            Inc(rIdx, rgPtr - rgAnchor);
-          End;
-      '$': // Match the end of the text
-          Begin
-            // If successful, then there's no more text to process,
-            // if unsuccessful then the regex has failed. So exit either way.
-            Result := tIdx = txLen +1;
-            Goto Finish;
-          End;
-      '^': // Match the beginning of the text
-          Begin
-            // If we're not at the start, then we should bail now.
-            If tIdx <> 1 Then Begin
-              Result := False;
-              Goto Finish;
-            End;
-          End;
-      '|': // Marks the start of an option - if there are characters left in the regex.
-           // If we encounter it, we should exit with a true result now, as we've successfully matched this far.
-          Begin
-            If rIdx = rgLen Then
-              MatchList := '+|'
-            Else Begin
-              Result := True;
-              Goto Finish;
-            End;
-          End;
-      '\': // A literal character. If it's a number, or sequence of numbers, then it's a backreference.
-           // Otherwise it's a character to be added to the matchlist.
-          Begin
-            Inc(rIdx);
-            MatchList := '+';
-            If RegExp[rIdx] in ['0'..'9'] Then Begin
-              Idx := StrToInt(RegExp, rIdx);
-              If (Idx >= 1) And (Idx <= NumSubExprs) Then
-                SubExpr := SubExprs[Idx -1]
-              Else Begin
-                Error.Code := SP_ERR_REGEXP_ERROR;
-                Goto Finish;
-              End;
-            End Else
-              If RegExp[rIdx] = 'x' Then Begin
-                Inc(rIdx);
-                Chr := Upper(RegExp[rIdx])[1];
-                If Chr in ['0'..'9'] Then
-                  Idx := Ord(Chr) - 48
-                Else
-                  If Chr in ['A'..'F'] Then
-                    Idx := Ord(Chr) - 55
-                  Else Begin
-                    Error.Code := SP_ERR_REGEXP_ERROR;
-                    Exit;
-                  End;
-                Inc(rIdx);
-                Chr := Upper(RegExp[rIdx])[1];
-                If Chr in ['0'..'9'] Then
-                  Idx := Idx + Ord(Chr) - 48
-                Else
-                  If Chr in ['A'..'F'] Then
-                    Idx := Idx + Ord(Chr) - 55
-                  Else Begin
-                    Error.Code := SP_ERR_REGEXP_ERROR;
-                    Exit;
-                  End;
-                MatchList := MatchList + aChar(Idx);
-              End Else
-                Begin
-                  MatchList := MatchList + RegExp[rIdx];
-                  Literal := True;
-                End;
-          End;
-    Else
-      Begin
-        // We've encountered a literal character.
-        MatchList := MatchList + RegExp[rIdx];
-      End;
-    End;
-
-    // Now check for modifiers - *,+,? - must have something to match here,
-    // either a subexpression or a matchlist
-
-    Inc(rIdx);
-
-    Case RegExp[rIdx] of
-
-      '*': // Match many, or none of the preceding item.
-        Begin
-          Matched := False;
-          Repeat
-            If Matchlist <> '+' Then Begin
-              Matched := SP_MatchOneOf(MatchList, @Text[tIdx], Literal, Match);
-              If Matched Then Inc(tIdx);
-            End Else
-              If SubExpr <> '' Then Begin
-                Idx := tIdx;
-                Matched := SP_Match(SubExpr, Text, 1, tIdx, SubMatch, Error);
-                If Not Matched Then tIdx := Idx Else SubExprs[Length(SubExprs)] := SubMatch;
-              End;
-            Until (Not Matched) or (tIdx > Length(Text));
-          Inc(rIdx);
-        End;
-      '+': // Match at least one of the preceding item.
-        Begin
-          Count := 0;
-          Matched := False;
-          Repeat
-            If Matchlist <> '+' Then Begin
-              Matched := SP_MatchOneOf(MatchList, @Text[tIdx], Literal, Match);
-              If Matched Then Inc(tIdx);
-            End Else
-              If SubExpr <> '' Then Begin
-                Idx := tIdx;
-                Matched := SP_Match(SubExpr, Text, 1, tIdx, SubMatch, Error);
-                If Not Matched Then tIdx := Idx Else SubExprs[Length(SubExprs)] := SubMatch;
-              End;
-            If Matched Then Inc(Count);
-          Until (Not Matched) or (tIdx > Length(Text));
-          If Count = 0 Then Goto NextOption;
-          Inc(rIdx);
-        End;
-      '?': // Match none, or one only of the preceding item.
-        Begin
-          If Matchlist <> '+' Then Begin
-            Matched := SP_MatchOneOf(MatchList, @Text[tIdx], Literal, Match);
-            If Matched Then Inc(tIdx);
-          End Else
-            If SubExpr <> '' Then Begin
-              Idx := tIdx;
-              Matched := SP_Match(SubExpr, Text, 1, tIdx, SubMatch, Error);
-              If Not Matched Then tIdx := Idx Else SubExprs[Length(SubExprs)] := SubMatch;
-            End;
-          Inc(rIdx);
-        End;
-      '{': // A minimal count definition. Valid ranges are:
-           // {m} Match the last item m times
-           // {m,} Match the last item at least m times
-           // {m,n} Match the last item at least m, and no more than n times
-           // {,n} Match optionally no more than n times
-          Begin
-            Inc(rIdx);
-            If RegExp[rIdx] = ',' Then
-              m := 0
-            Else
-              m := StrToInt(RegExp, rIdx);
-            If m >= 0 Then Begin
-              If RegExp[rIdx] = '}' Then Begin
-                Inc(rIdx);
-              End Else
-                If RegExp[rIdx] = ',' Then Begin
-                  Inc(rIdx);
-                  If RegExp[rIdx] = '}' Then Begin
-                    Inc(rIdx);
-                  End Else Begin
-                    n := StrToInt(RegExp, rIdx);
-                    If n < m Then Begin
-                      Error.Code := SP_ERR_REGEXP_ERROR;
-                      Goto Finish;
-                    End Else Begin
-                      Count := 0;
-                      Matched := False;
-                      Repeat
-                        If Matchlist <> '+' Then Begin
-                          Matched := SP_MatchOneOf(MatchList, @Text[tIdx], Literal, Match);
-                          If Matched Then Inc(tIdx);
-                        End Else
-                          If SubExpr <> '' Then Begin
-                            Idx := tIdx;
-                            Matched := SP_Match(SubExpr, Text, 1, tIdx, SubMatch, Error);
-                            If Not Matched Then tIdx := Idx Else SubExprs[Length(SubExprs)] := SubMatch;
-                          End;
-                        If Matched Then Inc(Count);
-                      Until Not Matched or ((Count = n) And (n > m));
-                      If Count < m Then Goto NextOption;
-                    End;
-                  End;
-                End Else Begin
-                  Error.Code := SP_ERR_REGEXP_ERROR;
-                  Goto Finish;
-                End;
-            End Else Begin
-              Error.Code := SP_ERR_REGEXP_ERROR;
-              Goto Finish;
-            End;
-          End;
-
-    Else
-
-      Begin
-
-        // If the above failed, then we've got an item followed by another item, so
-        // let's test to see if what we have so far matches! If it does, we inherit the new
-        // text position. If not, it gets reset anyway.
-
-        If (tIdx > txLen) And (rIdx <= rgLen) Then
-          Goto Finish;
-
-        If Matchlist <> '+' Then Begin
-
-          // This is a list of things to test.
-
-          If Not SP_MatchOneOf(MatchList, @Text[tIdx], Literal, Match) Then
-            Goto NextOption
-          Else Begin
-            Inc(tIdx);
-          End;
-
-        End Else
-
-          If SubExpr <> '' Then Begin
-
-            // We've collected a subexpression.
-
-            If Not SP_Match(SubExpr, Text, 1, tIdx, SubMatch, Error) Then
-              Goto NextOption
-            Else
-              SubExprs[Length(SubExprs) -1] := SubMatch;
-
-          End;
-
-      End;
-
-    End;
-
-  End;
-
-  Result := True;
-  Goto Finish;
-
-NextOption:
-
-  // We failed at this point, so need to check if there are any optional regexes included in this one.
-  // Test for a "|", but only if it's not in parentheses!
-
-  BraceCount := 0;
-
-  While rIdx <= rgLen Do Begin
-
-    Case RegExp[rIdx] of
-      '(': Inc(BraceCount);
-      ')': Dec(BraceCount);
-      '|': If BraceCount = 0 Then Begin
-              Inc(rIdx);
-              tIdx := ctIdx;
-              Goto Start;
-           End;
-    End;
-    Inc(rIdx);
-
-  End;
-
-  // Fall through here with no options found or matched.
-
-Finish:
-
-  SetLength(SubExprs, 0);
-
 End;
 
-Function SP_MatchOneOf(Matches: aString; txPtr: pByte; Literal: Boolean; Var Accum: aString): Boolean;
+// -----------------------------------------------------------------------------
+// MAIN WRAPPER: SP_RegExp
+// -----------------------------------------------------------------------------
+Function SP_RegExp(RegExp, Text: aString; Var Index: Integer; Var Error: TSP_ErrorCode): Integer;
 Var
-  NoneOf: Boolean;
+  Compiled: TCompiledRegex;
+  StartPos, EndPos: Integer;
 Begin
+  Result := 0; // Default: No match (0)
 
-  NoneOf := Matches[1] = '-';
-  Matches := Copy(Matches, 2, Length(Matches));
-  If NoneOf Then
-    Result := Pos(aChar(txPtr^), Matches) = 0
-  Else
-    If Not Literal And (Matches[1] = '.') Then
-      Result := True
-    Else
-      Result := Pos(aChar(txPtr^), Matches) <> 0;
+  If RegExp = '' Then Exit;
 
-  If Result Then
-    Accum := Accum + aChar(txPtr^);
+  // 1. Compile
+  // Note: For an interpreter, you might want to cache this based on RegExp string
+  // to avoid recompiling inside a loop.
+  Compiled := CompileRegExp(RegExp, Error);
+  If Error.Code <> SP_ERR_OK Then Exit;
 
+  // 2. Execute
+  // We loop through the text trying to find a match starting at StartPos
+  // The 'Index' parameter passed in is where we start scanning.
+
+  // Optimization: If regex starts with '^', only check at Index
+  If (Length(Compiled) > 0) and (Compiled[0].Kind = tkStartAnchor) Then Begin
+      If MatchRecursive(Compiled, 0, Text, Index, EndPos) Then
+        Result := 1;
+  End
+  Else Begin
+    // Standard substring search
+    For StartPos := Index To Length(Text) + 1 Do Begin
+      // Note: Length(Text)+1 allows matching an empty string at the very end or $
+      If MatchRecursive(Compiled, 0, Text, StartPos, EndPos) Then Begin
+        Result := 1; // Success
+        Index := EndPos; // Update Index to the end of the match (optional, but useful)
+        Break;
+      End;
+    End;
+  End;
+
+  // Clean up dynamic array (handled automatically by compiler usually, but good practice)
+  SetLength(Compiled, 0);
 End;
 
-// Begin USING$ mask parser -
+// USING$ mask parser -
 
 // Takes:
 // #    - specify a digit
@@ -601,280 +352,257 @@ End;
 // &    - insert all of the supplied string
 // [nn] - insert the first nn characters of the supplied string
 
+// Helper: Formats a specific number based on a parsed rule structure
+Function FormatNumberUsing(Val: aFloat; Rule: TNumericMask): aString;
+Var
+  S, IntPart, FracPart: aString;
+  I: Integer;
+  Neg: Boolean;
+Begin
+  // 1. Handle Rounding
+  if Rule.HasDot then
+    Val := SimpleRoundTo(Val, -Rule.Decimals) // Math unit
+  else
+    Val := Round(Val);
+
+  Neg := (Val < 0);
+  Val := Abs(Val);
+
+  // 2. Base String Conversion
+  if Rule.HasDot then
+    S := aString(FloatToStrF(Val, ffFixed, 18, Rule.Decimals))
+  else
+    S := aFloatToStr(Val);
+
+  // Split parts
+  if Pos('.', S) > 0 then begin
+    IntPart := Copy(S, 1, Pos('.', S) - 1);
+    FracPart := Copy(S, Pos('.', S) + 1, Length(S));
+  end else begin
+    IntPart := S;
+    FracPart := '';
+  end;
+
+  // 3. Insert Commas
+  if Rule.ThousandSep then begin
+    I := Length(IntPart) - 3;
+    While I > 0 do begin
+      Insert(',', IntPart, I + 1);
+      Dec(I, 3);
+    end;
+  end;
+
+  // 4. Assemble components (Sign + Currency + Integer)
+  S := IntPart;
+
+  // Add Currency
+  if Rule.Currency <> '' then
+    S := Rule.Currency + S;
+
+  // Add Sign
+  if Neg then
+    S := '-' + S
+  else if Rule.SignMode = smAlways then
+    S := '+' + S;
+
+  // 5. Append Decimal
+  if Rule.HasDot then
+    S := S + '.' + FracPart;
+
+  // 6. Padding / Fill
+  // Note: BASIC usually calculates the mask width (e.g. #### is 4 chars).
+  // If result is smaller, pad left.
+  if Length(S) < Rule.TotalWidth then
+    S := StringOfChar(Rule.FillChar, Rule.TotalWidth - Length(S)) + S;
+
+  Result := S;
+End;
+
+// Main Function
 Function SP_Using(Mask: aString; Items: Array of TUsingItem; Var Position: Integer): aString;
 Var
-  InsertCommas, AddDollar, AddPound, AddDecimal, GotField: Boolean;
-  SpacingLeft, SpacingRight: aChar;
-  iIdx, Idx, NumPreDigits, NumPostDigits, AddSign, StrWanted, l: Integer;
-  TempStr: aString;
+  MaskLen, ItemIdx, MaxItem: Integer;
+  MaskPtr: Integer; // Current cursor in the Mask string
 
-  Procedure ProcessField(Var Output: aString);
+  // Internal Parser for Numeric Fields
+  Function ParseNextNumeric(StartPos: Integer; out NextPos: Integer): TNumericMask;
   Var
-    Units, Decimals: aString;
-    Idx, Count: Integer;
-  Label
-    Finish;
+    P: Integer;
+    InFraction: Boolean;
   Begin
-    Output := '';
-    Case Items[iIdx].Kind Of
-      SP_VALUE: // Value
-        Begin
-          If Not AddDecimal Then
-            Items[iIdx].Value := Round(Items[iIdx].Value)
-          Else
-            If NumPostDigits > 0 Then
-              Items[iIdx].Value := RoundTo(Items[iIdx].Value, -NumPostDigits);
-          Output := aString(aFloatToStr(Abs(Items[iIdx].Value)));
-          If Pos('.', Output) > 0 Then Begin
-            Units := Copy(Output, 1, Pos('.', Output) -1);
-            Decimals := Copy(Output, Pos('.', Output) +1, Length(Output));
-          End Else Begin
-            Units := Output;
-            Decimals := '';
-          End;
-          If AddPound Then
-            Units := '£' + Units
-          Else
-            If AddDollar Then
-              Units := '$' + Units;
-          Output := '';
-          If InsertCommas Then Begin
-            Count := 0;
-            Idx := Length(Units);
-            While Idx > 0 Do Begin
-              If Units[Idx] in ['0'..'9'] Then Begin
-                Inc(Count);
-                If (Count = 3) and (Idx > 1) Then Begin
-                  Units := Copy(Units, 1, Idx -1) + ',' + Copy(Units, Idx, Length(Units));
-                  Dec(NumPreDigits);
-                  Count := 0;
-                End;
-              End;
-              Dec(Idx);
-            End;
-          End;
-          If AddSign = 2 Then Begin
-            If Items[iIdx].Value > 0 Then
-              Units := '+' + Units
-            Else
-              Units := '-' + Units;
-          End Else
-            If Items[iIdx].Value < 0 Then Begin
-              Units := '-' + Units;
-              Dec(NumPreDigits);
-            End;
-          If Length(Units) > NumPreDigits Then Begin
-            Output := '';
-            For Idx := 1 To NumPreDigits Do
-              Output := Output + '*';
-          End Else
-            If Length(Units) = NumPreDigits Then
-              Output := Units
-            Else Begin
-              For Idx := 1 To NumPreDigits - Length(Units) Do
-                Output := Output + SpacingLeft;
-              Output := Output + Units;
-            End;
-          If StrWanted = -1 Then
-            Output := Output + Units
-          Else
-            If StrWanted > 0 Then
-              Output := Output + Copy(Units, 1, StrWanted);
-          If AddDecimal Then Begin
-            Output := Output + '.' + Decimals;
-            For Idx := 1 To NumPostDigits - Length(Decimals) Do
-              Output := Output + SpacingRight;
-          End;
-        End;
-      SP_STRING: // String
-        Begin
-          If StrWanted = 0 Then
-            Goto Finish
-          Else
-            If StrWanted = -1 Then
-              Output := Items[iIdx].Text
-            Else
-              Output := Copy(Items[iIdx].Text, 1, StrWanted);
-        End;
-    End;
+    FillChar(Result, SizeOf(Result), 0);
+    Result.FillChar := ' ';
+    InFraction := False;
+    P := StartPos;
 
-  Finish:
-
-    Inc(iIdx);
-    InsertCommas := False;
-    AddDollar := False;
-    AddPound := False;
-    NumPreDigits := 0;
-    NumPostDigits := 0;
-    SpacingLeft := ' ';
-    SpacingRight := ' ';
-    StrWanted := 0;
-
-  End;
-
-Begin
-
-  Result := '';
-  InsertCommas := False;
-  AddDollar := False;
-  AddPound := False;
-  AddDecimal := False;
-  GotField := False;
-
-  NumPreDigits := 0;
-  NumPostDigits := 0;
-
-  SpacingLeft := ' ';
-  SpacingRight := ' ';
-  StrWanted := 0;
-
-  iIdx := 0;
-  l := Length(Mask);
-  if Position <= l Then
-    Idx := Position
-  else
-    Idx := ((Position - 1) Mod l) +1;
-
-  While True Do Begin
-
-    While Idx <= Length(Mask) Do Begin
-
-      // Pick up items - emit non-field items directly.
-
-      Case Mask[Idx] of
-
-        '#': // Digit placeholder
-          Begin
-            If iIdx > High(Items) Then Begin
-              Position := Idx;
-              Exit;
-            End;
-            GotField := True;
-            If Not AddDecimal Then
-              Inc(NumPreDigits)
-            Else
-              Inc(NumPostDigits);
-          End;
-        '.': // Decimal separator position
-          Begin
-            AddDecimal := True;
-          End;
-        ',': // Thousands separator
-          Begin
-            InsertCommas := True;
-          End;
-        '$': // Insert currency before digits
-          Begin
-            AddDollar := True;
-            Inc(NumPreDigits);
-          End;
-        '£': // Insert currency before digits
-          Begin
-            AddPound := True;
-            Inc(NumPreDigits);
-          End;
-        '*': // Padding character pre or post-decimal position
-          Begin
-            If Idx < Length(Mask) Then Begin
-              If AddDecimal Then
-                SpacingRight := Mask[Idx +1]
-              Else
-                SpacingLeft := Mask[Idx +1];
-            End Else
-              If GotField Then Begin
-                ProcessField(TempStr);
-                Result := Result + TempStr;
-                GotField := False;
-              End Else
-                Result := Result + '*';
-            Inc(Idx);
-          End;
-        '+': // Insert sign ("+" or "-")
-          Begin
-            AddSign := 2;
-            Inc(NumPreDigits);
-          End;
-        '-': // Insert only "-" if negative
-          Begin
-            AddSign := 1;
-            Inc(NumPreDigits);
-          End;
-        '\': // Insert literal character
-          Begin
-            If GotField Then Begin
-              ProcessField(TempStr);
-              Result := Result + TempStr;
-              GotField := False;
-            End;
-            If Idx < Length(Mask) Then
-              Result := Result + Mask[Idx +1]
-            Else
-              Result := Result + '\';
-            Inc(Idx);
-          End;
-        '!':
-          Begin
-            StrWanted := 1;
-            GotField := True;
-          End;
-        '&':
-          Begin
-            StrWanted := -1;
-            GotField := True;
-          End;
-        '[':
-          Begin
-            Inc(Idx);
-            If Idx < Length(Mask) Then Begin
-              StrWanted := 0;
-              While (Idx <= Length(Mask)) And (Mask[Idx] in ['0'..'9']) Do Begin
-                StrWanted := (Ord(Mask[Idx]) - 48) + (StrWanted * 10);
-                Inc(Idx);
-              End;
-              GotField := True;
-              If (Idx < Length(Mask)) And (Mask[Idx] = ']') Then Inc(Idx);
-            End Else Begin
-              If GotField Then Begin
-                ProcessField(TempStr);
-                Result := Result + TempStr;
-                GotField := False;
-              End;
-            End;
-          End;
-
-      Else
-
-        If GotField Then Begin
-          ProcessField(TempStr);
-          Result := Result + TempStr;
-          GotField := False;
-        End;
-        Result := Result + Mask[Idx];
-
+    // Scan the contiguous block of formatting characters
+    While (P <= MaskLen) do Begin
+      Case Mask[P] of
+        '#': Begin
+               Inc(Result.TotalWidth);
+               if InFraction then Inc(Result.Decimals);
+               Result.IsValid := True;
+             End;
+        '.': Begin
+               if InFraction then Break; // Second dot ends the field?
+               Result.HasDot := True;
+               InFraction := True;
+               Inc(Result.TotalWidth); // Dot counts as width
+             End;
+        ',': Begin
+               Result.ThousandSep := True;
+               // Commas don't usually add to 'width' calculation in BASIC
+               // until applied, but placeholders (#) do.
+             End;
+        '$': Begin
+               Result.Currency := '$';
+               Inc(Result.TotalWidth);
+             End;
+        '£': Begin
+               Result.Currency := '£';
+               Inc(Result.TotalWidth);
+             End;
+        '+': Begin
+               Result.SignMode := smAlways;
+               Inc(Result.TotalWidth);
+             End;
+        '-': Begin
+               Result.SignMode := smMinusOnly;
+               Inc(Result.TotalWidth);
+             End;
+        '*': Begin
+               // *x specifies fill char
+               if P < MaskLen then begin
+                 Inc(P); // Consume the char after *
+                 Result.FillChar := Mask[P];
+                 // Usually ** counts as 2 width in BASIC, but acts as fill definition
+               end;
+             End;
+        Else
+          Break; // Not a numeric format char, stop parsing this field
       End;
-
-      Inc(Idx);
-
+      Inc(P);
     End;
-
-    If GotField or (NumPreDigits = 0) or ((NumPostDigits = 0) And (AddDecimal)) Then Begin
-      ProcessField(TempStr);
-      Result := Result + TempStr;
-      GotField := False;
-    End;
-
-    If iIdx <= High(Items) Then Begin
-      iIdx := 0;
-      If iIdx = High(Items) Then
-        Break;
-    End Else Begin
-      Position := Idx;
-      Break;
-    End;
-
+    NextPos := P;
   End;
 
+  // Internal Parser for String Fields
+  Function ParseNextString(StartPos: Integer; out NextPos: Integer): TStringMask;
+  Var
+    P, N: Integer;
+  Begin
+    P := StartPos;
+    Result.IsValid := True;
+
+    Case Mask[P] of
+      '!': Begin
+             Result.Mode := smFirst;
+             Inc(P);
+           End;
+      '&': Begin
+             Result.Mode := smAll;
+             Inc(P);
+           End;
+      '[': Begin
+             // Parse [nn]
+             Inc(P); // skip [
+             Result.Mode := smPartial;
+             N := 0;
+             While (P <= MaskLen) and (Mask[P] in ['0'..'9']) do begin
+               N := (N * 10) + (Ord(Mask[P]) - Ord('0'));
+               Inc(P);
+             end;
+             Result.Len := N;
+             if (P <= MaskLen) and (Mask[P] = ']') then Inc(P);
+           End;
+    End;
+    NextPos := P;
+  End;
+
+Var
+  NumRule: TNumericMask;
+  StrRule: TStringMask;
+  TempS: aString;
+Begin
+  Result := '';
+  MaskLen := Length(Mask);
+  MaxItem := High(Items);
+  ItemIdx := 0;
+
+  // Normalize Position (Mask index)
+  if (Position < 1) or (Position > MaskLen) then Position := 1;
+  MaskPtr := Position;
+
+  // Loop until we have processed all items
+  While MaskPtr <= MaskLen do Begin
+
+    // Look at current character to decide what to do
+    Case Mask[MaskPtr] of
+      // --- Numeric Formatters ---
+      '#', '+', '-', '.', '$', '£', '*':
+        Begin
+          // Parse the rules
+          NumRule := ParseNextNumeric(MaskPtr, MaskPtr);
+          // We found a field, consume an item
+          if (ItemIdx <= MaxItem) And (Items[ItemIdx].Kind = SP_VALUE) then begin // It's a Number
+            Result := Result + FormatNumberUsing(Items[ItemIdx].Value, NumRule);
+          end else Begin // It's a string, but mask wanted number?
+             // BASIC behavior varies: Type Mismatch or print 0?
+             // Let's assume print 0 formatted
+             Result := Result + FormatNumberUsing(0.0, NumRule);
+          end;
+          Inc(ItemIdx); // Move to next value
+        End;
+
+      // --- String Formatters ---
+      '!', '&', '[':
+        Begin
+          StrRule := ParseNextString(MaskPtr, MaskPtr);
+          if (ItemIdx <= MaxItem) And (Items[ItemIdx].Kind = SP_STRING) then Begin // It's a String
+            TempS := Items[ItemIdx].Text;
+            Case StrRule.Mode of
+              smFirst: Result := Result + Copy(TempS, 1, 1);
+              smAll:   Result := Result + TempS;
+              smPartial: Result := Result + Copy(TempS, 1, StrRule.Len);
+            End;
+          End else Begin // Value provided but String wanted
+            // Convert value to string and process
+            If ItemIdx <= MaxItem Then
+              TempS := aFloatToStr(Items[ItemIdx].Value)
+            Else
+              TempS := ' ';
+            Case StrRule.Mode of
+              smFirst: Result := Result + Copy(TempS, 1, 1);
+              smAll:   Result := Result + TempS;
+              smPartial: Result := Result + Copy(TempS, 1, StrRule.Len);
+            End;
+          end;
+          Inc(ItemIdx);
+        End;
+
+      // --- Literal Escape ---
+      '\':
+        Begin
+          Inc(MaskPtr); // Skip slash
+          if MaskPtr <= MaskLen then begin
+            Result := Result + Mask[MaskPtr];
+            Inc(MaskPtr);
+          end;
+        End;
+
+      // --- Any other character is a literal ---
+      Else
+        Begin
+          Result := Result + Mask[MaskPtr];
+          Inc(MaskPtr);
+        End;
+    End;
+  End;
+
+  // Update Position for next call if needed
+  Position := MaskPtr;
 End;
+
 
 end.
 

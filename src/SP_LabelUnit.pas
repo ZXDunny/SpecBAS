@@ -201,7 +201,11 @@ Begin
 
   If (fWidth < cFW) and Not fAutoSize Then Exit;
 
-  If fCaption <> '' Then WrapCaption;
+  If fCaption <> '' Then
+    WrapCaption
+  Else Begin
+    fLines.Clear;
+  End;
 
   maxw := 0;
   For i := 0 To fLines.Count -1 Do Begin
@@ -235,6 +239,9 @@ Begin
 
   x := 0; y := 0;
   bOffs := Ord(fBorder) * 2;
+
+  If Not Transparent Then
+    FillRect(0, 0, Width -1, Height -1, fColour);
 
   If fBorder Then
     DrawRect(0, 0, Width -1, Height -1, fBorderClr);

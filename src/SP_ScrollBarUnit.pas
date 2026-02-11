@@ -261,11 +261,11 @@ Begin
     fUpBtn.Border := b;
     fDownBtn.Border := b;
     If b Then Begin
-      fUpBtn.BackgroundClr := SP_UIBtnBack;
-      fDownBtn.BackgroundClr := SP_UIBtnBack;
+      fUpBtn.Colour := SP_UIBtnBack;
+      fDownBtn.Colour := SP_UIBtnBack;
     End Else Begin
-      fUpBtn.BackgroundClr := fBackgroundClr;
-      fDownBtn.BackgroundClr := fBackgroundClr;
+      fUpBtn.Colour := Colour;
+      fDownBtn.Colour := Colour;
     End;
     Paint;
   End;

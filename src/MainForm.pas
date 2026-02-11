@@ -1149,7 +1149,7 @@ End;
 Procedure YieldProc(const ms: aFloat); inline;
 Begin
 
-  SmartSleep(1);
+  SmartSleep(ms);
   LASTINKEYFRAME := FRAMES;
 
 End;

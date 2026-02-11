@@ -639,10 +639,16 @@ End;
 // User runtime control management
 
 Function SP_GetNextControlID: LongWord;
+Var
+  i: Integer;
 Begin
 
+  i := 0;
+  While ControlRegistry.ContainsKey(i) Do
+    Inc(i);
+
+  NextControlID := i;
   Result := NextControlID;
-  Inc(NextControlID);
 
 End;
 

@@ -232,6 +232,7 @@ Begin
   fItems[l].CheckColour := fCheckColor;
   fItems[l].fBorder := Not IsRadioGroup;
   fItems[l].fShadowClr := ShadowClr;
+  fItems[l].Colour := Colour;
   If fItems[l].Checked Then fItemIndex := l;
   PlaceItems;
   Paint;
@@ -259,6 +260,7 @@ Begin
   fItems[Index].GroupIndex := Ord(IsRadioGroup);
   fItems[Index].fBorder := Not IsRadioGroup;
   fItems[Index].fShadowClr := ShadowClr;
+  fItems[l].Colour := Colour;
   If fItems[Index].Checked Then fItemIndex := Index;
   PlaceItems;
   Paint;

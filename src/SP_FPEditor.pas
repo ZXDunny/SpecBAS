@@ -3313,14 +3313,15 @@ Begin
 
   Idx := NUMBANKS -1;
   While Idx >= 0 Do Begin
-    Window := @SP_BANKLIST[Idx]^.Info[0];
-    If SP_BankList[Idx]^.DataType = SP_WINDOW_BANK Then
-    With Window^ Do
-      If PtInRect(Rect(Left, Top, Left + Width, Top + Height), Point(X, Y)) And Visible Then Begin
-        Dec(X, Left);
-        Dec(Y, Top);
-        Break;
-      End;
+    If SP_BankList[Idx]^.DataType = SP_WINDOW_BANK Then Begin
+      Window := @SP_BANKLIST[Idx]^.Info[0];
+      With Window^ Do
+        If PtInRect(Rect(Left, Top, Left + Width, Top + Height), Point(X, Y)) And Visible Then Begin
+          Dec(X, Left);
+          Dec(Y, Top);
+          Break;
+        End;
+    End;
     Dec(Idx);
   End;
 

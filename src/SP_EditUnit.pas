@@ -212,6 +212,9 @@ Begin
 
   yOfs := (Height - Round(iFH * iSY)) Div 2;
 
+  If Not Transparent Then
+    FillRect(0, 0, Width -1, Height -1, Colour);
+
   If fEnabled Then Begin
     If fValidText Then
       Clr := fFontClr
@@ -230,7 +233,7 @@ Begin
 
   If fBorder Then Begin
     DrawRect(0, 0, Width -1, Height -1, fBorderClr);
-    DrawRect(1, 1, Width -2, Height -2, fBackgroundClr);
+    DrawRect(1, 1, Width -2, Height -2, fColour);
   End;
 
   If fEnabled Then Begin

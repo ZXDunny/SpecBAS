@@ -71,7 +71,7 @@ Begin
 
   fBorder := True;
   fState := spNormal;
-  fBackgroundClr := 255; // unlikely to be used
+  fBackgroundClr := 255;
   fTransparent := True;
   fDrawShadow := fShadow;
   Paint;

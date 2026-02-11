@@ -1232,9 +1232,10 @@ Begin
       BankIdx := SP_FindBankID(WindowID);
       If BankIdx > -1 Then Begin
 
-        Window := @SP_BankList[BankIdx]^.Info[0];
         If SP_BankList[BankIdx].DataType <> SP_WINDOW_BANK Then
-          Error.Code := SP_ERR_WINDOW_NOT_FOUND;
+          Error.Code := SP_ERR_WINDOW_NOT_FOUND
+        Else
+          Window := @SP_BankList[BankIdx]^.Info[0];
 
       End Else
 
@@ -1332,7 +1333,7 @@ Begin
 
   Error.Code := SP_ERR_OK;
   BankIdx := SP_FindBankID(WindowID);
-  If BankIdx > -1 Then Begin
+  If (BankIdx > -1) And (SP_BankList[BankIdx]^.DataType = SP_WINDOW_BANK) Then Begin
 
     {$IFDEF RefreshThread}
     CB_PauseDisplay;
@@ -1434,7 +1435,9 @@ Begin
     DisplaySection.Leave;
     {$ENDIF}
 
-  End;
+  End Else
+
+    Error.Code := SP_ERR_INVALID_BANK;
 
 End;
 
@@ -1446,7 +1449,7 @@ Var
 Begin
 
   BankIdx := SP_FindBankID(WindowID);
-  If BankIdx > -1 Then Begin
+  If (BankIdx > -1) And (SP_BankList[BankIdx]^.DataType = SP_WINDOW_BANK) Then Begin
 
     Bank := SP_BankList[BankIdx];
 

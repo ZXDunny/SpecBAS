@@ -166,7 +166,7 @@ Begin
   iH := Min(cFW, cFH);
   iY := (fHeight - iH) Div 2;
   If fGroupIndex = 0 Then Begin
-    FillRect(0 + bOfs, iy - 2 + bOfs, 3 + iH + bOfs, iY + iH + 1 + bOfs, SP_UIBtnBack);
+    FillRect(0 + bOfs, iy - 2 + bOfs, 3 + iH + bOfs, iY + iH + 1 + bOfs, fColour);
     If fBorder Then Begin
       DrawRect(0 + bOfs, iy - 2 + bOfs, 3 + iH + bOfs, iY + iH + 1 + bOfs, bClr);
       If Not fDown Then Begin
@@ -177,7 +177,7 @@ Begin
     If Checked Then
       PRINT(2 + bOfs, iy + bOfs, #246, cClr, -1, iSC, iSC, False, False, False, False);
   End Else Begin
-    PRINT(2, dy + ((cFH - iH) Div 2), #243, SP_UiBtnBack, -1, iSC, iSC, False, False, False, False);
+    PRINT(2, dy + ((cFH - iH) Div 2), #243, fColour, -1, iSC, iSC, False, False, False, False);
     If Checked Then
       PRINT(2, dy + ((cFH - iH) Div 2), #241, cClr, -1, iSC, iSC, False, False, False, False)
     Else

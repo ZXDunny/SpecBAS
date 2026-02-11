@@ -139,6 +139,7 @@ SP_BaseComponent = Class
     fWantTab: Boolean;
     fTypeName: aString;
     fUserParam: aString;
+    fColour: Byte;
     User_OnMouseMove: aString;
     User_OnMouseDown: aString;
     User_OnMouseUp: aString;
@@ -205,6 +206,7 @@ SP_BaseComponent = Class
     Procedure SetOnFocus(e: SP_FocusEvent); Virtual;
     Procedure SetOverrideScaling(b: Boolean);
     Procedure SetFont(ID: Integer);
+    Procedure SetColour(c: Byte); Virtual;
     Function  GetHint: aString; Virtual;
     Function  TextWidth(Text: aString): Integer;
     Procedure AlignChildren;
@@ -301,6 +303,7 @@ SP_BaseComponent = Class
     Procedure Set_Hint(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Hint: aString;
     Procedure Set_Tag(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Tag: aString;
     Procedure Set_Parent(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Parent: aString;
+    Procedure Set_Colour(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_Colour: aString;
 
     Procedure Set_OnMouseMove(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseMove: aString;
     Procedure Set_OnMouseDown(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode); Function Get_OnMouseDown: aString;
@@ -340,6 +343,7 @@ SP_BaseComponent = Class
     Property Anchors:       SP_AnchorSet        read fAnchors         write fAnchors;
     Property Name:          aString             read fName            write fName;
     Property ControlCount:  Integer             read fNumComponents;
+    Property Colour:        Byte                read fColour          write SetColour;
     Property OnMouseMove:   SP_MouseEvent       read fOnMouseMove     write fOnMouseMove;
     Property OnMouseDown:   SP_MouseEvent       read fOnMouseDown     write fOnMouseDown;
     Property OnMouseUp:     SP_MouseEvent       read fOnMouseUp       write fOnMouseUp;
@@ -756,6 +760,16 @@ Begin
 
 End;
 
+Procedure SP_BaseComponent.SetColour(c: Byte);
+Begin
+
+  If fColour <> c Then Begin
+    fColour := c;
+    Paint;
+  End;
+
+End;
+
 Function SP_BaseComponent.GetHint: aString;
 Begin
 
@@ -837,7 +851,7 @@ Begin
   ForceNextChar := False;
   Dst := @fCanvas[0];
   BankID := SP_FindBankID(Font);
-  If BankID <> SP_ERR_BANK_ID_NOT_FOUND Then Begin
+  If (BankID <> SP_ERR_BANK_ID_NOT_FOUND) And (SP_BankList[BankID]^.DataType = SP_FONT_BANK) Then Begin
 
     Bank := SP_BankList[BankID];
     FontBank := @Bank^.Info[0];
@@ -1334,7 +1348,7 @@ Begin
   x1 := 0; y1 := 0; x2 := Width -1; y2 := Height -1;
 
   DrawRect(x1, y1, x2, y2, 0);
-  Fillrect(x1+1, y1+1, x2-1, y2-1, SP_UIBtnBack);
+  Fillrect(x1+1, y1+1, x2-1, y2-1, fColour);
   exit;
 
   Inc(x1); Inc(y1); Dec(x2); Dec(y2);
@@ -1368,7 +1382,8 @@ Begin
     x1 := r.Left; y1 := r.Top; x2 := r.Right -1; y2 := r.Bottom -1;
 
     DrawRect(x1, y1, x2, y2, 0);
-    Fillrect(x1+1, y1+1, x2-1, y2-1, SP_UIBtnBack);
+    Fillrect(x1+1, y1+1, x2-1, y2-1, fColour);
+
     exit;
 
     FillRect(x1, y1, x2, y2, 0);
@@ -1512,6 +1527,7 @@ Begin
   End;
   fShadow := False;
   fShadowClr := 238;
+  fColour := SP_UIBtnBack;
   fTransparent := False;
   fErrorClr := 2;
   fEnabled := True;
@@ -2829,6 +2845,7 @@ Begin
   RegisterProperty('shadow', Get_Shadow, Set_Shadow, ':v|v');
   RegisterProperty('shadowclr', Get_ShadowClr, Set_ShadowClr, ':v|v');
   RegisterProperty('errorclr', Get_ErrorClr , Set_ErrorClr, ':v|v');
+  RegisterProperty('colour', Get_Colour , Set_Colour, ':v|v');
   RegisterProperty('width', Get_Width , Set_Width, ':v|v');
   RegisterProperty('height', Get_Height , Set_Height, ':v|v');
   RegisterProperty('left', Get_Left , Set_Left, ':v|v');
@@ -2989,9 +3006,12 @@ Begin
     If Id >= 0 Then Begin
 
       SP_GetWindowDetails(ID, Win, Error);
-      curCtrl := @Win^.Component;
-      fParentType := spWindow;
-      Update;
+
+      If Error.Code = SP_ERR_OK Then Begin
+        curCtrl := @Win^.Component;
+        fParentType := spWindow;
+        Update;
+      End;
 
     End Else
 
@@ -3177,6 +3197,16 @@ End;
 Function  SP_BaseComponent.Get_FontClr: aString;
 Begin
   Result := IntToString(fFontClr);
+End;
+
+Procedure SP_BaseComponent.Set_Colour(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);
+Begin
+  Colour := StringToInt(s, fColour);
+End;
+
+Function  SP_BaseComponent.Get_Colour: aString;
+Begin
+  Result := IntToString(fColour);
 End;
 
 Procedure SP_BaseComponent.Set_FontProp(s: aString; Var Handled: Boolean; Var Error: TSP_ErrorCode);

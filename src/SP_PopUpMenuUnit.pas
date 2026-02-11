@@ -76,6 +76,7 @@ SP_PopupMenu = Class(SP_BaseComponent)
     Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetSeparatorClr(c: Byte);
     Procedure SetBackgroundClr(c: Byte); Override;
+    Procedure SetColour(c: Byte); Override;
 
     Procedure MouseDown(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
     Procedure MouseUp(Sender: SP_BaseComponent; X, Y, Btn: Integer); Override;
@@ -222,6 +223,7 @@ Begin
   Visible := False;
   fSelected := -1;
   fCount := 0;
+  fColour := SP_UIBackground;
   fSepClr := SP_UIMenuSeparator;
   If Assigned(ParentMenu) Then Begin
     fProportional := ParentMenu.Proportional;
@@ -231,7 +233,7 @@ Begin
   End Else Begin
     fDisabledFontClr := SP_UITextDisabled;
     fHighlightClr := SP_UISelection;
-    fMenuClr := SP_UIBackground;
+    fMenuClr := fColour;
   End;
   AddOverrideControl(Self);
   fAltDown := False;
@@ -256,6 +258,17 @@ Begin
   If fMenuClr <> c Then Begin
     fBackgroundClr := 3;
     fMenuClr := c;
+  End;
+
+End;
+
+Procedure SP_PopUpMenu.SetColour(c: Byte);
+Begin
+
+  If fColour <> c Then Begin
+    fColour := c;
+    fMenuClr := c;
+    Paint;
   End;
 
 End;

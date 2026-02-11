@@ -116,7 +116,7 @@ Type
 
   Function  SP_Font_Bank_Create(FontType, Width, Height, Transparent: Integer): Integer;
   Function  SP_Font_Bank_SetChar(ID: Integer; Character: Integer; Data: pByte; Invert: Boolean = False): Integer;
-  Procedure SP_SetSystemFont(BankID: Integer; Error: TSP_ErrorCode);
+  Procedure SP_SetSystemFont(BankID: Integer; Var Error: TSP_ErrorCode);
   Function  SP_SetSpeccyStyleChar(ID, Character: Integer; Data: pByte): Integer;
   Procedure SP_ProcessAllFontBanks;
   Procedure SP_GetFontCharMetrics(BankID: Integer);
@@ -752,7 +752,8 @@ Begin
     SP_BankList[Dst]^.DataType := SP_BankList[Src]^.DataType;
     SP_BankList[Dst]^.InfoLength := SP_BankList[Src]^.InfoLength;
     SetLength(SP_BankList[Dst]^.Info, Length(SP_BankList[Src]^.Info));
-    CopyMem(@SP_BankList[Dst]^.Info[0], @SP_BankList[Src]^.Info[0], Length(SP_BankList[Src]^.Info));
+    If SP_BankList[Src]^.InfoLength > 0 Then
+      CopyMem(@SP_BankList[Dst]^.Info[0], @SP_BankList[Src]^.Info[0], Length(SP_BankList[Src]^.Info));
     SetLength(SP_BankList[Dst]^.Memory, Length(SP_BankList[Src]^.Memory));
     CopyMem(@SP_BankList[Dst]^.Memory[0], @SP_BankList[Src]^.Memory[0], Length(SP_BankList[Src]^.Memory));
     If SP_BankList[Dst]^.DataType = SP_SAMPLE_BANK Then
@@ -1170,9 +1171,9 @@ Begin
 
 End;
 
-Procedure SP_SetSystemFont(BankID: Integer; Error: TSP_ErrorCode);
+Procedure SP_SetSystemFont(BankID: Integer; Var Error: TSP_ErrorCode);
 Var
-  Index: Integer;
+  Index, ec: Integer;
   FontBank: pSP_Font_Info;
 Begin
 
@@ -1202,8 +1203,14 @@ Begin
   End Else
     Error.Code := SP_ERR_BANK_NOT_FOUND;
 
-  If (BankID <> SYSFONT) and (Error.Code <> SP_ERR_OK) Then
-    SP_SetSystemFont(SYSFONT, Error);
+  If Error.Code <> SP_ERR_OK Then Begin
+    Index := SP_FindBankID(FONTBANKID);
+    If (Index >= 0) And (SP_BankList[Index]^.DataType <> SP_FONT_BANK) Then Begin
+      ec := Error.Code;
+      SP_SetSystemFont(SYSFONT, Error);
+      Error.Code := ec;
+    End;
+  End;
 
 End;
 
@@ -3720,92 +3727,100 @@ Var
   ptr: pByte;
 Begin
 
-  gBank := SP_NewBank(0);
-  SP_CopyBank(GfxID, gBank, Error);
-  gBank := SP_FindBankID(gBank);
-  Gfx := @SP_BankList[SP_FindBankID(GfxID)]^.Info[0];
-  gW := Gfx^.Width;
-  gH := Gfx^.Height;
+  Result := -1;
+  Idx := SP_FindBankID(GfxID);
+  If (Idx >= 0) And (SP_BankList[Idx]^.DataType = SP_GRAPHIC_BANK) Then Begin
 
-  If (gw > 119) or (gH > 119) Then Begin
-    If gW > gH Then Begin
-      NewWidth := 119;
+    gBank := SP_NewBank(0);
+    SP_CopyBank(GfxID, gBank, Error);
+    gBank := SP_FindBankID(gBank);
+    Gfx := @SP_BankList[SP_FindBankID(GfxID)]^.Info[0];
+    gW := Gfx^.Width;
+    gH := Gfx^.Height;
+
+    If (gw > 119) or (gH > 119) Then Begin
+      If gW > gH Then Begin
+        NewWidth := 119;
+      End Else Begin
+        NewWidth := Trunc(gW * (119/gH));
+      End;
     End Else Begin
-      NewWidth := Trunc(gW * (119/gH));
+      NewWidth := gW;
     End;
-  End Else Begin
-    NewWidth := gW;
-  End;
 
-  Gfx := @SP_BankList[gBank]^.Info[0];
-  Scale := NewWidth/gW;
-  SP_RotAndScaleGfx(Gfx.Data, AsciiStr, 0, Scale, Gfx^.Width, Gfx^.Height, Gfx^.Transparent, Error);
-  NewWidth := Gfx^.Width;
-  NewHeight := Gfx^.Height;
-  If Frac(Gfx^.Width/8) > 0 Then Gfx^.Width := (Trunc(Gfx^.Width/8) * 8) + 8 Else Gfx^.Width := Trunc(Gfx^.Width/8) * 8;
-  If Frac(Gfx^.Height/8) > 0 Then Gfx^.Height := (Trunc(Gfx^.Height/8) * 8) + 8 Else Gfx^.Height := Trunc(Gfx^.Height/8) * 8;
-  SetLength(SP_BankList[gBank]^.Memory, Gfx^.Width * Gfx^.Height);
-  Gfx^.Data := @SP_BankList[gBank]^.Memory[0];
-  For Idx := 0 To NewHeight -1 Do
-    CopyMem(pByte(NativeUInt(Gfx^.Data)+LongWord(Idx * integer(Gfx^.Width))), @AsciiStr[(Idx * NewWidth) +1], NewWidth);
-  SP_Dither_Image(Gfx, 7);
+    Gfx := @SP_BankList[gBank]^.Info[0];
+    Scale := NewWidth/gW;
+    SP_RotAndScaleGfx(Gfx.Data, AsciiStr, 0, Scale, Gfx^.Width, Gfx^.Height, Gfx^.Transparent, Error);
+    NewWidth := Gfx^.Width;
+    NewHeight := Gfx^.Height;
+    If Frac(Gfx^.Width/8) > 0 Then Gfx^.Width := (Trunc(Gfx^.Width/8) * 8) + 8 Else Gfx^.Width := Trunc(Gfx^.Width/8) * 8;
+    If Frac(Gfx^.Height/8) > 0 Then Gfx^.Height := (Trunc(Gfx^.Height/8) * 8) + 8 Else Gfx^.Height := Trunc(Gfx^.Height/8) * 8;
+    SetLength(SP_BankList[gBank]^.Memory, Gfx^.Width * Gfx^.Height);
+    Gfx^.Data := @SP_BankList[gBank]^.Memory[0];
+    For Idx := 0 To NewHeight -1 Do
+      CopyMem(pByte(NativeUInt(Gfx^.Data)+LongWord(Idx * integer(Gfx^.Width))), @AsciiStr[(Idx * NewWidth) +1], NewWidth);
+    SP_Dither_Image(Gfx, 7);
 
-  Output := '';
-  If NewWidth < integer(Gfx^.Width) Then
-    For y := 0 To Gfx^.Height -1 Do Begin
-      ptr := pByte(NativeUInt(Gfx^.Data) + Longword((y * integer(Gfx^.Width)) + NewWidth));
-      For x := NewWidth To Gfx^.Width -1 Do Begin
-        ptr^ := T_PAPER;
-        Inc(ptr);
+    Output := '';
+    If NewWidth < integer(Gfx^.Width) Then
+      For y := 0 To Gfx^.Height -1 Do Begin
+        ptr := pByte(NativeUInt(Gfx^.Data) + Longword((y * integer(Gfx^.Width)) + NewWidth));
+        For x := NewWidth To Gfx^.Width -1 Do Begin
+          ptr^ := T_PAPER;
+          Inc(ptr);
+        End;
       End;
-    End;
-  If NewHeight < integer(Gfx^.Height) Then
-    For y := NewHeight To Gfx^.Height -1 Do Begin
-      ptr := pByte(NativeUInt(Gfx^.Data) + LongWord(y * integer(Gfx^.Width)));
-      For x := 0 To Gfx^.Width -1 Do Begin
-        ptr^ := T_PAPER;
-        Inc(ptr);
+    If NewHeight < integer(Gfx^.Height) Then
+      For y := NewHeight To Gfx^.Height -1 Do Begin
+        ptr := pByte(NativeUInt(Gfx^.Data) + LongWord(y * integer(Gfx^.Width)));
+        For x := 0 To Gfx^.Width -1 Do Begin
+          ptr^ := T_PAPER;
+          Inc(ptr);
+        End;
       End;
-    End;
 
-  nBank := SP_Font_Bank_Create(1, 8, 8, Gfx^.Transparent);
-  HexStr := '';
-  nByte := 33;
-  For Idx := 0 To 63 Do HexStr := HexStr + aChar(0);
-  y := 0;
-  While y < integer(Gfx^.Height) Do Begin
-    x := 0;
-    While x < integer(Gfx.Width) Do Begin
-      ptr := pByte(NativeUInt(Gfx^.Data) + LongWord((y * integer(Gfx.Width)) + x));
-      For Idx := 0 To 7 Do Begin
-        CopyMem(@HexStr[1 + (Idx * 8)], ptr, 8);
-        Inc(ptr, Gfx^.Width);
+    nBank := SP_Font_Bank_Create(1, 8, 8, Gfx^.Transparent);
+    HexStr := '';
+    nByte := 33;
+    For Idx := 0 To 63 Do HexStr := HexStr + aChar(0);
+    y := 0;
+    While y < integer(Gfx^.Height) Do Begin
+      x := 0;
+      While x < integer(Gfx.Width) Do Begin
+        ptr := pByte(NativeUInt(Gfx^.Data) + LongWord((y * integer(Gfx.Width)) + x));
+        For Idx := 0 To 7 Do Begin
+          CopyMem(@HexStr[1 + (Idx * 8)], ptr, 8);
+          Inc(ptr, Gfx^.Width);
+        End;
+        SP_Font_Bank_SetChar(nBank, nByte, @HexStr[1]);
+        Inc(x, 8);
+        Inc(nByte);
       End;
-      SP_Font_Bank_SetChar(nBank, nByte, @HexStr[1]);
-      Inc(x, 8);
-      Inc(nByte);
+      Inc(y, 8);
     End;
-    Inc(y, 8);
-  End;
-  HexStr := '';
-  For Idx := 0 To 63 Do HexStr := HexStr + aChar(T_PAPER);
-  SP_Font_Bank_SetChar(nBank, 32, @HexStr[1]);
+    HexStr := '';
+    For Idx := 0 To 63 Do HexStr := HexStr + aChar(T_PAPER);
+    SP_Font_Bank_SetChar(nBank, 32, @HexStr[1]);
 
-  x := Gfx^.Width Div 8;
-  y := Gfx^.Height Div 8;
+    x := Gfx^.Width Div 8;
+    y := Gfx^.Height Div 8;
 
-  AsciiStr := '';
-  While Length(AsciiStr) < Spacing Do AsciiStr := AsciiStr + ' ';
-  Output := Output + AsciiStr;
-  For Idx := 0 To (x * y) -1 Do Begin
-    If Idx > 0 Then
-      If Idx Mod x = 0 Then
-        Output := Output + #13 + AsciiStr;
-    Output := OutPut + aChar(Idx + 33);
-  End;
+    AsciiStr := '';
+    While Length(AsciiStr) < Spacing Do AsciiStr := AsciiStr + ' ';
+    Output := Output + AsciiStr;
+    For Idx := 0 To (x * y) -1 Do Begin
+      If Idx > 0 Then
+        If Idx Mod x = 0 Then
+          Output := Output + #13 + AsciiStr;
+      Output := OutPut + aChar(Idx + 33);
+    End;
 
-  SP_DeleteBank(gBank, Error);
-  Result := nBank;
+    SP_DeleteBank(gBank, Error);
+    Result := nBank;
+
+  End Else
+
+    Error.Code := SP_ERR_INVALID_BANK;
 
 End;
 
@@ -4252,13 +4267,13 @@ Begin
   If Idx > -1 Then Begin
 
     Bank := SP_BankList[Idx];
-    TileMap := @Bank^.Info[0];
 
     If Bank^.DataType <> SP_TILEMAP_BANK Then Begin
       Error.Code := SP_ERR_INVALID_BANK;
       Exit;
     End;
 
+    TileMap := @Bank^.Info[0];
     If (TileID < 0) or (TileID >= TileMap^.NumTiles) Then Begin
       Error.Code := SP_ERR_INTEGER_OUT_OF_RANGE;
       Exit;
@@ -4334,12 +4349,11 @@ Begin
   If Idx > -1 Then Begin
 
     Bank := SP_BankList[Idx];
-    TileMap := @Bank^.Info[0];
-
     If Bank^.DataType <> SP_TILEMAP_BANK Then Begin
       Error.Code := SP_ERR_INVALID_BANK;
       Exit;
     End;
+    TileMap := @Bank^.Info[0];
 
     If Not TileMap^.InternalGFX Then Begin
 

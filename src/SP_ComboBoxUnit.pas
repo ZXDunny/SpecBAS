@@ -53,6 +53,7 @@ SP_ComboBox = Class(SP_BaseComponent)
     Procedure SetHighlightClr(c: Byte); Override;
     Procedure SetDisabledFontClr(c: Byte); Override;
     Procedure SetChainControl(c: SP_BaseComponent); Override;
+    Procedure SetColour(c: Byte); Override;
     Procedure SetOnFocus(e: SP_FocusEvent); Override;
     Procedure SetAllowLiterals(b: Boolean);
     Function  GetAllowLiterals: Boolean;
@@ -347,6 +348,19 @@ Begin
 
 End;
 
+Procedure SP_ComboBox.SetColour(c: Byte);
+Begin
+
+  If fColour <> c Then Begin
+    fColour := c;
+    btn.Colour := c;
+    Edit.Colour := c;
+    Labl.Colour := c;
+    Menu.Colour := c;
+  End;
+
+End;
+
 Procedure SP_ComboBox.PlaceItems;
 Var
   spcW: Integer;
@@ -375,10 +389,10 @@ End;
 Procedure SP_ComboBox.Draw;
 Begin
 
-  FillRect(0, 0, fWidth, fHeight, fBackgroundClr);
+  FillRect(0, 0, fWidth, fHeight, fColour);
   DrawRect(0, 0, fWidth, fHeight -1, fBorderClr);
   If Proportional Then
-    FillRect(1, 1, fWidth, fHeight -2, Edit.BackgroundClr);
+    FillRect(1, 1, fWidth, fHeight -2, Edit.Colour);
 
 End;
 

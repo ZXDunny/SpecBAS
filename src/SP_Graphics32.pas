@@ -36,6 +36,9 @@ Uses SP_Util, SP_SysVars, SP_BankManager, SP_BankFiling, SP_Graphics, SP_Errors,
 
 Type
 
+  PCardinalArray = ^TCardinalArray;
+  TCardinalArray = array[0..$0FFFFFFF] of Cardinal;
+
   spRect = Packed Record
     sPtr: pSP_Window_Info;
     bx1, by1, bx2, by2: NativeInt;
@@ -93,6 +96,14 @@ Var
   SP_BackBuffer32: Array of LongWord;
   UpdateRects: Array[0..255] of spRect;
   MaxRect: Integer;
+  dsDistLUT: array of Byte;
+  dsInitialised: Boolean;
+
+Const
+  dsBlurRadius = 16;
+  dsOffsetX = 3;
+  dsOffsetY = 3;
+  dsMaxShadowAlpha = 56;
 
 implementation
 
@@ -283,7 +294,7 @@ Begin
         sPtr := Window;
         bx1 := Sptr^.Left; by1 := sPtr^.Top; bx2 := bx1+sPtr^.Width-1; by2 := by1+sPtr^.Height-1;
         ClipToView(bx1, by1, bx2, by2);
-        If sPtr^.Transparent = $FFFF Then
+        If (sPtr^.Transparent = $FFFF) And not (sPtr^.AlphaEnabled) Then
           If (bx1 <= CX1) And (by1 <= CY1) And (bx2 >= CX2) And (by2 >= CY2) Then Begin
             MaxRect := TopRect +1;
             Exit;
@@ -309,7 +320,7 @@ Begin
         x := Left; y := Top; w := x + Width -1; h := y + Height -1;
         ClipToView(x, y, w, h);
         SubDivide(x, y, w, h);
-        If Transparent = $FFFF Then
+        If (Transparent = $FFFF) And Not AlphaEnabled Then
           If (Left <= CX1) And (Top <= CY1) And (Left + Width -1 >= CX2) And (Top + Height -1 >= CY2) Then Begin
             MaxRect := TopRect;
             Exit;
@@ -326,13 +337,112 @@ Begin
 
 End;
 
+procedure DrawDropShadow(ParentPtr: Pointer; ParentW, ParentH, ParentPitch: Integer; WinX, WinY, WinW, WinH: Integer; ClipInterior: Boolean; dX1, dY1, dX2, dY2: Integer);
+var
+  SX, SY, SW, SH: Integer;
+  MinX, MaxX, MinY, MaxY: Integer;
+  px, py, dx, dy, dist2: Integer;
+  RowPtr: PByte;
+  Pixels: PCardinalArray;
+  Alpha, InvA: Cardinal;
+  c, rb, g: Cardinal;
+  InWinY: Boolean;
+
+  i: Integer;
+  dist, t: Single;
+begin
+  if (dsBlurRadius <= 0) or (dsMaxShadowAlpha = 0) then Exit;
+
+  if not dsInitialised Then Begin
+    SetLength(dsDistLUT, (2 * dsBlurRadius * dsBlurRadius) + 1);
+    for i := 0 to High(dsDistLUT) do begin
+      dist := Sqrt(i);
+      if dist >= dsBlurRadius then
+        dsDistLUT[i] := 0
+      else begin
+        t := 1.0 - (dist / dsBlurRadius);
+        dsDistLUT[i] := Round(dsMaxShadowAlpha * (t * t * (3.0 - 2.0 * t)));
+      end;
+    end;
+    dsInitialised := True;
+  End;
+
+  SX := WinX + dsOffsetX;
+  SY := WinY + dsOffsetY;
+  SW := WinW;
+  SH := WinH;
+
+  MinX := Max(0, SX - dsBlurRadius);
+  MinY := Max(0, SY - dsBlurRadius);
+  MaxX := Min(ParentW - 1, SX + SW - 1 + dsBlurRadius);
+  MaxY := Min(ParentH - 1, SY + SH - 1 + dsBlurRadius);
+
+  MinX := Max(MinX, dX1);
+  MinY := Max(MinY, dY1);
+  MaxX := Min(MaxX, dX2 - 1);
+  MaxY := Min(MaxY, dY2 - 1);
+
+  if (MinX > MaxX) or (MinY > MaxY) then Exit;
+
+  RowPtr := PByte(ParentPtr);
+  Inc(RowPtr, MinY * ParentPitch);
+
+  for py := MinY to MaxY do begin
+    Pixels := PCardinalArray(RowPtr);
+    InWinY := ClipInterior and (py >= WinY) and (py < WinY + WinH);
+    if py < SY then
+      dy := SY - py
+    else
+      if py >= SY + SH then
+        dy := py - (SY + SH - 1)
+      else
+        dy := 0;
+
+    for px := MinX to MaxX do begin
+      if InWinY and (px >= WinX) and (px < WinX + WinW) then
+        Continue;
+      if px < SX then
+        dx := SX - px
+      else
+        if px >= SX + SW then
+          dx := px - (SX + SW - 1)
+        else
+          dx := 0;
+
+      dist2 := dx * dx + dy * dy;
+
+      if dist2 > High(dsDistLUT) then
+        Continue;
+
+      Alpha := dsDistLUT[dist2];
+
+      if Alpha > 0 then begin
+        InvA := 256 - Alpha;
+        c := Pixels[px];
+        rb := c and $00FF00FF;
+        g  := c and $0000FF00;
+        rb := (rb * InvA) shr 8;
+        g  := (g  * InvA) shr 8;
+        Pixels[px] := ((rb and $00FF00FF) or (g and $0000FF00)) and $FFFFFF;
+      end;
+    end;
+
+    Inc(RowPtr, ParentPitch);
+  end;
+end;
+
 Procedure SP_Composite32(Dest: Pointer; X1, Y1, X2, Y2: Integer);
 Var
-  Idx, Width, Height, tw, add1, add2, LastWindowID: Integer;
+  Width, Height, tw, add1, add2: Integer;
   dstPtr, srcPtr: pLongWord;
   Sprite: pSP_Sprite_Info;
   Alpha: LongWord;
   Trans: Byte;
+
+  BankIdx, fragIdx: Integer;
+  sw1, sh1, sw2, sh2: Integer;
+  HasFragments: Boolean;
+  sPtr: pSP_Window_Info;
 
   Function IsWindowVisible(sPtr: pSP_Window_Info): Boolean;
   Begin
@@ -388,45 +498,46 @@ Begin
   End Else
     SP_GenerateRects(X1, Y1, X2, Y2);
 
-  LastWindowID := -1;
+  For BankIdx := 0 To Length(SP_BankList) - 1 Do Begin
 
-  For Idx := MaxRect -1 DownTo 0 Do
+    If SP_BankList[BankIdx]^.DataType <> SP_WINDOW_BANK Then Continue;
+    sPtr := @SP_BankList[BankIdx].Info[0];
 
-    If IsWindowVisible(UpdateRects[Idx].sPtr) Then With UpdateRects[Idx] Do Begin
+    If Not sPtr^.Visible Then Continue;
 
-      Width := (bx2 - bx1) +1;
-      Height := (by2 - by1) +1;
+    If sPtr^.DropShadow Then Begin
+      sw1 := sPtr^.Left + dsOffsetX - dsBlurRadius;
+      sh1 := sPtr^.Top + dsOffsetY - dsBlurRadius;
+      sw2 := sPtr^.Left + sPtr^.Width - 1 + dsOffsetX + dsBlurRadius;
+      sh2 := sPtr^.Top + sPtr^.Height - 1 + dsOffsetY + dsBlurRadius;
 
-      {$IFDEF FPC}
-      DispRects[GfxUpdRect].w := Width;
-      DispRects[GfxUpdRect].h := Height;
-      DispRects[GfxUpdRect].x := bx1;
-      DispRects[GfxUpdRect].y := by1;
-      Inc(GfxUpdRect);
-      {$ENDIF}
+      If IntersectRect(sw1, sh1, sw2, sh2, X1, Y1, X2, Y2) <> -1 Then
+        DrawDropShadow(Dest, DisplayWidth, DisplayHeight, DISPLAYSTRIDE,
+                       sPtr^.Left, sPtr^.Top, sPtr^.Width, sPtr^.Height,
+                       False, X1, Y1, X2, Y2);
+    End;
 
-      DstPtr := Dest;
+    HasFragments := False;
+    For fragIdx := MaxRect - 1 DownTo 0 Do Begin
+      If UpdateRects[fragIdx].sPtr = sPtr Then Begin
+        HasFragments := True;
+        Break;
+      End;
+    End;
+
+    If HasFragments Then Begin
+
       If (sPtr^.SpriteCount > 0) or (sPtr^.Component.ControlCount > 0) Then Begin
-        If sPtr^.ID <> LastWindowID Then Begin
-          tw := sPtr^.Width * sPtr^.Height;
-          If Length(SP_BackBuffer32) <> tw Then
-            SetLength(SP_BackBuffer32, tw);
-          dstPtr := @SP_BackBuffer32[0];
-          CopyMem(dstPtr, sPtr^.Surface, tw);
-        End;
-        srcPtr := pLongWord(NativeUInt(@SP_BackBuffer32[0]));
-      End Else
-        SrcPtr := pLongWord(NativeUInt(sPtr^.Surface));
+        tw := sPtr^.Width * sPtr^.Height;
+        If Length(SP_BackBuffer32) <> tw Then SetLength(SP_BackBuffer32, tw);
 
-      If sPtr^.bpp = 8 Then Begin
+        dstPtr := @SP_BackBuffer32[0];
+        CopyMem(dstPtr, sPtr^.Surface, tw);
 
-        If sPtr^.ID <> LastWindowID Then Begin
-
+        If sPtr^.bpp = 8 Then Begin
           If sPtr^.SpriteCount > 0 Then Begin
-
             SP_BlockSprites;
             DRAWINGSPRITES := True;
-
             tw := 0;
             While tw < Length(WindowSpriteList[sPtr^.ID]) Do Begin
               Sprite := WindowSpriteList[sPtr^.ID][tw];
@@ -434,164 +545,154 @@ Begin
                 SP_DrawSprite(pByte(dstPtr), Sprite, sPtr);
               Inc(tw);
             End;
-
             DRAWINGSPRITES := False;
             SP_UnblockSprites;
-
           End;
-
         End;
 
-        // Render any controls the window may have attached
-
-        If sPtr^.ID <> LastWindowID Then
-          If sPtr^.Component.ControlCount > 0 Then
-            sPtr^.Component.Render(pByte(srcPtr), sPtr^.Width, sPtr^.Height);
-
-        Inc(pByte(SrcPtr), ((by1 - sPtr^.Top) * sPtr^.Stride));
-        Inc(pByte(SrcPtr), bx1 - sPtr^.Left);
-
-        dstPtr := pLongWord(NativeUInt(Dest) + (by1 * DISPLAYSTRIDE) + (bx1 * SizeOf(RGBA)));
-
-        LastWindowID := sPtr^.ID;
-
-        add1 := LongWord(sPtr^.Stride - Width);
-        add2 := Integer(DISPLAYSTRIDE) - (Width * SizeOf(RGBA));
-
-        If sPtr^.Transparent = $FFFF Then Begin
-
-          While Height > 0 Do Begin
-            tw := Width;
-            While tw > 0 Do Begin
-              dstPtr^ := sPtr^.Palette[pByte(srcPtr)^].L;
-              Dec(tw);
-              Inc(pByte(srcPtr));
-              Inc(dstPtr);
-            End;
-            Inc(pByte(dstPtr), add2);
-            Inc(pByte(srcPtr), add1);
-            Dec(Height);
-          End;
-
-        End Else Begin
-
-          Trans := sPtr^.Transparent And $FF;
-
-          While Height > 0 Do Begin
-            tw := Width;
-            While tw > 0 Do Begin
-              If pByte(srcPtr)^ <> Trans Then
-                dstPtr^ := sPtr^.Palette[pByte(srcPtr)^].L;
-              Dec(tw);
-              Inc(pByte(srcPtr));
-              Inc(dstPtr);
-            End;
-            Inc(pByte(dstPtr), add2);
-            Inc(pByte(srcPtr), add1);
-            Dec(Height);
-          End;
-
-        End;
-
-      End Else Begin
-
-        // 32bpp window - optional alpha transparency per pixel and per window.
-
-        SrcPtr := pLongWord(NativeUInt(sPtr^.Surface));
-        Inc(pByte(SrcPtr), ((by1 - sPtr^.Top) * sPtr^.Stride));
-        Inc(pByte(SrcPtr), ((bx1 - sPtr^.Left) * SizeOf(RGBA)));
-        dstPtr := pLongWord(NativeUInt(Dest) + (by1 * DISPLAYSTRIDE) + (bx1 * SizeOf(RGBA)));
-
-        add1 := LongWord(sPtr^.Stride - (Width * (sPtr^.bpp Div 8)));
-        add2 := Integer(DISPLAYSTRIDE) - (Width * SizeOf(RGBA));
-
-        If sPtr^.Transparent = $FFFF Then Begin
-
-          // No per-window alpha transparency.
-
-          If sPtr^.AlphaEnabled Then Begin
-
-            While Height > 0 Do Begin
-              tw := Width;
-              While tw > 0 Do Begin
-                dstPtr^ := SP_AlphaBlend(dstPtr^, srcPtr^);
-                Dec(tw);
-                Inc(pLongWord(srcPtr));
-                Inc(dstPtr);
-              End;
-              Inc(pByte(dstPtr), add2);
-              Inc(pByte(srcPtr), add1);
-              Dec(Height);
-            End;
-
-          End Else Begin
-
-            While Height > 0 Do Begin
-              tw := Width;
-              {$IFDEF CPU64}
-              While tw > SizeOf(NativeUInt) Do Begin
-                pNativeUInt(dstPtr)^ := pNativeUInt(srcPtr)^;
-                Dec(tw, SizeOf(NativeUInt) Div SizeOf(LongWord));
-                Inc(pNativeUInt(SrcPtr));
-                Inc(pNativeUInt(dstPtr));
-              End;
-              {$ENDIF}
-              While tw > 0 Do Begin
-                dstPtr^ := pLongWord(srcPtr)^;
-                Dec(tw);
-                Inc(pLongWord(srcPtr));
-                Inc(dstPtr);
-              End;
-              Inc(pByte(dstPtr), add2);
-              Inc(pByte(srcPtr), add1);
-              Dec(Height);
-            End;
-
-          End;
-
-        End Else Begin
-
-          Alpha := (sPtr^.Transparent And $FF) Shl 24;
-
-          // Transparent. Either window-level or per-pixel... or both.
-
-          If sPtr^.AlphaEnabled Then Begin
-
-            While Height > 0 Do Begin
-              tw := Width;
-              While tw > 0 Do Begin
-                dstPtr^ := SP_AlphaBlend(SP_AlphaBlend(dstPtr^, SrcPtr^), dstPtr^ and $00FFFFFF or Alpha);
-                Dec(tw);
-                Inc(pLongWord(srcPtr));
-                Inc(dstPtr);
-              End;
-              Inc(pByte(dstPtr), add2);
-              Inc(pByte(srcPtr), add1);
-              Dec(Height);
-            End;
-
-          End Else Begin
-
-            While Height > 0 Do Begin
-              tw := Width;
-              While tw > 0 Do Begin
-                dstPtr^ := SP_AlphaBlend(dstPtr^, (srcPtr^ And $00FFFFFF) Or Alpha);
-                Dec(tw);
-                Inc(pLongWord(srcPtr));
-                Inc(dstPtr);
-              End;
-              Inc(pByte(dstPtr), add2);
-              Inc(pByte(srcPtr), add1);
-              Dec(Height);
-            End;
-
-          End;
-
-        End;
-
+        If sPtr^.Component.ControlCount > 0 Then
+          sPtr^.Component.Render(pByte(dstPtr), sPtr^.Width, sPtr^.Height);
       End;
 
+      For fragIdx := MaxRect - 1 DownTo 0 Do Begin
+        If UpdateRects[fragIdx].sPtr = sPtr Then With UpdateRects[fragIdx] Do Begin
+
+          Width := (bx2 - bx1) + 1;
+          Height := (by2 - by1) + 1;
+
+          {$IFDEF FPC}
+          DispRects[GfxUpdRect].w := Width;
+          DispRects[GfxUpdRect].h := Height;
+          DispRects[GfxUpdRect].x := bx1;
+          DispRects[GfxUpdRect].y := by1;
+          Inc(GfxUpdRect);
+          {$ENDIF}
+
+          If (sPtr^.SpriteCount > 0) or (sPtr^.Component.ControlCount > 0) Then
+            srcPtr := pLongWord(NativeUInt(@SP_BackBuffer32[0]))
+          Else
+            srcPtr := pLongWord(NativeUInt(sPtr^.Surface));
+
+          If sPtr^.bpp = 8 Then Begin
+            Inc(pByte(SrcPtr), ((by1 - sPtr^.Top) * sPtr^.Stride));
+            Inc(pByte(SrcPtr), bx1 - sPtr^.Left);
+            dstPtr := pLongWord(NativeUInt(Dest) + (by1 * DISPLAYSTRIDE) + (bx1 * SizeOf(RGBA)));
+
+            add1 := LongWord(sPtr^.Stride - Width);
+            add2 := Integer(DISPLAYSTRIDE) - (Width * SizeOf(RGBA));
+
+            If sPtr^.Transparent = $FFFF Then Begin
+              While Height > 0 Do Begin
+                tw := Width;
+                While tw > 0 Do Begin
+                  dstPtr^ := sPtr^.Palette[pByte(srcPtr)^].L;
+                  Dec(tw);
+                  Inc(pByte(srcPtr));
+                  Inc(dstPtr);
+                End;
+                Inc(pByte(dstPtr), add2);
+                Inc(pByte(srcPtr), add1);
+                Dec(Height);
+              End;
+            End Else Begin
+              Trans := sPtr^.Transparent And $FF;
+              While Height > 0 Do Begin
+                tw := Width;
+                While tw > 0 Do Begin
+                  If pByte(srcPtr)^ <> Trans Then
+                    dstPtr^ := sPtr^.Palette[pByte(srcPtr)^].L;
+                  Dec(tw);
+                  Inc(pByte(srcPtr));
+                  Inc(dstPtr);
+                End;
+                Inc(pByte(dstPtr), add2);
+                Inc(pByte(srcPtr), add1);
+                Dec(Height);
+              End;
+            End;
+
+          End Else Begin
+            // 32bpp window - optional alpha transparency per pixel and per window.
+            Inc(pByte(SrcPtr), ((by1 - sPtr^.Top) * sPtr^.Stride));
+            Inc(pByte(SrcPtr), ((bx1 - sPtr^.Left) * SizeOf(RGBA)));
+            dstPtr := pLongWord(NativeUInt(Dest) + (by1 * DISPLAYSTRIDE) + (bx1 * SizeOf(RGBA)));
+
+            add1 := LongWord(sPtr^.Stride - (Width * (sPtr^.bpp Div 8)));
+            add2 := Integer(DISPLAYSTRIDE) - (Width * SizeOf(RGBA));
+
+            If sPtr^.Transparent = $FFFF Then Begin
+              If sPtr^.AlphaEnabled Then Begin
+                While Height > 0 Do Begin
+                  tw := Width;
+                  While tw > 0 Do Begin
+                    dstPtr^ := SP_AlphaBlend(dstPtr^, srcPtr^);
+                    Dec(tw);
+                    Inc(pLongWord(srcPtr));
+                    Inc(dstPtr);
+                  End;
+                  Inc(pByte(dstPtr), add2);
+                  Inc(pByte(srcPtr), add1);
+                  Dec(Height);
+                End;
+              End Else Begin
+                While Height > 0 Do Begin
+                  tw := Width;
+                  {$IFDEF CPU64}
+                  While tw > SizeOf(NativeUInt) Do Begin
+                    pNativeUInt(dstPtr)^ := pNativeUInt(srcPtr)^;
+                    Dec(tw, SizeOf(NativeUInt) Div SizeOf(LongWord));
+                    Inc(pNativeUInt(SrcPtr));
+                    Inc(pNativeUInt(dstPtr));
+                  End;
+                  {$ENDIF}
+                  While tw > 0 Do Begin
+                    dstPtr^ := pLongWord(srcPtr)^;
+                    Dec(tw);
+                    Inc(pLongWord(srcPtr));
+                    Inc(dstPtr);
+                  End;
+                  Inc(pByte(dstPtr), add2);
+                  Inc(pByte(srcPtr), add1);
+                  Dec(Height);
+                End;
+              End;
+
+            End Else Begin
+              Alpha := (sPtr^.Transparent And $FF) Shl 24;
+              If sPtr^.AlphaEnabled Then Begin
+                While Height > 0 Do Begin
+                  tw := Width;
+                  While tw > 0 Do Begin
+                    dstPtr^ := SP_AlphaBlend(SP_AlphaBlend(dstPtr^, SrcPtr^), dstPtr^ and $00FFFFFF or Alpha);
+                    Dec(tw);
+                    Inc(pLongWord(srcPtr));
+                    Inc(dstPtr);
+                  End;
+                  Inc(pByte(dstPtr), add2);
+                  Inc(pByte(srcPtr), add1);
+                  Dec(Height);
+                End;
+              End Else Begin
+                While Height > 0 Do Begin
+                  tw := Width;
+                  While tw > 0 Do Begin
+                    dstPtr^ := SP_AlphaBlend(dstPtr^, (srcPtr^ And $00FFFFFF) Or Alpha);
+                    Dec(tw);
+                    Inc(pLongWord(srcPtr));
+                    Inc(dstPtr);
+                  End;
+                  Inc(pByte(dstPtr), add2);
+                  Inc(pByte(srcPtr), add1);
+                  Dec(Height);
+                End;
+              End;
+            End;
+          End;
+
+        End;
+      End;
     End;
+  End;
 
   If CURMENU > -1 Then SP_DrawMainMenu(Dest, DISPLAYWIDTH, DISPLAYHEIGHT, CURMENU);
 
@@ -635,7 +736,7 @@ Begin
     End;
     {$ENDIF}
     While W > 0 Do Begin
-      Dst^ := Src^;
+      Dst^ := Src^ or $FF000000;
       Inc(Dst);
       Inc(Src);
       Dec(W);
@@ -2143,7 +2244,7 @@ Begin
 
   t := 0;
 
-  For Idx := 1 to N Do Begin
+  For Idx := 0 to N Do Begin
 
     omt := (1 - t);
     omt2 := omt * omt;

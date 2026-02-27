@@ -51,7 +51,7 @@ const
 Var
 
   ScrWidth, ScrHeight, OrgWidth, OrgHeight: Integer; // Note: ScrWidth/Height might be redundant now with DISPLAYWIDTH/HEIGHT
-  GLX, GLY, GLW, GLH, GLMX, GLMY, GLMW, GLMH, GLFX, GLFY, GLFW, GLFH: Integer;
+  GLX, GLY, GLW, GLH, GLFX, GLFY, GLFW, GLFH: Integer;
   iRect: TRect;
   {$IFDEF RefreshThread}
   RefreshTimer: TRefreshThread;
@@ -491,7 +491,7 @@ End;
 Procedure FrameLoop;
 Var
   CurTime, FrameDuration: aFloat;
-  SleepTime: Integer;
+  SleepTime: aFloat;
   const MIN_SLEEP_THRESHOLD_MS = 1; // Time before target to wake up and spin
 Begin
   CurTime := CB_GETTICKS;
@@ -527,7 +527,7 @@ Begin
     if Assigned(FrameProcessedEvent) then FrameProcessedEvent.SetEvent;
 
     NEXTFRAMETIME := ((FRAMES + 1) * FRAME_MS) + StartTime;
-    SleepTime := Trunc(NEXTFRAMETIME - CB_GETTICKS);
+    SleepTime := Min(NEXTFRAMETIME - CB_GETTICKS, FRAME_MS);
 
 {    If SleepTime > 2 Then Begin
       If SleepTime <= 4 Then
@@ -712,20 +712,25 @@ End;
 
 Function UpdateDisplay: Boolean;
 Var
-  X1, Y1, X2, Y2, Mx1, Mx2, My1, My2: Integer;
+  X1, Y1, X2, Y2: Integer;
 Begin
   Result := False;
   If Not (Quitting or SCREENCHANGE) Then Begin
-    {$IFDEF OPENGL}
-    // GLMX etc. are in logical (DISPLAYWIDTH/HEIGHT) coordinates, representing dirty regions
-    GLMX := MOUSESTOREX; GLMY := MOUSESTOREY;
-    GLMW := MOUSESTOREW; GLMH := MOUSESTOREH;
-    {$ENDIF}
     If (Not SCREENLOCK) or UPDATENOW Then Begin
       If SCMAXX >= SCMINX Then Begin // SCMINX/Y/MAXX/Y are dirty rect in logical coordinates
-        SP_RestoreMouseRegion;
         While SetDR Do Sleep(1); SetDR := True; // Ensure SetDR is thread-safe if accessed elsewhere
         If SHOWFPS Then PrepFPSVars;
+
+        If (MOUSESTOREX <> MOUSEX) or (MOUSESTOREY <> MOUSEY) Then Begin
+          X1 := Min(MOUSEX, MOUSESTOREX);
+          Y1 := Min(MOUSEY, MOUSESTOREY);
+          X2 := Max(X1 + MOUSEW, MOUSESTOREX + MOUSEW);
+          Y2 := Max(Y1 + MOUSEH, MOUSESTOREY + MOUSEH);
+          SP_SetDirtyRect(X1, Y1, X2, Y2);
+          MOUSESTOREX := MOUSEX;
+          MOUSESTOREY := MOUSEY;
+        End;
+
         X1 := SCMINX; Y1 := SCMINY; X2 := SCMAXX +1; Y2 := SCMAXY +1;
 
         // GLX, GLY, GLW, GLH define the main dirty rectangle for the frame
@@ -749,28 +754,8 @@ Begin
         If SHOWFPS Then DrawFPS; // Draw FPS text onto PixArray (after main composite)
 
         MOUSEMOVED := False;
-        If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then Begin
+        If MOUSEVISIBLE or (PROGSTATE = SP_PR_STOP) Then
           SP_DrawMouseImage; // Draws mouse onto PixArray
-          // If mouse moved, expand the dirty mouse region (GLMX, GLMY, GLMW, GLMH)
-          If (MOUSESTOREX <> GLMX) or (MOUSESTOREY <> GLMY) or (MOUSESTOREW <> GLMW) or (MOUSESTOREH <> GLMH) Then Begin // Check all mouse rect components
-            Mx2 := Max(GLMX + GLMW, MOUSESTOREX + MOUSESTOREW); // Old GLMX+GLMW is previous mouse extent
-            My2 := Max(GLMY + GLMH, MOUSESTOREY + MOUSESTOREH);
-            Mx1 := Min(GLMX, MOUSESTOREX);
-            My1 := Min(GLMY, MOUSESTOREY);
-            // Update GLMX etc. to be the union of old and new mouse rects
-            GLMX := Mx1; GLMY := My1; GLMW := Mx2-Mx1; GLMH := My2-My1;
-            MOUSEMOVED := True; // This flag indicates the mouse region needs specific update
-            // Result is already true if main content changed
-          End;
-        End;
-
-        // Ensure GLMX/Y/W/H are within bounds of PixArray
-        {$IFDEF OPENGL}
-        GLMX := Min(Max(GLMX, 0), DISPLAYWIDTH -1);
-        GLMY := Min(Max(GLMY, 0), DISPLAYHEIGHT -1);
-        GLMW := Max(0, Min(GLMW, DISPLAYWIDTH - GLMX));
-        GLMH := Max(0, Min(GLMH, DISPLAYHEIGHT - GLMY));
-        {$ENDIF}
 
         SP_NeedDisplayUpdate := False; // Handled by Result
         UPDATENOW := False;
@@ -811,8 +796,6 @@ Begin
     glPixelStorei(GL_UNPACK_ROW_LENGTH, DISPLAYWIDTH);
     If (GLH > 0) And (GLW > 0) Then
       glTexSubImage2D(GL_TEXTURE_2D, 0, GLX, GLY, GLW, GLH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLX * 4 + DISPLAYWIDTH * 4 * GLY]);
-    If MOUSEMOVED And (GLMH > 0) And (GLMW > 0) Then
-      glTexSubImage2D(GL_TEXTURE_2D, 0, GLMX, GLMY, GLMW, GLMH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLMX * 4 + DISPLAYWIDTH * 4 * GLMY]);
     If SHOWFPS And (GLFH > 0) And (GLFW > 0) Then
       glTexSubImage2D(GL_TEXTURE_2D, 0, GLFX, GLFY, GLFW, GLFH, GL_BGRA, GL_UNSIGNED_BYTE, @PixArray[GLFX * 4 + DISPLAYWIDTH * 4 * GLFY]);
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);

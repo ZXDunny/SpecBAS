@@ -83,7 +83,7 @@ Begin
   If FPShowingSearchResults Then
     SP_DebugPanelActionProcs.SelectItem(Nil, FPDebugPanel.SelectedIndex);
   SP_AddFPScrollBars(False);
-  SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, FocusedWindow = fwEditor);
+  SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), False, False, FocusedWindow = fwEditor);
   SP_DisplayFPListing(-1);
 
 End;

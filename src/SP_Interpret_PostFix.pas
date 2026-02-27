@@ -13859,9 +13859,10 @@ Begin
   w := SP_Add_Window(Left, Top, Width, Height, Trans, Bpp, Alpha, Info^.Error^);
   SP_StackPtr^.Val := w;
   SP_StackPtr^.OpType := SP_VALUE;
+  SP_GetWindowDetails(w, Window, Info^.Error^);
+  Window^.DropShadow := False;
 
   If i <> -1 Then Begin
-    SP_GetWindowDetails(w, Window, Info^.Error^);
     cX1 := Window^.clipx1;
     cY1 := Window^.clipy1;
     cX2 := Window^.clipx2;
@@ -21900,7 +21901,6 @@ Procedure SP_Interpret_MOUSE_HIDE(Var Info: pSP_iInfo);
 Begin
 
   DisplaySection.Enter;
-  SP_RestoreMouseRegion;
   MOUSEVISIBLE := False;
   USERMOUSEVISIBLE := MOUSEVISIBLE;
   DisplaySection.Leave;
@@ -21913,7 +21913,6 @@ Var
 Begin
 
   DisplaySection.Enter;
-  SP_RestoreMouseRegion;
 
   X := 0; Y := 0;
   ID := Round(SP_StackPtr^.Val);
@@ -21936,7 +21935,6 @@ Var
 Begin
 
   DisplaySection.Enter;
-  SP_RestoreMouseRegion;
 
   X := 0; Y := 0;
   Gfx := SP_StackPtr^.Str;
@@ -21957,10 +21955,8 @@ Procedure SP_Interpret_MOUSE_DEFAULT(Var Info: pSP_iInfo);
 Begin
 
   DisplaySection.Enter;
-  SP_RestoreMouseRegion;
   SP_MousePointerFromDefault;
   DisplaySection.Leave;
-  //SP_StackPtr := SP_StackStart;
 
 End;
 

@@ -1027,7 +1027,7 @@ Begin
 
   t := 0;
 
-  For Idx := 1 to N Do Begin
+  For Idx := 0 to N Do Begin
 
     omt := (1 - t);
     omt2 := omt * omt;
@@ -1050,7 +1050,7 @@ const
     m1x, m1y, m2x, m2y, mx, my: aFloat;
   Begin
     If (Level > MAX_RECURSION) or (Abs(p1x + p2x - 2 * cp1x) + Abs(p1y + p2y - 2 * cp1y) < FLATNESS_TOLERANCE) Then
-      SP_DrawLine32(p2x - DRPOSX, p2y - DRPOSY)
+      SP_DrawLine32Alpha(p2x - DRPOSX, p2y - DRPOSY)
     Else Begin
       m1x := (p1x + cp1x) * 0.5;
       m1y := (p1y + cp1y) * 0.5;

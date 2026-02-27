@@ -105,7 +105,7 @@ Const
   SP_UIScrollThumb                = 0;
   SP_UIScrollTrack                = 8;
   SP_UIScrollBtn                  = 0;
-  SP_UIWindowBack                 = 244;
+  SP_UIWindowBack                 = 255;
   SP_FocusTextClr                 = 0;
 
   SP_ScrollWheelValue             = 3;

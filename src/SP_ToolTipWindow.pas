@@ -183,6 +183,7 @@ Begin
     TipWindowID := SP_Add_Window(hint.x, hint.y, hw, hh, $FFFF, 8, 0, Error);
     SP_SetPalette(0, DefaultPalette);
     SP_GetWindowDetails(TipWindowID, Window, Error);
+    SP_SetWindowShadow(TipWindowID, True);
     SP_FillRect(0, 0, hw, hh, TipBkClr);
     SP_DrawRect(0, 0, hw-1, hh-1, TipOutline);
     cX1 := 0; cY1 := 0; cX2 := hw; cY2 := hh;

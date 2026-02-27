@@ -149,11 +149,14 @@ Begin
   CBOLD := 0;
   SP_GetWindowDetails(Result, Win, Error);
   Win^.Component.Proportional := True;
+  SP_SetWindowShadow(Result, True);
 
   For Idx := 0 To 255 Do Win^.Palette[Idx] := DefaultPalette[Idx];
 
   SP_Decorate_Window(Result, Caption, True, False, True);
-  SP_FillRect(1, FPFh +2, Win^.Width -2, Win^.Height - (FPFh + 3), SP_UIWindowBack);
+
+  SP_SetPixelClr(Win^.Width -2, Win^.Height -2, 0);
+  SP_SetPixelClr(1, Win^.Height -2, 0);
 
   DRPOSX := FPEditorDRPOSX;
   DRPOSY := FPEditorDRPOSY;
@@ -1119,7 +1122,6 @@ Begin
 
   SP_ResizeWindow(FDWindowID, Width, Height, 8, False, False, Error);
   SP_Decorate_Window(FDWindowID, Caption, True, False, True);
-  SP_FillRect(1, FH +2, Width -2, Height - (FH + 3), SP_UIWindowBack);
   SP_MoveWindow(FDWindowID, (DISPLAYWIDTH - Width) Div 2, (DISPLAYHEIGHT - Height) Div 2, Error);
 
   SP_SetDrawingWindow(DefaultWindow);

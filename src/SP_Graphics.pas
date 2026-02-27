@@ -70,6 +70,7 @@ Procedure SP_SetDrawingWindow(WindowID: Integer);
 Function  SP_GrabCurrentWindow: aString;
 Procedure SP_PutCurrentWindow(Var Str: aString);
 Procedure SP_ChangeRes(Width, Height, sWidth, sHeight: Integer; FullScreen: Boolean; Var Error: TSP_ErrorCode);
+Procedure SP_InvalidateWindow(WindowID: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_ResizeWindow(WindowID, W, H, Depth: Integer; FullScreen, AllowResize: Boolean; Var Error: TSP_ErrorCode);
 Procedure SP_MoveWindow(WindowID, X, Y: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_DeleteWindow(WindowID: Integer; Var Error: TSP_ErrorCode);
@@ -111,6 +112,7 @@ Procedure SP_DrawTexCircle(CX, CY, R: Integer; const TextureStr: aString; tW, tH
 Procedure SP_DrawSolidCircle(CX, CY, R: Integer);
 
 Procedure SP_SetPixel(X, Y: aFloat);
+Procedure SP_SetPixelClr(X, Y: Integer; Ink: Byte);
 Procedure SP_DrawCurve(CurveStartX, CurveStartY, X, Y, CurveEndX, CurveEndY: aFloat; N: Integer);
 Procedure SP_DrawCurveAdaptive(x1, y1, cx, cy, x2, y2: aFloat);
 Procedure SP_GetRegion(Src: pByte; SrcW, SrcH: LongWord; Var Dest: aString; rX, rY, rW, rH, T: Integer; Var Error: TSP_ErrorCode);
@@ -142,8 +144,6 @@ Procedure SP_FlipGfx(Src: pByte; W, H: LongWord);
 Procedure SP_MirrorGfx(Src: pByte; W, H: LongWord);
 Procedure SP_Dither_Image(Var Gfx: pSP_Graphic_Info; DitherType: Integer);
 Procedure SP_DrawMouseImage;
-Procedure SP_SaveMouseRegion;
-Procedure SP_RestoreMouseRegion;
 Procedure SP_MousePointerFromGraphic(BankID, HotX, HotY: Integer; Var Error: TSP_ErrorCode);
 Procedure SP_MousePointerFromString(Graphic: aString; HotX, HotY: Integer);
 Procedure SP_MousePointerFromDefault;
@@ -1341,6 +1341,7 @@ Begin
     DisplaySection.Enter;
     {$ENDIF}
 
+    SP_InvalidateWindow(WindowID, Error);
     Bank := SP_BankList[BankIdx];
 
     Window := @Bank^.Info[0];
@@ -1427,8 +1428,6 @@ Begin
       SP_CLS(CPAPER);
     End;
 
-    SP_SetDirtyRect(Window^.Left, Window^.Top, Window^.Left + oW, Window^.Top + oH);
-
     {$IFDEF RefreshThread}
     CB_ResumeDisplay;
     {$ELSE}
@@ -1438,6 +1437,8 @@ Begin
   End Else
 
     Error.Code := SP_ERR_INVALID_BANK;
+
+  SP_InvalidateWindow(WindowID, Error);
 
 End;
 
@@ -1452,6 +1453,7 @@ Begin
   If (BankIdx > -1) And (SP_BankList[BankIdx]^.DataType = SP_WINDOW_BANK) Then Begin
 
     Bank := SP_BankList[BankIdx];
+    SP_InvalidateWindow(WindowID, Error);
 
     DisplaySection.Enter;
     Window := @Bank^.Info[0];
@@ -1463,11 +1465,45 @@ Begin
       SCREENY := Y;
     End;
 
-    If Window^.Visible Then SP_SetDirtyRect(0, 0, DISPLAYWIDTH, DISPLAYHEIGHT);
+    If Window^.Visible Then
+      SP_InvalidateWindow(WindowID, Error);
     DisplaySection.Leave;
 
   End Else
     Error.Code := SP_ERR_WINDOW_NOT_FOUND;
+
+End;
+
+Procedure SP_InvalidateWindow(WindowID: Integer; Var Error: TSP_ErrorCode);
+Var
+  Bank: pSP_Bank;
+  BankIdx: Integer;
+  Window: pSP_Window_Info;
+Begin
+  BankIdx := SP_FindBankID(WindowID);
+  If BankIdx > 0 Then Begin
+
+    Bank := SP_BankList[BankIdx];
+
+    If Bank^.DataType = SP_WINDOW_BANK Then Begin
+
+      SP_GetWindowDetails(WindowID, Window, Error);
+      If Window^.DropShadow Then Begin
+        SP_SetDirtyRect(
+          Window^.Left + dsOffsetX - dsBlurRadius,
+          Window^.Top  + dsOffsetY - dsBlurRadius,
+          Window^.Left + Window^.Width  + dsOffsetX + dsBlurRadius,
+          Window^.Top  + Window^.Height + dsOffsetY + dsBlurRadius);
+      End Else Begin
+        SP_SetDirtyRect(
+          Window^.Left,
+          Window^.Top,
+          Window^.Left + Window^.Width,
+          Window^.Top  + Window^.Height);
+      End;
+    End;
+
+  End;
 
 End;
 
@@ -1516,7 +1552,7 @@ Begin
         SetLength(WindowSpriteList[WindowID], 0);
         Window^.SpriteCount := 0;
 
-        SP_SetDirtyRect(Window^.Left, Window^.Top, Window^.Left + Window^.Width, Window^.Top + Window^.Height);
+        SP_InvalidateWindow(WindowID, Error);
 
         Dec(NUMWINDOWS);
         SP_DeleteBank(BankIdx, Error);
@@ -1704,7 +1740,7 @@ Begin
   SP_GetWindowDetails(WindowID, Win, Error);
   If Error.Code = SP_ERR_OK Then Begin
     Win^.Visible := Visible;
-    SP_InvalidateWholeDisplay;
+    SP_InvalidateWindow(WindowID, Error);
   End;
 
 End;
@@ -2004,7 +2040,7 @@ Begin
         hTemp := H;
 
      hTemp := hTemp / 60;
-     i := TRUNC(hTemp);
+     i := Trunc(hTemp);
      f := hTemp - i;
      p := V * (1.0 - S);
      q := V * (1.0 - (S * f));
@@ -7437,48 +7473,6 @@ Begin
 
 End;
 
-Procedure SP_DrawMouseImage;
-Var
-  cX1, cY1, cX2, cY2, BankID: Integer;
-  Graphic: pSP_Graphic_Info;
-  gBank: pSP_Bank;
-  Error: TSP_ErrorCode;
-Begin
-
-  If Not SCREENCHANGE And (DISPLAYPOINTER <> nil) Then Begin
-
-    SP_SaveMouseRegion;
-
-    cX1 := 0; cY1 := 0;
-    cX2 := DISPLAYWIDTH;
-    cY2 := DISPLAYHEIGHT;
-    If MOUSEISGRAPHIC Then Begin
-      BankID := SP_FindBankID(MOUSESPRITE);
-      If BankID > -1 Then Begin
-        gBank := SP_BankList[BankID];
-        If gBank^.DataType = SP_GRAPHIC_BANK Then Begin
-          Graphic := @gBank^.Info[0];
-          cX1 := 0; cy1 := 0; cx2 := DISPLAYWIDTH; cy2 := DISPLAYHEIGHT;
-          SP_PutRegion8To32(DISPLAYPOINTER, MOUSEX - MOUSEHSX, MOUSEY - MOUSEHSY, DISPLAYSTRIDE, DISPLAYHEIGHT, pByte(Graphic), -1, @Graphic^.Palette[0], 0, 1, cX1, cY1, cX2, cY2, Error);
-        End;
-      End;
-    End Else
-      SP_PutRegion8To32(DISPLAYPOINTER, MOUSEX - MOUSEHSX, MOUSEY - MOUSEHSY, DISPLAYSTRIDE, DISPLAYHEIGHT, @MOUSESTR[1], Length(MOUSESTR), @MOUSEPALETTE[0], 0, 1, cX1, cY1, cX2, cY2, Error);
-
-    {$IFDEF FPC}
-    With DispRects[GfxUpdRect] Do Begin
-      x := Max(MOUSEX, 0);
-      y := Max(MOUSEY, 0);
-      w := Min(DISPLAYWIDTH - MOUSEX, MOUSEW);
-      h := Min(DISPLAYHEIGHT - MOUSEY, MOUSEH);
-      Inc(GfxUpdRect);
-    End;
-    {$ENDIF}
-
-  End;
-
-End;
-
 Procedure SP_MousePointerFromDefault;
 Var
   x, y: Integer;
@@ -7585,53 +7579,42 @@ Begin
 
 End;
 
-Procedure SP_SaveMouseRegion;
+Procedure SP_DrawMouseImage;
 Var
-  BankID: Integer;
+  cX1, cY1, cX2, cY2, BankID: Integer;
+  Graphic: pSP_Graphic_Info;
+  gBank: pSP_Bank;
   Error: TSP_ErrorCode;
 Begin
 
-  If Not SCREENCHANGE And (DISPLAYPOINTER <> nil) And (MOUSEW > 0) Then Begin
+  If Not SCREENCHANGE And (DISPLAYPOINTER <> nil) Then Begin
 
-    MOUSEIMAGE := '';
-    MOUSESTOREX := Max(MOUSEX - MOUSEHSX, 0);
-    MOUSESTOREY := Max(MOUSEY - MOUSEHSY, 0);
+    cX1 := 0; cY1 := 0;
+    cX2 := DISPLAYWIDTH;
+    cY2 := DISPLAYHEIGHT;
     If MOUSEISGRAPHIC Then Begin
       BankID := SP_FindBankID(MOUSESPRITE);
-      If BankID > -1 Then
-        If SP_BankList[BankID]^.DataType = SP_GRAPHIC_BANK Then
-          SP_GetRegion32(DISPLAYPOINTER, DISPLAYSTRIDE, DISPLAYHEIGHT, MOUSEIMAGE, MOUSESTOREX, MOUSESTOREY, MOUSEW, MOUSEH, Error);
+      If BankID > -1 Then Begin
+        gBank := SP_BankList[BankID];
+        If gBank^.DataType = SP_GRAPHIC_BANK Then Begin
+          Graphic := @gBank^.Info[0];
+          cX1 := 0; cy1 := 0; cx2 := DISPLAYWIDTH; cy2 := DISPLAYHEIGHT;
+          SP_PutRegion8To32(DISPLAYPOINTER, MOUSEX - MOUSEHSX, MOUSEY - MOUSEHSY, DISPLAYSTRIDE, DISPLAYHEIGHT, pByte(Graphic), -1, @Graphic^.Palette[0], 0, 1, cX1, cY1, cX2, cY2, Error);
+        End;
+      End;
     End Else
-      SP_GetRegion32(DISPLAYPOINTER, DISPLAYSTRIDE, DISPLAYHEIGHT, MOUSEIMAGE, MOUSESTOREX, MOUSESTOREY, MOUSEW, MOUSEH, Error);
+      SP_PutRegion8To32(DISPLAYPOINTER, MOUSEX - MOUSEHSX, MOUSEY - MOUSEHSY, DISPLAYSTRIDE, DISPLAYHEIGHT, @MOUSESTR[1], Length(MOUSESTR), @MOUSEPALETTE[0], 0, 1, cX1, cY1, cX2, cY2, Error);
 
-    If MOUSEIMAGE <> '' Then Begin
-      MOUSESTOREW := pLongWord(@MOUSEIMAGE[1])^;
-      MOUSESTOREH := pLongWord(@MOUSEIMAGE[5])^;
-    End;
-
-  End;
-
-End;
-
-Procedure SP_RestoreMouseRegion;
-Var
-  cX1, cY1, cX2, cY2: Integer;
-  Error: TSP_ErrorCode;
-Begin
-
-  If Not SCREENCHANGE And (DISPLAYPOINTER <> Nil) And (MOUSEIMAGE <> '') Then Begin
-    cX1 := 0; cy1 := 0; cx2 := DISPLAYWIDTH; cy2 := DISPLAYHEIGHT;
-    SP_PutRegion_NO_OVER32To32(DISPLAYPOINTER, MOUSESTOREX, MOUSESTOREY, DISPLAYSTRIDE, DISPLAYHEIGHT, @MOUSEIMAGE[1], Length(MOUSEIMAGE), cX1, cY1, cX2, cY2, Error);
     {$IFDEF FPC}
     With DispRects[GfxUpdRect] Do Begin
-      x := MOUSESTOREX;
-      y := MOUSESTOREY;
-      w := MOUSESTOREW;
-      h := MOUSESTOREH;
+      x := Max(MOUSEX, 0);
+      y := Max(MOUSEY, 0);
+      w := Min(DISPLAYWIDTH - MOUSEX, MOUSEW);
+      h := Min(DISPLAYHEIGHT - MOUSEY, MOUSEH);
       Inc(GfxUpdRect);
     End;
     {$ENDIF}
-    MOUSEIMAGE := '';
+
   End;
 
 End;

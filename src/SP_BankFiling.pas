@@ -69,7 +69,7 @@ Type
     Left, Top, FontBankID, SpriteCount, scrollcnt, bpp, Menu, CaptionHeight, PrevWin, Font: Integer;
     heading, orgx, orgy, orgw, orgh, winscalex, winscaley, scalex, scaley: aFloat;
     clipx1, clipy1, clipx2, clipy2: Integer; winscale, winorigin, flip: Boolean;
-    Visible, AlphaEnabled, FontTrans, System: Boolean;
+    Visible, AlphaEnabled, FontTrans, System, DropShadow: Boolean;
     pr_posx, pr_posy, dr_posx, dr_posy, GWScale, stroke: aFloat;
     Component: SP_BaseComponent;
     Transparent: Word;

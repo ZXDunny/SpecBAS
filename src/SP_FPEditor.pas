@@ -677,6 +677,7 @@ Begin
   SP_GetWindowDetails(DWWindowID, Win, Error);
   For Idx := 0 To 255 Do Win^.Palette[Idx] := DefaultPalette[Idx];
   fwDirect := DWWindowID;
+  SP_SetWindowShadow(DWWindowID, True);
 
   DWPaperLeft := 1 + BSize;
   DWPaperTop := FPCaptionHeight + BSize;
@@ -686,8 +687,8 @@ Begin
   DWTextLeft := DWPaperLeft + sz + BSize;
   DWTextWidth := (DWPaperWidth - DWTextLeft) Div FPFw;
 
-  SP_FillRect(0, 0, DWWindowWidth -1, DWWindowHeight -1, 7);
-  SP_Decorate_Window(DWWindowID, 'Direct Command', True, False, False);
+  SP_FillRect(0, 0, DWWindowWidth, DWWindowHeight, paperClr);
+  SP_Decorate_Window(DWWindowID, 'Direct Command', False, False, False);
 
   SP_SetDrawingWindow(FPEditorDefaultWindow);
 
@@ -728,7 +729,7 @@ Procedure SP_Decorate_Window(WindowID: Integer; Title: aString; Clear, SizeGrip,
 Var
   Win: pSP_Window_Info;
   Err: TSP_ErrorCode;
-  Window, sp, FB, i: Integer;
+  Window, sp, FB, i, tClr: Integer;
   Stroke, Scale: aFloat;
   iFPFh, iFPFw: Integer;
   iEDSC, s: aString;
@@ -756,6 +757,7 @@ Begin
 
   SP_SetDrawingWindow(WindowID);
 
+  tClr := 11;
   T_INK := capBack;
   T_OVER := 0;
   T_BOLD := 0;
@@ -763,12 +765,10 @@ Begin
   T_CLIPX2 := Win^.Width;
   T_CLIPY1 := 0;
   T_CLIPY2 := Win^.Height;
+  Win^.Transparent := tClr;
 
-  If Clear Then SP_FillRect(0, 0, Win^.Width, Win^.Height, winBack);
-  SP_FillRect(0, iFPFh + 2, Win^.Width, 4, winBack); // 4 pixel border at the top
-  SP_FillRect(0, iFPFh + 6, 4, Win^.Height, winBack); // And to the left
-  SP_FillRect(4, Win^.Height - (iFPFh + 6), Win^.Width, iFPFw + 6, winBack);
-  SP_FillRect(Win^.Width - (iFPFw + 7), iFPFh + 6, iFPFw + 7, Win^.Height - (iFPFh + 6), winBack);
+  If Clear Then
+    SP_FillRect(0, 0, Win^.Width, Win^.Height, SP_UIWindowBack);
   SP_FillRect(0, 0, Win^.Width, iFPFh +2, capBack);
 
   Sp := (Win^.Width - ((iFPFw * 4)) - iFPFh *2) - iFPFw;
@@ -787,6 +787,20 @@ Begin
   Else
     SP_TextOut(FB, iFPFw Div 2, 1, iEdSc + s, capInactive, CapBack, True);
 
+  SP_SetPixelClr(0, 0, tClr);
+  SP_SetPixelClr(Win^.Width -1, 0, tClr);
+
+  SP_SetPixelClr(0, Win^.Height -1, tClr);
+  SP_SetPixelClr(0, Win^.Height -2, tClr);
+  SP_SetPixelClr(1, Win^.Height -1, tClr);
+
+  SP_SetPixelClr(Win^.Width -1, Win^.Height -1, tClr);
+  SP_SetPixelClr(Win^.Width -1, Win^.Height -2, tClr);
+  SP_SetPixelClr(Win^.Width -2, Win^.Height -1, tClr);
+
+  SP_SetPixelClr(Win^.Width -2, Win^.Height -2, capBack);
+  SP_SetPixelClr(1, Win^.Height -2, capBack);
+
 
   If WindowID = DWWindowID Then
     SP_UpdateBatteryStatus
@@ -794,7 +808,7 @@ Begin
     SP_DrawStripe(Win^.Surface, Win^.Width, iFPFw, iFPFh, 100, Focused);
 
   If SizeGrip Then
-    SP_TextOut(FB, Win^.Width -(iFPFw + 6), Win^.Height - (iFPFh + 6), EdCSc + #250, gripClr, winBack, False);
+    SP_TextOut(FB, Win^.Width -(iFPFw + 6), Win^.Height - (iFPFh + 6), EdCSc + #250, gripClr, -1, False);
 
   SP_SetDirtyRect(Win^.Left, Win^.Top, Win^.Left + Win^.Width -1, Win^.Top + Win^.Height);
   SP_SetDrawingWindow(Window);
@@ -813,7 +827,7 @@ Begin
 
   If Width < 160 Then Exit;
 
-  sw := StripeWidth * 4;
+  sw := StripeWidth * 5;
   X := Width - sw - StripeHeight;
   FPStripePos := X;
   oPtr := pByte(NativeUInt(Dst) + (Width * StripeHeight) + X);
@@ -825,12 +839,12 @@ Begin
       i := (X2 - X) Div StripeWidth;
       If ((Y = StripeHeight) or (Y = 1) or (X2 = X) or (X2 = X + SW -1)) or (X2 < bw + X + 1) Then
         If Focused Then
-          oPtr^ := ClrsFocused[i] + (8 * Ord(i < 3))
+          oPtr^ := ClrsFocused[i] + (8 * Ord(i < 4))
         Else
           oPtr^ := ClrsUnFocused[i];
       inc(oPtr);
     End;
-    Dec(oPtr, Width + (StripeWidth * 4) - (y and 1)); // change "(y and 1)" to "1" for 45 degree stripes
+    Dec(oPtr, Width + (StripeWidth * 4) - ({y and }1)); // change "(y and 1)" to "1" for 45 degree stripes
   End;
 
 End;
@@ -927,6 +941,7 @@ Begin
   FPWindowID := SP_Add_Window(FPWindowLeft, -FPWindowHeight, FPWindowWidth, FPWindowHeight, 255, 8, 0, Error);
   SP_GetWindowDetails(FPWindowID, Win, Error);
   Win^.CaptionHeight := FPCaptionHeight;
+  SP_SetWindowShadow(FPWindowID, True);
   SP_CreateEditorMenu;
   //SP_CreateEditorTabBar;
   SP_CreateEditorSearchbar;
@@ -941,8 +956,8 @@ Begin
   CITALIC := 0;
   CBOLD := 0;
 
-  SP_FillRect(0, 0, FPWindowWidth -1, FPWindowHeight -1, 7);
-  SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, False);
+  SP_FillRect(0, 0, FPWindowWidth, FPWindowHeight, 7);
+  SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), False, False, False);
 
   If FPUserOpenedDebugPanel Then
     SP_OpenDebugPanel;
@@ -978,11 +993,11 @@ Begin
   OldFocus := FocusedWindow;
   SwitchFocusedWindow(FocusMode);
   If OldFocus = fwDirect Then Begin
-    SP_Decorate_Window(DWWindowID, 'Direct command', True, False, False);
+    SP_Decorate_Window(DWWindowID, 'Direct command', False, False, False);
     SP_EditorDisplayEditLine;
   End Else
     If OldFocus = fwEditor Then Begin
-      SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, False);
+      SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), False, False, False);
       Ln := Listing.FPCLine;
       PROGLINE := SP_GetLineNumberFromIndex(Ln);
     End;
@@ -991,7 +1006,7 @@ Begin
 
   If FocusMode = fwDirect Then Begin
     SP_ClearEditorClipping;
-    SP_Decorate_Window(DWWindowID, 'Direct command', True, False, True);
+    SP_Decorate_Window(DWWindowID, 'Direct command', False, False, True);
     SP_DisplayDWCursor;
     SP_EditorDisplayEditLine;
   End Else
@@ -1000,7 +1015,7 @@ Begin
         FPWindowMode := 2;
         SP_FPCycleEditorWindows(2);
       End;
-      SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, True);
+      SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), False, False, True);
       If Listing.FPCLine >= Listing.Count Then Begin
         Listing.FPCLine := Listing.Count -1;
         Listing.FPCPos := 1;
@@ -1008,8 +1023,8 @@ Begin
         FPCDesLine := Listing.FPCLine;
       End;
     End Else Begin
-      SP_Decorate_Window(DWWindowID, 'Direct command', True, False, False);
-      SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, False);
+      SP_Decorate_Window(DWWindowID, 'Direct command', False, False, False);
+      SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), False, False, False);
       SP_EditorDisplayEditLine;
       Ln := Listing.FPCLine;
       PROGLINE := SP_GetLineNumberFromIndex(Ln);
@@ -2330,11 +2345,13 @@ Begin
 
     // Fill the window - note: using the client region for this!
 
-    SP_FillRect(FPClientLeft, FPClientTop, FPClientWidth, FPClientHeight, paperClr);
+    SP_FillRect(FPClientLeft, FPClientTop, FPClientWidth +1, FPClientHeight, paperClr);
 
     // Draw the Gutter
 
     SP_FillRect(FPClientLeft, FPClientTop, FPPaperLeft + (FPFw * FPGutterWidth), FPClientHeight +1, gutterClr);
+    SP_SetPixelClr(Win^.Width -2, Win^.Height -2, capBack);
+    SP_SetPixelClr(1, Win^.Height -2, capBack);
 
   End;
 
@@ -2374,7 +2391,7 @@ Begin
     ty := OfsY + (Line * FPFh);
     If (Line >= Listing.Count) And (ty <= MaxY) Then Begin
       SP_FillRect(FPPaperLeft, ty, (FPFw * FPGutterWidth) +1, FPFh, gutterClr);
-      SP_FillRect((FPGutterWidth * FPFw) + FPPaperLeft +1, ty, FPPaperWidth - (FPGutterWidth * FPFw), FPFh, paperClr);
+      SP_FillRect((FPGutterWidth * FPFw) + FPPaperLeft +1, ty, FPPaperWidth - (FPGutterWidth * FPFw) +1, FPFh, paperClr);
       Goto Finished;
     End;
 
@@ -2435,7 +2452,7 @@ Begin
         End;
         If DoDraw Then Begin
           SP_FillRect(FPPaperLeft, OfsY, (FPFw * FPGutterWidth) +1, FPFh, gClr);
-          SP_FillRect((FPGutterWidth * FPFw) + FPPaperLeft +1, OfsY, FPPaperWidth - (FPGutterWidth * FPFw), FPFh, pClr);
+          SP_FillRect((FPGutterWidth * FPFw) + FPPaperLeft +1, OfsY, FPPaperWidth - (FPGutterWidth * FPFw) +1, FPFh, pClr);
         End;
         // Current line highlight
         dIdx := Idx;
@@ -4301,9 +4318,9 @@ Begin
     If Has2 > 0 Then Begin
       // Both lines have numbers
       If Has1 < Has2 Then
-        Result := FPCDes + (Has2 - Has1)
+        Result := FPCDes - (Has2 - Has1)
       Else
-        Result := FPCDes - (Has2 - Has1);
+        Result := FPCDes + (Has2 - Has1);
     End Else
       // Old line has number, new line does not
       Result := FPCDes - Has1;
@@ -5875,7 +5892,7 @@ Begin
   //
 
   SP_ResizeWindow(FPWindowID, FPWindowWidth, FPWindowHeight, 8, False, False, Err);
-  SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), True, False, FocusedWindow = fwEditor);
+  SP_Decorate_Window(FPWindowID, 'Program listing - ' + SP_GetProgName(PROGNAME, True), False, False, FocusedWindow = fwEditor);
   SP_AddFPScrollBars(False);
   SP_FPRethinkScrollBars;
   SP_DisplayFPListing(-1);
@@ -5925,7 +5942,7 @@ Begin
   Font := SP_SetFPEditorFont;
   SP_SetSystemFont(Font, Err);
 
-  SP_Decorate_Window(DWWindowID, 'Direct command', True, False, True);
+  SP_Decorate_Window(DWWindowID, 'Direct command', False, False, True);
 
   If Redraw Then
     SP_EditorDisplayEditLine;
@@ -7408,12 +7425,13 @@ Begin
 
     ERRORWINDOW := SP_Add_Window(WinX, WinY, WinW, WinH, -1, 8, 0, Error);
     SP_SetDrawingWindow(ERRORWINDOW);
-    For Idx := 0 To 255 Do pSP_Window_Info(WINDOWPOINTER)^.Palette[Idx] := DefaultPalette[Idx];
     SP_GetWindowDetails(ERRORWINDOW, ErrWin, Error);
+    For Idx := 0 To 255 Do ErrWin^.Palette[Idx] := DefaultPalette[Idx];
+    SP_SetWindowShadow(ERRORWINDOW, True);
 
     If Not IsNew Then Begin
       SP_FillRect(0, 0, WinW, WinH, 7);
-      SP_Decorate_Window(ERRORWINDOW, Title, True, False, True);
+      SP_Decorate_Window(ERRORWINDOW, Title, False, False, True);
       COVER := 0;
       T_INK := 0;
       T_OVER := 0;

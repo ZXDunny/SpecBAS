@@ -125,9 +125,10 @@ Type
   Function  SP_GetPropTextWidth(FontID: Integer; Text, Exclude: aString): Integer;
 
   Function  SP_Screen_Bank_Create(Width, Height: Integer): Integer;
-  Procedure SP_SetWindowDefaults(Bank: pSP_Bank; Window: pSP_Window_Info; Left, Top, Width, Height, TransIdx, Bpp, Alpha: Integer);
+  Procedure SP_SetWindowDefaults(Bank: pSP_Bank; Window: pSP_Window_Info; Left, Top, Width, Height, TransIdx, Bpp, Alpha: Integer; Shadow: Boolean = False);
   Function  SP_Add_Window(Left, Top, Width, Height, TransIdx, Bpp, Alpha: Integer; Var Error: TSP_ErrorCode): Integer;
   Procedure SP_SetWindowVisible(WindowID: Integer; Vis: Boolean; Error: TSP_ErrorCode);
+  Procedure SP_SetWindowShadow(WindowID: Integer; Enabled: Boolean);
   Procedure SwitchFocusedWindow(ID: Integer);
 
   Function  SP_Program_Bank_Create(Name: aString): Integer;
@@ -1248,9 +1249,10 @@ Begin
 
 End;
 
-Procedure SP_SetWindowDefaults(Bank: pSP_Bank; Window: pSP_Window_Info; Left, Top, Width, Height, TransIdx, Bpp, Alpha: Integer);
+Procedure SP_SetWindowDefaults(Bank: pSP_Bank; Window: pSP_Window_Info; Left, Top, Width, Height, TransIdx, Bpp, Alpha: Integer; Shadow: Boolean);
 Var
   Pal: pPalArray;
+  Error: TSP_ErrorCode;
 Begin
 
   DisplaySection.Enter;
@@ -1307,10 +1309,37 @@ Begin
     Window^.Component.Free;
   Window^.Component := SP_BaseComponent.Create(Nil);
   Window^.Component.WindowID := Bank^.ID;
+  Window^.DropShadow := Shadow;
+
+  SP_InvalidateWindow(Bank^.ID, Error);
 
   CopyMem(@Window^.Palette[0], Pal, SizeOf(TP_Colour) * 256);
 
   DisplaySection.Leave;
+
+End;
+
+Procedure SP_SetWindowShadow(WindowID: Integer; Enabled: Boolean);
+Var
+  Bank: pSP_Bank;
+  BankIdx: Integer;
+  Window: pSP_Window_Info;
+  Error: TSP_ErrorCode;
+Begin
+  BankIdx := SP_FindBankID(WindowID);
+  If BankIdx > -1 Then Begin
+
+    Bank := SP_BankList[BankIdx];
+
+    If Bank^.DataType = SP_WINDOW_BANK Then Begin
+
+      SP_GetWindowDetails(WindowID, Window, Error);
+      Window^.DropShadow := Enabled;
+      SP_InvalidateWindow(WindowID, Error);
+
+    End;
+
+  End;
 
 End;
 
@@ -1381,6 +1410,7 @@ Begin
   Bank^.Changed := True;
   Result := Bank^.ID;
 
+  SP_InvalidateWindow(Bank^.ID, Error);
   Inc(NUMWINDOWS);
 
   DisplaySection.Leave;
